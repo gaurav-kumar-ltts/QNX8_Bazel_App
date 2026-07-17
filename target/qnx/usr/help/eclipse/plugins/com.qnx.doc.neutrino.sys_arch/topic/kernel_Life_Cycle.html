@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread lifecycle" />
+<meta name="abstract" content="The number of threads within a process can vary widely, with threads being created and destroyed dynamically." />
+<meta name="description" content="The number of threads within a process can vary widely, with threads being created and destroyed dynamically." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Life_Cycle" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread lifecycle</title>
+</head>
+<body id="Life_Cycle">
+
+<h1 class="title topictitle1" id="ariaid-title1">Thread lifecycle</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The number of threads within a process can vary widely, with threads
+being created and destroyed dynamically.
+</p>
+
+
+<p class="p">
+
+
+Thread creation
+(<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html"><span class="keyword apiname">pthread_create()</span></a>) involves allocating and initializing the
+necessary resources within the process's address space (e.g., thread stack)
+and starting the execution of the thread at some function in the address space.
+There are limits on how many threads you can create for a process;
+for details, see <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_OtherLimits.html">Other system limits</a></q>
+in the <span class="keyword">QNX OS</span> <cite class="cite">User's Guide</cite>.
+</p>
+
+
+<p class="p">
+Thread termination
+(<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html"><span class="keyword apiname">pthread_exit()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html"><span class="keyword apiname">pthread_cancel()</span></a>) involves stopping the thread
+and reclaiming the thread's resources.
+</p>
+
+
+<div class="p">
+As a thread executes, its state can generally be described as either <q class="q">blocked</q>, <q class="q">ready</q>,
+or <q class="q">running</q>:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Possible thread states and state transitions.</span>
+  
+  <br /><img class="image" src="../images/thread_states.svg" width="576" alt="Thread states" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+The term <q class="q">blocked</q> covers the many different states in which a thread can't make progress
+(and hence, currently can't be executed). Most often, this is because it has issued a kernel call
+that has blocked, but it also occurs if another thread has signaled that the thread must be stopped.
+In this release, threads can block only themselves and not other threads, so a thread must run
+before going into a blocked state, including the <span class="keyword const">STOPPED</span> state.
+The exact state that a blocked thread is in depends on the reason that the thread blocked,
+such as the thread must wait for a message reply or for a semaphore to be posted.
+</p>
+
+
+<p class="p">
+When a thread terminates itself or gets terminated, encounters a fatal error, or receives a signal
+to shut down that it can't block or ignore (e.g., <span class="keyword const">SIGKILL</span>), it's then moved by the
+kernel to the DEAD state.
+The thread will never run again and the OS will reclaim its resources when convenient.
+</p>
+
+
+<div class="p">
+The exact possible thread states are:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">STATE_BARRIER</span></dt>
+
+<dd class="dd">The thread is blocked on a barrier (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_wait.html"><span class="keyword apiname">pthread_barrier_wait()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_CONDVAR</span></dt>
+
+<dd class="dd">The thread is blocked on a condition variable (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html"><span class="keyword apiname">pthread_cond_wait()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_DEAD</span></dt>
+
+<dd class="dd">The thread has terminated and is waiting for a join by another thread.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_INTR</span></dt>
+
+<dd class="dd">The thread is blocked waiting for an interrupt (i.e., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html"><span class="keyword apiname">InterruptWait()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_JOIN</span></dt>
+
+<dd class="dd">The thread is blocked waiting to join another thread
+  (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html"><span class="keyword apiname">pthread_join()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_MQ_RECEIVE</span></dt>
+
+<dd class="dd">The thread is waiting on an empty queue after calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mq_receive.html"><span class="keyword apiname">mq_receive()</span></a>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_MQ_SEND</span></dt>
+
+<dd class="dd">The thread is waiting on a full queue after calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mq_send.html"><span class="keyword apiname">mq_send()</span></a>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_MUON_MUTEX</span></dt>
+
+<dd class="dd">The thread is blocked on an internal kernel mutex.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_MUTEX</span></dt>
+
+<dd class="dd">The thread is blocked on a mutual exclusion lock (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html"><span class="keyword apiname">pthread_mutex_lock()</span></a>).
+  
+   
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_NANOSLEEP</span></dt>
+
+<dd class="dd">The thread is sleeping for a time interval (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html"><span class="keyword apiname">nanosleep()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_READY</span></dt>
+
+<dd class="dd">The thread is waiting to be executed while other threads are running.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_RECEIVE</span></dt>
+
+<dd class="dd">The thread is blocked on a message receive (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceive()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_REPLY</span></dt>
+
+<dd class="dd">The thread is blocked on a message reply (i.e., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>,
+  and the server received the message).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_RUNNING</span></dt>
+
+<dd class="dd">The thread is being executed by a processor.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_RWLOCK_READ</span></dt>
+
+<dd class="dd">The thread is blocked trying to acquire a non-exclusive lock of a reader/writer lock
+  after calling <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_rdlock.html"><span class="keyword apiname">pthread_rwlock_rdlock()</span></a>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_RWLOCK_WRITE</span></dt>
+
+<dd class="dd">The thread is blocked trying to acquire an exclusive lock of a reader/writer lock
+  after calling <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_wrlock.html"><span class="keyword apiname">pthread_rwlock_wrlock()</span></a>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_SEM</span></dt>
+
+<dd class="dd">The thread is waiting for a semaphore to be posted (i.e., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_wait.html"><span class="keyword apiname">sem_wait()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_SEND</span></dt>
+
+<dd class="dd">The thread is blocked on a message send (e.g., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>,
+  but the server hasn't yet received the message).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_SIGSUSPEND</span></dt>
+
+<dd class="dd">The thread is blocked waiting for a signal (i.e., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html"><span class="keyword apiname">sigsuspend()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_SIGWAITINFO</span></dt>
+
+<dd class="dd">The thread is blocked waiting for a signal (i.e., it called
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html"><span class="keyword apiname">sigwaitinfo()</span></a>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_STOPPED</span></dt>
+
+<dd class="dd">The thread has stopped, for example because it received a <span class="keyword const">SIGSTOP</span> or
+  <span class="keyword apiname">ThreadCtl()</span> command.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">STATE_WAITPAGE</span></dt>
+
+<dd class="dd">The thread is waiting for physical memory to be
+  allocated for a virtual address.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In discussion and in the documentation, we usually omit the <q class="q">STATE_</q> prefix.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_THREADSANDPRO.html" title="When building an application (realtime, embedded, graphical, or otherwise), the developer may want several algorithms within the application to execute concurrently. This concurrency is achieved by using the POSIX thread model, which defines a process as containing one or more threads of execution.">Threads and processes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

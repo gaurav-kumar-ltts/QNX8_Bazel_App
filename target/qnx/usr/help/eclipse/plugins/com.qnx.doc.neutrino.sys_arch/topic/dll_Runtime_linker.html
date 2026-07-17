@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Runtime linker" />
+<meta name="abstract" content="The runtime linker is invoked when a program that was linked against a shared object is started or when a program requests that a shared object be dynamically loaded. This linker is contained within the C runtime library." />
+<meta name="description" content="The runtime linker is invoked when a program that was linked against a shared object is started or when a program requests that a shared object be dynamically loaded. This linker is contained within the C runtime library." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Runtime_linker" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Runtime linker</title>
+</head>
+<body id="Runtime_linker">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Runtime linker</h1>
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The runtime linker is invoked when a program that was linked
+against a shared object is started or when a program requests that a
+shared object be dynamically loaded. This linker is contained
+within the C runtime library.
+</p>
+
+
+<div class="p">
+
+
+The runtime linker performs several tasks when loading a
+shared library (<span class="ph filepath">.so</span> file):
+
+<ol class="ol">
+<li class="li">If the requested shared library isn't already loaded in memory,
+  the runtime linker loads it:
+
+  <ul class="ul">
+  <li class="li">If the shared library name is fully qualified (i.e., begins with a slash),
+    it's loaded directly from the specified location. If it
+    can't be found there, no further searches are performed.
+  </li>
+
+
+  <li class="li">If it's not a fully qualified pathname, the
+    linker searches for it as follows:
+
+    <ol class="ol" type="a">
+    <li class="li">If the executable's dynamic
+      section contains a <span class="ph codeph">DT_RPATH</span> tag, then the path
+      specified by <span class="ph codeph">DT_RPATH</span> is searched.
+      
+    </li>
+
+
+    <li class="li">If the shared library isn't found, the runtime linker
+      searches for it in the directories specified by
+      <span class="keyword envar">LD_LIBRARY_PATH</span>.
+      
+      
+
+      <div class="note"><span class="notetitle">Note:</span> 
+      For security reasons, the runtime linker unsets  <span class="keyword envar">LD_LIBRARY_PATH</span> if the binary has
+      the setuid bit set.
+      </div>
+
+    </li>
+
+
+    <li class="li">If the shared library still isn't found, then the linker
+      searches for the default library search path as specified by
+      the <span class="keyword envar">LD_LIBRARY_PATH</span> environment variable to
+      <span class="keyword cmdname">procnto</span> (i.e., the <span class="keyword const">CS_LIBPATH</span> configuration string).
+      If none has been specified, then the
+      default library path is set to the image filesystem's path.
+    </li>
+
+    </ol>
+
+  </li>
+
+  </ul>
+
+</li>
+
+
+<li class="li">Once the requested shared library is found, it's loaded into memory.
+  For ELF shared libraries, this is a very efficient
+  operation: the runtime linker simply needs to use the
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+  call twice to map the two load segments into memory.
+</li>
+
+
+<li class="li">The shared library is then added to the internal list of all libraries
+  that the process has loaded.
+  The runtime linker maintains this list.
+</li>
+
+
+<li class="li">The runtime linker then decodes the dynamic section of
+  the shared object.
+</li>
+
+
+</ol>
+
+</div>
+
+
+<p class="p">
+This dynamic section provides information to the linker
+about other libraries that this library was linked against. It also
+gives information about the relocations that need to be
+applied and the external symbols that need to be resolved.
+The runtime linker will first load any other required shared libraries
+(which may themselves reference other shared libraries). It will then
+process the relocations for each library. Some of these
+relocations are local to the library, while others require
+the runtime linker to resolve a global symbol. In the latter
+case, the linker will search through the list of
+libraries for this symbol. In ELF files, hash tables are
+used for the symbol lookup, so they're very fast. The order
+in which libraries are searched for symbols is very
+important, as we'll see in the section on
+<q class="q"><a class="xref" href="dll_SYMBOLNAME.html" title="When the runtime linker loads a shared library, the symbols within that library have to be resolved. The order and the scope of the symbol resolution are important. If a shared library calls a function that happens to exist by the same name in several libraries that the program has loaded, the order in which these libraries are searched for this symbol is critical. This is why the OS defines several options that can be used when loading libraries.">Symbol name resolution</a></q> below.
+</p>
+
+
+<p class="p">
+Once all relocations have been applied, any initialization
+functions that have been registered in the shared library's init
+section are called. This is used in some implementations of
+C++ to call global constructors.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/dll.html" title="In a typical system, a number of programs will be running. Each program relies on a number of functions, some of which will be “standard” C library functions, like printf(), malloc(), write(), etc.">Dynamic Linking</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html">Using libraries (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html">dladdr()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html">dlclose()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html">dlerror()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html">dlsym()</a></li></ul></div>
+</div></body>
+</html>

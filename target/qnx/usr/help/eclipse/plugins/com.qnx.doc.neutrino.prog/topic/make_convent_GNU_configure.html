@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="GNU configure" />
+<meta name="abstract" content="The addvariant utility knows how to work with code that uses a GNU ./configure script for configuration." />
+<meta name="description" content="The addvariant utility knows how to work with code that uses a GNU ./configure script for configuration." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_ADVANCED.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_hook_preconfigure.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_hook_postconfigure.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_hook_premake.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_hook_postmake.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_hook_pinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/make.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="GNU_configure" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>GNU configure</title>
+</head>
+<body id="GNU_configure">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">GNU <span class="keyword cmdname">configure</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The <span class="keyword cmdname">addvariant</span> utility knows how to work with
+code that uses a GNU <span class="keyword cmdname">./configure</span> script for configuration.
+</p>
+
+
+<p class="p">
+
+
+If the current working directory contains files named 
+<span class="ph filepath">configure</span> and <span class="ph filepath">Makefile.in</span>, <span class="keyword cmdname">addvariant</span> 
+automatically squashes the directory levels (as described earlier) into
+a single OS-CPU-VARIANT level
+and creates <span class="ph filepath">GNUmakefile</span> files in the newly
+created directories along with a recursing <span class="ph filepath">Makefile</span>.
+</p>
+
+
+<p class="p">
+After you've run <span class="keyword cmdname">addvariant</span>, create an executable shell script
+called <span class="ph filepath">build-hooks</span> in the root of the project.
+This file needs to define one or more of the following shell functions (described in more
+detail below):
+
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="make_convent_hook_preconfigure.html" title="This function is invoked just before we run the project's configure script. Its main job is to set the configure_opts variable properly."><span class="keyword apiname">hook_preconfigure()</span></a></li>
+
+<li class="li"><a class="xref" href="make_convent_hook_postconfigure.html" title="This is invoked after configure has been successfully run. Usually you don't need to define this function, but sometimes you just can't quite convince configure to do the right thing, so you can put some hacks in here to fix things appropriately."><span class="keyword apiname">hook_postconfigure()</span></a></li>
+
+<li class="li"><a class="xref" href="make_convent_hook_premake.html" title="This function is invoked just before the make. You don't usually need it."><span class="keyword apiname">hook_premake()</span></a></li>
+
+<li class="li"><a class="xref" href="make_convent_hook_postmake.html" title="This function is invoked just after the make. We haven't found a use for this one yet, but included it for completeness."><span class="keyword apiname">hook_postmake()</span></a></li>
+
+<li class="li"><a class="xref" href="make_convent_hook_pinfo.html" title="This function is invoked after hook_postmake(). Theoretically, we don't need this hook at all and we could do all its work in hook_postmake(), but we're keeping it separate in case we get fancier in the future."><span class="keyword apiname">hook_pinfo()</span></a></li>
+
+</ul>
+
+
+<p class="p">
+
+Every time that you type <span class="keyword cmdname">make</span> in one of the newly created
+directories, the <span class="ph filepath">GNUmakefile</span> is read (a small trick that
+works only with GNU <span class="keyword cmdname">make</span>).
+<span class="ph filepath">GNUmakefile</span> in turn invokes the
+<span class="ph filepath">$QNX_TARGET/usr/include/mk/build-cfg</span> script,
+which notices whether or not <span class="keyword cmdname">configure</span> has been run in
+the directory:
+</p>
+
+
+<ul class="ul">
+<li class="li">If it hasn't, <span class="keyword cmdname">build-cfg</span> invokes the
+  <span class="keyword apiname">hook_preconfigure()</span> function, then the project's 
+  <span class="keyword cmdname">configure</span>, and then the <span class="keyword apiname">hook_postconfigure()</span>
+  function.
+  
+  
+  
+  
+</li>
+
+
+<li class="li">If the configure has already been done, or we just did it successfully,
+  <span class="keyword cmdname">build-cfg</span> invokes the <span class="keyword apiname">hook_premake()</span>, then does
+  a <span class="keyword cmdname">make -fMakefile</span>, then <span class="keyword apiname">hook_postmake()</span>, then
+  <span class="keyword apiname">hook_pinfo()</span>.
+  
+  
+  
+  
+  
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If a function isn't defined in <span class="ph filepath">build-hooks</span>,
+<span class="keyword cmdname">build-cfg</span> doesn't bother trying to invoke it.
+</p>
+
+
+<p class="p">
+Within the <span class="ph filepath">build-hooks</span> script, the following variables are available:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">SYSNAME</var></dt>
+
+<dd class="dd">The host OS (e.g., <span class="ph codeph">nto</span>, <span class="ph codeph">linux</span>) that we're running on. This is
+          automatically set by <span class="keyword cmdname">build-cfg</span>, based on the results of system
+            <span class="keyword cmdname">uname</span>. 
+          
+        </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">TARGET_SYSNAME</var></dt>
+
+<dd class="dd">The target OS (e.g., <span class="ph codeph">nto</span>, <span class="ph codeph">win32</span>) that we're
+  going to be generating executables for.
+  It's set automatically by <span class="keyword cmdname">build-cfg</span>, based on the directory
+  that you're in.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">make_CC</var></dt>
+
+<dd class="dd">This variable is used to set the <var class="keyword varname">CC</var> <span class="keyword cmdname">make</span> variable
+  when we invoke <span class="keyword cmdname">make</span>.
+  This typically sets the compiler that <span class="keyword cmdname">make</span> uses.
+  It's set automatically by <span class="keyword cmdname">build-cfg</span>, based on the directory
+  that you're in.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">make_opts</var></dt>
+
+<dd class="dd">Any additional options that you want to pass to <span class="keyword cmdname">make</span>
+  (the default is <span class="ph codeph">""</span>).
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">make_cmds</var></dt>
+
+<dd class="dd">The command goals passed to <span class="keyword cmdname">make</span> (e.g., <span class="ph codeph">all</span>).
+  It's set automatically by <span class="keyword cmdname">build-cfg</span> what you passed on the
+  original <span class="keyword cmdname">make</span> command line.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">configure_opts</var></dt>
+
+<dd class="dd">The list of options that should be passed to <span class="keyword cmdname">configure</span>.
+  The default is <span class="ph codeph">""</span>, but <span class="ph codeph">--srcdir=..</span> is automatically
+  added just before <span class="keyword cmdname">configure</span> is called.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/make_convent_hook_preconfigure.html">hook_preconfigure()</a></strong><br />
+ This function is invoked just before we run the project's <span class="keyword cmdname">configure</span> script. Its main job is to set the <var class="keyword varname">configure_opts</var> variable properly. </li>
+<li class="link ulchildlink"><strong><a href="../topic/make_convent_hook_postconfigure.html">hook_postconfigure()</a></strong><br />
+ This is invoked after <span class="keyword cmdname">configure</span> has been successfully run. Usually you don't need to define this function, but sometimes you just can't quite convince <span class="keyword cmdname">configure</span> to do the right thing, so you can put some hacks in here to fix things appropriately. </li>
+<li class="link ulchildlink"><strong><a href="../topic/make_convent_hook_premake.html">hook_premake()</a></strong><br />
+ This function is invoked just before the <span class="keyword cmdname">make</span>. You don't usually need it. </li>
+<li class="link ulchildlink"><strong><a href="../topic/make_convent_hook_postmake.html">hook_postmake()</a></strong><br />
+ This function is invoked just after the <span class="keyword cmdname">make</span>. We haven't found a use for this one yet, but included it for completeness. </li>
+<li class="link ulchildlink"><strong><a href="../topic/make_convent_hook_pinfo.html">hook_pinfo()</a></strong><br />
+ This function is invoked after <span class="keyword apiname">hook_postmake()</span>. Theoretically, we don't need this hook at all and we could do all its work in <span class="keyword apiname">hook_postmake()</span>, but we're keeping it separate in case we get fancier in the future. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/make_convent_ADVANCED.html">Advanced topics</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html">addvariant</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/make.html">make</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="TimerAlarm(), TimerAlarm_r()" />
+<meta name="abstract" content="Schedule a SIGALRM for delivery" />
+<meta name="description" content="Schedule a SIGALRM for delivery" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/timing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/alarm.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/setitimer.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timercreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/u/ualarm.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timeralarm" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>TimerAlarm(), TimerAlarm_r()</title>
+</head>
+<body id="timeralarm">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">TimerAlarm()</span>, <span class="keyword apiname">TimerAlarm_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Schedule a SIGALRM for delivery</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int TimerAlarm( clockid_t <var class="keyword varname">id</var>,
+                const struct _itimer * <var class="keyword varname">itime</var>,
+                struct _itimer * <var class="keyword varname">otime</var> );
+
+int TimerAlarm_r( clockid_t <var class="keyword varname">id</var>,
+                  const struct _itimer * <var class="keyword varname">itime</var>,
+                  struct _itimer * <var class="keyword varname">otime</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+<dd class="dd">The timer type to use to implement the alarm; one of:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">CLOCK_REALTIME</span> — the standard POSIX-defined clock. 
+    Timers based on this clock wake up the processor if it's in a power-saving
+    mode.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_SOFTTIME</span> — (a <span class="keyword">QNX OS</span> extension)
+    this clock is active only when
+    the processor <em class="ph i">isn't</em> in a power-saving mode.  
+    For example, an application using a <span class="keyword const">CLOCK_SOFTTIME</span> timer
+    to sleep wouldn't wake up
+    the processor when the application was due to wake up.  
+    This will allow the processor to enter a power-saving mode.
+    
+
+    <p class="p">
+    While the processor isn't in a power-saving mode, 
+    <span class="keyword const">CLOCK_SOFTTIME</span> behaves the same as
+    <span class="keyword const">CLOCK_REALTIME</span>.
+    </p>
+
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_MONOTONIC</span> — this clock always increases
+    at a constant rate and can't be adjusted.
+    
+  </li>
+
+
+  </ul>
+
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">itime</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to an <span class="keyword dtype">_itimer</span> structure
+  that specifies the length of time to wait (see below).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">otime</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to an <span class="keyword dtype">_itimer</span> structure
+  where the function can store the old trigger time.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+        
+        
+        
+         These kernel calls activate an internal timer
+        to schedule an alarm signal (<span class="keyword const">SIGALRM</span>) for delivery to the process. The signal
+        will be delivered at the time specified by <var class="keyword varname">itime</var>. If
+          <var class="keyword varname">otime</var> isn't <span class="keyword const">NULL</span>, the old trigger time is written into
+        this structure. </p>
+
+
+
+
+<p class="p">
+The <span class="keyword apiname">TimerAlarm()</span> and <span class="keyword apiname">TimerAlarm_r()</span>
+functions are identical except in the way they indicate errors. 
+See the <a class="xref" href="#timeralarm__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">Instead of using these kernel calls directly, consider calling
+  <a class="xref" href="../a/alarm.html" title="Schedule an alarm"><span class="keyword apiname">alarm()</span></a>
+  or
+  <a class="xref" href="../s/setitimer.html" title="Set the value of an interval timer"><span class="keyword apiname">setitimer()</span></a>.
+</li>
+
+
+<li class="li">Because of the nature of time measurement,
+  the signal might actually get sent later than the specified time.
+  For more information, see the
+  <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time</a></q>
+  chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+The <span class="keyword dtype">_itimer</span> structure contains at least the following members:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword dtype">uint64_t</span> <var class="keyword varname">nsec</var> — the number of nanoseconds to wait, or
+  0 to cancel any previous request for an alarm.
+</li>
+
+
+<li class="li"><span class="keyword dtype">uint64_t</span> <var class="keyword varname">interval_nsec</var> — 0, or a
+  repeat rate that's added to the timer once the <var class="keyword varname">nsec</var> period has expired. 
+  Subsequently, the timer is automatically rearmed, 
+  causing it to repeat with a period of <var class="keyword varname">interval_nsec</var>.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Alarm requests aren't stacked; only a single <span class="keyword const">SIGALRM</span>
+may be outstanding on a timer at one time.
+If you call <span class="keyword apiname">TimerAlarm()</span>
+while an alarm is outstanding, the alarm is reset to the new
+value passed in <var class="keyword varname">itime</var>.
+</p>
+
+
+<p class="p">
+If <var class="keyword varname">itime</var> is 0, the function returns right away. 
+If it's <span class="keyword const">NULL</span>, the function doesn't schedule any signal
+and just reads the remaining time into <var class="keyword varname">otime</var> (assuming it's non-NULL).
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+These calls don't block.
+</p>
+
+
+</div>
+
+
+
+<div class="section" id="timeralarm__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The only difference between these functions is the way they indicate errors:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword apiname">TimerAlarm()</span></dt>
+
+<dd class="dd">If an error occurs, -1 is returned and 
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set. Any other value returned
+  indicates success.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">TimerAlarm_r()</span></dt>
+
+<dd class="dd"><span class="keyword const">EOK</span> is returned on success.
+  This function does <strong class="ph b">NOT</strong> set <var class="keyword varname">errno</var>.
+  If an error occurs, any value in the Errors section may be returned.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">All kernel timer entries are in use.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">Invalid timer value <var class="keyword varname">id</var>.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d647440e462">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d647440e464"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e462 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e464 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e462 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e464 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e462 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d647440e464 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The <a class="xref" href="../a/alarm.html" title="Schedule an alarm"><span class="keyword apiname">alarm()</span></a>,
+<span class="keyword apiname">TimerAlarm()</span>, and
+<a class="xref" href="../u/ualarm.html" title="Schedule an alarm"><span class="keyword apiname">ualarm()</span></a> requests aren't
+stacked; only a single <span class="keyword const">SIGALRM</span> 
+can be scheduled with these functions.  If the <span class="keyword const">SIGALRM</span>
+signal hasn't been generated, the next call to <span class="keyword apiname">alarm()</span>,
+<span class="keyword apiname">TimerAlarm()</span>, or <span class="keyword apiname">ualarm()</span> reschedules it.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/a/alarm.html" title="Schedule an alarm">alarm()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/setitimer.html" title="Set the value of an interval timer">setitimer()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timercreate.html" title="Create a timer for a process">TimerCreate(), TimerCreate_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/u/ualarm.html" title="Schedule an alarm">ualarm()</a></li></ul></div>
+</div></body>
+</html>

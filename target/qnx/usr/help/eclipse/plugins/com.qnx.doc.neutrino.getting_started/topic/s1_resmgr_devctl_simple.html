@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A simple device control I/O function handler example" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_examples.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="devctl_simple" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A simple device control I/O function handler example</title>
+</head>
+<body id="devctl_simple">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A simple device control I/O function handler example</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+  
+  
+  
+  
+  The client's <span class="keyword apiname">devctl()</span> call is formally defined as:
+
+<pre class="pre codeblock">#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;devctl.h&gt;
+
+int devctl (int <var class="keyword varname">fd</var>,
+            int <var class="keyword varname">dcmd</var>,
+            void *<var class="keyword varname">dev_data_ptr</var>,
+            size_t <var class="keyword varname">nbytes</var>,
+            int *<var class="keyword varname">dev_info_ptr</var>);
+</pre>
+</div>
+
+
+<p class="p">
+  We should first understand this function before we look at the resource manager side of things.
+  The <span class="keyword apiname">devctl()</span> function is used for <q class="q">out of band</q> or
+      <q class="q">control</q> operations. For example, you may be writing data to a sound card (the
+  actual digital audio samples that the sound card should convert to analog audio), and
+  you may decide that you need to change the number of channels from 1 (mono) to 2
+  (stereo), or the sampling rate from the CD-standard (44.1 kHz) to the DAT-standard (48
+  kHz). You may also find that you need to change the sample rate for recording sound from
+  22kHz to 44.1kHz depending on the application. The <span class="keyword apiname">devctl()</span> function
+  is the appropriate way to do this.
+</p>
+
+<p class="p">
+  When you write a resource manager, you may find that
+  you don't need any <span class="keyword apiname">devctl()</span> support at all and that you can offer
+  all the needed functionality simply through the standard <span class="keyword apiname">read()</span> and
+      <span class="keyword apiname">write()</span> functions. You may, on the other hand, find that you need
+  to mix <span class="keyword apiname">devctl()</span> calls with the <span class="keyword apiname">read()</span> and
+  <span class="keyword apiname">write()</span> calls, or indeed that your device uses only
+  <span class="keyword apiname">devctl()</span> functions and does <em class="ph i">not</em> use
+  <span class="keyword apiname">read()</span> or <span class="keyword apiname">write()</span>.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">devctl()</span> function takes these arguments:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">fd</var></dt>
+
+<dd class="dd">The file descriptor of the resource manager that you're sending the
+  <span class="keyword apiname">devctl()</span> to.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">dcmd</var></dt>
+
+<dd class="dd">The command itself—a combination of two bits worth of direction, and
+  30 bits worth of command (see the discussion below).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">dev_data_ptr</var></dt>
+
+<dd class="dd">A pointer to a data area that can be sent to, received from, or both.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes</var></dt>
+
+<dd class="dd">The size of the <var class="keyword varname">dev_data_ptr</var> data area.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">dev_info_ptr</var></dt>
+
+<dd class="dd">An extra information variable that can be set by the resource manager.</dd>
+
+
+
+</dl>
+
+
+<p class="p"> The top two bits in the <var class="keyword varname">dcmd</var> encode the direction of data transfer, if any.
+  For details, see the description in the I/O reference section (under <q class="q"><a class="xref" href="s1_resmgr_io_devctl.html">Device control I/O function handler</a></q>).
+  
+  
+  
+</p>
+
+
+<div class="p"> When the <span class="keyword const">_IO_DEVCTL</span> message is received by the resource manager, it's handled by
+  your device control I/O function handler. Here is a very simple example, which we'll
+  assume is used to set the number of channels and the sampling rate for the audio device
+  we discussed above:
+  
+  
+  
+
+<pre class="pre codeblock">/*
+ * io_devctl1.c
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;devctl.h&gt;
+
+#define AUDIO_DAC 1
+#define AUDIO_ADC 2
+
+extern void audio_set_nchannels(unsigned num);
+extern uint32_t audio_get_samplerate(unsigned port);
+extern void audio_set_samplerate(unsigned port, unsigned rate);
+
+#define DCMD_AUDIO_SET_CHANNEL_MONO         __DION(_DCMD_MIXER, 1)
+#define DCMD_AUDIO_SET_CHANNEL_STEREO       __DION(_DCMD_MIXER, 2)
+#define DCMD_AUDIO_GET_SAMPLE_RATE_DAC      __DIOF(_DCMD_MIXER, 4, uint32_t)
+#define DCMD_AUDIO_SET_SAMPLE_RATE_DAC      __DIOT(_DCMD_MIXER, 5, uint32_t)
+#define DCMD_AUDIO_GET_SAMPLE_RATE_ADC      __DIOF(_DCMD_MIXER, 6, uint32_t)
+#define DCMD_AUDIO_SET_SAMPLE_RATE_ADC      __DIOT(_DCMD_MIXER, 7, uint32_t)
+
+int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, iofunc_ocb_t *ocb)
+{
+    int     sts;
+
+    /* 1) Create the reply buffer at the start of ctp-&gt;msg so we make
+     * sure we have enough space */
+    struct _io_devctl_reply *reply = (struct _io_devctl_reply *)ctp-&gt;msg;
+
+    /* Create a pointer to the rate variable for the _GET_ devctls. */
+    unsigned nbytes = 0;
+    uint32_t *rate = _IO_OUTPUT_PAYLOAD(*reply);
+    
+    /* 2) See if it's a standard devctl() */
+    if ((sts = iofunc_devctl_default (ctp, msg, ocb)) != _RESMGR_DEFAULT) {
+        return (sts);
+    }
+
+    /* How many bytes did the client send in addition to the devctl header? */
+    size_t payload_size = ctp-&gt;size - sizeof(msg-&gt;i);
+
+    /* 3) See which command it was, and act on it */
+    switch (msg -&gt; i.dcmd) {
+    case DCMD_AUDIO_SET_CHANNEL_MONO:
+        /* Read or write access are sufficient */
+        if( !(ocb-&gt;ioflag &amp; (_IO_FLAG_WR | _IO_FLAG_RD)) ) {
+            return EPERM;
+        }
+        audio_set_nchannels (1);
+        break;
+
+    case DCMD_AUDIO_SET_CHANNEL_STEREO:
+        /* Read or write access are sufficient */
+        if( !(ocb-&gt;ioflag &amp; (_IO_FLAG_WR | _IO_FLAG_RD)) ) {
+            return EPERM;
+        }
+        audio_set_nchannels (2);
+        break;
+
+    case DCMD_AUDIO_GET_SAMPLE_RATE_DAC:
+        /* Write access is required for accessing the DAC */
+        if( !(ocb-&gt;ioflag &amp; _IO_FLAG_WR) ) {
+            return EPERM;
+        }
+
+        /* Verify that the client wants enough bytes */
+        if( ctp-&gt;info.dstmsglen &lt; (sizeof(*reply) + sizeof(uint32_t)) ) {
+            return EINVAL;
+        }
+
+        /* Set up the reply to the client */
+        nbytes = sizeof(uint32_t);
+        *rate = audio_get_samplerate (AUDIO_DAC);
+        break;
+
+    case DCMD_AUDIO_SET_SAMPLE_RATE_DAC:
+        /* Write access is required for accessing the DAC */
+        if( !(ocb-&gt;ioflag &amp; _IO_FLAG_WR) ) {
+            return EPERM;
+        }
+
+        /* Verify that we got all the bytes. */
+        if( payload_size &lt; sizeof(uint32_t) ) {
+            return EBADMSG;
+        }
+
+        rate = _IO_INPUT_PAYLOAD(msg);
+        audio_set_samplerate (AUDIO_DAC, *rate);
+        break;
+
+    case DCMD_AUDIO_GET_SAMPLE_RATE_ADC:
+        /* Read access is required for accessing the ADC */
+        if( !(ocb-&gt;ioflag &amp; _IO_FLAG_RD) ) {
+            return EPERM;
+        }
+
+        /* Verify that the client wants enough bytes */
+        if( ctp-&gt;info.dstmsglen &lt; (sizeof(*reply) + sizeof(uint32_t)) ) {
+            return EINVAL;
+        }
+        
+        /* Set up the reply to the client */
+        nbytes = sizeof(uint32_t);
+        *rate = audio_get_samplerate (AUDIO_ADC);
+        break;
+
+    case DCMD_AUDIO_SET_SAMPLE_RATE_ADC:
+        /* Read access is required for accessing the ADC */
+        if( !(ocb-&gt;ioflag &amp; _IO_FLAG_RD) ) {
+            return EPERM;
+        }
+
+        /* Verify that we got all the bytes. */
+        if( payload_size &lt; sizeof(uint32_t) ) {
+            return EBADMSG;
+        }
+
+        rate =_IO_INPUT_PAYLOAD(msg);
+        audio_set_samplerate (AUDIO_ADC, *rate);
+        break;
+
+    /* 4) In case it's a command that we don't recognize, fail it */
+    default:
+        return (ENOSYS);
+    }
+
+    /* 5) Tell the client that it worked */
+    memset(reply, 0, sizeof(*reply));
+    SETIOV (ctp-&gt;iov, reply, sizeof(*reply) + nbytes);
+    return (_RESMGR_NPARTS (1));
+}
+</pre>
+</div>
+
+
+<dl class="dl">
+    
+        <dt class="dt dlterm">Step 1</dt>
+
+        <dd class="dd">We set up where the reply is going to be written to. The client is expecting the
+            response in an <span class="keyword dtype">_io_devctl_reply</span> structure, with (depending on the
+            value of <var class="keyword varname">dcmd</var>) the sample rate immediately following the
+            structure in memory. This response is going to take
+                <var class="keyword varname">sizeof(msg-&gt;o)</var> + <var class="keyword varname">sizeof(uint32_t)</var>
+            bytes. The buffer that we have and can use for sending replies is
+                <var class="keyword varname">ctp-&gt;msg</var> and it is
+                <var class="keyword varname">ctp-&gt;msg_max_size</var> bytes long. Because it's the same
+            buffer that we used for receiving the commands from the client, we need to be
+            careful to finish processing the input before we start writing the output to the
+            buffer. The <span class="keyword apiname">devctl()</span> message from the client is sitting at
+            offset <var class="keyword varname">ctp-&gt;offset</var> into the buffer
+                <var class="keyword varname">ctp-&gt;msg</var>. If we have enough space between
+                <var class="keyword varname">ctp-&gt;offset</var> and
+                <var class="keyword varname">ctp-&gt;msg_max_size</var> for the entire reply, we could use
+            that. However, it's much safer to just write our reply at the beginning of the
+            buffer, which gives us the full <var class="keyword varname">ctp-&gt;msg_max_size</var> bytes of
+            data to write our response. </dd>
+
+    
+
+    
+        <dt class="dt dlterm">Step 2</dt>
+
+        <dd class="dd">We see again the use of a helper function, this time <span class="keyword apiname">iofunc_devctl_default()</span>,
+            which is used to perform all default processing for <span class="keyword apiname">devctl()</span>.
+            The <span class="keyword apiname">iofunc_devctl_default()</span> function is called when you don't
+            supply your own device control I/O function handler and let
+                <span class="keyword apiname">iofunc_func_init()</span> initialize the I/O and connect
+            functions tables for you.
+            <p class="p"> We include <span class="keyword apiname">iofunc_devctl_default()</span> in our device control I/O
+                function handler function because we want it to handle all the regular
+                    <span class="keyword apiname">devctl()</span> cases for us. We examine the return value;
+                if it's not <span class="keyword const">_RESMGR_DEFAULT</span>, then this means that the
+                    <span class="keyword apiname">iofunc_devctl_default()</span> function <q class="q">handled</q> the
+                request, so we just pass along its return value as our return value.
+                
+                
+                
+                
+                
+                
+            </p>
+
+            <p class="p"> If the constant <span class="keyword const">_RESMGR_DEFAULT</span>
+                <em class="ph i">is</em> the return value, then we know that the helper function
+                <em class="ph i">didn't</em> handle the request and that we should check to see if it's
+                one of ours.
+            </p>
+
+        </dd>
+
+    
+    
+    
+        <dt class="dt dlterm">Step 3</dt>
+
+        <dd class="dd">The checking for our custom <span class="keyword apiname">devctl()</span> commands is done here. We simply check
+            the <var class="keyword varname">dcmd</var> values that the client code sent to see if there's a
+            match. Note that we call the fictitious functions
+                <span class="keyword apiname">audio_set_nchannels()</span>,
+                <span class="keyword apiname">audio_get_samplerate()</span> and
+                <span class="keyword apiname">audio_set_samplerate()</span> to accomplish the actual
+                <q class="q">work</q> for the client.</dd>
+
+        <dd class="dd ddexpand">
+            <p class="p">As part of our processing of the various audio <span class="keyword apiname">devctl()</span>
+                commands, we need to check permissions. If the client is getting or setting
+                the sample rate of the digital to analog converter (DAC), which is output,
+                then they need to have opened the resource manager handle for writing. If
+                the client is setting the sample rate of the analog to digital converter
+                (ADC), which is input, then they need to have opened the resource manager
+                handle for reading. Note here that the permissions being checked are related
+                to whether the DAC or ADC is being accessed, not based on whether
+                    <span class="keyword apiname">devctl()</span> is sending or receiving data from the client
+                (i.e., the use of <var class="keyword varname">__DIOF</var> and <var class="keyword varname">__DIOT</var>
+                does not correlate with read and write permissions).</p>
+
+            <p class="p">In <span class="keyword apiname">devctl()</span> calls that set sample rate, we also need to
+                make sure that the client sent enough data. The length checks at the
+                beginning of the <span class="keyword apiname">devctl()</span> function are not sufficient
+                because each <span class="keyword apiname">devctl()</span> might be expecting the client to
+                send a different amount of data. We do the full check for data now that we
+                know exactly how much data to expect. Once we've done this check, we can
+                safely access this data and set the sample rate.</p>
+
+            <p class="p">In <span class="keyword apiname">devctl()</span> calls that get sample rate, we make sure the
+                client has enough space to receive the response from the resource manager.</p>
+
+        </dd>
+
+    
+    
+    
+        <dt class="dt dlterm">Step 4</dt>
+
+        <dd class="dd">This step is simply good defensive programming.
+          We return an error code of <span class="keyword const">ENOSYS</span> to tell the client that
+          we didn't understand their request.
+          
+          
+        </dd>
+
+    
+    
+    
+        <dt class="dt dlterm">Step 5</dt>
+
+        <dd class="dd">If we get to this line, we successfully handled the <var class="keyword varname">dcmd</var> passed to
+                <span class="keyword apiname">devctl()</span>. We need to respond to the client. We return a
+            value to the resource manager library encoded by the macro
+                <span class="keyword apiname">_RESMGR_NPARTS()</span>, telling it that we're returning a
+            one-part IOV. This value is then returned to the client.
+            
+            
+            
+            
+            
+            
+            <div class="p">Instead of using the macro <span class="keyword apiname">_RESMGR_NPARTS()</span>, we could have
+                used the <span class="keyword apiname">_RESMGR_PTR()</span> macro: 
+<pre class="pre codeblock">    /* 5) tell the client it worked */
+    memset(reply, 0, sizeof(*reply));
+    return (_RESMGR_PTR (ctp, reply, sizeof(*reply) + nbytes));
+</pre></div>
+
+            <p class="p">The <span class="keyword apiname">devctl()</span> command requires us to send a response to the
+                client for <span class="keyword apiname">devctl()</span> to be successful. It is insufficient
+                to just return EOK without any response message.</p>
+
+        </dd>
+
+    
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_examples.html" title="I'm now going to show you a number of “cookbook” examples you can cut and paste into your code, to use as a basis for your projects. These aren't complete resource managers—you'll need to add the thread pool and dispatch “skeleton” shown immediately below, and ensure that your versions of the I/O functions are placed into the I/O functions table after you've done the iofunc_func_init(), in order to override the defaults!">Examples</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

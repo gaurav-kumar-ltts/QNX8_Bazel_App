@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using the helper functions" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out_Adding_functionality.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="UsingHelperFuncs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using the helper functions</title>
+</head>
+<body id="UsingHelperFuncs">
+
+<h1 class="title topictitle1" id="ariaid-title1">Using the helper functions</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The default functions make use of <em class="ph i">helper</em>
+functions. These functions can't be placed directly
+into the connect or I/O jump tables, but they do perform the
+bulk of the work.
+
+</p>
+
+
+<div class="p">
+
+Here's the source for the <span class="keyword apiname">iofunc_chmod_default()</span> function:
+
+<pre class="pre codeblock">int iofunc_chmod_default (resmgr_context_t *ctp, 
+                          io_chmod_t *msg,
+                          iofunc_ocb_t *ocb)
+{
+    return (iofunc_chmod (ctp, msg, ocb, ocb -&gt; attr));
+}
+</pre>
+</div>
+
+
+<p class="p">
+Notice how the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_chmod.html"><span class="keyword apiname">iofunc_chmod()</span></a>
+helper function performs all the work for the <span class="keyword apiname">iofunc_chmod_default()</span>
+default handler. This is typical for the simple functions.
+
+
+</p>
+
+
+<div class="p">
+
+The <span class="keyword apiname">iofunc_stat_default()</span> default handler is a more interesting case:
+
+<pre class="pre codeblock">int iofunc_stat_default(resmgr_context_t *ctp, io_stat_t *msg, iofunc_ocb_t *ocb) {
+    unsigned        len;
+
+    /*  Update stale time fields (ctime, mtime, atime) this OCB. */
+    (void)iofunc_time_update(ocb-&gt;attr);
+
+    unsigned format = msg-&gt;i.format;
+    int const status = iofunc_stat_format(ctp, ocb-&gt;attr, &amp;format, &amp;msg-&gt;o, &amp;len);
+    if(status != EOK) {
+        return(status);
+    }
+    _RESMGR_STATUS(ctp, (long)format);
+    return _RESMGR_PTR(ctp, &amp;msg-&gt;o, len);
+}
+</pre>
+</div>
+
+
+<p class="p">
+
+
+
+This handler calls two helper routines. First it calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_time_update.html"><span class="keyword apiname">iofunc_time_update()</span></a>
+to ensure that all of the
+time fields (<var class="keyword varname">atime</var>, <var class="keyword varname">ctime</var> and
+<var class="keyword varname">mtime</var>) are up to date. Then it calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat.html"><span class="keyword apiname">iofunc_stat_format()</span></a>,
+which builds the reply.
+The default handler then sets the status (to be returned via <span class="keyword apiname">MsgReply</span>) to the
+form of the status information.
+Finally, the default function builds a pointer in the <var class="keyword varname">ctp</var> structure and returns
+-1, to indicate to the resource manager library that it should return
+one part from the <var class="keyword varname">ctp</var>-&gt;<var class="keyword varname">iov</var> structure to the client.
+</p>
+
+
+<div class="p">
+The most complicated handling is done by the <span class="keyword apiname">iofunc_open_default()</span> handler:
+
+
+<pre class="pre codeblock">int iofunc_open_default (resmgr_context_t *ctp, 
+                         io_open_t *msg,
+                         iofunc_attr_t *attr, 
+                         void *extra)
+{
+    int     status;
+
+    iofunc_attr_lock (attr);
+
+    if ((status = iofunc_open (ctp, msg, attr, 0, 0)) != EOK) {
+        iofunc_attr_unlock (attr);
+        return (status);
+    }
+
+    if ((status = iofunc_ocb_attach (ctp, msg, 0, attr, 0)) 
+        != EOK) {
+        iofunc_attr_unlock (attr);
+        return (status);
+    }
+
+    iofunc_attr_unlock (attr);
+    return (EOK);
+}
+</pre>
+</div>
+
+
+<p class="p">
+This handler calls four helper functions:
+
+</p>
+
+
+<ol class="ol">
+<li class="li">It calls <span class="keyword apiname">iofunc_attr_lock()</span> to lock the
+  attribute structure so that it has exclusive access to it
+  (it's going to be updating things like the counters, so we
+  need to make sure no one else is doing that at the same time).
+</li>
+
+
+<li class="li">It then calls the helper function
+  <span class="keyword apiname">iofunc_open()</span>, which does the actual verification of the permissions.
+  
+</li>
+
+
+<li class="li">Next it calls <span class="keyword apiname">iofunc_ocb_attach()</span> to bind an
+  OCB to this request, so that it will get automatically passed to all of the I/O functions later.
+  
+</li>
+
+
+<li class="li">Finally, it calls <span class="keyword apiname">iofunc_attr_unlock()</span> to release the lock on the attribute structure.
+  
+</li>
+
+
+</ol>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out_Adding_functionality.html">Ways of adding functionality to the resource manager</a></div>
+</div>
+</div></body>
+</html>

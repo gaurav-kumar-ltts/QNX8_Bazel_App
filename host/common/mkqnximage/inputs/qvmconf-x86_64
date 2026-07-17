@@ -1,0 +1,61 @@
+hypervisor/guest/guest.conf = {
+system mkqnximage-guest
+
+ram 0xa0000
+rom 0xc0000,0x40000
+ram 512M
+#Specify multiple "cpu" to get multi-cpu guest
+cpu
+cpu
+load /data/hypervisor/guest/ifs.bin
+
+vdev ioapic
+        intr apic
+        name myioapic
+
+vdev ser8250
+        # Since we are using virtio-console, point the 8250 at qvm stdout, so we can still see
+        # startup driver output (startup uses the 8250)
+        hostdev >-
+        intr myioapic:4
+        name ser8250_0
+
+# Virtio console driver can be much faster than the emulated UART
+vdev virtio-console
+
+vdev timer8254
+        intr myioapic:0
+        name timer8254_0
+
+vdev mc146818
+        name mc146818_0
+
+vdev shmem
+        name shmem_0
+
+# The pckeyboard vdev is required to be able to properly shut the guest down.
+vdev pckeyboard
+        name pckeyboard_0
+
+vdev virtio-net
+        name network
+        peerfeats 0x0382
+        peer /dev/vdevpeers/vp0
+
+vdev virtio-blk
+        hostdev /dev/qvmdisk0
+        name virtio-blk_qvmdisk0
+
+#8259's are here for legacy systems only, they only take the 'loc' option
+vdev 8259
+        loc 0x20
+vdev 8259
+        loc 0xa0
+
+vdev hpet
+        intr myioapic:2
+        name hpet_0
+
+#An example IB700 watchdog (to use see /scripts/watchdog-start.sh in guest)
+vdev wdt-ib700
+}

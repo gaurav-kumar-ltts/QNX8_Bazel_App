@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Hardware initialization" />
+<meta name="abstract" content="The startup code does the minimum needed to detect the hardware configuration and completes any other configuration needed for the OS kernel to run." />
+<meta name="description" content="The startup code does the minimum needed to detect the hardware configuration and completes any other configuration needed for the OS kernel to run." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startup_hw_init" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Hardware initialization</title>
+</head>
+<body id="startup_hw_init">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Hardware initialization</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The startup code does the minimum needed to detect the hardware configuration and completes any other
+		configuration needed for the OS kernel to run.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The source code for the initialization routines
+				is found in the
+					<span class="ph filepath">src/hardware/startup/boards/<var class="keyword varname">boardname</var>/</span>
+				and <span class="ph filepath">src/hardware/startup/lib/</span> directories of the BSP. The
+						<span class="ph filepath"><var class="keyword varname">boardname</var></span> directory has the
+				platform- and platform variant-specific source code. If the source code is generic
+				for the architecture (which is more common with x86 platforms), the source code is
+				in the <span class="ph filepath">startup/lib/</span> directory.</p>
+<div class="p">A typical startup
+					<span class="keyword apiname">main()</span> function (see <q class="q"><a class="xref" href="startup_source_struct.html" title="Most of the startup code is stored in the main() function, which follows the _start() and _main() functions in the startup code sequence.">Source code structure</a></q>) calls the following hardware
+				initialization functions in this order:<ol class="ol">
+					<li class="li"><a class="xref" href="../startup_lib/init_raminfo.html" title="Determine the location and size of available system RAM and initialize the asinfo structure in the system page."><span class="keyword apiname">init_raminfo()</span></a></li>
+
+					<li class="li"><a class="xref" href="../startup_lib/init_mmu.html" title="Set up the processor for virtual addressing mode by setting up page-mapping hardware and enabling the pager."><span class="keyword apiname">init_mmu()</span></a></li>
+
+					<li class="li"><a class="xref" href="../startup_lib/init_intrinfo.html" title="Initialize the intrinfo data structure in the system page."><span class="keyword apiname">init_intrinfo()</span></a></li>
+
+					<li class="li"><a class="xref" href="../startup_lib/init_qtime.html" title="Initialize the qtime data structure in the system page."><span class="keyword apiname">init_qtime()</span></a></li>
+
+					<li class="li"><a class="xref" href="../startup_lib/init_cacheattr.html" title="Initialize board-level caches, and populate the cacheattr member in the system page."><span class="keyword apiname">init_cacheattr()</span></a></li>
+
+					<li class="li"><a class="xref" href="../startup_lib/init_cpuinfo.html" title="Populate the cpuinfo data structure in the system page with CPU information."><span class="keyword apiname">init_cpuinfo()</span></a></li>
+
+				</ol>
+</div>
+<p class="p">Many BSPs also include hardware initialization functions for supported
+				technologies; you will find these in appropriately named files (e.g.,
+					<span class="ph filepath">init_sata.c</span>, <span class="ph filepath">init_usb.c</span>). For more
+				information, see the <span class="keyword apiname">init_*()</span> functions in the <a class="xref" href="../startup_lib/startup_library.html" title="The startup library contains a rich set of routines ranging from high-level functions called by main() to utility functions for performing specific startup tasks.">Startup Library</a>.</p>
+</div>
+
+		<div class="section"><h2 class="title sectiontitle">Adding hardware initialization code</h2>
+			
+			<div class="p">If you need to add code to look after hardware initialization that isn't covered by one of the
+					<span class="keyword apiname">init_*()</span> functions in the library (or your custom version of
+				one of these functions), you can do one of the following:<ul class="ul">
+					<li class="li">If the code is only a few lines, put it right in the
+							<span class="keyword apiname">main()</span> function.</li>
+
+					<li class="li">If the code is more involved, create a new function and call it from
+							<span class="keyword apiname">main()</span>.</li>
+
+				</ul>
+</div>
+
+			<div class="p">Below is an example of a small code segment added to the <span class="ph filepath">main.c</span> file for
+				a fictitious Fortinbras board:
+<pre class="pre codeblock">// Announce start of Startup code
+for (i = 0; i &lt; 8; ++i)
+    led[i] = startup_msg[i]; 
+</pre></div>
+
+		</div>
+
+		<div class="section" id="startup_hw_init__level"><h2 class="title sectiontitle">Setting interrupt sensitivity</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">Most systems today use only level-sensitive interrupts. <span class="keyword">QNX OS</span> supports level-sensitive interrupts but also
+				edge-sensitive interrupts to support legacy hardware (e.g., Intel x86 hardware with
+				the 8259 PIC on an ISA bus).</p>
+<p class="p">It is the responsibility of the interrupt
+				controller initialization code along with the interrupt kernel callouts to specify
+				the interrupt sensitivity (see <q class="q"><a class="xref" href="../callouts/callout_irq.html" title="The interrupt controller interface includes kernel callouts and stubs.">Interrupt controller</a></q> for information about interrupt kernel
+				callouts).</p>
+<div class="p">The code snippet below is from the <span class="keyword apiname">gic_v2_init()</span>
+				function, which performs some GIC initializations during startup of a 64-bit ARM
+				board:<pre class="pre codeblock">/* 
+ * Make all SPI interrupts level-triggered by default 
+ */
+for (i = 32; i &lt; itn; i += 16) {
+    out32(gicd + ARM_GICD_ICFGRn + (i * 4 / 16), 0);
+}</pre></div>
+<p class="p">On this board, the sensitivity information for each interrupt ID
+				is stored in the GIC's ICFGR registers. Zero (<tt class="ph tt">0</tt>) means level-sensitive
+				interrupts. The code snippet above writes <tt class="ph tt">0</tt> to these registers. Check your
+				board's documentation to learn what registers you need to set (if any) and to what
+				values to enable level-sensitive interrupt support.</p>
+<div class="p">Below, for context, is the
+				complete GIC interrupt initialization function from which the snippet is
+				taken:<pre class="pre codeblock">gic_v2_init(paddr_t gicd, paddr_t gicc)
+{
+    struct aarch64_gic_map_entry *gic_map = lsp.cpu.aarch64_gic_map.p;
+    unsigned    gic_cpu;
+    unsigned    itn;
+    unsigned    i;
+
+    gic_gicd = gicd;
+    gic_gicc = gicc;
+    gic_cpu_init = gic_v2_gicc_init;
+    gic_sendipi = &amp;sendipi_gic_v2;
+
+    /*
+     * Initialise the GIC cpu map with invalid values.
+     * gic_v2_gicc_init() will set the mapping for each cpu as it comes up.
+     */
+    for (i = 0; i &lt; lsp.syspage.p-&gt;num_cpu; i++) {
+        gic_map-&gt;gic_cpu[i] = ~0u;
+    }
+    gic_cpu = gic_v2_cpunum();
+
+    /*
+     * Disable distributor
+     */
+    out32(gicd + ARM_GICD_CTLR, 0);
+
+    /*
+     * Calculate number of interrupt lines
+     */
+    itn = ((in32(gicd + ARM_GICD_TYPER) &amp; ARM_GICD_TYPER_ITLN) + 1) * 32;
+    gic_v2_intr.num_vectors = itn;
+    if (debug_flag) {
+        kprintf("GICv2: %d interrupts\n", itn);
+    }
+
+    /*
+     * Disable all interrupts and clear pending state
+     */
+    for (i = 0; i &lt; itn; i += 32) {
+        out32(gicd + ARM_GICD_ICENABLERn + (i * 4 / 32), 0xffffffff);
+        out32(gicd + ARM_GICD_ICPENDRn + (i * 4 / 32), 0xffffffff);
+    }
+
+    /*
+     * Set default priority of all interrupts to 0xa0
+     */
+    for (i = 0; i &lt; itn; i += 4) {
+        out32(gicd + ARM_GICD_IPRIORITYn + i, 0xa0a0a0a0);
+    }
+
+    /*
+     * Route all SPI interrupts to cpu0
+     */
+    if (debug_flag) {
+        kprintf("GICv2: routing SPIs to gic cpu %d\n", gic_cpu);
+    }
+    for (i = 32; i &lt; itn; i += 4) {
+        out32(gicd + ARM_GICD_ITARGETSRn + i, (0x01010101u &lt;&lt; gic_cpu));
+    }
+
+    /*
+     * Make all SPI interrupts level-triggered by default 
+     */
+    for (i = 32; i &lt; itn; i += 16) {
+        out32(gicd + ARM_GICD_ICFGRn + (i * 4 / 16), 0);
+    }
+
+    /*
+     * Enable distributor - cpu interface is initialised via init_cpuinfo()
+     */
+    out32(gicd + ARM_GICD_CTLR, ARM_GICD_CTLR_EN);
+
+    /*
+     * Add the interrupt callouts
+     */
+    add_interrupt(&amp;gic_v2_intr);
+}</pre></div>
+<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p">A programmer's use of interrupt-related functions such as <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachthread.html"><span class="keyword apiname">InterruptAttachThread()</span></a>
+					or <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html"><span class="keyword apiname">InterruptMask()</span></a> isn't
+					affected by the interrupt sensitivity, though you should be aware of the
+					implications of the interrupt sensitivity on your system, as this may affect
+					what you must do when working with interrupts.</p>
+
+				<p class="p">For more information about interrupts, see the <a class="xref" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_inter.html">Interrupts</a> chapter in
+						<cite class="cite">Getting Started with the QNX OS</cite>, and the <a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/inthandler.html">Handling Hardware Interrupts</a> chapter in
+					the <cite class="cite">Programmer's Guide</cite>.</p>
+
+			</div>
+</div>
+
+	</div>
+
+</body>
+</html>

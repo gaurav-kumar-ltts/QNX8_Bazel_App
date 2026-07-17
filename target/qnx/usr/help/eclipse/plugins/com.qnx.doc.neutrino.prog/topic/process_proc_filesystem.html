@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Controlling processes via the /proc filesystem" />
+<meta name="abstract" content="Implemented by the Process Manager component of procnto, the /proc virtual filesystem lets you access and control the processes and threads running in the system." />
+<meta name="description" content="Implemented by the Process Manager component of procnto, the /proc virtual filesystem lets you access and control the processes and threads running in the system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Address_space.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Manipulating.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Thread_info.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_ABILITIES.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_BREAK.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_CHANNELS.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_CLEAR_FLAG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_CURTHREAD.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_EVENT.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_GETALTREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_GETFPREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_GETGREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_GETREGSET.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_GET_BREAKLIST.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_INFO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_IRQS.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_MAPDEBUG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_MAPDEBUG_BASE.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_MAPINFO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_PAGEDATA.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_PTINFO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_RUN.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SETALTREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SETFPREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SETGREG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SETREGSET.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SET_FLAG.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SIGNAL.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_STATUS.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_STOP.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_SYSINFO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_THREADCTL.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_TIDSTATUS.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_DCMD_PROC_TIMERS.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="proc_filesystem" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Controlling processes via the /proc filesystem</title>
+</head>
+<body id="proc_filesystem">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Controlling processes via the <span class="ph filepath">/proc</span> filesystem</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Implemented by the Process Manager component of <span class="keyword cmdname">procnto</span>,
+the <span class="ph filepath">/proc</span> virtual filesystem lets you access and
+control the processes and threads running in the system.
+</p>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+<p class="p">This interface is intended for gathering information or process control while debugging.
+You should not use it in production systems to control the behavior of processes and threads.</p>
+
+<p class="p">Using the <span class="ph filepath">/proc</span> filesystem to examine a process might affect the performance of the threads
+in the process when it is interacting with the process manager (e.g., using <span class="keyword cmdname">mmap()</span> or <span class="keyword cmdname">munmap()</span>).
+It may also affect any thread or threads in other processes with which those threads are interacting.</p>
+
+</div>
+
+
+<div class="p">
+
+
+
+
+The <span class="ph filepath">/proc</span> filesystem manifests each process
+currently running on the system as a directory whose name is the
+numerical process ID (in decimal) of the process.
+Inside this directory, you'll find the following files:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">as</span></dt>
+
+<dd class="dd">The address space that contains the process's entire memory space.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">cmdline</span></dt>
+
+<dd class="dd">The arguments passed to the process, separated by null characters.
+  For example:
+  
+  
+  
+  
+
+<pre class="pre codeblock"># pidin -p 28687 arg
+      pid Arguments
+    28687 io-sock -m mods-pci.so -d devs-em.so
+# echo `cat /proc/28687/cmdline`
+io-sock-mmods-pci.so-ddevs-em.so
+</pre>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">ctl</span></dt>
+
+<dd class="dd">A file that you can use for
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+  commands to access processes and their threads.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">exefile</span></dt>
+
+<dd class="dd">The path of the executable file used to run the process.
+  For example:
+  
+  
+  
+  
+
+<pre class="pre codeblock"># echo `cat /proc/28687/exefile`
+/sbin/io-sock
+</pre>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">mappings</span></dt>
+
+<dd class="dd">A detailed view of every page in a process's address space.
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">pmap</span></dt>
+
+<dd class="dd">A detailed view of the process's mappings.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">vmstat</span></dt>
+
+<dd class="dd">A view of the process's virtual memory.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+You can use the following standard functions to access the files in the
+<span class="ph filepath">/proc</span> filesystem:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d40256e347">Function</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d40256e350">Purpose</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Establish a file descriptor to a process</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Read data from the process's address space</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Write data to the process's address space</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Return
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a>
+    information
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lseek.html"><span class="keyword apiname">lseek()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Establish a position within the process's
+        address space for further operations</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Manipulate a process or thread</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e347 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d40256e350 ">Release a file descriptor</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+
+
+Ancillary functions (such as 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/opendir.html"><span class="keyword apiname">opendir()</span></a>,
+and so on) are supported on the
+directory <span class="ph filepath">/proc</span> itself—this aids in implementing commands such as
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/ls-target.html"><span class="keyword cmdname">ls</span></a>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You must open the appropriate file (e.g., <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/ctl</span>),
+not the <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var> directory.
+</div>
+
+
+<div class="p">
+
+
+
+When you start
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>,
+you can use the following options to specify the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/u/umask.html"><span class="keyword cmdname">umask</span></a>
+to use for the <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/*</span> files:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-d</span></dt>
+
+<dd class="dd">Controls the umask for <span class="ph filepath">cmdline</span> and <span class="ph filepath">cctl</span>.
+  The default is 0022.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-u</span></dt>
+
+<dd class="dd">Controls the umask for <span class="ph filepath">as</span>, <span class="ph filepath">exefile</span>, <span class="ph filepath">mappings</span>,
+  <span class="ph filepath">pmap</span> and <span class="ph filepath">vmstat</span>.
+  The default is 0066.
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+You can use
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chmod.html"><span class="keyword cmdname">chmod</span></a>
+to drop permissions on the <span class="ph filepath">as</span> and <span class="ph filepath">ctl</span> files, but you can't then regain
+the permissions.
+</p>
+
+
+<div class="p">
+
+ In order to read or write data from or to the process,
+you must have opened the file descriptor in the appropriate mode. You must also have
+appropriate privileges to open the particular process. Access is controlled to a limited
+extent by POSIX permissions but mainly by abilities (see <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/abilities.html">Abilities</a></q>
+in the <cite class="cite">System Security Guide</cite>):
+
+<ul class="ul">
+<li class="li">If your process has a different user ID than the target process, and you have only the POSIX permissions,
+  then you can:
+
+  <ul class="ul">
+  <li class="li">get limited access to <span class="ph filepath">cmdline</span>; it shows the target process's first argument only
+    (i.e., it tells you what's running but none of its command-line arguments)
+  </li>
+
+
+  <li class="li">get limited access to <span class="ph filepath">ctl</span>; it supports the <span class="keyword const">DCMD_PROC_INFO</span>,
+    <span class="keyword const">DCMD_PROC_MAPDEBUG_BASE</span>, and <span class="keyword const">DCMD_PROC_TIDSTATUS</span>
+    <span class="keyword apiname">devctl()</span> commands, but the output is sanitized.
+  </li>
+
+
+  <li class="li">read <span class="keyword cmdname">exefile</span></li>
+
+
+  </ul>
+
+</li>
+
+
+<li class="li">If your process has the same user ID and has POSIX access, then you get unrestricted access to the files.</li>
+
+
+<li class="li">Irrespective of the user ID and POSIX permissions:
+
+  <ul class="ul">
+  <li class="li">If your process has the <span class="keyword const">PROCMGR_AID_XPROCESS_QUERY</span> ability for the user IDs of the target file
+    (effective, real, and saved), you can get read access to all files except for the <span class="ph filepath">as</span> file.
+    
+  </li>
+
+
+  <li class="li">If your process has <span class="keyword const">PROCMGR_AID_XPROCESS_MEM_READ</span> for the user IDs of the target file
+    (effective, real, and saved), you can get read access to the <span class="ph filepath">as</span> file.
+    
+  </li>
+
+
+  <li class="li">If a process has <span class="keyword const">PROCMGR_AID_XPROCESS_DEBUG</span> for the user IDs of the target file
+    (effective, real, and saved), you can get write access to <span class="ph filepath">as</span> and <span class="ph filepath">ctl</span>.
+    
+  </li>
+
+
+  </ul>
+
+</li>
+
+
+<li class="li">The <span class="ph filepath">root</span> user (effective user ID 0) gets unrestricted POSIX access but
+        still requires abilities to access files of processes with other user IDs. </li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Only one process can have a <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/as</span>
+or <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/ctl</span>
+file open for writing at a time.
+</p>
+
+
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/process_Address_space.html">Reading and writing the process's address space</a></strong><br />
+ If you have the appropriate permissions, you can access a process's address space. Since threads exist in the context of a process and have access to everything within a process, there's no need to consider threads in this discussion. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Manipulating.html">Manipulating a process or thread</a></strong><br />
+ Once you have a file descriptor to a particular process's <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/ctl</span> file, you can get information about and control that process and its associated threads. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Thread_info.html">Thread information</a></strong><br />
+ Several of the <span class="keyword apiname">devctl()</span> commands use a <span class="keyword dtype">procfs_status</span> structure (which is the same as <span class="keyword dtype">debug_thread_t</span>), so let's look at this structure before going into the commands themselves. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_ABILITIES.html">DCMD_PROC_ABILITIES</a></strong><br />
+Return all the abilities and ability ranges of a specified process</li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_BREAK.html">DCMD_PROC_BREAK</a></strong><br />
+ Set or remove a breakpoint or watchpoint in the process that's associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_CHANNELS.html">DCMD_PROC_CHANNELS</a></strong><br />
+ Get information about the channels owned by the specified process. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_CLEAR_FLAG.html">DCMD_PROC_CLEAR_FLAG</a></strong><br />
+ Clear specific debug flags with the values provided for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_CURTHREAD.html">DCMD_PROC_CURTHREAD</a></strong><br />
+ Switch to another thread. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_EVENT.html">DCMD_PROC_EVENT</a></strong><br />
+ Define an event to be delivered when the process associated with the file descriptor reaches a point of interest. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_GETALTREG.html">DCMD_PROC_GETALTREG</a></strong><br />
+ Get the information stored in the alternate register set for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_GETFPREG.html">DCMD_PROC_GETFPREG</a></strong><br />
+ Get the information stored in the Floating Point Data registers for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_GETGREG.html">DCMD_PROC_GETGREG</a></strong><br />
+ Get the information stored in the CPU registers based on the current thread of the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_GETREGSET.html">DCMD_PROC_GETREGSET</a></strong><br />
+ Read the given register set. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_GET_BREAKLIST.html">DCMD_PROC_GET_BREAKLIST</a></strong><br />
+ Get a list of the active breakpoints for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_INFO.html">DCMD_PROC_INFO</a></strong><br />
+ Obtain information about the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_IRQS.html">DCMD_PROC_IRQS</a></strong><br />
+ Get information about the interrupts that the process associated with the file descriptor has attached to. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_MAPDEBUG.html">DCMD_PROC_MAPDEBUG</a></strong><br />
+ Get the best guess to the ELF object on the host machine. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_MAPDEBUG_BASE.html">DCMD_PROC_MAPDEBUG_BASE</a></strong><br />
+ Get information about the path for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_MAPINFO.html">DCMD_PROC_MAPINFO</a></strong><br />
+ Obtain segment-specific information about mapped memory segments in the process associated with the file descriptor. This call matches the corresponding <span class="keyword apiname">mmap()</span> calls. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_PAGEDATA.html">DCMD_PROC_PAGEDATA</a></strong><br />
+ Obtain page data about mapped   memory segments in the process associated with the file descriptor.   This call matches the corresponding <span class="keyword apiname">mmap()</span> calls. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_PTINFO.html">DCMD_PROC_PTINFO</a></strong><br />
+ Return the pagetable mapping information for a memory segment </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_RUN.html">DCMD_PROC_RUN</a></strong><br />
+ Resume the process that's associated with the file descriptor, if it has previously been stopped. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SETALTREG.html">DCMD_PROC_SETALTREG</a></strong><br />
+ Set the alternate register set with the values provided for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SETFPREG.html">DCMD_PROC_SETFPREG</a></strong><br />
+ Set the Floating Point Data registers with the values provided for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SETGREG.html">DCMD_PROC_SETGREG</a></strong><br />
+ Set the CPU registers with the values provided for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SETREGSET.html">DCMD_PROC_SETREGSET</a></strong><br />
+ Set the given register set. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SET_FLAG.html">DCMD_PROC_SET_FLAG</a></strong><br />
+ Set specific debug flags with the values provided for the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SIGNAL.html">DCMD_PROC_SIGNAL</a></strong><br />
+ Drop a signal on the process that's associated with the file descriptor. This is a way for a debugger to artificially generate signals as if they came from the system. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_STATUS.html">DCMD_PROC_STATUS</a></strong><br />
+ Get the current status of the current thread in the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_STOP.html">DCMD_PROC_STOP</a></strong><br />
+ Stop the process that's associated with the file descriptor.  </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_SYSINFO.html">DCMD_PROC_SYSINFO</a></strong><br />
+Obtain information stored in the system page.</li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_THREADCTL.html">DCMD_PROC_THREADCTL</a></strong><br />
+ Perform a <span class="keyword apiname">ThreadCtl()</span> on another process/thread. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_TIDSTATUS.html">DCMD_PROC_TIDSTATUS</a></strong><br />
+ Get the current status of a thread in the process associated with the file descriptor. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_DCMD_PROC_TIMERS.html">DCMD_PROC_TIMERS</a></strong><br />
+ Get the timers owned by the process associated with the file descriptor. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process.html" title="Your applications should be written in a way that reflects the architecture of the QNX OS—as a set of cooperating processes. In this chapter, we see how to start processes (also known as creating processes) from code, how to terminate them, and how to detect their termination.">Processes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html">Thread life cycle (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html">Threads and processes (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html">struct sigaction</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html">SignalAction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

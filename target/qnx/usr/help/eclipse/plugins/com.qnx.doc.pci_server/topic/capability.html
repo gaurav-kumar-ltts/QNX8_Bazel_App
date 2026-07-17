@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Capability modules" />
+<meta name="abstract" content="The original PCI specification defined a mechanism for extending itself based on the idea of adding capability fields with the configuration space of a device." />
+<meta name="description" content="The original PCI specification defined a mechanism for extending itself based on the idea of adding capability fields with the configuration space of a device." />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/design.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="capability" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Capability modules</title>
+</head>
+<body id="capability">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Capability modules</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The original PCI specification defined a mechanism for extending itself based on the idea of adding capability
+fields with the configuration space of a device.
+</p>
+
+
+<p class="p">
+
+
+
+PCI Express (PCIe) is now supplanting most new PCI-based designs, but from a software perspective,
+it's just additional functionality that's managed by a set of defined PCIe capability registers within
+PCI configuration space.
+This mechanism has allowed the PCI specification to evolve while maintaining backward compatibility with
+previous software installations.
+</p>
+
+
+<p class="p">
+The PCI server architecture enables the use of new hardware capabilities in an analogous fashion with the
+ability to deliver access to these new capabilities with independent software modules and associated APIs.
+</p>
+
+
+<p class="p">
+
+
+Capability modules reside in
+<span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}/<var class="keyword varname">processor</var>/lib/dll/pci/</span>
+on your development host, and in <span class="ph filepath">/lib/dll/pci/</span> on your target.
+Their names are prefixed with <tt class="ph tt">pci_cap-</tt>
+or <tt class="ph tt">pcie_xcap-</tt> for PCI or PCIe extended capabilities, respectively.
+There is <q class="q">use</q> information in each module explaining what capability it's for, its supported APIs,
+and how to use it.
+See also the
+<a class="xref" href="modules.html" title="This appendix describes some general-purpose capability modules and their APIs.">Capability Modules and APIs</a>
+appendix.
+</p>
+
+
+<p class="p">
+Similar to the hardware-dependent and logging modules, capability modules are demand-loaded and automatically
+managed for users, but unlike those other modules, capability modules aren't loaded until software decides that
+they're required.
+As an example, a device might support both MSI and MSI-X capabilities for message-signalled interrupts,
+however a driver for that device can decide which of the two it prefers and load only the selected one.
+In fact all capability modules are managed this way, even the PCI Express capability.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Adding new capabilities modules</h2>
+
+
+<p class="p">
+
+The name of a capability module is in one of these forms:
+</p>
+
+
+<ul class="ul">
+<li class="li"><tt class="ph tt">pci_cap-0x</tt><var class="keyword varname">nn</var><tt class="ph tt">.so</tt> for PCI</li>
+
+<li class="li"><tt class="ph tt">pcie_cap-0x</tt><var class="keyword varname">nnnn</var><tt class="ph tt">.so</tt> for PCIe</li>
+
+</ul>
+
+
+<p class="p">
+where <var class="keyword varname">nn</var> and <var class="keyword varname">nnnn</var> are the PCISIG-assigned capability IDs.
+The number of digits is important; it must be two for PCI capability IDs, and four
+for PCIe extended capability IDs.
+For example:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="ph filepath">pci_cap-0x10.so</span> is the PCIe capability module</li>
+
+<li class="li"><span class="ph filepath">pci_cap-0x05.so</span> is the MSI capability module</li>
+
+<li class="li"><span class="ph filepath">pcie_xcap-0x0001.so</span> is the PCIe extended capability module for
+  Advanced Error Reporting (AER).
+</li>
+
+</ul>
+
+
+<p class="p">
+
+
+
+
+To add a capability to the PCI server, put a capability DLL into the
+<span class="ph filepath">/lib/dll/pci/</span> directory
+(or into the directory named by the <span class="keyword envar">PCI_CAP_MODULE_DIR</span> environment variable).
+A capability header file (if required) defines the APIs to the specific capability.
+Capability header files are typically named with the name of the capability and not the ID (e.g.,
+<span class="ph filepath">cap_msi.h</span>).
+This is to allow them to be more easily identified within the files that include them.
+</p>
+
+
+<p class="p">
+The goal of this mechanism is that only the users of the capability (i.e., driver software) and the
+capability provider (i.e., the <span class="ph filepath">pci_cap-0xID.so</span> DLL) will need to be updated.
+All other modules, the PCI server library, and the PCI server itself typically remain unchanged.
+(Depending on the capability, it may be necessary to update the PCI server itself to also use a capability.)
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">How capabilities are processed</h2>
+
+
+<p class="p">
+In order to allow (and in fact force) drivers to understand, select, and configure which capabilities they want to use,
+the PCI server architecture pushes capability processing into the driver software.
+This has the following advantages:
+</p>
+
+
+<ul class="ul">
+<li class="li">Capability list processing isn't done at device discovery, thereby speeding up enumeration.</li>
+
+
+<li class="li">If there isn't a module to process a capability, the capability isn't discovered.</li>
+
+
+<li class="li">Capabilities modules aren't loaded unless at least one driver intends to use them.</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+
+
+In order for a capability module to be used, it must be known to both the driver wanting to use it
+and the PCI server process.
+If a capability module is blacklisted (see the <span class="keyword envar">PCI_MODULE_BLACKLIST</span> environment variable)
+in the PCI server, it can't be used even if it isn't blacklisted in the driver process.
+</p>
+
+
+<p class="p">
+Similarly, if you use the <span class="keyword envar">PCI_CAP_MODULE_DIR</span> environment variable to specify an alternate directory
+for capability modules (from the default <span class="ph filepath">/lib/dll/pci</span>),
+you must still make sure that any
+capability that's to be used in the system is visible to both the PCI server and the driver wishing to use it.
+You can accomplish this by making sure both have the same <span class="keyword envar">PCI_CAP_MODULE_DIR</span> or by ensuring that
+the directory identified by <span class="keyword envar">PCI_CAP_MODULE_DIR</span> and the default directory
+(<span class="ph filepath">/lib/dll/pci</span>)
+both contain the desired capability module (via a symlink or copy).
+</p>
+
+
+<p class="p">
+Note that the PCI server process must have access to the capability modules required by <em class="ph i">any</em> driver
+on the system, not just those of a specific driver. Therefore, the PCI server process typically uses
+the default location for capability modules (i.e., it doesn't have a <span class="keyword envar">PCI_CAP_MODULE_DIR</span>
+environment variable).
+You can then use <span class="keyword envar">PCI_CAP_MODULE_DIR</span> to restrict the availability of capabilities to specific drivers.
+</p>
+
+
+<p class="p">
+You can also use this environment variable to simply modify the default location of capability modules
+for every process.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Driver initiation of capabilities processing</h2>
+
+
+<p class="p">
+
+
+
+Driver software has two choices for discovering the supported capabilities of the device it's managing.
+It can call
+<a class="xref" href="pci_device_find_capid.html" title="Get the index of a capability for a device"><span class="keyword apiname">pci_device_find_capid()</span></a>
+to determine if a specific capability exists, or it can scan for all device capabilities with repeated calls to
+<a class="xref" href="pci_device_read_capid.html" title="Get the ID of the nth capability that a device supports"><span class="keyword apiname">pci_device_read_capid()</span></a>.
+Once the driver determines which capabilities the device supports and which ones it intends to enable,
+it can call
+<a class="xref" href="pci_device_read_cap.html" title="Load a capability module"><span class="keyword apiname">pci_device_read_cap()</span></a>
+to obtain a handle (of type <span class="keyword dtype">pci_cap_t</span>) to the capability.
+The act of obtaining the handle is what triggers the capability module to be loaded,
+and therefore the driver has complete control over this process.
+Only after a successful call to <span class="keyword apiname">pci_device_read_cap()</span> can the driver use any
+capability-specific APIs, since it's the <span class="keyword dtype">pci_cap_t</span> handle that's required by all capability module APIs.
+</p>
+
+
+<p class="p">
+If a device supports a capability for which there's no capability module, <span class="keyword apiname">pci_device_read_cap()</span>
+returns an error.
+</p>
+
+
+<p class="p">
+
+Note that there's currently no way to unload a capability module.
+Once a module is read, it becomes part of the running process image.
+Therefore, in order to minimize the runtime image size, drivers should read in only the capability modules that
+they intend to use.
+</p>
+
+
+The other APIs related to capabilities processing that are available to driver software include:
+
+
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a></li>
+
+<li class="li"><a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_disable()</span></a></li>
+
+<li class="li"><a class="xref" href="pci_device_cfg_cap_isenabled.html" title="Check to see if a capability is enabled or disabled"><span class="keyword apiname">pci_device_cfg_cap_isenabled()</span></a></li>
+
+</ul>
+
+
+<p class="p">
+Before a capability can be used, it typically must be enabled.
+Before enabling a capability, the driver should use the capability APIs to configure it.
+Enabling the capability causes the current capability configuration to take effect.
+If a change is to be made to the capabilities configuration, the driver should disable the capability,
+reconfigure it using the capability APIs, and then re-enable it.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+Some capabilities, such as PCI Express (PCIe), are always enabled and can't be disabled.
+For these capabilities, <span class="keyword apiname">pci_device_cfg_cap_isenabled()</span> returns true,
+<span class="keyword apiname">pci_device_cfg_cap_enable()</span> returns <span class="keyword const">PCI_ERR_EALREADY</span>,
+and <span class="keyword apiname">pci_device_cfg_cap_disable()</span> returns <span class="keyword const">PCI_ERR_ENOTSUP</span>.
+</div>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Handling device errata and out-of-spec behavior</h2> 
+
+
+<p class="p">
+
+
+
+Capability modules are written to comply with specifications and necessarily use the hardware-dependent module
+(which itself can deal with certain types of device or platform errata). However, in order to handle device errata
+or out-of-spec behavior related to device capabilities, the following mechanism is provided.
+Since a specific PCI device is uniquely identified by its vendor and device IDs,
+we allow for a device-specific capability module using the same naming convention
+with an additional tag that consists of the vendor and device IDs (<var class="keyword varname">vid</var> and <var class="keyword varname">did</var>):
+<span class="ph filepath">pci_cap-</span><var class="keyword varname">id</var>-<var class="keyword varname">vid</var><var class="keyword varname">did</var><span class="ph filepath">.so</span>
+(e.g., <span class="ph filepath">pci_cap-0x10-808610d3.so</span>).
+</p>
+
+
+<p class="p">
+
+When a capability module is to be loaded (triggered by <span class="keyword apiname">pci_device_read_cap()</span>),
+an attempt is first made to load the capability module with a matching <var class="keyword varname">vid</var><var class="keyword varname">did</var>
+tag as part of the filename. If it's found, then this module is used (discovering an already loaded module with the same
+<var class="keyword varname">vid</var> and <var class="keyword varname">did</var> means that this would be the second instance of the same device).
+If it's not found, then an attempt to find the generic capability module is made.
+If one is found that's already loaded, it's used; otherwise the generically named capability module is loaded.
+If none can be found, the capability isn't supported.
+</p>
+
+
+<p class="p">
+
+
+This mechanism allows the inclusion of a capability module for a specific device by simply dropping the
+appropriately named file into the <span class="ph filepath">/lib/dll/pci/</span> directory (or the directory identified by
+<span class="keyword envar">PCI_CAP_MODULE_DIR</span>) and restarting the device driver and PCI server process.
+(Vendor and device IDs are all that's used to uniquely identify a specific capability module.
+If multiple devices with the same vid/did exist and the named module is
+applicable to only one of the devices, then the specific module must handle both devices.)
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/design.html">Design Details</a></div>
+</div>
+</div></body>
+</html>

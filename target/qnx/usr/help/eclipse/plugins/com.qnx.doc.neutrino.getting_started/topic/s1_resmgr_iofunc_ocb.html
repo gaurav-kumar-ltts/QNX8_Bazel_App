@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The iofunc_ocb_t OCB structure" />
+<meta name="abstract" content="The OCB structure contains information used to track client access to a particular service offered by a resource manager, on a per-open or per-file-descriptor basis. What this means is that when a client performs an open() call and gets back a file descriptor (as opposed to an error indication), the resource manager will have created an OCB and associated it with the client. This OCB will be around for as long as the client has the file descriptor open." />
+<meta name="description" content="The OCB structure contains information used to track client access to a particular service offered by a resource manager, on a per-open or per-file-descriptor basis. What this means is that when a client performs an open() call and gets back a file descriptor (as opposed to an error indication), the resource manager will have created an OCB and associated it with the client. This OCB will be around for as long as the client has the file descriptor open." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_posixdata.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="iofunc_ocb" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The iofunc_ocb_t OCB structure</title>
+</head>
+<body id="iofunc_ocb">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The <span class="keyword dtype">iofunc_ocb_t</span> OCB structure</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The OCB structure contains information used to track client access to a particular service offered
+by a resource manager, on a per-open or per-file-descriptor basis.
+What this means is that when a client performs an <span class="keyword apiname">open()</span> call
+and gets back a file descriptor (as opposed to an error indication), the
+resource manager will have created an OCB and associated it with the client.
+This OCB will be around for as long as the client has the file descriptor open.
+</p>
+
+
+<p class="p">
+
+
+
+Effectively, the OCB and the file descriptor are a matched pair.
+Whenever the client calls an I/O function, the resource manager library
+will automatically associate the OCB, and pass it along with the message
+to the I/O function specified by the I/O function table entry.
+This is why the I/O functions all had the <var class="keyword varname">ocb</var> parameter passed to them.
+Finally, the client will close the file descriptor (via <span class="keyword apiname">close()</span>),
+which will cause the resource manager to dissociate the OCB from the
+file descriptor and client.
+</p>
+
+
+<p class="p">
+Note that the client's <span class="keyword apiname">dup()</span> function simply increments a reference count.
+In this case, the OCB gets dissociated from the file descriptor and
+client only when the reference count reaches zero (i.e., when the same
+number of <span class="keyword apiname">close()</span>s have been called as <span class="keyword apiname">open()</span> and
+<span class="keyword apiname">dup()</span>s.)
+</p>
+
+
+<p class="p">
+As you might suspect, the OCB contains things that are important
+on a per-open or per-file-descriptor basis.
+For a look at what's in this structure, see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_ocb_t.html"><span class="keyword dtype">iofunc_ocb_t</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+If you wish to store additional data along with the <q class="q">normal</q>
+OCB, rest assured that you can <q class="q">extend</q> the OCB.
+We'll discuss this in the <a class="xref" href="s1_resmgr_extocb.html"><q class="q">Extending the OCB</q> section.</a>
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">The <var class="keyword varname">offset</var> member</h2>
+
+
+<p class="p">
+The <var class="keyword varname">offset</var> field is, to say the least, interesting.
+Depending on what preprocessor flags you've set, you may get
+different layouts for the <var class="keyword varname">offset</var> area.
+But don't worry too much about the implementation—all offsets are 64-bit,
+of type <span class="keyword dtype">off_t</span>, and the platform knows how to deal with 64-bit
+quantities.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_posixdata.html" title="There are three data structures that relate to the POSIX-layer support routines. As far as the base layer is concerned, you can use any data structures you want; it's the POSIX layer that requires you to conform to a certain content and layout. The benefits delivered by the POSIX layer are well worth this tiny constraint. As we'll see later, you can add your own content to the structures as well.">POSIX-layer data structures</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

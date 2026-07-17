@@ -1,0 +1,1513 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="diskimage configuration file" />
+<meta name="abstract" content="Configuration file for diskimage" />
+<meta name="description" content="Configuration file for diskimage" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-d.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="diskimage_config_file" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>diskimage configuration file</title>
+</head>
+<body id="diskimage_config_file">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">diskimage</span> configuration file</h1>
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Configuration file for</em> <span class="keyword cmdname">diskimage</span></p>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword cmdname">diskimage</span> utility requires a configuration file that specifies the disk image
+layout and content.
+</p>
+
+
+<p class="p">For the full grammar of the configuration file, see 
+   <q class="q"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_config_file_grammar">Grammar</a>.</q></p>
+
+<div class="p">The configuration file has these parts: 
+
+<ul class="ul">
+<li class="li"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__Disk_configuration">disk configuration</a>—(Required
+  unless the output file is a disk device) A description of disk-wide
+                parameters.</li>
+
+
+<li class="li"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_partitions_supported_guid">partition definitions</a>—(Optional)
+  Any number of partition
+                descriptions. The partition descriptions specify the partitions to create,
+                as well as the contents and characteristics (attributes) of each
+                partition.</li>
+
+    <li class="li"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__raw">raw data sections</a>—(Optional)
+        Any number of raw data sections (e.g., for IPLs), stored outside partitions.</li>
+
+</ul>
+
+           </div>
+
+
+<p class="p">
+The <span class="keyword cmdname">diskimage</span> utility also supports
+<a class="xref" href="diskimage_config_file.html#diskimage_config_file__GUID_partition_names">short type names for some GUID partitions</a>.
+</p>
+
+
+             <div class="p">The configuration file uses a specific syntax. The following general rules apply: <ul class="ul">
+                    <li class="li">Line breaks and spaces can occur anywhere, except in literals or tokens.</li>
+
+                    <li class="li">Whitespaces used in a string literal in double quotes (<span class="ph codeph">""</span>) 
+                            are interpreted as part of that string.</li>
+
+                    <li class="li">A line feed (<span class="ph codeph">LF</span>) character indicates the end of a line.
+                        Carriage return characters (<span class="ph codeph">CR</span>) are silently ignored
+                        and aren't interpreted as the end of line.</li>
+
+                    <li class="li">A hash (<span class="ph codeph">#</span>) character indicates the beginning of a comment.
+                        Comments can begin anywhere and always extend to the end of the line.</li>
+
+                    <li class="li">Numeric values can be specified as decimal, octal, or hexadecimal.
+                        Optionally, numeric values can use these suffix values to indicate a factor:<ul class="ul">
+                       <li class="li"><span class="ph codeph">k</span> or <span class="ph codeph">K</span> to represent kilo (1024)</li>
+
+                       <li class="li"><span class="ph codeph">m </span>or <span class="ph codeph">M</span> to represent mega (1024<sup class="ph sup">2</sup>)</li>
+
+                       <li class="li"><span class="ph codeph">g</span> or <span class="ph codeph">G</span> to represent giga (1024<sup class="ph sup">3</sup>)</li>
+
+                       <li class="li"><span class="ph codeph">t</span> or <span class="ph codeph">T</span> to represent tera (1024<sup class="ph sup">4</sup>)</li>
+
+                       <li class="li"><span class="ph codeph">p</span> or <span class="ph codeph">P</span> to represent peta (1024<sup class="ph sup">5</sup>)</li>
+</ul>
+
+                    </li>
+
+                </ul>
+</div>
+
+
+</div>
+
+
+
+<div class="section" id="diskimage_config_file__diskimage_config_file_grammar"><h2 class="title sectiontitle">Grammar</h2>
+
+
+    <p class="p">
+        The contents of the <span class="keyword cmdname">diskimage</span> configuration file must conform to the following grammar,
+        which is defined using a BNF-like notation.</p>
+
+    
+<pre class="pre codeblock"># Configuration file
+config_file : disk_cfg* ( partn_def | raw_def )*
+
+# Disk configuration
+disk_cfg : '[' disk_attr+ ']'
+
+# Disk attributes
+disk_attr : 'cylinders' '=' uint
+          | 'heads' '=' uint
+          | 'sectors_per_track' '=' uint
+          | 'sector_size' '=' uint
+          | 'num_sectors' '=' uint
+          | 'align' '=' uint
+          | 'start_at_cylinder' '=' uint
+            
+# Partition definition            
+partn_def : primary_partn_def
+          | extended_partn_def
+          | logical_partn_def
+            
+# Primary partition definition            
+primary_partn_def : 
+      '[' 'partition' '=' partn_idx ppartn_attr* ']'  [partn_file]
+
+# Extended partition definition  
+extended_partn_def : 
+     '[' 'extended' '=' partn_idx epartn_attr* ']'
+
+# Logical partition definition  
+logical_partn_def : 
+     '[' 'logical' lpartn_attr* ']'  [partn_file]
+  
+# Partition index  
+partn_idx : uint
+
+# The primary partition attributes  
+ppartn_attr : boot_attr
+            | type_attr
+            | type_guid_attr
+            | nsec_attr
+            | name_attr
+            | required_attr
+            | noblock_attr
+
+# The extended partition attributes  
+epartn_attr : nsec_attr
+
+# The logical partition attributes  
+lpartn_attr : boot_attr
+            | type_attr
+            | nsec_attr
+            | esec_attr
+
+# The boot attribute
+boot_attr : 'boot' '=' bool
+
+# The type attribute
+type_attr : 'type' '=' uint
+
+# The type_guid attribute
+type_guid_attr : 'type_guid' '=' type_guid_name
+               | 'type_guid' '=' type_guid_guid
+
+# The num_sectors attribute
+nsec_attr : 'num_sectors' '=' uint
+
+# The ebr_sectors attribute
+esec_attr : 'ebr_sectors' '=' uint
+
+# The name attribute
+name_attr : 'name' '=' gpt_partn_name
+
+# The 'required' attribute
+required_attr : 'required' '=' bool
+
+# The noblock attribute
+noblock_attr : 'noblock' '=' bool
+
+# Partition file
+partn_file : string
+
+# GUID name
+type_guid_name : string
+
+# GUID
+type_guid_guid : guid
+
+# The raw section definition
+raw_def :
+    '[' 'raw' start_lba_attr num_lba_attr']' raw_file
+
+# The start_lba attribute
+start_lba_attr : 'start_lba '=' number
+
+# The num_lba attribute
+    num_lba_attr : 'num_lba' '=' number
+
+# The file_name attribute
+    raw_file : '"'file_name'"'
+
+# The boolean definition
+bool : 'true'
+     | 'false'
+
+# Unsigned integer 
+uint : '0' odigit* sfx?
+     | '0x' xdigit+ sfx?
+     | [1-9] ddigit* sfx?
+
+# Octal digits
+odigit : [0-7]
+
+# Decimal digits
+ddigit : [0-9]
+
+# Hexadecimal digits
+xdigit : [0-9a-fA-F]
+
+# Factors that can be used with integers 
+sfx : [kKmMgGtTpP]
+
+# String values must be enclosed within double quotes ("")            
+string : '"' [^"]* '"'
+
+# A GUID
+guid : 
+'{' xdigit{8} '-' xdigit{4} '-' xdigit{4} '-' xdigit{4} '-' xdigit{12} '}'</pre>
+</div>
+
+
+
+<div class="section" id="diskimage_config_file__Disk_configuration"><h2 class="title sectiontitle">Disk configuration</h2>
+
+
+        <p class="p">
+        
+                Unless the <span class="keyword cmdname">diskimage</span> output goes to a disk device, you must specify a disk
+                configuration in the configuration file. 
+                The disk configuration is made up of disk attributes, most of which describe the disk's geometry.
+                All disk attribute definitions must be enclosed in square brackets
+                (<span class="ph codeph">[]</span>). A single pair of brackets can contain one or more attribute
+                definitions; multiple attribute definitions within a pair of brackets must be
+                separated by whitespace. </p>
+
+        <p class="p"><strong class="ph b">Disk attributes</strong></p>
+
+        
+        <div class="p">The <span class="keyword cmdname">diskimage</span> command supports the following disk attributes: 
+            <dl class="dl">
+                    
+                        <dt class="dt dlterm"><span class="keyword option">cylinders</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Required) The number of cylinders on the disk. The value must be
+                            in the range 1–4294967295 (i.e., 2<sup class="ph sup">32</sup> - 1) for MBR disks or
+                            1–18446744073709551615 (i.e., 2<sup class="ph sup">64</sup> - 1) for GPT disks.</dd>
+
+                    
+                    
+                        <dt class="dt dlterm"><span class="keyword option">heads</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Required) The number of heads on the disk. The value must be
+                            in the range 1–255. </dd>
+
+                    
+                    
+                        <dt class="dt dlterm"><span class="keyword option">sectors_per_track</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Required) The number of sectors on each track. The value must
+                            be in the range 1–63. </dd>
+
+                    
+                    
+                        <dt class="dt dlterm"><span class="keyword option">sector_size</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Optional) The number of bytes per sector. The value must be
+                          one of 512, 1024, 2048, or 4096. If not specified,
+                            a default value of 512 is used. </dd>
+
+                    
+                    
+                        <dt class="dt dlterm"><span class="keyword option">num_sectors</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Optional) The total number of sectors on the disk.
+                            This is usually calculated from the values for <span class="keyword option">cylinders</span>, <span class="keyword option">heads</span>,
+                            and <span class="keyword option">sectors_per_track</span>. If the number of sectors that the device reports
+                            isn't the product of these three, you must explicity specify the total sector
+                            count to generate correct GPT disk images.
+
+                            <ul class="ul">
+                            <li class="li">For MBR, the value must be in the range 1–8589934590 (i.e., 2<sup class="ph sup">33</sup> - 2),
+                              but we recommend a maximum of 4294967295 (i.e., 2<sup class="ph sup">32</sup> - 1).
+                              If you use a value that's greater than the recommended one, 
+                              <span class="keyword cmdname">diskimage</span> gives you a warning.
+                            </li>
+
+
+                            <li class="li">For GPT disks, the value must be in the range 1–18446744073709551615
+                              (i.e., 2<sup class="ph sup">64</sup> - 1)
+                            </li>
+
+
+                            </ul>
+
+                       </dd>
+
+                        
+
+                        <dt class="dt dlterm"><span class="keyword option">align</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Optional) The sector count for partition alignment. Every partition
+                            is adjusted such that its first sector number is an integral multiple of this value.
+                            The value must be in the range 1–4294967295 (2<sup class="ph sup">32</sup> - 1) for MBR disks
+                            or 1–18446744073709551615 (2<sup class="ph sup">64</sup> - 1) for GPT disks. By default, the number
+                            of sectors per cylinder is used (i.e., each partition begins on a cylinder boundary).</dd>
+
+                    
+                        <dt class="dt dlterm"><span class="keyword option">start_at_cylinder</span>=<var class="keyword varname">number</var></dt>
+
+                        <dd class="dd">(Optional) The cylinder at which the first partition begins. The value must be in the range
+                            0–4294967294 (i.e., 2<sup class="ph sup">32</sup> - 2) for MBR disks or 
+                            0–18446744073709551614 (i.e., 2<sup class="ph sup">64</sup> - 2) for GPT disks. The default is 0 (zero).
+                        <div class="note"><span class="notetitle">Note:</span> 
+                            The first few sectors of the disk are always reserved for partition table metadata. 
+                            For MBR disks, the first track is reserved (= <span class="keyword option">sectors_per_track</span> sectors);
+                            for GPT disks, 2 + ((<span class="keyword option">num_partitions</span> * 128 + <span class="keyword option">sector_size</span> - 1) / <span class="keyword option">sector_size</span>)
+                            sectors are reserved. The first partition begins at the next multiple of the alignment unit size.
+                        </div>
+
+                        </dd>
+
+                    
+                </dl>
+</div>
+
+</div>
+
+
+
+<div class="section" id="diskimage_config_file__diskimage_partitions_supported_guid"><h2 class="title sectiontitle">Partition configuration</h2>
+
+
+<p class="p">
+            
+            
+            
+In the partition configuration, you can specify the following kinds of partitions: primary, extended, and logical.
+           These partition definitions must comply with the following conditions:</p>
+
+
+<ul class="ul">
+<li class="li">You can use the <span class="keyword option">-G</span> option to specify the number of primary partitions in a GPT disk.
+  The minimum number is 128 (the default).
+  GPT disks can't have any extended or logical partitions.
+</li>
+
+            <li class="li">An MBR disk can have up to four primary partitions or up to three primary and
+                one extended partition, where the extended partition can contain
+                any number of logical partitions.</li>
+
+            <li class="li">Any logical partitions on an MBR disk require the existence of an extended
+                partition. When logical partitions are used, you're not required to
+                explicitly specify the extended partition.
+                Regardless of whether you do this, there can be only three primary partitions
+                if you define logical partitions. If no extended partition is
+                defined but logical partitions are defined, an extended partition is
+                automatically created. You can't specify more than one extended partition in
+                the configuration file.</li>
+
+            <li class="li">The extended partition must be explicitly defined when a specific partition
+                index must be assigned to it or the required space exceeds the defined
+                logical partitions. For information about calculating the size of the
+                extended partition, see 
+                <q class="q"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_using_extended_logical_partitions">Using extended and logical partitions</a>.</q></li>
+
+            <li class="li">The combined size of all logical partitions (including any overhead) should
+                be equal to and must not exceed the size of the extended partition.</li>
+
+        </ul>
+
+        <div class="p">You can declare primary, extended, and logical partitions using the following syntax
+            (for the complete configuration file syntax, see
+<q class="q"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_config_file_grammar">Grammar</a></q>):
+<pre class="pre codeblock">...
+
+primary_partn_def : '[' 'partition' '=' partn_idx ppartn_attr* ']' [partn_file]
+
+extended_partn_def : '[' 'extended' '=' partn_idx epartn_attr* ']'
+
+logical_partn_def : '[' 'logical' lpartn_attr* ']' [partn_file]
+
+...
+</pre>
+        where:
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">partn_idx</var></dt>
+
+                    <dd class="dd">A unique value in the range 1–4 for MBR disks or 
+                        1–<var class="keyword varname">number</var> for GPT disks 
+                        (where there are <var class="keyword varname">number</var> partitions).</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">ppartn_attr</var>, <var class="keyword varname">epartn_attr</var>, <var class="keyword varname">lpartn_attr</var></dt>
+
+                    <dd class="dd">The partition attributes that apply for primary, extended, and logical partitions, respectively.
+                        For details, see <q class="q"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_config_file_grammar">Grammar</a>.</q></dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">partn_file</var></dt>
+
+                    <dd class="dd">The pathname of the file containing the filesystem image for the
+                        partition. The pathname must be enclosed in double quotes
+                        (<span class="ph codeph">""</span>), and can't exceed the host's maximum pathname
+                        length. The file size must not exceed the partition size. For
+                        filesystems that are not Power-Safe filesystems, the image file can be
+                        smaller than the partition (although a warning is issued). If no pathname
+                        is specified, an empty partition is created. In this case, the <span class="keyword option">num_sectors</span>
+                        attribute must be specified.</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+<p class="p" id="diskimage_config_file__diskimage_partition_attributes"><strong class="ph b">Partition Attributes</strong></p>
+
+
+        <div class="p">The following partition attributes are supported by <span class="keyword cmdname">diskimage</span>:
+            <dl class="dl">
+               
+                   <dt class="dt dlterm">boot=<var class="keyword varname">true</var>|<var class="keyword varname">false</var></dt>
+
+                   <dd class="dd">(Optional) Specifies whether the partition should be marked as bootable.
+                       A boolean value is used, where <span class="ph codeph">true</span> indicates that the
+                       partition is bootable and <span class="ph codeph">false</span> indicates that it isn't.
+                       The default value is <span class="ph codeph">false</span>. </dd>
+
+               
+               
+                   <dt class="dt dlterm">type=<var class="keyword varname">number</var></dt>
+
+                   <dd class="dd">(Required; MBR only) Specifies the partition type. The value must be in the range
+                       1–255 and should match the type of the filesystem in the
+                       partition image file. Frequently used types include 11/12 (DOS FAT32)
+                       and 177/178/179 (Power-Safe filesystem). For more information about
+                       partitions and a list of partition IDs, refer to <a class="xref" href="http://en.wikipedia.org/wiki/Partition_type" target="_blank">http://en.wikipedia.org/wiki/Partition_type</a>.  </dd>
+
+               
+               
+                   <dt class="dt dlterm">type_guid=<var class="keyword varname">type_or_guid</var></dt>
+
+                   <dd class="dd">(Required; GPT only) Specifies the GUID partition type. Either a short
+                       type name enclosed in double quotes (""), or a GUID enclosed in curly braces
+                       of the form {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}. For more information on
+                       GPT disks and GUID partition types, refer to 
+                       <q class="q"><a class="xref" href="diskimage_config_file.html#diskimage_config_file__diskimage_partitions_supported_guid">Partition information</a></q> 
+                       and <a class="xref" href="http://en.wikipedia.org/wiki/GUID_Partition_Table" target="_blank">http://en.wikipedia.org/wiki/GUID_Partition_Table</a>.</dd>
+
+               
+                
+                   <dt class="dt dlterm">num_sectors=<var class="keyword varname">number</var></dt>
+
+                   <dd class="dd">(Optional) Specifies the number of sectors to allocate for the
+                       partition. The value must be in the range 1–4294967295
+                       (i.e., 2<sup class="ph sup">32</sup> - 1) for MBR disks, or 1–18446744073709551615
+                       (i.e., 2<sup class="ph sup">64</sup> - 1) for GPT disks. If this attribute isn't specified, it's set to
+                       the smallest number of sectors required for the partition’s filesystem
+                       image. </dd>
+
+                    <dd class="dd ddexpand"><div class="note"><span class="notetitle">Note:</span> If no partition file is specified, <span class="keyword option">num_sectors</span> is required.</div>
+</dd>
+
+               
+               
+                   <dt class="dt dlterm">ebr_sectors=<var class="keyword varname">number</var></dt>
+
+                   <dd class="dd">(Optional; MBR, logical partitions only) Specifies the number of sectors to be reserved in front of
+                       the logical partition. At least one sector is required for the EBR
+                       (Extended Boot Record) associated with the partition. The value must be
+                       in the range 1–4294967295 (i.e., 2<sup class="ph sup">32</sup> - 1). If this attribute
+                       isn't specified, exactly one track is reserved. For more information,
+                       see the <span class="keyword option">sectors_per_track</span> disk attribute.</dd>
+
+               
+               
+                   <dt class="dt dlterm">name=<var class="keyword varname">string</var></dt>
+
+                   <dd class="dd">(Optional; GPT only) Specifies an arbitrary name for the partition. The name must
+                       be enclosed in double quotes ("") and be between 1 and 35 characters in length. If this
+                       attribute isn't specified, a default name of the form <var class="keyword varname">type.N</var> is created, where <var class="keyword varname">type</var>
+                       is the <span class="keyword option">type_guid</span> short name and <var class="keyword varname">N</var> is a sequential number for this type. The string is
+                       expected to be UTF-8 encoded.</dd>
+
+                
+                
+                    <dt class="dt dlterm">required=<var class="keyword varname">true</var>|<var class="keyword varname">false</var></dt>
+
+                    <dd class="dd">(Optional; GPT only) Specifies whether the "Required Partition" attribute bit is
+                        set for this GUID partition (<span class="ph codeph">true</span> for set; <span class="ph codeph">false</span> otherwise).
+                        For more information about partition attribute bits,
+                        refer to the UEFI specification 2.4B, 5.3.3, "GPT Partition Entry Array", Table 20.</dd>
+ 
+               
+                
+                    <dt class="dt dlterm">noblock=<var class="keyword varname">true</var>|<var class="keyword varname">false</var></dt>
+
+                    <dd class="dd">(Optional; GPT only) Specifies whether the "No Block I/O Protocol" attribute bit is
+                        set for this GUID partition (<span class="ph codeph">true</span> for set; <span class="ph codeph">false</span> otherwise).
+                        For more information about partition attribute bits,
+                        refer to the UEFI specification 2.4B, 5.3.3, "GPT Partition Entry Array", Table 20.</dd>
+ 
+                
+           </dl>
+
+        </div>
+
+        
+<p class="p" id="diskimage_config_file__diskimage_using_extended_logical_partitions"><strong class="ph b">Using extended and logical partitions</strong></p>
+
+            
+                <p class="p">If you want to use logical partitions, you must also define exactly one extended
+                   partition. It can be defined explicitly or created automatically by
+                   <span class="keyword cmdname">diskimage</span>. The extended partition acts as a primary partition
+                   and serves as a container for the logical partitions. Within the extended partition,
+                   the logical partitions are laid out in the order in which they appear in the configuration
+                   file.</p>
+
+                <div class="p">The total combined size of all logical partitions (including any
+                    overhead) must be less than or equal to the size of the extended partition. 
+                    When calculating the space required for the extended partition, be aware
+                    that each logical partition is preceeded by an Extended
+                    Boot Record (EBR), which is exactly one sector in size, and some optional
+                    padding sectors:
+                    <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Extended boot record, padding, and logical partition</span>
+                        
+                        <img class="image" src="../../images/padding_ebr_diskimage.svg" width="480" alt="A diagram showing the relationship between the extended boot record, padding, and logical partition" />
+                    </div>
+
+                </div>
+
+                <p class="p">By default, the <span class="keyword option">ebr_sectors</span> option is set to the disk's number
+                   of sectors per track (i.e., exactly one track). The <span class="keyword option">ebr_sectors</span> value includes
+                   the EBR as well as any padding sectors. We recommend that you use the default value of one track.</p>
+
+                <div class="p">To illustrate this calculation, consider the following example,
+                    in which the specified partitions intentionally don't add up to fill the disk:
+                <dl class="dl">
+                    
+                        <dt class="dt dlterm">Target disk geometry</dt>
+
+                        <dd class="dd">16 cylinders</dd>
+
+                        <dd class="dd ddexpand">32 heads</dd>
+
+                        <dd class="dd ddexpand">32 sectors per track</dd>
+
+                    
+                    
+                        <dt class="dt dlterm">Partitions</dt>
+
+                        <dd class="dd">One primary type 11 (DOS FAT32), bootable, 4096 sectors</dd>
+
+                        <dd class="dd ddexpand">One extended partition with: <ul class="ul">
+                                <li class="li">1 logical type 179 (Power-Safe filesystem), 2048 sectors</li>
+
+                                <li class="li">1 logical type 178 (Power-Safe filesystem), 6144 sectors</li>
+
+                            </ul>
+
+                        </dd>
+
+                    
+                </dl>
+</div>
+
+               
+               <div class="p">To calculate the extended partition, use the following formula:
+                <pre class="pre codeblock">  &lt;sectors_per_track&gt;	/* First logical EBR  */
++ &lt;logical-type-179&gt;	 /* First logical data */
++ &lt;sectors_per_track&gt;	/* Second logical EBR  */
++ &lt;logical-type-178&gt;	 /* Second logical data */
+= ext_sectors</pre>
+               </div>
+
+               <div class="p">For the example, these are the values to use in the formula:
+                <pre class="pre codeblock">    32    /* sectors_per_track */
++ 2048    /* First logical data */
++   32    /* sectors_per_track  */
++ 6144    /* Second logical data */
+= 8256    /* size of extended partition sectors */</pre>
+               </div>
+
+               <div class="p"> To define the configuration specified in the previous example, the configuration
+                file would be:
+                <pre class="pre codeblock">[cylinders=16 heads=32 sectors_per_track=32]
+[partition=1 boot=true  type= 11 num_sectors=4096] "fat.img"
+[extended=2                      num_sectors=8256]
+[logical     boot=false type=179 num_sectors=2048] "qnx-179.img"
+[logical     boot=false type=178 num_sectors=6144] "qnx-178.img"</pre>
+               </div>
+
+               <div class="p">However, if you assume the three filesystem images are
+                full-sized, you can use a simplified syntax by taking
+                advantage of default behavior:
+<pre class="pre codeblock">[cylinders=16 heads=32 sectors_per_track=32]
+[partition=1 boot=true type=11] "fat.img"
+[logical type=179] "qnx-179.img"
+[logical type=178] "qnx-178.img"</pre>
+               </div>
+
+
+</div>
+
+
+
+<div class="section" id="diskimage_config_file__GUID_partition_names"><h2 class="title sectiontitle">Supported short type names for GUID partitions</h2>
+
+
+<p class="p">
+
+
+The following tables list the GUID partition types for which <span class="keyword cmdname">diskimage</span> has a defined short type name.
+You can use any of the listed types in a partition declaration by specifying the string in the <q class="q">Type Name</q>
+column as the value of the <span class="keyword option">type_guid</span> partition attribute.
+For types not listed, you must specify the full GUID.
+</p>
+
+
+<p class="p"><strong class="ph b">General</strong></p>
+
+          
+         
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d235356e842">Type Name</th>
+
+        <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e845">GUID</th>
+
+        <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e848">Description</th>
+</tr>
+
+</thead>
+<tbody class="tbody"> 
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">unused</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">00000000-0000-0000-0000-000000000000</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">Unused entry</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">mbr</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">024DEE41-33E7-11D3-9D69-0008C781F39F</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">Nested MBR</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">bios</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">21686148-6449-6E6F-744E-656564454649</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">BIOS Boot</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">gpfs</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">37AFFC90-EF7D-4E96-91C3-2D7AE055B174</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">IBM General Parallel File System (GPFS)</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">lenovo</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">BFBFAFE7-A34F-448A-9A5B-6213EB736C22</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">Lenovo Boot Partition</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">efi</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">C12A7328-F81F-11D2-BA4B-00A0C93EC93B</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">EFI System Partition (ESP)</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">iffs</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">D3BFE2DE-3DAF-11DF-BA40-E3A556D89593</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">Intel Fast Flash (iFFS) Partition (Intel Rapid Start)</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e842 ">sony</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e845 ">F4019732-066E-4E12-8273-346C5641494F</td>
+
+        <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e848 ">Sony Boot Partition</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+            
+ 
+<p class="p"><strong class="ph b">QNX</strong></p>
+
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d235356e956">Type Name</th>
+ <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e959">GUID</th>
+ <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e962">Description</th>
+</tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e956 ">qnx6</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e959 ">CEF5A9AD-73BC-4601-89F3-CDEEEEE321A1</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e962 ">Power-Safe filesystem (fs-qnx6.so)</td>
+</tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e956 ">qtd</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e959 ">F3885E7F-09B1-4075-8CEF-1244534F95BC</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e962 ">QNX Trusted Disk (fs-qtd.so)</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e956 ">qtsafefs</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e959 ">FF3C6142-3C54-4C27-A2A7-7631A58E1320</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e962 ">QNX Trusted File System for Safety</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        
+ 
+<p class="p"><strong class="ph b">Windows</strong></p>
+
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1023">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1026">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1029">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">  
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">ldmm</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">5808C8AA-7E8F-42E0-85D2-E1E90434CFB3</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Logical Disk Manager (LDM) Metadata</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">ldmd</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">AF9B60A0-1431-4F62-BC68-3311714A69AD</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Logical Disk Manager Data</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">msrec</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">DE94BBA4-06D1-4D40-A16A-BFD50179D6AC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Windows Recovery Environment</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">mswin</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">E3C9E316-0B5C-4DB8-817D-F92DF00215AE</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Microsoft Reserved Partition (MSR)</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">strgsp</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">E75CAF8F-F680-4CEE-AFA3-B001E56EFC2D</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Storage Spaces Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1023 ">ms</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1026 ">EBD0A0A2-B9E5-4433-87C0-68B6B72699C7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1029 ">Microsoft Basic Data Partition (BDP), for any kind of FAT, exFAT, or NTFS filesystem</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+ 
+<p class="p"><strong class="ph b">Apple (Mac OS X)</strong></p>
+
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                      <tr class="row">
+                         <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1118">Type Name</th>
+
+                         <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1121">GUID</th>
+
+                         <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1124">Description</th>
+
+                      </tr>
+
+                 </thead>
+<tbody class="tbody">
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">aboot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">426F6F74-0000-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple Boot Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">hfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">48465300-0000-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple HFS/HFS+</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">albl</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">4C616265-6C00-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple Label Partition (Disklabel)</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">araid</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">52414944-0000-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple RAID Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">aoraid</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">52414944-5F4F-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple RAID Partition, offline</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">atvr</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">5265636F-7665-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple TV Recovery Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">acs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">53746F72-6167-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple Core Storage (Lion FileVault) Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">aufs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">55465300-0000-11AA-AA11-00306543ECAC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple UFS</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1118 ">azfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1121 ">6A898CC3-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1124 ">Apple ZFS</td>
+</tr>
+
+                </tbody>
+</table>
+</div>
+
+        
+<p class="p"><strong class="ph b">Ceph</strong></p>
+
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1244">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1247">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1250">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1244 ">cedm</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1247 ">45B0969E-9B03-4F30-B4C6-5EC00CEFF106</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1250 ">Ceph dm-crypt Encrypted Journal</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1244 ">cejour</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1247 ">45B0969E-9B03-4F30-B4C6-B4B80CEFF106</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1250 ">Ceph Journal</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1244 ">ceosd</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1247 ">4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1250 ">Ceph OSD</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1244 ">cedmosd</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1247 ">4FBD7E29-9D25-41B8-AFD0-5EC00CEFF05D</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1250 ">Ceph dm-crypt OSD</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+         
+ 
+ <p class="p"><strong class="ph b">ChromeOS</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1318">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1321">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1324">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1318 ">chrsrvd</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1321 ">2E0A753D-9E48-43B0-8337-B15192CB1B5E</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1324 ">ChromeOS Future Use</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1318 ">chroot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1321 ">3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1324 ">ChromeOS Rootfs</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1318 ">chkrnl</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1321 ">FE3A2A5D-4F32-41A7-B725-ACCC3285A309</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1324 ">ChromeOS Kernel</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+         
+ 
+ <p class="p"><strong class="ph b">FreeBSD</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1382">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1385">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1388">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fbdata</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">516E7CB4-6ECF-11D6-8FF8-00022D09712B</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD Data Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fbswap</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">516E7CB5-6ECF-11D6-8FF8-00022D09712B</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD Swap Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fbufs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">516E7CB6-6ECF-11D6-8FF8-00022D09712B</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD Unix File System (UFS)</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fblvm</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">516E7CB8-6ECF-11D6-8FF8-00022D09712B</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD-LVM (Vinum) Volume Manager Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fbzfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">516E7CBA-6ECF-11D6-8FF8-00022D09712B</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD ZFS Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1382 ">fbboot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1385 ">83BD6B9D-7F41-11DC-BE0B-001560B84F0F</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1388 ">FreeBSD Boot Partition</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+         
+ 
+ <p class="p"><strong class="ph b">Haiku</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1478">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1481">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1484">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1478 ">hbfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1481 ">42465331-3BA3-10F1-802A-4861696B7521</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1484 ">Haiku BFS</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+         
+ 
+ <p class="p"><strong class="ph b">HP-UX</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1522">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1525">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1528">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1522 ">hpuxlvm</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1525 ">75894C1E-3AEB-11D3-B7C1-7B03A0000000</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1528 ">HP-UX-LVM Data Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1522 ">hpuxsvc</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1525 ">E2A1E728-32E3-11D6-A682-7B03A0000000</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1528 ">HP-UX Service Partition</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+         
+
+<p class="p"><strong class="ph b">Linux</strong></p>
+        
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1576">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1579">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1582">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+            
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxswap</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">0657FD6D-A4AB-43C4-84E5-0933C84B4F4F</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux Swap Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxdata</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">0FC63DAF-8483-4772-8E79-3D69D8477DE4</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux Filesystem Data</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxsrv</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">3B8F8425-20E0-4F3B-907F-1A25A76F98E8</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux /srv (server data)</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">dmcrypt</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">7FFEC5C9-2D00-49B7-8941-3EA10A5586B7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Plain dm-crypt Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxrsrv</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">8DA63339-0007-60C0-C436-083AC8230908</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux Reserved</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxhome</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">933AC7E1-2EB4-4F13-B844-0E14E2AEF915</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux /home Partition (systemd)</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxraid</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">A19D880F-05FC-4D3B-A006-743F0F84911E</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux RAID Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxluks</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">CA7D7CCB-63ED-4C53-861C-1742536059CC</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux LUKS Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1576 ">lnxlvm</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1579 ">E6D6D379-F507-44C2-A23C-238F2A3DF928</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1582 ">Linux Logical Volume Manager (LVM)</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+        
+<p class="p"><strong class="ph b">MidnightBSD</strong></p>
+
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1702">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1705">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1708">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbufs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">0394EF8B-237E-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">Unix File System (UFS) Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbdata</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">85D5E45A-237C-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">Data Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbswap</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">85D5E45B-237C-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">Swap Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbvin</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">85D5E45C-237C-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">Vinum volume manager Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbzfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">85D5E45D-237C-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">ZFS Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1702 ">mbboot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1705 ">85D5E45E-237C-11E1-B4B3-E89A8F7FC3A7</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1708 ">Boot Partition</td>
+</tr>
+
+                        </tbody>
+</table>
+</div>
+
+        
+
+         <p class="p"><strong class="ph b">NetBSD</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1797">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1800">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1803">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nbcat</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">2DB519C4-B10F-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">Concatenated Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nbcrypt</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">2DB519EC-B10F-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">Encrypted Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nbswap</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">49F48D32-B10E-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">Swap Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nbffs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">49F48D5A-B10E-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">FFS Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nblfs</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">49F48D82-B10E-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">LFS Partition</td>
+</tr>
+
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1797 ">nbraid</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1800 ">49F48DAA-B10E-11DC-B99B-0019D1879648</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1803 ">RAID Partition</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+        
+
+         <p class="p"><strong class="ph b">OpenBSD</strong></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1892">Type Name</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1895">GUID</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1898">Description</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+            
+                        <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1892 ">obdata</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1895 ">824CC7A0-36A8-11E3-890A-952519AD3F61</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1898 ">OpenBSD Data Partition</td>
+</tr>
+
+                    </tbody>
+</table>
+</div>
+
+        
+
+          <p class="p"><strong class="ph b">Solaris</strong></p>
+
+        
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:12.5%" /><col style="width:43.75%" /><col style="width:43.75%" /></colgroup><thead class="thead" style="text-align:left;">
+                    <tr class="row">
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1937">Type Name</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1940">GUID</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d235356e1943">Description</th>
+
+                    </tr>
+
+                </thead>
+<tbody class="tbody">
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">sboot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A82CB45-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Boot Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">sroot</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A85CF4D-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Root Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">sswap</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A87C46F-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Swap Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">susr</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A898CC3-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">/usr Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">sbkup</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A8B642B-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Backup Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">srsvd</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A8D2AC7-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Reserved Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">svar</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A8EF2E9-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">/var Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">shome</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A90BA39-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">/home Partition</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">altsctr</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A9283A5-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Alternate sector (EFI_ALTSCTR)</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">srsvd1</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A945A3B-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Reserved Partition 1</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">srsvd2</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A96237F-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Reserved Partition 2</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">srsvd3</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A9630D1-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Reserved Partition 3</td>
+</tr>
+
+                    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1937 ">srsvd4</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1940 ">6A980767-1DD2-11B2-99A6-080020736631</td>
+ <td class="entry cellrowborder" style="vertical-align:top;" headers="d235356e1943 ">Reserved Partition 4</td>
+</tr>
+
+                    
+                </tbody>
+</table>
+</div>
+
+
+</div>
+
+
+    
+    <div class="section" id="diskimage_config_file__raw"><h2 class="title sectiontitle">Raw data</h2>
+        
+        
+        
+        
+        
+        
+        <p class="p">The <span class="keyword option">raw</span> attribute can be used to copy data (e.g., IPLs) to areas on the disk that aren't covered by any partition.</p>
+
+        <p class="p">Since raw data sections aren't part of any partition, they aren't included in the partition table. However, the <span class="keyword cmdname">diskimage</span> utility makes sure that the defined raw sections don't overlap with any of the defined partitions or with any partition-table metadata.</p>
+
+        <p class="p">The <span class="keyword cmdname">diskimage</span> utility supports the following <span class="keyword option">raw</span> data attributes:</p>
+
+        <dl class="dl">
+            
+                <dt class="dt dlterm">start_lba=<var class="keyword varname">number</var></dt>
+
+                <dd class="dd">The logical block address (LBA) of the raw data to be included in the disk image.</dd>
+
+            
+            
+            
+                <dt class="dt dlterm">num_lba=<var class="keyword varname">number</var></dt>
+
+                <dd class="dd">The number of LBAs of raw data to be included in the disk image.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword option">raw_file</span></dt>
+
+                <dd class="dd">The path and name of the file with the raw data to be added to the image.</dd>
+
+            
+        </dl>
+
+        <div class="p">For example:
+        <pre class="pre codeblock">[raw start_lba=1024 num_lba=16] "generated/ipl-foo"</pre></div>
+
+    </div>
+
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p"><strong class="ph b">Configuration file for three primary partitions</strong></p>
+
+
+<div class="p">The following is a sample configuration for a disk with three primary partitions—one DOS FAT32 filesystem
+               and two Power-Safe filesystems—intended for a disk geometry of 974/255/63
+                (cylinders/heads/sectors). The configuration file expects the filesystem images to
+                reside in the directory <span class="ph filepath">../fsi</span>.
+<pre class="pre codeblock">[cylinders=974]
+[heads=255]
+[sectors_per_track=63]
+
+# DOS FAT32
+[partition=1
+  boot=false
+  type=11
+  num_sectors=963837
+] "../fsi/fat32.fsi"
+
+# First Power-Safe filesystem, &gt;2GB, bootable
+[partition=2
+  boot=true
+  type=179
+  num_sectors=4273290
+] "../fsi/qnx6-1.fsi"
+
+# Second Power-Safe filesystem
+[partition=3
+  boot=false
+  type=178
+  num_sectors=1060290
+] "../fsi/qnx6-2.fsi"
+</pre>
+         </div>
+
+
+<p class="p"><strong class="ph b">Configuration file for three primary and two logical partitions</strong></p>
+
+    
+            <div class="p">The configuration below is for a disk with three primary and two logical partitions. The primary
+                partitions are a DOS FAT32 filesystem and a Power-Safe filesystem, plus an empty partition
+                reserved for another Power-Safe filesystem. Both logical partitions are
+                Power-Safe filesystems. The extended partition uses slot 3 in the MBR. The resulting
+                image is intended for a disk geometry of 4096/64/32 (cylinders/heads/sectors), which could
+                represent an eMMC. The configuration file expects the filesystem images to reside in
+                the directory <span class="ph filepath">../fsi</span>.
+                
+<pre class="pre codeblock">[cylinders=4096 heads=64 sectors_per_track=32]
+
+# DOS FAT32 (~480MB)
+[partition=1 type=11 num_sectors=963837] "../fsi/fat32.fsi"
+
+# Primary Power-Safe filesystem, &gt;2GB, bootable
+[partition=2 boot=true type=179 num_sectors=4273290] "../fsi/qnx6-1.fsi"
+
+[extended=3]
+
+# Reserved for Power-Safe filesystem
+[partition=4 type=178 num_sectors=65536]
+
+# Power-Safe filesystem (~500MB)
+[logical type=178 num_sectors=1060290] "../fsi/qnx6-2.fsi"
+
+# Power-Safe filesystem (~500MB)
+[logical type=177 num_sectors=1060290] "../fsi/qnx6-3.fsi"
+</pre>
+</div>
+
+
+<p class="p"><strong class="ph b">Configuration file for a GPT disk with two partitions</strong></p>
+
+    
+    <div class="p">This example is for a GPT disk with two partitions–one DOS FAT32 named "dos" and one Power-Safe filesystem named "qnx".
+       This configuration is intended for a disk geometry of 65536/32/16 (cylinders/heads/sectors). Partitions are aligned to multiples of 1MB.
+       Use the first and the last entry of the partition table. The configuration file expects the filesystem images to reside in the directory
+       <span class="ph filepath">../fsi</span>.
+    
+<pre class="pre codeblock">[cylinders=64k heads=32 sectors_per_track=16]
+# At 512 bytes/sector, 2k sectors give 1MB
+[align=2k]
+    
+# DOS FAT32
+[partition=1
+  type_guid="ms"
+  name="dos"
+  num_sectors=2097108
+] "../fsi/fat32.fsi"
+   
+# Power-Safe filesystem, bootable
+[partition=128
+  boot=true
+  type_guid="qnx6"
+  name="qnx"
+  num_sectors=4273290
+] "../fsi/qnx6.fsi"</pre>
+    
+ </div>
+   
+    
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-d.html">D</a></div>
+</div>
+</div></body>
+</html>

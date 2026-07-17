@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using fork() in a multithreaded process" />
+<meta name="abstract" content="Using fork() in a multithreaded process can be tricky, especially if one thread calls fork() while other threads are in critical sections of code." />
+<meta name="description" content="Using fork() in a multithreaded process can be tricky, especially if one thread calls fork() while other threads are in critical sections of code." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Starting_process_from_programs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="s1_procs_Multithreaded_fork" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using fork() in a multithreaded process</title>
+</head>
+<body id="s1_procs_Multithreaded_fork">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Using <span class="keyword apiname">fork()</span> in a multithreaded process</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Using <span class="keyword apiname">fork()</span> in a multithreaded process can be tricky, especially if
+one thread calls <span class="keyword apiname">fork()</span> while other threads are in critical sections of code.
+</p>
+
+
+<p class="p">
+
+POSIX says that following a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>, the child's memory state is
+a copy of the parent's, but the child contains only a single thread; any
+other threads in the parent aren't duplicated in the child.  If one of
+those parent threads was in the middle of manipulating a data structure
+when the <span class="keyword apiname">fork()</span> happened, that data structure will be in an undefined,
+possibly inconsistent, state in the child following the <span class="keyword apiname">fork()</span>.
+Regular mutexes can be used to protect different threads from interfering
+with each other, but protecting against <span class="keyword apiname">fork()</span> requires the forking code
+to be aware of the internals of your data structure synchronization.
+</p>
+
+
+<p class="p">
+For example, suppose the parent process has two threads, T1 and T2, and T2 has locked a mutex.
+If T1 calls <span class="keyword apiname">fork()</span>, the child process is a copy of the parent, including any mutexes,
+but with only one thread.
+If the thread in the child tries to lock the mutex, the operation fails because T2 has it locked—and
+there is no T2 in the child process, so no one can unlock the mutex.
+This can lead to a deadlock.
+</p>
+
+
+<p class="p">
+The simplest solution is to call <span class="keyword apiname">fork()</span> only from a single-threaded process,
+or to call it before you create additional threads.
+But, if you insist on using <span class="keyword apiname">fork()</span> in a multithreaded process, there are some things you
+can do:
+</p>
+
+
+<ul class="ul">
+<li class="li">Use at-fork handlers</li>
+
+<li class="li">Use forksafe mutexes</li>
+
+<li class="li">Call <span class="keyword apiname">exec*()</span> soon after forking.
+  POSIX requires that the child process use only functions that are async-signal-safe
+  until it calls one of the <span class="keyword apiname">exec*()</span> functions.
+</li>
+
+</ul>
+
+
+<p class="p">
+
+You can use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_atfork.html"><span class="keyword apiname">pthread_atfork()</span></a>
+to register the following handlers:
+</p>
+
+
+<ul class="ul">
+<li class="li"><var class="keyword varname">prepare</var> — called before forking</li>
+
+<li class="li"><var class="keyword varname">parent</var> — called in the parent after forking</li>
+
+<li class="li"><var class="keyword varname">child</var> — called in the child after forking</li>
+
+</ul>
+
+
+<p class="p">
+You can call <span class="keyword apiname">pthread_atfork()</span> more than once if you want to register additional handlers;
+the <var class="keyword varname">parent</var> and <var class="keyword varname">child</var> handlers are called in the order that you registered them,
+and the <var class="keyword varname">prepare</var> handlers are called in the reverse order.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In the <var class="keyword varname">child</var> handler, you can call only functions that are async-signal-safe
+(i.e., functions that you can safely call from a signal handler).
+</div>
+
+
+<p class="p">
+In the <var class="keyword varname">prepare</var> handler, you can lock all the mutexes, and then unlock them in the
+<var class="keyword varname">parent</var> and <var class="keyword varname">child</var> handlers.
+This ensures that no other threads can hold the mutexes across the <span class="keyword apiname">fork()</span>.
+However, if you have many different mutexes in different code that is only loosely
+coupled, getting the locking order correct to avoid deadlock can be tricky.
+</p>
+
+
+<p class="p">
+
+
+We've implemented a <em class="ph i">forksafe mutex</em> as another way to deal with this problem.
+A <span class="keyword dtype">forksafe_mutex_t</span> is a replacement for a <span class="keyword dtype">pthread_mutex</span> but is
+mutually exclusive with <span class="keyword apiname">fork()</span> calls.
+The <span class="keyword apiname">fork()</span> function is aware of mutexes of this type and can't execute
+while any forksafe mutexes are held: <span class="keyword apiname">fork()</span> blocks while any forksafe
+mutexes are held, and while a <span class="keyword apiname">fork()</span> call is underway, any attempts to lock
+a forksafe mutex block until the <span class="keyword apiname">fork()</span> has completed.
+</p>
+
+
+<p class="p">
+You can use the following functions to work with forksafe mutexes:
+
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forksafe_mutex_destroy.html"><span class="keyword apiname">forksafe_mutex_destroy()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forksafe_mutex_init.html"><span class="keyword apiname">forksafe_mutex_init()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forksafe_mutex_lock.html"><span class="keyword apiname">forksafe_mutex_lock()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forksafe_mutex_trylock.html"><span class="keyword apiname">forksafe_mutex_trylock()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forksafe_mutex_unlock.html"><span class="keyword apiname">forksafe_mutex_unlock()</span></a></li>
+
+</ul>
+
+
+<p class="p">
+They replace the corresponding <span class="keyword apiname">pthread_mutex_*()</span> functions;
+for more information, see the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<p class="p">
+Note the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">There are two versions of the <span class="keyword apiname">forksafe_mutex_*()</span> functions:
+
+  <ul class="ul">
+  <li class="li">The functions in <span class="ph filepath">libc</span> are declared as weak symbols and use a regular mutex,
+    simply calling the corresponding <span class="keyword apiname">pthread_mutex_*()</span> functions.
+  </li>
+
+
+  <li class="li">The functions in <span class="ph filepath">libforksafe_mutex</span> use a forksafe mutex as described above.</li>
+
+
+  </ul>
+
+
+  <p class="p">
+  In order to use a forksafe mutex, you need to link your program against <span class="ph filepath">libforksafe_mutex</span>.
+  
+  </p>
+
+</li>
+
+
+<li class="li">There's a performance cost to using forksafe mutexes.</li>
+
+
+<li class="li">Forksafe mutexes have priority over <span class="keyword apiname">fork()</span> calls.
+  This means that if a forksafe mutex is held by one thread, and a second thread
+  is blocked trying to <span class="keyword apiname">fork()</span>, and then a third thread tries
+  to lock a forksafe mutex, the third thread succeeds—it doesn't
+  wait until the <span class="keyword apiname">fork()</span> call has been given a chance to run.
+  This means that if you have a lot of different threads grabbing and releasing forksafe
+  mutexes, an attempt to call <span class="keyword apiname">fork()</span> may be blocked indefinitely; it isn't
+  allowed to proceed until <em class="ph i">all</em> forksafe mutexes are released.
+</li>
+
+
+<li class="li">While forksafe mutexes support priority inheritance between users of the mutex, there's
+  no priority inheritance between the users of the mutex and a caller of <span class="keyword apiname">fork()</span>.
+  A high-priority thread attempting to call <span class="keyword apiname">fork()</span> can be blocked by a
+  low-priority thread that's holding a forksafe mutex.
+</li>
+
+
+<li class="li">You mustn't hold a <span class="keyword dtype">forksafe_mutex_t</span> when you invoke <span class="keyword apiname">fork()</span>, or
+  an obvious deadlock will occur.
+  The same is true of a <span class="keyword dtype">pthread_mutex_t</span> protected by an at-fork handler.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+At-fork handlers and forksafe mutexes will help, but it can still be tricky to correctly set up the mutexes in the
+child, so our recommendation is not to use <span class="keyword apiname">fork()</span> in a multithreaded process, or to use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html"><span class="keyword apiname">posix_spawn()</span></a>
+instead.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Starting_process_from_programs.html" title="You don't usually care about the fact that the shell creates processes—this is a basic assumption about the shell. In some application designs, you'll certainly be relying on shell scripts (batches of commands in a file) to do the work for you, but in other cases you'll want to create the processes yourself.">Starting a process from within a program</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html">Process management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html">environ()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html">execle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html">execl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html">execlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html">execlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html">execve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html">execv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html">execvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html">execvp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html">fork()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html">posix_spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html">spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html">spawnle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html">spawnl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html">spawnlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html">spawnlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html">spawnp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html">spawnve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html">spawnv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html">spawnvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html">spawnvp()</a></li></ul></div>
+</div></body>
+</html>

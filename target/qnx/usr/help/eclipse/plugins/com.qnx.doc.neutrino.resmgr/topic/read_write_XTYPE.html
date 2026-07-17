@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling the xtype member" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_HANDLING_OTHER.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_Unexpected_extended_types.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="XTYPE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling the xtype member</title>
+</head>
+<body id="XTYPE">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling the <var class="keyword varname">xtype</var> member</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+The message structures passed to the <var class="keyword varname">io_read</var>, <var class="keyword varname">io_write</var>,
+and <var class="keyword varname">io_openfd</var> handlers
+contain a member called <var class="keyword varname">xtype</var>. 
+From <span class="keyword dtype">struct _io_read</span>:
+
+<pre class="pre codeblock">struct _io_read {
+    ...
+    uint32_t xtype;
+    ...
+}
+</pre>
+</div>
+
+
+<p class="p">
+
+
+Basically, the <var class="keyword varname">xtype</var> contains extended information
+that can be used to adjust the behavior of a standard I/O function.
+This information includes a type and optionally some flags:
+</p>
+
+
+<ul class="ul">
+<li class="li">For <span class="keyword const">_IO_READ</span> and <span class="keyword const">_IO_WRITE</span> messages, the names are in the form
+  <span class="keyword const">_IO_XTYPE_*</span> or <span class="keyword const">_IO_XFLAG_*</span>.
+</li>
+
+
+<li class="li">For <span class="keyword const">_IO_OPENFD</span> messages, the names are in the form <span class="keyword const">_IO_OPENFD_*</span>.
+  The only one that you'll likely have to worry about (assuming you even want to write your own handler) is
+  <span class="keyword const">_IO_OPENFD_NONE</span>.
+  
+  
+</li>
+
+
+</ul>
+
+
+<div class="p">
+To isolate the type from the flags
+in <span class="keyword const">_IO_READ</span> and <span class="keyword const">_IO_WRITE</span> messages,
+use a bitwise AND of the <var class="keyword varname">xtype</var> member with
+<span class="keyword const">_IO_XTYPE_MASK</span>:
+
+<pre class="pre codeblock">if ((msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) == ...)
+</pre>
+</div>
+
+
+<p class="p">
+Most resource managers care about only a few types:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XTYPE_NONE</span></dt>
+
+<dd class="dd">No extended type information is being provided.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XTYPE_OFFSET</span></dt>
+
+<dd class="dd">If clients are calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pread.html"><span class="keyword apiname">pread()</span>, <span class="keyword apiname">pread64()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pwrite.html"><span class="keyword apiname">pwrite()</span>, or <span class="keyword apiname">pwrite64()</span></a>,
+  then they don't want you to use the offset in the OCB. 
+  Instead, they're providing a one-shot offset. 
+  That offset follows the <span class="keyword dtype">struct _io_read</span> or <span class="keyword dtype">struct _io_write</span> headers
+  that reside at the beginning of the message buffers.
+  
+  
+  
+
+  <div class="p">
+  For example:
+
+<pre class="pre codeblock">struct myread_offset {
+    struct _io_read        read;
+    struct _xtype_offset   offset;
+}
+</pre>
+  </div>
+
+
+  <p class="p">
+  Some resource managers can be sure that their clients 
+  will never call <span class="keyword apiname">pread*()</span> or <span class="keyword apiname">pwrite*()</span>. 
+  (For example, a resource manager that's controlling a robot arm probably wouldn't care.) 
+  In this case, you can treat this type of message as an error.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XTYPE_READCOND</span></dt>
+
+<dd class="dd">If a client is calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readcond.html"><span class="keyword apiname">readcond()</span></a>,
+  they want to impose timing and return buffer size constraints on the read.
+  Those constraints follow the <span class="keyword dtype">struct _io_read</span> or <span class="keyword dtype">struct _io_write</span> headers
+  at the beginning of the message buffers.
+  For example:
+  
+  
+
+  <pre class="pre codeblock">struct myreadcond {
+    struct _io_read        read;
+    struct _xtype_readcond cond;
+}   
+</pre>
+
+  <p class="p">
+  As with <span class="keyword const">_IO_XTYPE_OFFSET</span>, 
+  if your resource manager isn't prepared to handle <span class="keyword apiname">readcond()</span>,
+  you can treat this type of message as an error.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XTYPE_READDIR</span></dt>
+
+<dd class="dd">The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>
+  function sets this flag in an <span class="keyword const">_IO_READ</span> message to indicate that the client is reading a directory.
+  In your handler for this message, you could give an error of <span class="keyword const">EISDIR</span> if a client does a 
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>
+  on a directory.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The following types are for special purposes, so your resource manager probably doesn't need to handle them:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword const">_IO_XTYPE_MQUEUE</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XTYPE_REGISTRY</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XTYPE_TCPIP</span> 
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XTYPE_TCPIP_MMSG</span> 
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XTYPE_TCPIP_MSG</span> 
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XTYPE_TCPIP_MSG2</span> 
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The <var class="keyword varname">xtype</var> member may also include some flags.
+Your resource manager might be interested in the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XFLAG_DIR_EXTRA_HINT</span></dt>
+
+<dd class="dd">This flag is valid only when you're reading from a directory.
+  The filesystem should return extra directory information when it's easy to get.
+  If this flag is set, it's a hint to the filesystem to try harder
+  (possibly causing media lookups) to return the extra information.
+  The most common use is to return <span class="keyword const">_DTYPE_LSTAT</span> information.
+  
+  
+  
+
+  <p class="p">
+  
+  
+  
+  The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>
+  function sets this flag in an <span class="keyword const">_IO_READ</span> message if you've used
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dircntl.html"><span class="keyword apiname">dircntl()</span></a>
+  to set <span class="keyword const">D_FLAG_STAT</span> for the directory.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_*</span></dt>
+
+<dd class="dd">These bits specify which form of the
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">stat</span></a>
+  structure your resource manager should return when a client reads a directory.
+  The client can specify the form via
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dircntl.html"><span class="keyword apiname">dircntl()</span></a>,
+  and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>
+  sets the flag accordingly:
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d5392e495"><span class="keyword apiname">dircntl()</span> command</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d5392e500"><var class="keyword varname">xtype</var> flag</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d5392e505">Structure</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e495 "><span class="keyword const">D_FLAG_STAT_FORM_UNSET</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e500 "><span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_</span><span class="keyword const">UNSET</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e505 ">The default for the 32- or 64-bit architecture that you're using</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e495 "><span class="keyword const">D_FLAG_STAT_FORM_T32_2001</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e500 "><span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_</span><span class="keyword const">T32_2001</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e505 "><span class="keyword dtype">struct __stat_t32_2001</span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e495 "><span class="keyword const">D_FLAG_STAT_FORM_T32_2008</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e500 "><span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_</span><span class="keyword const">T32_2008</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e505 "><span class="keyword dtype">struct __stat_t32_2008</span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e495 "><span class="keyword const">D_FLAG_STAT_FORM_T64_2008</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e500 "><span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_</span><span class="keyword const">T64_2008</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d5392e505 "><span class="keyword dtype">struct __stat_t64_2008</span></td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  You can use <span class="keyword const">_IO_XFLAG_DIR_STAT_FORM_MASK</span> to isolate these bits from the rest of the
+  <var class="keyword varname">xtype</var>.
+  </p>
+
+
+  
+  <div class="note"><span class="notetitle">Note:</span> 
+    The <span class="keyword const">D_FLAG_STAT_FORM_UNSET</span>, <span class="keyword const">D_FLAG_STAT_FORM_T32_2001</span>, and <span class="keyword const">D_FLAG_STAT_FORM_T32_2008</span>
+    values are legacy values for 32-bit targets and shouldn't be used in this release.
+    Only <span class="keyword const">D_FLAG_STAT_FORM_T64_2008</span> should be used because only 64-bit targets are supported.
+  </div>
+
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The other defined flags are used for special purposes, so your resource manager probably doesn't need to handle them:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword const">_IO_XFLAG_BLOCK</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword const">_IO_XFLAG_NONBLOCK</span>
+  
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/read_write_Unexpected_extended_types.html">If you aren't expecting extended types (xtype)</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write_HANDLING_OTHER.html" title="You may want to define read and write handler functions with specialized behavior depending on the function the client calls or the type of the underlying device.">Handling other read/write details</a></div>
+</div>
+</div></body>
+</html>

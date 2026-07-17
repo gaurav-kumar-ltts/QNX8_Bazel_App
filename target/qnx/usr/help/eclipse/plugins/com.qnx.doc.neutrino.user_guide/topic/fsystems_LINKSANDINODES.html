@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Links and inodes" />
+<meta name="abstract" content="File data is stored distinctly from its name and can be referenced by more than one name. Each filename, called a link, points to the actual data of the file itself." />
+<meta name="description" content="File data is stored distinctly from its name and can be referenced by more than one name. Each filename, called a link, points to the actual data of the file itself." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="LINKSANDINODES" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Links and inodes</title>
+</head>
+<body id="LINKSANDINODES">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Links and inodes</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+File data is stored distinctly from its name and can be referenced by
+more than one name. Each filename, called a <em class="ph i">link</em>, points to
+the actual data of the file itself.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+(There are actually two kinds of links:
+<em class="ph i">hard links</em>, which we refer to simply as <q class="q">links,</q>
+and <em class="ph i">symbolic links</em>, which are described in the next section.)
+</p>
+
+
+<p class="p">
+In order to support links for each file, the filename is
+separated from the other information that describes a file.
+The non-filename information is kept in a storage table
+called an <em class="ph i">inode</em> (for <q class="q">information node</q>).
+</p>
+
+
+<p class="p">
+If a file has only one link (i.e., one filename), the inode
+information (i.e., the non-filename information) is stored in
+the directory entry for the file. If the file has more than
+one link, the inode is stored as a record in a special file
+named <span class="ph filepath">/.inodes</span>—the file's directory
+entry points to the inode record.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>One file referenced by two links.</span>
+
+<br /><img class="image" src="../images/twolinks.svg" width="384" alt="Two links to a file" /><br />
+</div>
+
+
+<p class="p">
+Note that you can create a link to a file only if the file
+and the link are in the same filesystem.
+</p>
+
+
+<p class="p">
+There are some situations in which a file can have an entry in the
+<span class="ph filepath">/.inodes</span> file:
+</p>
+
+
+<ul class="ul">
+<li class="li">If a file at one time had more than one link, and all links but one have been
+  removed, the file continues to have a separate <span class="ph filepath">/.inodes</span> file
+  entry. This is done because the overhead of searching for the directory
+  entry that points to the inode entry would be prohibitive (there are no
+  links from inode entries back to the directory entries).
+</li>
+
+
+</ul>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Removing links</h2>
+
+
+<p class="p">
+
+When a file is created, it's given a <em class="ph i">link count</em> of one.
+As you add and remove links to and from the file, this link count is incremented and decremented.
+</p>
+
+
+<p class="p">
+The disk space occupied by the file
+data isn't freed and marked as unused in the bitmap until its link count
+goes to zero <em class="ph i">and</em> all programs using the file have closed it. This
+allows an open file to remain in use, even though it has been completely
+unlinked. This behavior is part of that stipulated by POSIX and common
+Unix practice.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Directory links</h2>
+
+
+<p class="p">
+
+
+Although you can't create hard links to directories, each
+directory has two hard-coded links already built in:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="ph filepath">.</span>  (<q class="q">dot</q>)
+  
+</li>
+
+
+<li class="li"><span class="ph filepath">..</span>  (<q class="q">dot dot</q>)
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+
+
+The filename <q class="q">dot</q> refers to the current
+directory; <q class="q">dot dot</q> refers to the previous (or parent)
+directory in the hierarchy.
+</p>
+
+
+<p class="p">
+Note that if there's no predecessor, <q class="q">dot dot</q> also refers to the current directory.
+For example, the <q class="q">dot dot</q> entry of <span class="ph filepath">/</span> is simply 
+<span class="ph filepath">/</span>; you can't go further up the path.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+There's no POSIX requirement for a filesystem to include <span class="ph filepath">.</span> or
+<span class="ph filepath">..</span> entries; some filesystems, including flash filesystems
+and <span class="ph filepath">/dev/shmem</span>, don't.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Symbolic links</h2>
+
+
+
+<p class="p">
+
+
+
+A <em class="ph i">symbolic link</em> (or <em class="ph i">symlink</em>) is a special file that usually has
+a pathname as its data. When the symbolic link is named in
+an I/O request—by <span class="keyword apiname">open()</span>, for
+example—the link portion of the pathname is replaced
+by the link's <q class="q">data</q> and the path is reevaluated.
+</p>
+
+
+<p class="p">
+
+
+
+Symbolic links are a flexible means of pathname indirection
+and are often used to provide multiple paths to a single
+file. Unlike hard links, symbolic links can cross
+filesystems and can also link to directories.
+You can use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/ln-target.html"><span class="keyword cmdname">ln</span></a>
+utility to create a symlink.
+</p>
+
+
+<div class="p">
+In the following example, the directories
+<span class="ph filepath">/net/node1/usr/fred</span> and
+<span class="ph filepath">/net/node2/usr/barney</span> are linked even though
+they reside on different filesystems—they're even on
+different nodes (see the following diagram).
+You can't do this using hard links, but you can with a symbolic link,
+as follows:
+
+<pre class="pre codeblock">ln -s /net/node2/usr/barney /net/node1/usr/fred
+</pre>
+</div>
+
+
+<div class="p">
+Note how the symbolic link and the target directory need not
+share the same name. In most cases, you use a symbolic link
+for linking one directory to another directory. However, you
+can also use symbolic links for files, as in this example:
+
+<pre class="pre codeblock">ln -s /net/node1/usr/src/game.c /net/node1/usr/eric/src/sample.c
+</pre>
+</div>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Symbolic links.</span>
+
+<br /><img class="image" src="../images/symlinks.svg" width="624" alt="Two nodes using symbolic links" /><br />
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+Removing a symbolic link deletes only the link, not the target.
+</div>
+
+
+<p class="p">
+
+
+
+Several functions operate directly on the symbolic link. For these
+functions, the replacement of the symbolic element of the pathname with its
+target is not performed. These functions include
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/u/unlink.html"><span class="keyword apiname">unlink()</span></a>
+(which removes the symbolic link),
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lstat.html"><span class="keyword apiname">lstat()</span></a>,
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readlink.html"><span class="keyword apiname">readlink()</span></a>.
+</p>
+
+
+<p class="p">
+
+
+
+Since symbolic links can point to directories, incorrect configurations
+can result in problems, such as circular directory links. To recover from
+circular references, the system imposes a limit on the number of hops; this
+limit is defined as <span class="keyword const">SYMLOOP_MAX</span> in the
+<span class="ph filepath">&lt;limits.h&gt;</span> include file.
+</p>
+
+
+<p class="p" id="LINKSANDINODES__Symlinks_symlinks"><strong class="ph b">Symlinks to symlinks</strong></p>
+
+
+<div class="p">
+You can get some surprising results, depending on how you set up the symbolic links in your system.
+For example:
+
+<pre class="pre codeblock"># ln -sP /dev/shmem /some_dir
+# echo &gt; /some_dir/my_file
+# ln -sP /some_dir/my_file /some_dir/my_link
+# ls /some_dir
+my_file my_link
+# cd /some_dir
+# ls
+my_file
+</pre>
+</div>
+
+
+<p class="p">
+
+
+Note that <span class="keyword cmdname">ls</span> shows the link if given an explicit path, but otherwise doesn't.
+Understandably this can cause some confusion and distress.
+Since it's common for <span class="ph filepath">/tmp</span> to be a link to <span class="ph filepath">/dev/shmem</span>,
+this situation can easily arise for special files created in <span class="ph filepath">/tmp</span>.
+</p>
+
+
+<p class="p"> The root of the problem is that when you use <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chdir.html"><span class="keyword apiname">chdir()</span></a> or the shell's <span class="keyword cmdname">cd</span> command to go to
+          <span class="ph filepath">some_dir</span>, you actually end up at <span class="ph filepath">/dev/shmem</span>,
+        because of the <span class="ph filepath">some_dir</span> symbolic link. But you asked the process
+        manager to create a link under <span class="ph filepath">/some_dir</span>, not under
+          <span class="ph filepath">/dev/shmem</span>, and the process manager doesn't care that
+          <span class="ph filepath">/some_dir</span> is a link somewhere else. </p>
+
+
+<p class="p">
+The problem can occur any time a directory symlink exists, where the following special files are created by
+postfixing the symlink path:
+</p>
+
+
+<ul class="ul">
+<li class="li">process manager (procmgr) symlinks, created through <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pathmgr_symlink.html"><span class="keyword apiname">pathmgr_symlink()</span></a> or <span class="keyword cmdname">ln -sP</span>, as
+          above.</li>
+
+
+<li class="li">names attached by a resource manager using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+  (for example, a Unix domain socket)</li>
+
+</ul>
+
+
+<p class="p"> We recommend that you always create such links/attachment points by using a canonical path
+        prefix that doesn't contain symlinks. If you do this, then the name will be accessible
+        through the canonical path as well as through the symlink.</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems_QNX6_filesystem.html" title="The Power-Safe filesystem, supported by the fs-qnx6.so shared object, is a reliable disk filesystem that can withstand power failures without losing or corrupting data.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

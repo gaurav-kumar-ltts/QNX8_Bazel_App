@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Multitouch (touch) sessions" />
+<meta name="abstract" content="Multitouch (touch) input sessions are created with the type SCREEN_EVENT_MTOUCH_TOUCH and allow your application access to raw touch events." />
+<meta name="description" content="Multitouch (touch) input sessions are created with the type SCREEN_EVENT_MTOUCH_TOUCH and allow your application access to raw touch events." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_input-sessions.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mtouch_sessions" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Multitouch (touch) sessions</title>
+</head>
+<body id="mtouch_sessions">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Multitouch (touch) sessions</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Multitouch (touch) input sessions are created with the type <span class="keyword const">SCREEN_EVENT_MTOUCH_TOUCH</span> and
+        allow your application access to raw touch events. 
+    </p>
+
+        <p class="p">
+            The following session properties are applicable to receive touch sessions:
+        </p>
+
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_BRUSH</span></dt>
+
+                <dd class="dd"> A pixmap containing the brush to be used. All move events (i.e., a touch and drag)
+                	 will translate to drawing on your front buffer. By move events, we mean any contact with any finger.
+                	 This is useful when you want the windowing system to draw a path based on the movement of one or more fingers.
+                	 For example, using two fingers gives two contacts, and this equates to two strokes.
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_GESTURE_PARAMETERS</span></dt>
+
+                <dd class="dd">
+                    The minimum and maximum distance, in units produced by speed and acceleration, for swipes.
+                    This property controls the amount of displacement allowed before a tap becomes a swipe, and a
+                    threshold displacement at which point a gesture becomes multiple gestures. This property is applicable only in
+                    gesture recognition mode.
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span></dt>
+
+                <dd class="dd">
+                    The time used to distinguish between a tap, a double tap, and a hold and tap gestures. For example,
+                    one touch followed by a release with no further touches within the <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span>
+                    period is considered a <em class="ph i">tap</em>. A touch, release, touch and release again in the same area
+                    within the <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span> period is considered a double tap. A hold and tap      
+                    gesture is when one finger touches and holds while another finger taps within the
+                    <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span> period.
+                </dd>
+
+            
+        </dl>
+
+        <p class="p">
+            Other session properties applicable to pointer sessions are <span class="keyword const">SCREEN_PROPERTY_BRUSH_CLIP_POSITION</span>
+            and <span class="keyword const">SCREEN_PROPERTY_BRUSH_CLIP_SIZE</span>, but it's not usually necessary to use these properties
+            because when you use sessions, you can define the size and position via the session's input region. They are
+            made available more so for windows.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Modes</h2>
+            
+            
+            
+            
+            
+            <p class="p"> A touch session's <span class="keyword const">SCREEN_PROPERTY_MODE</span> can be set to one of the
+                following:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_INPUT_MODE_RAW</span></dt>
+
+                    <dd class="dd">
+                        Used when you want minimal filtering.
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_INPUT_MODE_BEZEL</span></dt>
+
+                    <dd class="dd">
+                        Used mainly by window managers. This mode is typically set for a session that's not
+                        associated with a window, but has size and position. An example of using this mode is to
+                        trigger the edge-swipe filter.
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_INPUT_MODE_GESTURE</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            All input events are converted to <span class="keyword const">SCREEN_EVENT_GESTURE</span> events.
+                        </p>
+
+                        <p class="p">
+                            The properties <span class="keyword const">SCREEN_PROPERTY_GESTURE_PARAMETERS</span> and
+                            <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span> are used to control how the touch events
+                            are converted to gestures.
+                        </p>
+
+                        <p class="p">
+                            It's important to note that gestures are not necessarily produced by a single contact.
+                            All contacts (fingers), especially on devices that support multitouch, are considered
+                            when calculating a gesture.  A gesture isn't calculated based on each separate contact.
+                            Some gestures require multiple contacts (e.g., zoom) while others don't (e.g. tap). However,
+                            multiple contacts can still be interpreted as one gesture.
+                        </p>
+
+                        <p class="p">
+                            The converted gesture can be retrieved from the <span class="keyword const">SCREEN_PROPERTY_SCAN</span>
+                            property of the <span class="keyword const">SCREEN_EVENT_GESTURE</span> event. The gestures that can be
+                            detected are defined by <a class="xref" href="../screen_8h_1Screen_Gesture_Types.html" title="Types of gestures">Screen gesture types</a>.
+                            Once your application determines the gesture received, it can act accordingly. Unless you're
+                            handling specific gestures to execute differently based on an exact gesture, then you
+                            should stick with using only the <span class="keyword const">SCREEN_PROPERTY_SCAN</span> property to determine
+                            the gesture you receive.
+                        </p>
+
+                        <p class="p">
+                            Sometimes, a user makes a gesture using multiple contacts for a gesture that's defined
+                            using only one contact. And sometimes, your application needs to know more specifics on the
+                            contacts used in the single gesture. When this happens, the details of the contacts are
+                            conveyed in the <span class="keyword const">SCREEN_PROPERTY_MODIFIERS</span> property of the
+                            <span class="keyword const">SCREEN_EVENT_GESTURE</span> event. <span class="keyword const">SCREEN_PROPERTY_MODIFIERS</span> is a
+                            32-bit integer that conveys two 16-bit values. The higher order set of 16 bits represents the
+                            number of participating contacts and the lower order set of 16 bits represents
+                            non-participating contacts.
+                        </p>
+
+                        <p class="p">
+                            Participating contacts refer to the number of contacts that are actively used to
+                            calculate the gesture. The non-participating contacts refer to the number of contacts that
+                            are detected, but not considered in the determination of the gesture.
+                        </p>
+
+                        <p class="p">
+                            See below for examples of some gestures and their corresponding particpating and
+                            non-participating contacts:
+                        </p>
+
+                        
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="90%" frame="border" border="1" rules="all"><colgroup><col style="width:250pt" /><col style="width:150pt" /></colgroup><tbody class="tbody">
+                                    <tr class="row">
+                                        <td class="entry row-nocellborder" style="vertical-align:top;">
+                                            A user has one finger on the device surface with a second finger also
+                                            contacting the same surface and performing a swipe action.
+                                            <span class="keyword">Screen</span> interprets these contacts as one
+                                            gesture (a swipe) with one participating contact and one
+                                            non-participating contact.
+                                        </td>
+
+                                        <td class="entry cellrowborder" style="vertical-align:top;">
+                                            <img class="image" src="../../images/gestures_hold_swipe.svg" />
+                                        </td>
+
+                                    </tr>
+
+                                    <tr class="row">
+                                        <td class="entry row-nocellborder" style="vertical-align:top;">
+                                            A user has two fingers on the device surface, and two more
+                                            fingers performing a swipe action together. <span class="keyword">Screen</span>
+                                            resolves this combination to one swipe gesture with two participating
+                                            fingers and two non-participating fingers.
+                                        </td>
+
+                                        <td class="entry cellrowborder" style="vertical-align:top;">
+                                            <img class="image" src="../../images/gestures_hold_swipe2.svg" />
+                                        </td>
+
+                                    </tr>
+
+                                    <tr class="row">
+                                        <td class="entry row-nocellborder" style="vertical-align:top;">
+                                            A user has four fingers on the touch surface, two swiping in one direction
+                                            and two swiping in the opposite direction simultaneously.
+                                            <span class="keyword">Screen</span> resolves this combination
+                                            of contacts and actions to one zoom gesture with four participating fingers
+                                            and zero non-participating fingers.
+                                        </td>
+
+                                        <td class="entry cellrowborder" style="vertical-align:top;">
+                                            <img class="image" src="../../images/gestures_swipe4.svg" />
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+</table>
+</div>
+
+                        <p class="p">
+                            Another way of getting gestures if this <span class="keyword const">SCREEN_INPUT_MODE_GESTURE</span> mode isn't
+                            set, is to simply query the <span class="keyword const">SCREEN_PROPERTY_EVENT</span> of the session. This
+                            property will return you the touch event. You can then interpret the gesture based on the
+                            touch events.
+                        </p>
+
+                        <p class="p">
+                            If you don't need the specific details from touch events for your gesture application, it's
+                            recommended that you set the <span class="keyword const">SCREEN_INPUT_MODE_GESTURE</span> mode for your session.
+                            This way, you're not flooded with numerous touch events, giving you better
+                            performance.
+                        </p>
+
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Off-screen devices</h2>
+            
+            
+            <p class="p"> You can retrieve all events from all devices that are associated with a display (or default display) by creating a session that's not tied to a window: </p>
+
+            <pre class="pre codeblock">...
+screen_session_t session;
+screen_create_session_type(&amp;session, context, SCREEN_EVENT_MTOUCH_TOUCH);
+...
+           </pre>
+            <p class="p"> Conversely, you can choose to receive events only from devices that have a presence on the display (associated with a window) by associating the session to a window: </p>
+
+            <pre class="pre codeblock">...
+screen_session_t session;
+screen_create_session_type(&amp;session, context, SCREEN_EVENT_MTOUCH_TOUCH);
+screen_set_session_property_pv(session, SCREEN_PROPERTY_WINDOW, (void**) &amp;window);
+...
+           </pre>
+        </div>
+
+       
+        <div class="section"><h2 class="title sectiontitle">Gesture recognition</h2>   <p class="p"> Raw touch events can be
+            converted to gestures using touch sessions. The following code snippet shows how to
+            create a touch session and convert its raw touch event to gestures recognized by
+            <span class="keyword">Screen</span>. </p>
+
+            <pre class="pre codeblock">....
+screen_context_t context;
+screen_window_t window;
+....
+screen_session_t session;
+
+screen_create_session_type(&amp;session, context, SCREEN_EVENT_MTOUCH_TOUCH);
+screen_set_session_property_pv(session, SCREEN_PROPERTY_WINDOW, (void **)&amp;window);
+
+int mode = SCREEN_INPUT_MODE_GESTURE;
+screen_set_session_property_iv(session, SCREEN_PROPERTY_MODE, &amp;mode);
+
+screen_flush_context(context, 0);
+
+screen_event_t ev;
+screen_create_event(&amp;ev);
+
+long long timeout = ~0;
+while (!screen_get_event(context, ev, timeout)) {
+        int type = SCREEN_EVENT_NONE;
+        screen_get_event_property_iv(ev, SCREEN_PROPERTY_TYPE, &amp;type);
+        if (type == SCREEN_EVENT_GESTURE) {
+                int scan = 0;
+                screen_get_event_property_iv(ev, SCREEN_PROPERTY_SCAN, &amp;scan);
+                const char *str = NULL;
+                if (scan == SCREEN_GESTURE_TAP) { 
+                        str = "TAP"; 
+                } else if (scan == SCREEN_GESTURE_ZOOM_OUT) { 
+                        str = "ZOOM_OUT"; 
+                } else if (scan == SCREEN_GESTURE_ZOOM_IN) { 
+                        str = "ZOOM_IN"; 
+                } else if (scan == SCREEN_GESTURE_SWIPE_RIGHT) { 
+                        str = "SWIPE_RIGHT"; 
+                } else if (scan == SCREEN_GESTURE_SWIPE_LEFT) { 
+                        str = "SWIPE_LEFT"; 
+                } else if (scan == SCREEN_GESTURE_SWIPE_DOWN) { 
+                        str = "SWIPE_DOWN"; 
+                } else if (scan == SCREEN_GESTURE_SWIPE_UP) { 
+                        str = "SWIPE_UP"; 
+                } else if (scan == SCREEN_GESTURE_HOLD) { 
+                        str = "HOLD"; 
+                }
+                if (str) {
+                        int mods = 0;
+                        unsigned long long dt;
+                        int delta[2] = { 0, 0 };
+
+                        screen_get_event_property_iv(ev, SCREEN_PROPERTY_MODIFIERS,
+                                                         &amp;mods);
+                        screen_get_event_property_llv(ev, SCREEN_PROPERTY_DURATION,
+                                                          (long long *)&amp;dt);
+
+                        screen_get_event_property_iv(ev, SCREEN_PROPERTY_DISPLACEMENT,
+                                                         delta);
+
+                        printf("SCREEN_GESTURE_%s;mods=0x%08x;duration=%llu;delta(%d,%d)\n",
+                                                        str, mods, dt, delta[0], delta[1]);
+                        fflush(stdout);
+                }
+        }
+}
+           </pre> </div>
+
+        <div class="section"><h2 class="title sectiontitle">Tracking contacts</h2>
+            
+            <p class="p">
+                Contact points are often finger touches on an input device that
+                supports multitouch. Usually, contact points in series are
+                associated with the manipulation (e.g., stretch, move, rotate)
+                of one or more UI elements.
+            </p>
+
+            <p class="p">
+                Tracking is the animation of the movement following these
+                contact points. The ability to track contact points is made
+                available to any session that receives raw positional or
+                displacement events.
+            </p>
+
+            <p class="p">
+                It's important to note that tracking is not an event, but a
+                model of the movement of contact points when raw data is
+                received. The model is associated with the session and is
+                represented by a 3x3 transform matrix. This matrix indicates
+                changes in size, position and orientation that have resulted
+                from contact movements thus far.
+            </p>
+
+            <p class="p">
+                Calculations to generate the transform matrix are made when
+                your application retrieves the <span class="keyword const">SCREEN_PROPERTY_TRANSFORM</span>
+                property of the touch session.
+            </p>
+
+            <pre class="pre codeblock">...
+screen_session_t session;
+screen_create_session_type(&amp;session, context, SCREEN_EVENT_MTOUCH_TOUCH);
+
+int mode = SCREEN_INPUT_MODE_RAW;
+screen_set_session_property_iv(session, SCREEN_PROPERTY_MODE, &amp;mode);
+screen_flush_context(ctx, 0);
+...
+int m[9] =  { 65536, 0, 0, 0, 65536, 0, 0, 0, 65536 };;
+while (1) {
+    screen_get_session_property_iv(session, SCREEN_PROPERTY_TRANSFORM, m);
+    glClear(...);
+    glUseProgram(...);
+    glUniformMatrix3iv(...);
+    glDrawArrays(...);
+    eglSwapBuffers(...);
+}
+           </pre>
+            <p class="p">
+                Note that code to handle <span class="keyword apiname">screen_get_event()</span> is
+                assumed to be in a separate thread from the rendering. It's not
+                necessary to wait for a raw input event (which may or may not update
+                the transform) before rendering. The transform can change even
+                when no new input has been received because the time at which
+                the transform is queried also affects the transform calculations.
+            </p>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_input-sessions.html" title="Sessions are recipients of one specific type of input events.">Sessions</a></div>
+</div>
+</div></body>
+</html>

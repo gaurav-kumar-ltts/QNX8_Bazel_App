@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel debug" />
+<meta name="abstract" content="The kernel uses the debug callouts when it needs to print out some internal debugging information or encounters a fault." />
+<meta name="description" content="The kernel uses the debug callouts when it needs to print out some internal debugging information or encounters a fault." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_debug" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Kernel debug</title>
+</head>
+<body id="callout_debug">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Kernel debug</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The kernel uses the debug callouts when it needs to print out some internal debugging
+		information or encounters a fault.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			<div class="p">The kernel uses these callouts to interact with a serial port, console, or other
+				device to output debug or instrumentation information. For example, a
+				<span class="keyword cmdname">display_msg</span> command in a boot image startup script can make
+				<span class="keyword cmdname">procnto</span> use a debug kernel callout to output a message
+				like the following one:
+			<pre class="pre codeblock">Running default qnxbasedma.build...</pre></div>
+
+			<p class="p">We recommend that when working on a startup program, you start by getting a
+				debug kernel callout working. The ability to output messages to a device helps you
+				debug code as you add or modify it.</p>
+
+		</div>
+
+		<div class="section" id="callout_debug__callouts"><h2 class="title sectiontitle">Kernel callouts</h2>
+			
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="keyword apiname">break_detect()</span></dt>
+
+					<dd class="dd">Check if a break has been detected.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword apiname">display_char()</span></dt>
+
+					<dd class="dd">Receive a <span class="ph codeph">char</span> from the kernel and output it to a device.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword apiname">poll_key()</span></dt>
+
+					<dd class="dd">Pass a <span class="ph codeph">char</span>, if available, to the kernel.
+						If no <span class="ph codeph">char</span> is available, pass back <span class="ph codeph">-1</span>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword apiname">spare()</span></dt>
+
+					<dd class="dd">Currently unused by the kernel; reserved for future usage.</dd>
+
+				
+			</dl>
+
+			<p class="p">Only the <span class="keyword apiname">display_char()</span> callout is required; the others are optional.
+			</p>
+
+		</div>
+
+		<div class="section" id="callout_debug__example"><h2 class="title sectiontitle">Example</h2>
+			
+			
+			
+			
+			
+			<p class="p">This kernel callout takes a character passed in through register <span class="ph codeph">r4</span>
+					and outputs it to the serial controller.
+				</p>
+
+			<div class="p">The <span class="keyword const">CALLOUT_START</span> macro's third argument invokes the
+				<span class="keyword apiname">patch_debug()</span> routine. This routine replaces the
+				<span class="ph codeph">0x1234</span> and <span class="ph codeph">0x5678</span> memory locations with
+				the base address of the serial controller register.
+				The <span class="ph codeph">lis</span> (load immediate and shift) and <span class="ph codeph">ori</span>
+				(OR immediate) instructions load the base address of the device registers into
+				<span class="ph codeph">r6</span>:
+			<pre class="pre codeblock">CALLOUT_START display_char_5200, 0, patch_debug
+lis   %r6,0x1234
+ori   %r6,%r6,0x5678</pre></div>
+
+			<div class="p">Disable interrupts:
+			<pre class="pre codeblock">loadi  %r9,PPC_MSR_EE
+mfmsr  %r8
+andc   %r9,%r8,%r9
+mtmsr  %r9
+isync</pre></div>
+
+			<div class="p">Loop until the Transmit Ready bit has been set:
+			<pre class="pre codeblock">1:
+lwz    %r0,MGT5200_PSC_SR(%r6)
+andis. %r0,%r0,MGT5200_PSC_SR_TXRDY
+beq    1b</pre></div>
+
+			<div class="p">Store the byte (the <span class="ph codeph">char</span> passed in by the kernel in
+				<span class="ph codeph">r4</span>) in the Transmit Byte register:
+			<pre class="pre codeblock">stb    %r4,MGT5200_PSC_TB(%r6)
+eieio</pre></div>
+
+			<div class="p">Re-enable interrupts, then branch to the link register and continue executing at the
+				instruction that follows the call to this routine:
+			<pre class="pre codeblock">mtmsr  %r8
+isync
+blr</pre></div>
+
+			<div class="p">End of callout marker:
+			<pre class="pre codeblock">CALLOUT_END display_char_5200</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> The startup code must look after some specific debug tasks in addition to those
+				handled by the kernel callouts (see <q class="q"><a class="xref" href="../startup/startup_other.html" title="In addition to the debug kernel callouts, the startup code must provide some functions that enable it to output the debug information.">Debug startup tasks</a></q> in the Startup Programs chapter).</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Practical examples" />
+<meta name="abstract" content="Here are some examples of how you could use typed memory." />
+<meta name="description" content="Here are some examples of how you could use typed memory." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/typed_memory_overview.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_memmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_mem_offset.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_create_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_revoke.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Typed_memory_examples" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Practical examples</title>
+</head>
+<body id="Typed_memory_examples">
+
+<h1 class="title topictitle1" id="ariaid-title1">Practical examples</h1>
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Here are some examples of how you could use typed memory.
+</p>
+
+
+<p class="p">
+Each example includes the call to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html"><span class="keyword apiname">posix_typed_mem_open()</span></a>
+followed by the POSIX method (using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>)
+and the <span class="keyword">QNX OS</span> method (using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html"><span class="keyword apiname">shm_ctl()</span></a>
+with <span class="keyword const">SHMCTL_TYMEM</span>).
+These examples don't include any checking for errors.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Allocating contiguous memory from system RAM</h2>
+
+
+<div class="p">
+Here's a code snippet that allocates contiguous memory from system RAM:
+
+<pre class="pre codeblock">int fd = posix_typed_mem_open( "/memory/ram/sysram", O_RDWR,
+            POSIX_TYPED_MEM_ALLOCATE_CONTIG);
+</pre>
+</div>
+
+
+<div class="p">
+POSIX method:
+
+<pre class="pre codeblock">void *vaddr = mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+</pre>
+</div>
+
+
+<div class="p">
+<span class="keyword">QNX OS</span> method:
+
+<pre class="pre codeblock">shm_fd = shm_open(SHM_ANON, O_RDWR, 0600);
+
+shm_ctl(shm_fd, SHMCTL_ANON | SHMCTL_TYMEM | SHMCTL_PHYS,
+        (uint64_t)tymem_fd, 0x100000);
+</pre>
+</div>
+
+
+<p class="p">
+We specified <span class="keyword const">POSIX_TYPED_MEM_ALLOCATE_CONTIG</span> in the call to <span class="keyword apiname">posix_typed_mem_open()</span>,
+so we need to add <span class="keyword const">SHMCTL_PHYS</span> in the call to <span class="keyword apiname">shm_ctl()</span>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Defining packet memory and allocating from it</h2>
+
+
+<div class="p">
+
+Assume you have special memory (say fast SRAM) that you want to use for packet memory.
+This SRAM isn't put in the global system RAM pool.
+Instead, in startup, we use
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add.html"><span class="keyword apiname">as_add()</span></a>
+(see the <q class="q">Startup Library</q> chapter of <cite class="cite">Building Embedded Systems</cite>)
+to add an <var class="keyword varname">asinfo</var> entry for the packet memory:
+
+<pre class="pre codeblock">as_add(phys_addr, phys_addr + size - 1, AS_ATTR_NONE, "packet_memory", mem_id);
+</pre>
+
+where <var class="keyword varname">phys_addr</var> is the physical address of the SRAM,
+<var class="keyword varname">size</var> is the SRAM size, and <var class="keyword varname">mem_id</var> is the ID of the
+parent (typically <span class="ph codeph">memory</span>, which is returned by
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_default.html"><span class="keyword apiname">as_default()</span></a>).
+</div>
+
+
+<div class="p">
+This code creates an <var class="keyword varname">asinfo</var> entry for <span class="ph codeph">packet_memory</span>,
+which you can then use as POSIX typed memory.
+The following code allows different applications to allocate pages from
+<span class="ph codeph">packet_memory</span>:
+
+<pre class="pre codeblock">int fd = posix_typed_mem_open( "packet_memory", O_RDWR,
+            POSIX_TYPED_MEM_ALLOCATE);
+</pre>
+</div>
+
+
+<div class="p">
+POSIX method:
+
+<pre class="pre codeblock">void *vaddr = mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+</pre>
+</div>
+
+
+<div class="p">
+<span class="keyword">QNX OS</span> method:
+
+<pre class="pre codeblock">shm_fd = shm_open(SHM_ANON, O_RDWR, 0600);
+
+shm_ctl( shm_fd, SHMCTL_ANON | SHMCTL_TYMEM, (uint64_t)tymem_fd, 0x100000);
+</pre>
+</div>
+
+
+<div class="p">
+Alternatively, you may want to use the packet memory as direct shared,
+physical buffers.
+In this case, applications would use it as follows:
+
+<pre class="pre codeblock">int fd = posix_typed_mem_open( "packet_memory", O_RDWR,
+            POSIX_TYPED_MEM_MAP_ALLOCATABLE);
+</pre>
+</div>
+
+
+<div class="p">
+POSIX method:
+
+<pre class="pre codeblock">void *vaddr = mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
+</pre>
+</div>
+
+
+<div class="p">
+<span class="keyword">QNX OS</span> method:
+
+<pre class="pre codeblock">shm_fd = shm_open(SHM_ANON, O_RDWR, 0600);
+
+shm_ctl( shm_fd, SHMCTL_ANON | SHMCTL_TYMEM, (uint64_t)tymem_fd, 0x100000);
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Defining a DMA-safe region</h2>
+
+
+<p class="p">
+
+
+On some hardware, due to limitations of the chipset or memory controller,
+it may not be possible to perform DMA to arbitrary addresses in the system.
+In some cases, the chipset has only the ability to DMA to a subset of all
+physical RAM.
+This has traditionally been difficult to solve without statically reserving
+some portion of RAM for driver DMA buffers (which is potentially wasteful).
+Typed memory provides a clean abstraction to solve this issue.
+Here, we provide an example.
+</p>
+
+
+<div class="p">
+
+In startup, use
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add_containing.html"><span class="keyword apiname">as_add_containing()</span></a>
+(see the <q class="q">Startup Library</q> chapter of <cite class="cite">Building Embedded Systems</cite>)
+to define an <var class="keyword varname">asinfo</var> entry for DMA-safe memory.
+Make this entry be a child of <span class="ph codeph">ram</span>:
+
+<pre class="pre codeblock">as_add_containing( dma_addr, dma_addr + size - 1, AS_ATTR_RAM, "dma", "ram");
+</pre>
+
+where <var class="keyword varname">dma_addr</var> is the start of the DMA-safe RAM, and
+<var class="keyword varname">size</var> is the size of the DMA-safe region.
+</div>
+
+
+<div class="p">
+This code creates an <var class="keyword varname">asinfo</var> entry for <span class="ph codeph">dma</span>,
+which is a child of <span class="ph codeph">ram</span>.
+Drivers can then use it to allocate DMA-safe buffers:
+
+<pre class="pre codeblock">int fd = posix_typed_mem_open( "ram/dma", O_RDWR,
+            POSIX_TYPED_MEM_ALLOCATE_CONTIG);
+</pre>
+</div>
+
+
+<div class="p">
+POSIX method:
+
+<pre class="pre codeblock">void *vaddr = mmap( NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+</pre>
+</div>
+
+
+<div class="p">
+<span class="keyword">QNX OS</span> method:
+
+<pre class="pre codeblock">shm_fd = shm_open(SHM_ANON, O_RDWR, 0600);
+
+shm_ctl(shm_fd, SHMCTL_ANON | SHMCTL_TYMEM | SHMCTL_PHYS,
+        (uint64_t)tymem_fd, 0x100000);
+</pre>
+</div>
+
+
+<p class="p">
+We specified <span class="keyword const">POSIX_TYPED_MEM_ALLOCATE_CONTIG</span> in the call to <span class="keyword apiname">posix_typed_mem_open()</span>,
+so we need to add <span class="keyword const">SHMCTL_PHYS</span> in the call to <span class="keyword apiname">shm_ctl()</span>.
+</p>
+
+
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/typed_memory_overview.html" title="Your system's startup program can reserve memory pools to be used for special purposes, such as graphics. These pools are separate from SYSRAM.">Typed memory</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_memmgr.html">Memory management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap(), mmap64(), mmap_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_mem_offset.html">posix_mem_offset()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html">posix_typed_mem_get_info()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html">posix_typed_mem_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_create_handle.html">shm_create_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html">shm_ctl(), shm_ctl_special()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open_handle.html">shm_open_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html">shm_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_revoke.html">shm_revoke()</a></li></ul></div>
+</div></body>
+</html>

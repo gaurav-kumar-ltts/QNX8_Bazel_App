@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using the librcheck library" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content=", librcheck, header file, linking with your program, command line for launching a program, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content=", librcheck, header file, linking with your program, command line for launching a program, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_DetectingAndReportingErrors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="hat_Using_librcheck" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using the librcheck library</title>
+</head>
+<body id="hat_Using_librcheck">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Using the <span class="ph filepath">librcheck</span> library</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+To use the <span class="ph filepath">librcheck</span> library, you need to include a different
+memory allocation header file, <span class="ph filepath">rcheck/malloc.h</span>,
+and link your program with the <span class="keyword option">-lrcheck</span> option.
+</p>
+
+
+<div class="p">
+
+
+
+Another way to use the library is with the <span class="keyword envar">LD_PRELOAD</span> capability of the dynamic
+loader. The <span class="keyword envar">LD_PRELOAD</span> environment variable lets you specify libraries to load
+before any other library in the system.
+You must set this variable on the command line that launches your program, as follows:
+
+<pre class="pre codeblock">LD_PRELOAD=librcheck.so ./my_program
+</pre>
+</div>
+
+
+<p class="p">
+This basic command launches a program with default heap corruption detection and reporting
+that you can direct to an output file. You can specify the path of this file and what information
+gets logged to it by setting environment variables, which are described below in
+<q class="q"><a class="xref" href="hat_Configuring_librcheck_for_MemAnalysis.html#hat_Configuring_librcheck_for_MemAnalysis__envars">librcheck environment variables</a>.</q>
+</p>
+
+
+<p class="p">
+To view the heap trace data in an interactive and detailed way,
+you can attach the <span class="keyword">QNX Momentics IDE</span> to the running process.
+To do this requires setting additional variables on the command line that launches the program.
+The next topic, <q class="q"><a class="xref" href="hat_Configuring_librcheck_for_MemAnalysis.html">Configuring librcheck for Memory Analysis</a></q>, provides
+commands that support common scenarios for viewing a program's heap activity and errors
+through the Memory Analysis tool of the <span class="keyword">IDE</span>.
+</p>
+
+
+<p class="p">
+
+For <span class="ph filepath">librcheck</span> to produce stack trace data, your target system must include
+<span class="ph filepath">libunwind.so.8</span> in a location accessible to <span class="keyword apiname">dlopen()</span>.
+For more information, see the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a> entry in the <cite class="cite">C Library Reference</cite>.
+The <span class="ph filepath">librcheck</span> library still functions without <span class="ph filepath">libunwind</span>,
+but prints a warning that it can't produce backtraces when tracing function calls.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">What information does <span class="ph filepath">librcheck</span> keep?</h2>
+
+
+<p class="p">
+The <span class="ph filepath">librcheck</span> library keeps
+information in the header of each heap buffer, including
+doubly-linked lists of all allocated blocks, file, line, other
+debug information, flags, and a CRC of the header.
+The allocation policies and configuration are identical to those for the
+memory allocation routines in the non-debug <span class="ph filepath">libc</span> allocator
+except for the extra overhead imposed by the <span class="ph filepath">librcheck</span>
+library. This implementation allows <span class="ph filepath">librcheck</span>
+to perform checks without altering the size of blocks requested by the program.
+Such manipulation could result in altered program behavior,
+yielding different results when the program is linked against this library.
+</p>
+
+
+<p class="p">
+All allocated blocks are integrated into allocation chains that are associated
+with regions of memory kept by the allocator in arenas or blocks.
+The <span class="ph filepath">librcheck</span> library has intimate
+knowledge about the allocator's internal structures,
+allowing it to use shortcuts to find the correct heap buffer
+associated with any pointer and to resort to a lookup on the
+appropriate allocation chain only when necessary.
+This implementation reduces the performance penalty associated with validating
+pointers, but it's still significant.
+</p>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+The time and space overhead imposed by <span class="ph filepath">librcheck</span>
+is too great to make this library suitable for use in a production system.
+The overhead of the library is manageable enough for it to be used during the
+test phase of development and during program maintenance.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">What's checked?</h2>
+
+
+<p class="p">
+By default, <span class="ph filepath">librcheck</span> provides a minimal level of checking.
+When an allocation request or release request is performed, the library looks for sources of heap
+corruption for only the immediate block under consideration and its neighboring heap buffers,
+if it can locate them. The library also checks the integrity of the flags and the CRC of the header.
+</p>
+
+
+<p class="p">
+
+
+You can enable additional checks by using the <span class="keyword apiname">mallopt()</span> call.
+For more information on the types of checking and the sources of heap corruption that can be
+detected, see <q class="q"><a class="xref" href="hat_CheckingLevel.html" title="You can use environment variables or the mallopt() function to enable extra checks within the librcheck library.">Controlling the level of checking</a>.</q>
+The <span class="ph filepath">librcheck</span> version of this function provides additional options for this
+purpose (these options are declared in <span class="ph filepath">rcheck/malloc.h</span>).
+In addition to reporting the file and line information about the caller when an error is detected,
+the error-reporting mechanism prints the file and line information associated with the allocation
+of the offending heap buffer.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If you don't link your application with <span class="ph filepath">librcheck</span>
+and, thus, use the <span class="ph filepath">libc</span> version of <span class="keyword apiname">mallopt()</span>,
+this function gives an error of <span class="keyword const">EINVAL</span> for any of these additional options.
+</div>
+
+
+<p class="p">
+You can also add an error handler to react in different ways to warnings or fatal errors,
+including writing a complete dump of the heap memory.
+For details, see <q class="q"><a class="xref" href="hat_Error_handler.html" title="Typically, when the library detects an error, it displays a diagnostic message, and the program continues executing. In cases where a critical error is encountered, an error message is printed and the program is aborted (via abort()).">Specifying an error handler</a>.</q>
+</p>
+
+
+<p class="p">
+Finally, the library also performs checks specific to each type of allocation request.
+These call-specific checks are described next.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Allocating memory</h2>
+
+
+<p class="p">
+When a heap buffer is allocated using any of the <span class="ph filepath">librcheck</span>
+routines, the library adds this buffer to the allocation chain for
+the arena or block within the heap that the buffer was allocated from.
+At this time, the library reports any problems it detects in the
+allocation chain for the arena or block.
+After successfully inserting the new buffer into the allocation chain,
+the library checks the previous and next buffers in the chain for consistency.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Reallocating memory</h2>
+
+
+<p class="p">
+
+When an attempt is made to resize a buffer through a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html"><span class="keyword apiname">realloc()</span></a> function call,
+the pointer is checked for validity if it's a non-<span class="keyword const">NULL</span> value.
+If the pointer is valid, the header of the heap buffer is
+checked for consistency. If the buffer is large enough to satisfy
+the request, the buffer header is modified and the call returns.
+If the buffer isn't large enough, memory is allocated to obtain a new buffer
+large enough to satisfy the request and the same consistency checks are
+applied as in the case of memory allocation described above.
+The original buffer is then released.
+</p>
+
+
+<p class="p">
+If fill-area boundary checking is enabled as described in the
+<q class="q"><a class="xref" href="hat_CheckingLevel.html" title="You can use environment variables or the mallopt() function to enable extra checks within the librcheck library.">Controlling the level of checking</a></q>
+section, the guard code checks are also
+performed on the allocated buffer before it's actually resized.
+If a new buffer is used, the guard code checks are done just
+before the old buffer is released.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Releasing memory</h2>
+
+
+<p class="p">
+The checking includes, but isn't limited to, verifying that the
+pointer provided to a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html"><span class="keyword apiname">free()</span></a>
+request is correct and points to an allocated heap buffer.
+Guard code checks may also be performed on
+release operations to allow fill-area boundary checking.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat_DetectingAndReportingErrors.html" title="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time.">Detecting and reporting errors</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

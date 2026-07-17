@@ -1,0 +1,59 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--pkcs11=[yes|no]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If yes, the system will have PKCS#11 support installed
+
+    The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_PKCS11" = yes -o "$OPT_PKCS11" = no ]; then
+        exit 0
+    else
+        echo "--pkcs11 must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_pkcs11
+
+    if [ "$OPT_PKCS11" = yes ]; then
+        cat >output/option_files/system_files.opt_pkcs11 <<EOF
+#############################################
+### PKCS11
+#############################################
+
+lib/dll/legacy.so=usr/lib/ossl-modules/legacy.so
+lib/dll/pkcs11.so=usr/lib/engines-3/pkcs11.so
+lib/__LIBOPENSC__=usr/lib/__LIBOPENSC__
+bin/pkcs11-tool=usr/bin/pkcs11-tool
+EOF
+
+    fi
+
+    exit 0
+}
+
+case "$1" in
+    brief)
+        brief;;
+    help)
+        help;;
+    validate)
+        validate;;
+    configure)
+        configure;;
+    default)
+        echo no;;
+esac

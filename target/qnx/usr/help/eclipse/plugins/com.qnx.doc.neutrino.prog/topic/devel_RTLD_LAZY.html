@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="RTLD_LAZY" />
+<meta name="abstract" content="RTLD_LAZY is a flag that you can pass to dlopen() when you load a shared object." />
+<meta name="description" content="RTLD_LAZY is a flag that you can pass to dlopen() when you load a shared object." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Optimizing_linker.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="RTLD_LAZY" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>RTLD_LAZY</title>
+</head>
+<body id="RTLD_LAZY">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword const">RTLD_LAZY</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+<span class="keyword const">RTLD_LAZY</span> is a flag that you can pass to <span class="keyword apiname">dlopen()</span> when you load
+a shared object.
+</p>
+
+
+<p class="p">
+Even though the word <q class="q">lazy</q> in the name suggests that it's about
+lazy binding as described above in
+<q class="q"><a class="xref" href="devel_Lazy_binding.html" title="Lazy binding (also known as lazy linking or on-demand symbol resolution) is the process by which symbol resolution isn't done until a symbol is actually used. Functions can be bound on-demand, but data references can't.">Lazy binding</a>,</q>
+it has different semantics. It makes (semantically) no difference whether a <em class="ph i">program</em>
+is lazy- or now- bound, but for objects that you load with <span class="keyword apiname">dlopen()</span>, <span class="keyword const">RTLD_LAZY</span> means <q class="q">there may be symbols that can't be resolved; don't try to
+resolve them until they're used.</q> This flag currently applies only to
+function symbols, not data symbols.
+</p>
+
+
+<p class="p">
+What does it practically mean?
+To explain that, consider a system that comprises an executable X,
+and shared objects P (primary) and S (secondary).
+X uses <span class="keyword apiname">dlopen()</span> to load P, and P loads S.
+Let's assume that P has a reference to <span class="keyword apiname">some_function()</span>,
+and S has the definition of <span class="keyword apiname">some_function()</span>.
+</p>
+
+
+<p class="p">
+If X opens P without <span class="keyword const">RTLD_LAZY</span> binding, the symbol
+<span class="keyword apiname">some_function()</span> doesn't get resolved—not at the load time,
+nor later by opening S.
+However, if P is loaded with <span class="ph codeph">RTLD_LAZY | RTLD_WORLD</span>, the
+runtime linker doesn't try to resolve the symbol <span class="keyword apiname">some_function()</span>,
+and there's an opportunity for us to call
+<span class="ph codeph">dlopen("S", RTLD_GLOBAL)</span> before calling
+<span class="keyword apiname">some_function()</span>.
+This way, the <span class="keyword apiname">some_function()</span> reference in P is satisfied
+by the definition of <span class="keyword apiname">some_function()</span> in S.
+</p>
+
+
+<p class="p">
+There are several programming models made possible by <span class="keyword const">RTLD_LAZY</span>:
+</p>
+
+
+<ul class="ul">
+<li class="li">X uses <span class="keyword apiname">dlopen()</span> to load P and calls a function in P;
+  P determines its own requirements and loads the object with the
+  appropriate implementation.
+  For that, P needs to be opened with <span class="keyword const">RTLD_LAZY</span>.
+  For example, the X server opens a video driver (P), and the video driver
+  opens its own dependencies.
+</li>
+
+
+<li class="li">X uses <span class="keyword apiname">dlopen()</span> to load P, and then determines the
+  implementation that P needs to use (e.g., P is a user interface, and S
+  is the <q class="q">skin</q> implementation).
+
+</li>
+
+
+</ul>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel_Optimizing_linker.html">Optimizing the runtime linker</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html">gdb</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html">ld</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html">pdebug</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li></ul></div>
+</div></body>
+</html>

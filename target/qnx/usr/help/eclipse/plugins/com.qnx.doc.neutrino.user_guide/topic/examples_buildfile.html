@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sample buildfile" />
+<meta name="abstract" content="Here's a sample buildfile for a PC-based target." />
+<meta name="description" content="Here's a sample buildfile for a PC-based target." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="sample_buildfile" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sample buildfile</title>
+</head>
+<body id="sample_buildfile">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Sample buildfile</h1>
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Here's a sample buildfile for a PC-based target.
+
+</p>
+
+
+<p class="p">
+
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In a real buildfile, you can't use a backslash (<span class="ph codeph">\</span>) to break a long
+line into shorter pieces, but we've done that here, just to make the
+buildfile easier to read.
+</div>
+
+
+<pre class="pre codeblock"># The build file for <span class="keyword">QNX OS</span> booting on a PC
+[virtual=x86_64,bios +compress] boot = {
+    startup-x86
+    PATH=/proc/boot:/bin:/usr/bin LD_LIBRARY_PATH=/proc/boot:\
+/lib:/usr/lib:/lib/dll procnto-smp-instr
+}
+
+[+script] startup-script = {
+    display_msg "  "
+    display_msg "<span class="keyword">QNX OS</span> inside!"
+    display_msg "  "
+
+    display_msg "---&gt; Starting PCI Services"
+    pci-server
+    waitfor /dev/pci
+
+    display_msg "---&gt; Starting Console Manager"
+    devc-con -n8
+    waitfor /dev/con1
+    reopen /dev/con1
+
+    display_msg "---&gt; Starting EIDE Driver"
+    devb-eide blk cache=64M,auto=partition,vnode=2000,ncache=2000,\
+noatime,commit=low dos exe=all
+    waitfor /dev/hd0
+    waitfor /dev/hd1
+
+    # Mount one Power-Safe filesystem as /, and another as /home.
+    # Also, mount a DOS partition and the CD drive.
+    mount /dev/hd0t179 /
+    mount /dev/hd1t178 /home
+    mount -tdos /dev/hd1t12 /fs/hd1-dos
+    mount -t udf /dev/cd0 /fs/cd0
+    
+    display_msg "---&gt; Starting /etc/system/sysinit"
+    ksh -c /etc/system/sysinit
+}
+
+libc.so
+libgcc_s.so.1
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+libcam.so
+io-blk.so
+cam-disk.so
+fs-qnx6.so
+fs-dos.so
+fs-ext2.so
+cam-cdrom.so
+fs-udf.so
+
+pci-server
+devb-eide
+slogger2
+ksh
+devc-con
+mount
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html" title="This appendix includes samples of some of the files described in this guide.">Examples</a></div>
+</div>
+</div></body>
+</html>

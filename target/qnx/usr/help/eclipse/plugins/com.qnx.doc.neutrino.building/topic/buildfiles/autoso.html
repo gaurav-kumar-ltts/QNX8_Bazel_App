@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Adding missing shared libraries automatically" />
+<meta name="abstract" content="You can use the mkifs autoso attribute to add to your IFS image any shared libraries that are required by binaries included in the image but that are missing from the buildfile." />
+<meta name="description" content="You can use the mkifs autoso attribute to add to your IFS image any shared libraries that are required by binaries included in the image but that are missing from the buildfile." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="autoso" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Adding missing shared libraries automatically</title>
+</head>
+<body id="autoso">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Adding missing shared libraries automatically</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">You can use the <span class="keyword cmdname">mkifs</span>
+		<span class="keyword cmdname">autoso</span> attribute to add to your IFS image any shared libraries that are
+		required by binaries included in the image but that are missing from the buildfile.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+		</div>
+
+		<div class="section">
+			<p class="p">In your buildfile, the <span class="keyword cmdname">autoso</span> attribute causes
+				<span class="keyword cmdname">mkifs</span> to scan the specified ELF binaries recursively for
+				shared libraries needed by these binaries. That is, it scans the binaries, then all
+				shared libraries needed by them, all shared libraries needed by the previous
+				ones, and so on. Any needed shared library not already in the image will be either
+				listed or added to the image, according to the <span class="keyword cmdname">autoso</span> option
+				specified for the original binary.</p>
+
+			<p class="p">Thus, you can use the <span class="keyword cmdname">autoso</span> attribute to simply list all shared
+				libraries that are needed by your build but not specified in the buildfile, so that
+				you can then manually update your buildfile, or to have <span class="keyword cmdname">mkifs</span>
+				automatically include the needed but missing shared libraries.</p>
+
+			<p class="p">You can specify global attributes at the end of your buildfile to have
+				<span class="keyword cmdname">mkifs</span> apply them to any shared libraries it automatically adds to
+				the image. (An attribute placed on a line by itself modifies all subsequent files;
+				for an explanation, see the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span> entry</a> in the <cite class="cite">Utilities Reference</cite>.)</p>
+
+			<p class="p">If <span class="keyword cmdname">mkifs</span> is running in verbose mode (i.e., the <span class="keyword option">-v</span>
+				option is specified), any library added automatically will be preceded by an
+				<q class="q">[A]</q> in the file list.</p>
+
+			<p class="p">If two binaries in the buildfile need the same shared library but one binary uses
+				the <span class="keyword cmdname">autoso</span> attribute's <span class="keyword option">l[ist]</span> option while the
+				other binary uses the <span class="keyword option">a[dd]</span> option, then the <span class="keyword option">a[dd]</span>
+				option takes precedence. That is, <span class="keyword cmdname">mkifs</span> will add the shared
+				object file to the image, but not print it in the list of missing shared libraries.</p>
+
+			<div class="p">The default prefix for the location where files are added is
+				<span class="ph filepath">proc/boot</span>. You can use the <span class="keyword cmdname">prefix</span>
+				attribute to have <span class="keyword cmdname">mkifs</span> add a different prefix to the path in the
+				IFS image where it adds a needed shared library file. For example:
+<pre class="pre codeblock">[autoso=add]
+foo
+...</pre>
+				where <span class="ph codeph">foo</span> is an executable will result in files being added to
+				<span class="ph filepath">proc/boot</span> as follows:
+<pre class="pre codeblock">foo=C:/tmp/foo
+[A] libaoi.so.1=C:/my_qnx_sdp/target/qnx/x86_64/usr/lib/libaoi.so.1</pre>
+				But
+<pre class="pre codeblock">[autoso=add]
+foo
+[prefix=lib]
+...</pre>
+				will result in automatically added files being added to <span class="ph filepath">lib/</span>,
+				which <span class="keyword cmdname">mkifs</span> will list as follows:
+<pre class="pre codeblock">foo=C:/tmp/foo
+[A] lib/libaoi.so.1=C:/my_qnx_sdp/target/qnx/x86_64/usr/lib/libaoi.so.1</pre>
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p">When generating secondary IFSs, use only the <span class="keyword option">l[ist]</span> option, and
+					add any required binaries manually by updating your buildfile. If you use the
+					<span class="keyword option">a[dd]</span> option, libraries already present in the primary IFS
+					might also get added to the secondary IFS.</p>
+
+				<p class="p">The <span class="keyword cmdname">autoso</span> attribute only looks for needed but missing shared
+					libraries (usually, with a version number in their name). If you also need
+					(unnumbered) symbolic links to the shared libraries, make sure that the
+					<span class="keyword option">[+autolink]</span> attribute is set at the end of your buildfile.</p>
+
+				<p class="p">The <span class="keyword cmdname">autoso</span> attribute doesn't list which binaries need a
+					missing library; it only lists or adds the missing library as required.
+					If you need that other information, you must investigate for yourself.</p>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

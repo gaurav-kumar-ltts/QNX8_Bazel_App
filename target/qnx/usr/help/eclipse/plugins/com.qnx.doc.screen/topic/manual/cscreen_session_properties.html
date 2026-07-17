@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Session properties" />
+<meta name="abstract" content="Screen API session properties are the properties of a session API object; some session properties are only applicable to certain session types." />
+<meta name="description" content="Screen API session properties are the properties of a session API object; some session properties are only applicable to certain session types." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_input-sessions.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="session_properties" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Session properties</title>
+</head>
+<body id="session_properties">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Session properties</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        <span class="keyword">Screen API</span> session properties are the properties of a session API object; some session
+        properties are only applicable to certain session types.
+    </p>
+
+        <p class="p">
+            
+            Similar to other <span class="keyword">Screen API</span> objects,  session properties are accessed through the
+            get (<span class="keyword apiname">screen_get_session_property_*()</span> ) and
+            set (<span class="keyword apiname">screen_set_session_property_*()</span>) functions. 
+        </p>
+
+        <p class="p"> The following are specific session properties that are used to control when and how events are received: </p>
+
+        <ul class="ul">
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_DISPLAY</span></li>
+
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_POSITION</span></li>
+
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_SIZE</span></li>
+
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_VISIBLE</span></li>
+
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_WINDOW</span></li>
+
+            <li class="li"><span class="keyword const">SCREEN_PROPERTY_ZORDER</span></li>
+
+        </ul>
+
+        <p class="p"> These properties, together, help you control what events you want to receive. See <a class="xref" href="../screen_8h_1Screen_Property_Types.html" title="Properties that are associated with Screen API objects">Screen property types</a> for more information on each specific property. </p>
+
+        <div class="section"><h2 class="title sectiontitle">Activating a session</h2>
+            
+            
+            <p class="p"> A session's <span class="keyword const">SCREEN_PROPERTY_VISIBLE</span> property indicates whether the session is active or not. This property is inherited from the window it's associated with. If a session isn't directly associated with a window, it depends on your working context. Privileged contexts (e.g., <span class="keyword const">SCREEN_WINDOW_MANAGER_CONTEXT</span>) can maintain windowless sessions that are active all the time. Windowless sessions can be created within non-privileged contexts (e.g., <span class="keyword const">SCREEN_APPLICATION_CONTEXT</span>), but their active state is dependent on the visibility of the windows that are in the context. Sessions in non-privileged contexts are only active if at least one window in those contexts is visible. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Associating a window</h2>
+            
+            
+            <p class="p"> Set the <span class="keyword const">SCREEN_PROPERTY_WINDOW</span> session property when you want to restrict a session to a particular window, or to specify an input region that's relative to a window. </p>
+
+            <p class="p"> Events that are a result of indirect input devices must have an associated window (i.e., the <span class="keyword const">SCREEN_PROPERTY_WINDOW</span> property is set for the session).  Events that are focus-based (from indirect input) are: </p>
+
+            <ul class="ul">
+                <li class="li"><span class="keyword const">SCREEN_EVENT_GAMEPAD</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_GESTURE</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_JOG</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_JOYSTICK</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_KEYBOARD</span></li>
+
+            </ul>
+
+            <p class="p"> That being said, this implies that the only sessions that don't need a window association are pointer (<span class="keyword const">SCREEN_EVENT_POINTER</span>) and touch (<span class="keyword const">SCREEN_EVENT_MTOUCH_TOUCH</span>) sessions. </p>
+
+            <p class="p"> Several sessions of the same or different types can be associated with a single window. When there are multiple sessions of the same type associated with the same window, then the z-order (<span class="keyword const">SCREEN_PROPERTY_ZORDER</span>) of the sessions come into play in the decision of who gets the input event of that type. The session with the highest z-order receives the input event. Should there be a tie in the z-order, the most recently created session receives the event. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Defining an input region</h2>
+            
+            
+            <p class="p"> The input region is a well-defined region where the focus of the input event is targeted. The size of this region is constrained to the size of the associated window or the display. The region's size and position are always relative to those of the window. This input region can be specified by setting the following pair of properties: </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_POSITION</span> and <span class="keyword const">SCREEN_PROPERTY_SIZE</span></dt>
+
+                    <dd class="dd"> Use these session properties when you're defining an input region that's in display coordinates (i.e., the position of (0,0) is the top left corner of your display or window). </dd>
+
+                
+                
+            </dl>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Associating a display</h2>
+            
+            
+            <p class="p">
+                Set the <span class="keyword const">SCREEN_PROPERTY_DISPLAY</span> session property
+                when you want to explicitly associate a session with a display.
+            </p>
+
+            <p class="p">
+                Sessions are indirectly associated with a display through
+                their associated window. By default, the session display is
+                set to be the same as its associated window display; if there
+                isn't an associated window, a default display is assigned. It is an error to set this property if your session is
+                associated with a window.
+            </p>
+
+        </div>
+
+        
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_input-sessions.html" title="Sessions are recipients of one specific type of input events.">Sessions</a></div>
+</div>
+</div></body>
+</html>

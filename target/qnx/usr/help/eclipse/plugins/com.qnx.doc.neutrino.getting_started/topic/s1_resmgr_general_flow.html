@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The general flow of a resource manager" />
+<meta name="abstract" content="As we alluded to in the overview sections above, the general flow of a resource manager begins on the client side with the open(). This gets translated into a connect message and ends up being received by the resource manager's open connect function handler." />
+<meta name="description" content="As we alluded to in the overview sections above, the general flow of a resource manager begins on the client side with the open(). This gets translated into a connect message and ends up being received by the resource manager's open connect function handler." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_structure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="general_flow" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The general flow of a resource manager</title>
+</head>
+<body id="general_flow">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The general flow of a resource manager</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> As we alluded to in the overview sections above, the general
+flow of a resource manager begins on the client side with the <span class="keyword apiname">open()</span>. This gets
+translated into a connect message and ends up being received by the resource manager's open connect
+function handler. </p>
+
+
+<p class="p">
+
+
+
+This is really key, because the <a class="xref" href="s1_resmgr_io_open.html">open connect function handler</a> is the <q class="q">gate keeper</q> for your
+resource manager. If the message causes the gate keeper to fail the request, you <em class="ph i">will not</em> get
+any I/O requests, because the client never got a valid file descriptor. Conversely, if the message
+is accepted by the gate keeper, the client now has a valid file descriptor and you should expect to
+get I/O messages.
+</p>
+
+
+<p class="p">
+But the open connect function handler plays a greater role. Not only is it responsible for
+verifying whether the client can or can't open the particular resource, it's also responsible for:
+</p>
+
+
+<ul class="ul">
+<li class="li">initializing internal library parameters</li>
+
+<li class="li">binding a context block to this request</li>
+
+<li class="li">binding an attribute structure to the context block.</li>
+
+</ul>
+
+
+<p class="p">
+The first two operations are performed via the base layer function
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_open_bind.html"><span class="keyword apiname">resmgr_open_bind()</span></a>;
+the binding of the attribute structure is done via a simple assignment.
+
+
+
+</p>
+
+
+<p class="p">
+Once the open connect function handler has been called, it's out of the picture. The client may
+or may not send I/O messages, but in any case will eventually terminate the <q class="q">session</q> with a
+message corresponding to the <span class="keyword apiname">close()</span> function. Note that if the client suffers an
+unexpected death (e.g., gets hit with <span class="keyword const">SIGSEGV</span>, or the node that it's running on
+crashes), the operating system will synthesize a <span class="keyword apiname">close()</span> message so that the
+resource manager can clean up. Therefore, you are <em class="ph i">guaranteed</em> to get a
+<span class="keyword apiname">close()</span> message!
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_structure.html" title="Now that we've seen the data structures, we can discuss interactions between the parts that you'd supply to actually make your resource manager do something.">Resource manager structure</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

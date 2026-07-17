@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Semaphores" />
+<meta name="abstract" content="Semaphores are a common form of synchronization that allows threads to “post” and “wait” on a semaphore to control when threads wake or sleep." />
+<meta name="description" content="Semaphores are a common form of synchronization that allows threads to “post” and “wait” on a semaphore to control when threads wake or sleep." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SYNCHRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_semaphore.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Semaphore_as_mutex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_close.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_getvalue.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_post.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_timedwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_trywait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_wait.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Semaphores" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Semaphores</title>
+</head>
+<body id="Semaphores">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Semaphores</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> Semaphores are a common form of synchronization that allows threads to <q class="q">post</q> and
+<q class="q">wait</q> on a semaphore to control when threads wake or sleep. </p>
+
+<div class="section">
+
+<p class="p">Semaphores differ from other synchronization primitives in that they are <q class="q">async safe</q> and
+can be manipulated by signal handlers. If the desired effect is to have a signal handler wake a
+thread, semaphores are the right choice. </p>
+
+<p class="p">The <span class="keyword">QNX OS</span> implementation of semaphores supports both named and unnamed semaphores
+(see <q class="q"><a class="xref" href="#Semaphores__named">Named and unnamed semaphores</a></q> below).</p>
+
+</div>
+
+<div class="section" id="Semaphores__vs"><h2 class="title sectiontitle">Semaphore or mutex?</h2>
+
+
+
+<p class="p">A key advantage of semaphores over mutexes is that semaphores are defined to operate between
+processes.</p>
+
+<p class="p">Although our mutexes work between processes, the POSIX thread standard considers this an optional
+capability. Thus, if your code will rely on mutexes working between processes, to ensure
+portability you should probably use semaphores rather than mutexes.</p>
+
+<p class="p">However, depending on your needs you may wish to use mutexes rather than semaphores after
+considering the following:</p>
+
+<ul class="ul">
+<li class="li">In general, mutexes are much faster than semaphores, which always require a kernel entry.</li>
+
+<li class="li">For synchronization between threads in a single process, mutexes are more efficient than
+semaphores.</li>
+
+<li class="li">Semaphores don't affect a thread's effective priority; if you need priority inheritance, use a
+mutex (see <q class="q"><a class="xref" href="kernel_Mutexes.html" title="Mutual exclusion locks, or mutexes, are the simplest of the synchronization services. A mutex is used to ensure exclusive access to data shared between threads.">Mutexes: mutual exclusion locks</a></q> in this
+chapter). </li>
+
+</ul>
+
+</div>
+
+<div class="section" id="Semaphores__post"><h2 class="title sectiontitle">Using semaphores</h2>
+
+
+
+<p class="p">The post (<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_post.html"><span class="keyword apiname">sem_post()</span></a>) operation increments the semaphore; the wait (<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_wait.html"><span class="keyword apiname">sem_wait()</span></a>) operation decrements it. </p>
+
+<p class="p">If you wait on a semaphore that is positive, you will not block. Waiting on a nonpositive
+semaphore will block until some other thread executes a post. It is valid to post one or more times
+before a wait. This use allows one or more threads to execute the wait without blocking.</p>
+
+<div class="p">Since semaphores, like condition variables, can legally return a nonzero value because of a false
+wake-up, correct usage requires a loop: 
+<pre class="pre codeblock">while (sem_wait(&amp;s) &amp;&amp; (errno == EINTR)) { do_nothing(); }
+do_critical_region();   /* Semaphore was decremented */
+</pre>
+</div>
+
+<p class="p">For a complete list of functions you can use with semaphores, see the <span class="keyword apiname">sem_*()</span>
+functions in the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/lib-s.html"><em class="ph i">C Library Reference</em></a>.</p>
+
+</div>
+
+<div class="section" id="Semaphores__named"><h2 class="title sectiontitle">Named and unnamed semaphores</h2>
+
+
+<p class="p">Unnamed semaphores are created with <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_init.html"><span class="keyword apiname">sem_init()</span></a>, and destroyed with <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_destroy.html"><span class="keyword apiname">sem_destroy()</span></a>. They can be used by multiple threads within the same
+process. However, to use an unnamed semaphore between processes requires a shared memory object,
+which implies a large memory overhead.</p>
+
+<p class="p">Named semaphores are created with <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_open.html"><span class="keyword apiname">sem_open()</span></a>, and closed with <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_close.html"><span class="keyword apiname">sem_close()</span></a>. Like unnamed semaphores, they can be be used by multiple threads within the same process.
+Unlike unnamed semaphores, however, named semaphores can be easily shared between threads in different processes.</p>
+
+<p class="p">With the exception of anonymous named semaphores, named semaphores have a path and a name, so
+they can be found between processes without the use of shared memory objects and the overhead they
+imply. Named semaphores are therefore more useful for inter-process communication than are unnamed
+semaphores.</p>
+
+<p class="p">Additionally, named semaphores (including anonymous named semaphores) can be posted by a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html"><span class="keyword dtype">sigevent</span></a> (e.g., attached to an IRQ or delivered by a server), and can be shared between a parent and a
+child process across a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a> without
+requiring a shared mapping.</p>
+
+<p class="p">Anonymous named semaphores don't have a path and name like other named semaphores,
+but they share the other advantages noted above. For more information about anonymous named semaphores,
+see <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_open.html"><span class="keyword apiname">sem_open()</span></a>
+in the <cite class="cite">C Library Reference</cite>.</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SYNCHRO.html" title="The QNX OS provides the POSIX-standard thread-level synchronization primitives, some of which are useful even between threads in different processes.">Synchronization services</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_semaphore.html">Semaphores (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Semaphore_as_mutex.html">A semaphore as a mutex (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_close.html">sem_close()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_destroy.html">sem_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_getvalue.html">sem_getvalue()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_init.html">sem_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_open.html">sem_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_post.html">sem_post()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_timedwait.html">sem_timedwait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_trywait.html">sem_trywait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_unlink.html">sem_unlink()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sem_wait.html">sem_wait()</a></li></ul></div>
+</div></body>
+</html>

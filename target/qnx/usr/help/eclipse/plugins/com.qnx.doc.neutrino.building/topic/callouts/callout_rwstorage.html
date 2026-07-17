@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Allocating read/write storage" />
+<meta name="abstract" content="In some cases, kernel callouts need access to static read/write storage, in particular to share information with other kernel callouts." />
+<meta name="description" content="In some cases, kernel callouts need access to static read/write storage, in particular to share information with other kernel callouts." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_rwstorageE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Allocating read/write storage</title>
+</head>
+<body id="callout_rwstorageE">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Allocating read/write storage</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">In some cases, kernel callouts need access to static read/write storage, in
+		particular to share information with other kernel callouts.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			<p class="p">Because kernel callout code is position-independent (see <q class="q"><a class="xref" href="callout_about.html#callout_about__char">Common characteristics</a></q>), it cannot
+				have static read/write storage. However, you can assign a small amount a memory at
+				the end of the system page to a kernel callout (or multiple kernel callouts) to use as
+				read/write storage.</p>
+
+			<div class="p">You can use the <span class="keyword const">CALLOUT_START</span> macro's second argument to specify the
+				address of a four-byte variable that contains the amount of read/write storage (in
+				bytes) the callout needs. For example, in the code snippet below:
+				<ol class="ol">
+					<li class="li"><var class="keyword varname">rw_interrupt</var> has the address of the location with the number
+						of bytes of storage required.</li>
+
+					<li class="li">Since the location referenced by <var class="keyword varname">rw_interrupt</var> contains the
+						value 4, the startup library allocates four bytes at the end of the system page.
+					</li>
+
+					<li class="li">The library uses the patcher routine's <var class="keyword varname">rw_offset</var> argument to
+						pass the offset of the allocated memory (see <q class="q"><a class="xref" href="callout_patch.html#callout_patch__proto">Patcher routines</a></q>)
+						to this routine.</li>
+
+					<li class="li">The patcher routine modifies the initial instruction of the callout to refer
+						to the appropriate offset, so that while the callout is executing, the
+						<span class="ph codeph">t3</span> register contains a pointer to the read/write storage.</li>
+
+				</ol>
+
+			</div>
+
+			<div class="p">Here is the code snippet:
+<pre class="pre codeblock">rw_interrupt:
+	.long	4
+	
+patch_interrupt:
+	add		a1,a1,a2
+	j		ra
+	sh		a3,0+LOW16(a1)
+	
+/* Mask the specified interrupt */
+CALLOUT_START(interrupt_mask_my_board, rw_interrupt, patch_interrupt)
+/*
+ * Input Parameters : 
+ *  	a0 - syspage_ptr
+ * 		a1 - Interrupt Number
+ * Returns:
+ *		v0 - error status
+ */
+		
+	...
+CALLOUT_END(interrupt_mask_my_board)
+</pre></div>
+
+		</div>
+
+		<div class="section" id="callout_rwstorageE__share"><h2 class="title sectiontitle">Sharing data between kernel callouts</h2>
+			
+			
+			
+			
+			
+			<p class="p">If you set aside read/write static storage at the end of the system page for one
+				kernel callout, you can use this area to pass data between callouts.
+				The startup library passes the same <var class="keyword varname">rw_offset</var> value to the patchers
+				for all callouts that share the same address in their
+				<span class="keyword const">CALLOUT_START</span> macro's second argument.</p>
+
+			<div class="p">For example, because the patchers for the following callouts have the same
+				<var class="keyword varname">rw_offset</var> argument value passed to
+				<span class="keyword apiname">patch_interrupt()</span>, they share the same read/write storage,
+				which they can use to exchange data as needed:
+<pre class="pre codeblock">CALLOUT_START(interrupt_mask_my_board, <strong class="ph b">rw_interrupt</strong>, patch_interrupt)
+	....
+CALLOUT_END(interrupt_mask_my_board)
+
+CALLOUT_START(interrupt_unmask_my_board, <strong class="ph b">rw_interrupt</strong>, patch_interrupt)
+	....
+CALLOUT_END(interrupt_unmask_my_board)
+
+CALLOUT_START(interrupt_eoi_my_board, <strong class="ph b">rw_interrupt</strong>, patch_interrupt)
+	....
+CALLOUT_END(interrupt_eoi_my_board)
+
+CALLOUT_START(interrupt_id_my_board, <strong class="ph b">rw_interrupt</strong>, patch_interrupt)
+	....
+CALLOUT_END(interrupt_id_my_board)
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

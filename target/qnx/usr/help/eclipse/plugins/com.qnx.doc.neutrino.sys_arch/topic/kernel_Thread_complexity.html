@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread complexity issues" />
+<meta name="abstract" content="Although threads are very appropriate for some system designs, it's important to respect the Pandora's box of complexities their use unleashes." />
+<meta name="description" content="Although threads are very appropriate for some system designs, it's important to respect the Pandora's box of complexities their use unleashes." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Thread_complexity" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread complexity issues</title>
+</head>
+<body id="Thread_complexity">
+
+<h1 class="title topictitle1" id="ariaid-title1">Thread complexity issues</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Although threads are very appropriate for some system
+designs, it's important to respect the Pandora's box of complexities their use unleashes.
+</p>
+
+
+<p class="p">
+In some ways, it's ironic that while MMU-protected multitasking has become common,
+computing fashion has made popular the use of multiple
+threads in an unprotected address space. This not only makes
+debugging difficult, but also hampers the generation of reliable code.
+</p>
+
+
+<p class="p">
+Threads were initially introduced to UNIX systems as a
+<q class="q">lightweight</q> concurrency mechanism to address
+the problem of slow context switches between
+<q class="q">heavyweight</q> processes. Although this is a worthwhile goal,
+an obvious question arises: Why are process-to-process
+context switches slow in the first place?
+</p>
+
+
+<p class="p">
+Architecturally, the OS addresses the context-switch
+performance issue first. In fact, threads and processes
+provide nearly identical context-switch performance
+numbers.
+The <span class="keyword">QNX OS</span>'s process-switch times are faster than
+UNIX thread-switch times. As a result, <span class="keyword">QNX OS</span> threads
+don't need to be used to solve the IPC performance problem;
+instead, they're a tool for achieving greater concurrency
+within application and server processes.
+
+</p>
+
+
+<p class="p">
+Without resorting to threads, fast process-to-process
+context switching makes it reasonable to structure an
+application as a team of cooperating processes sharing an
+explicitly allocated shared-memory region. An application
+thus exposes itself to bugs in the cooperating processes
+only so far as the effects of those bugs on the contents of
+the shared-memory region. The private memory of the process
+is still protected from the other processes. In the purely
+threaded model, the private data of all threads (including their stacks) is openly
+accessible, vulnerable to stray pointer errors in any thread
+in the process.
+</p>
+
+
+<p class="p">
+Nevertheless, threads can also provide concurrency
+advantages that a pure process model cannot address. For
+example, a filesystem server process that executes requests
+on behalf of many clients (where each request takes
+significant time to complete), definitely benefits from
+having multiple threads of execution. If one client process
+requests a block from disk, while another client requests a
+block already in cache, the filesystem process can utilize a
+pool of threads to concurrently service these requests,
+rather than remain <q class="q">busy</q> until the disk block
+is read for the first request.
+
+</p>
+
+
+<p class="p">
+As requests arrive, each thread can respond directly
+from the buffer cache or it can block and wait for disk I/O without
+increasing the response latency seen by other client
+processes. The filesystem server can
+<q class="q">precreate</q> a team of threads, ready to respond
+in turn to client requests as they arrive. Although this
+complicates the architecture of the filesystem manager, the
+gains in concurrency are significant.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SCHEDULING.html" title="When and how are scheduling decisions made?">Thread scheduling</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

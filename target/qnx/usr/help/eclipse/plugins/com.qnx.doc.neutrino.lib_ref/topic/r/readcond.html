@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="readcond()" />
+<meta name="abstract" content="Read data from a terminal device" />
+<meta name="description" content="Read data from a terminal device" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-r.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/e/errno.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/read.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/tcgetattr.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/tcsetattr.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/termios.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="readcond" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>readcond()</title>
+</head>
+<body id="readcond">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">readcond()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Read data from a terminal device</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;unistd.h&gt;
+
+int readcond( int <var class="keyword varname">fd</var>,
+              void * <var class="keyword varname">buf</var>,
+              int <var class="keyword varname">n</var>,
+              int <var class="keyword varname">min</var>,
+              int <var class="keyword varname">time</var>,
+              int <var class="keyword varname">timeout</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">fd</var></dt>
+
+<dd class="dd">The file descriptor associated with the terminal device that you want to read from.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">buf</var></dt>
+
+<dd class="dd">A pointer to a buffer into which <span class="keyword apiname">readcond()</span> can put the data.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">n</var></dt>
+
+<dd class="dd">The maximum number of bytes to read.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">min</var>, <var class="keyword varname">time</var>, <var class="keyword varname">timeout</var></dt>
+
+<dd class="dd">When used in RAW mode, these arguments override the behavior of the
+  <var class="keyword varname">MIN</var> and <var class="keyword varname">TIME</var> members of the terminal's
+  <a class="xref" href="../t/termios.html" title="Terminal control structure"><span class="keyword dtype">termios</span></a> structure.
+  For more information, see below.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword apiname">readcond()</span> function reads up to <var class="keyword varname">n</var> bytes of
+data from the terminal device indicated by <var class="keyword varname">fd</var> into the buffer
+pointed to by <var class="keyword varname">buf</var>.
+</p>
+
+
+<p class="p">
+
+This function is an alternative to the
+<a class="xref" href="read.html" title="Read bytes from a file"><span class="keyword apiname">read()</span></a>
+function for terminal devices,
+providing additional arguments for timed read operations.
+These additional arguments can be used to minimize overhead when dealing with terminal devices.
+</p>
+
+
+<p class="p">  
+
+The three arguments (<var class="keyword varname">min</var>, <var class="keyword varname">time</var>, and <var class="keyword varname">timeout</var>), 
+when used on terminal devices in RAW mode,
+override the behavior of the <var class="keyword varname">MIN</var> and <var class="keyword varname">TIME</var> elements of the currently defined
+<a class="xref" href="../t/termios.html" title="Terminal control structure"><span class="keyword dtype">termios</span></a>
+structure (for the duration of this call only).  
+The <span class="keyword dtype">termios</span> structure also defines a forwarding character 
+(in <var class="keyword varname">c_cc[VFWD]</var>) that can be used to bypass <var class="keyword varname">min</var>, <var class="keyword varname">time</var>,
+and <var class="keyword varname">timeout</var>.
+</p>
+
+
+<p class="p">
+The normal case of a simple read by an application would block until at least one character was available.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Conditions that satisfy an input request.</span>
+  
+  <br /><img class="image" src="../../images/condread.svg" alt="Char I/O conditions" /><br />
+</div>
+
+
+<p class="p">
+In the case where multiple conditions are specified, the read will be satisfied when any one of them is satisfied.
+
+</p>
+
+
+<p class="p"><strong class="ph b"><var class="keyword varname">MIN</var></strong></p>
+
+
+<p class="p">
+The qualifier <var class="keyword varname">MIN</var> is useful when an application has
+knowledge of the number of characters it expects to receive.
+
+</p>
+
+
+<p class="p">
+Any protocol that knows the character count for a frame of data can
+use <var class="keyword varname">MIN</var> to wait for the entire frame to arrive. 
+This significantly reduces IPC and process scheduling. 
+<var class="keyword varname">MIN</var> is often used in conjunction with <var class="keyword varname">TIME</var> or <var class="keyword varname">TIMEOUT</var>. 
+<var class="keyword varname">MIN</var> is part of the POSIX standard.
+</p>
+
+
+<p class="p"><strong class="ph b"><var class="keyword varname">TIME</var></strong></p>
+
+
+<p class="p">
+The qualifier <var class="keyword varname">TIME</var> is useful when an application
+is receiving streaming data and wishes to be notified when the data stops or pauses.
+The pause time is specified in tenths of a second. 
+<var class="keyword varname">TIME</var> is part of the POSIX standard.
+
+</p>
+
+
+<p class="p"><strong class="ph b"><var class="keyword varname">TIMEOUT</var></strong></p>
+
+
+<p class="p">
+The qualifier <var class="keyword varname">TIMEOUT</var> is useful when an application has
+knowledge of how long it should wait for data before timing out.
+The timeout is specified in tenths of a second.
+
+</p>
+
+
+<p class="p">
+Any protocol that knows the character count for a frame of
+data it expects to receive can use <var class="keyword varname">TIMEOUT</var>. 
+This in combination with the baud rate allows a reasonable guess
+to be made when data should be available. 
+It acts as a deadman timer to detect dropped characters. 
+It can also be used in interactive programs with user input to time out a
+read if no response is available within a given time.
+</p>
+
+
+<p class="p">
+<var class="keyword varname">TIMEOUT</var> is a <span class="keyword">QNX OS</span> extension and isn't part of the POSIX standard.
+</p>
+
+
+<p class="p"><strong class="ph b"><var class="keyword varname">FORWARD</var></strong></p>
+
+
+<p class="p">
+The qualifier <var class="keyword varname">FORWARD</var> is useful when a protocol is delimited by a special framing character. 
+For example, the PPP protocol used for TCP/IP over a serial link start and end its packets with a framing character.
+When used in conjunction with <var class="keyword varname">TIMEOUT</var>, 
+the <var class="keyword varname">FORWARD</var> character can greatly improve the
+efficiency of a protocol implementation. 
+The protocol process will receive complete frames, rather than character by character. 
+In the case of a dropped framing character,
+<var class="keyword varname">TIMEOUT</var> or <var class="keyword varname">TIME</var> can be used to quickly recover.
+
+</p>
+
+
+<p class="p">
+This greatly minimizes the amount of IPC work for the OS and
+results in a much lower processor utilization for a given TCP/IP data rate. 
+It is interesting to note that PPP doesn't contain a character count for its frames.
+Without the data-forwarding character, an implementation would be forced to read the data one character at a time.
+</p>
+
+
+<p class="p">
+<var class="keyword varname">FORWARD</var> is a <span class="keyword">QNX OS</span> extension and isn't part of the POSIX standard.
+</p>
+
+
+<p class="p">
+To enable the <var class="keyword varname">FORWARD</var> character, you must set the <span class="keyword const">VFWD</span> character in the
+<var class="keyword varname">c_cc</var> member of the <span class="keyword dtype">termios</span> structure:
+</p>
+
+
+<pre class="pre codeblock">/* PPP forwarding character */
+const char fwd_char = 0x7e;
+
+#include &lt;termios.h&gt;
+
+…
+
+int fd;
+struct termios termio;
+
+…
+
+tcgetattr( fd, &amp;termio );
+termio.c_cc[VFWD] = fwd_char;
+tcsetattr( fd, TCSANOW, &amp;termio );
+</pre>
+
+<p class="p">
+The following table summarizes the interaction of <var class="keyword varname">min</var>,
+<var class="keyword varname">time</var>, and <var class="keyword varname">timeout</var>:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d218591e465"><var class="keyword varname">min</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d218591e469"><var class="keyword varname">time</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d218591e473"><var class="keyword varname">timeout</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d218591e477">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Returns immediately with as many bytes as are currently available (up to <var class="keyword varname">n</var> bytes).</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 "><var class="keyword varname">M</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Return with up to <var class="keyword varname">n</var> bytes only when at least <var class="keyword varname">M</var>
+    bytes are available.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 "><var class="keyword varname">T</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Return with up to <var class="keyword varname">n</var> bytes when at least one byte is 
+      available, or <var class="keyword varname">T</var> * .1 sec has expired.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 "><var class="keyword varname">M</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 "><var class="keyword varname">T</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Return with up to <var class="keyword varname">n</var> bytes when either <var class="keyword varname">M</var> bytes
+      are available, or at least one byte has been received and the inter-byte 
+      time between any subsequently received characters exceeds <var class="keyword varname">T</var> * .1 sec.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 "><var class="keyword varname">t</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">RESERVED.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 "><var class="keyword varname">M</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 "><var class="keyword varname">t</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Return with up to <var class="keyword varname">n</var> bytes when <var class="keyword varname">t</var> * .1 sec has
+      expired, or <var class="keyword varname">M</var> bytes are available.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 "><var class="keyword varname">T</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 "><var class="keyword varname">t</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">RESERVED.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e465 "><var class="keyword varname">M</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e469 "><var class="keyword varname">T</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e473 "><var class="keyword varname">t</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e477 ">Return with up to <var class="keyword varname">n</var> bytes when <var class="keyword varname">M</var> bytes are
+      available, or <var class="keyword varname">t</var> * .1 sec has expired and no characters are 
+      received, or at least one byte has been received and the inter-byte time 
+      between any subsequently received characters exceeds <var class="keyword varname">T</var> * .1 sec.
+  </td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+Note that when <var class="keyword varname">timeout</var> is zero, 
+the behavior of <var class="keyword varname">min</var> and <var class="keyword varname">time</var> is exactly the same as the behavior of the 
+<span class="ph codeph">MIN</span> and <span class="ph codeph">TIME</span> parameters of the <span class="keyword dtype">termios</span> controlling structure. 
+Thus, 
+<a class="xref" href="readcond.html" title="Read data from a terminal device"><span class="keyword apiname">readcond()</span></a> 
+can be used as a higher speed alternative to consecutive calls of 
+<a class="xref" href="../t/tcgetattr.html" title="Get the current terminal control settings"><span class="keyword apiname">tcgetattr()</span></a>,
+<a class="xref" href="../t/tcsetattr.html" title="Change the terminal control settings for a device"><span class="keyword apiname">tcsetattr()</span></a>, 
+and 
+<a class="xref" href="read.html" title="Read bytes from a file"><span class="keyword apiname">read()</span></a>
+when dealing with RAW terminal I/O.
+</p>
+
+
+<p class="p">
+The (<var class="keyword varname">M</var>, 0, <var class="keyword varname">t</var>) case is useful for communications 
+protocols that cannot afford to block forever waiting for data that may never arrive.
+</p>
+
+
+<p class="p">
+The (<var class="keyword varname">M</var>, <var class="keyword varname">T</var>, <var class="keyword varname">t</var>) case is provided to permit 
+<span class="keyword apiname">readcond()</span> to return when a burst of data ends 
+(as in the (<var class="keyword varname">M</var>, <var class="keyword varname">T</var>, 0) case), 
+but also to return if no burst at all is detected within a reasonable amount of time.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The number of bytes read, or -1 if an error occurs
+(<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">The <span class="keyword const">O_NONBLOCK</span> flag is set on this <var class="keyword varname">fd</var>,
+  and the process would have been blocked in trying to perform this operation.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+<dd class="dd">The argument <var class="keyword varname">fd</var> is invalid or file isn't opened for reading.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINTR</span></dt>
+
+<dd class="dd">The <span class="keyword apiname">readcond()</span> call was interrupted by the process being signalled.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EIO</span></dt>
+
+<dd class="dd">This process isn't currently able to read data from this <var class="keyword varname">fd</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOSYS</span></dt>
+
+<dd class="dd">This function isn't supported for this <var class="keyword varname">fd</var>.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d218591e875">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d218591e877"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e875 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e877 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e875 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e877 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e875 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d218591e877 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-r.html">R</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/e/errno.html" title="Thread-local error variable">errno</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/read.html" title="Read bytes from a file">read()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/tcgetattr.html" title="Get the current terminal control settings">tcgetattr()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/tcsetattr.html" title="Change the terminal control settings for a device">tcsetattr()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/termios.html" title="Terminal control structure">termios</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="QNX Cryptography Library" />
+<meta name="abstract" content="The QNX cryptography library (qcrypto library) is a generic cryptographic shim layer that provides a consistent API to the various cryptographic primitives offered by third-party libraries." />
+<meta name="description" content="The QNX cryptography library (qcrypto library) is a generic cryptographic shim layer that provides a consistent API to the various cryptographic primitives offered by third-party libraries." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="qcrypto" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>QNX Cryptography Library</title>
+</head>
+<body id="qcrypto">
+
+<h1 class="title topictitle1" id="ariaid-title1">QNX Cryptography Library</h1>
+
+
+
+<div class="body conbody"><p class="shortdesc"> The QNX cryptography library (<span class="ph filepath">qcrypto</span> library) is a generic
+    cryptographic shim layer that provides a consistent API to the various cryptographic primitives
+    offered by third-party libraries.</p>
+
+<div class="section">  <p class="p"> The library's unified API
+        provides a configurable plugin system that allows a system integrator to choose a
+        cryptography provider without re-writing software. It is designed to maximize
+        interoperability between library implementations by providing configuration parameters that
+        allow systems to switch to the cryptographic backend of their choice.</p>
+
+
+    <p class="p">The <span class="ph filepath">qcrypto</span>
+      library also enforces a certain level of security by following best
+        practices where possible to ensure that users of the library use appropriate security
+        parameters and key lengths. The sources for security best practices include the following
+        information:</p>
+
+    <div class="p">
+      <ul class="ul" id="qcrypto__ul_ol1_42q_4fb">
+        <li class="li">National Institute of Standards and Technology (NIST Guidelines) —
+          <a class="xref" href="http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf" target="_blank">http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf</a>
+           </li>
+
+        <li class="li">Key length and strength recommendations — <a class="xref" href="https://www.keylength.com/en/" target="_blank">https://www.keylength.com/en/</a> </li>
+
+      </ul>
+
+    </div>
+
+</div>
+
+  <div class="section"><h2 class="title sectiontitle">Using <span class="ph filepath">qcrypto</span></h2>
+    
+    <p class="p">The following components are needed to run <span class="ph filepath">qcrypto</span> on a system:</p>
+
+    <ul class="ul">
+      <li class="li"><span class="ph filepath">libqcrypto.so.1</span></li>
+
+      <li class="li">a system configuration file that allows the system integrator to configure which cryptography providers the system uses (see <q class="q"><a class="xref" href="qcrypto_configuration.html" title="The qcrypto library configuration file allows the system integrator to define which cryptography providers are supported and available to the system.">Configuration file</a></q>)</li>
+
+      <li class="li">one of the <span class="ph filepath">qcrypto</span> <a class="xref" href="#qcrypto__plugin">plugin</a> binaries listed below</li>
+
+    </ul>
+
+
+  </div>
+
+
+  <div class="section"><h2 class="title sectiontitle">Features that use <span class="ph filepath">qcrypto</span></h2>
+    
+    <ul class="ul">
+    <li class="li">QNX Trusted Disk (see the entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html"><span class="ph filepath">fs-qtd.so</span></a> in the <cite class="cite">Utilities Reference</cite>)</li>
+
+    <li class="li">Power-Safe filesystem (see the entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="ph filepath">fs-qnx6.so</span></a> in the <cite class="cite">Utilities Reference</cite>)</li>
+
+    <li class="li"><span class="keyword cmdname">random</span> (see the entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/r/random.html"><span class="keyword cmdname">random</span></a> in the <cite class="cite">Utilities Reference</cite>)</li>
+
+    </ul>
+
+  </div>
+
+
+
+  <div class="section"><h2 class="title sectiontitle">Dynamically loading the <span class="ph filepath">qcrypto</span>
+      library</h2>
+    <p class="p">If you need to support dynamically loading the cryptography library at runtime instead of
+        linking to it directly, link your binary with <span class="ph filepath">libqcrypto_dyn.so</span> and
+        call <a class="xref" href="../qcrypto_load.html" title="Dynamically load the qcrypto library"><span class="keyword apiname">qcrypto_load()</span></a> to safely load the library before calling the other
+        APIs. (The <a class="xref" href="../qcrypto_unload.html" title="Unload the qcrypto library"><span class="keyword apiname">qcrypto_unload()</span></a> function unloads it.) This dynamic shim
+        layer is transparent and the API calls are identical in both libraries.</p>
+</div>
+
+  <div class="section"><h2 class="title sectiontitle">Supported algorithms</h2>The <span class="ph filepath">qcrypto</span> library framework
+      allows you to add newer algorithms to a system using plugins. The algorithms that each plugin
+      supports depends entirely on which algorithms the third-party cryptography library supports.
+      In some cases, to encourage users to avoid using insecure primitives,
+        <span class="ph filepath">qcrypto</span> has purposefully avoided adding support for algorithms that are
+      considered obsolete and unsafe. Some other algorithms require careful consideration when you
+      define certain values, such as the initialization vector in many AES modes.</div>
+
+  <div class="section"><h2 class="title sectiontitle">Algorithm naming</h2>The <span class="ph filepath">qcrypto</span>
+      library tries to use uniform and
+      unambiguous naming for algorithms. All algorithm names are lowercase ASCII strings and, where
+      possible, the common naming used by RFCs. For example:</div>
+
+    <div class="section">
+      <ul class="ul" id="qcrypto__ul_b21_fzq_4fb">
+        <li class="li">AES 128 CBC Cipher — <tt class="ph tt">aes-128-cbc</tt></li>
+
+        <li class="li">SHA512 Digest — <tt class="ph tt">sha512</tt></li>
+
+        <li class="li">RSA with SHA256 digest — <tt class="ph tt">rsa-with-sha256</tt></li>
+
+      </ul>
+
+    </div>
+ <div class="section" id="qcrypto__plugin"><h2 class="title sectiontitle">Plugins</h2>The <span class="ph filepath">qcrypto</span> library uses plugins to
+      interface with different cryptographic providers. Currently, the library provides the
+      following plugins. See the documentation for each plugin for details:<ul class="ul" id="qcrypto__ul_h54_4c2_1jb">
+        <li class="li">
+          <a class="xref" href="qcrypto_certicom_plugin.html" title="The qcrypto library Certicom plugin provides support for the Certicom cryptography library.">Certicom</a>
+        </li>
+
+        <li class="li"><a class="xref" href="qcrypto_tomcrypt_plugin.html" title="The qcrypto library TomCrypt plugin provides support for the LibTomCrypt cryptographic toolkit.">TomCrypt</a></li>
+
+        <li class="li"><a class="xref" href="qcrypto_openssl_plugin.html" title="The qcrypto library OpenSSL plugin provides support for the OpenSSL cryptography library.">OpenSSL</a></li>
+
+      </ul>
+Plugins are provided by libraries that use the following naming format:<div class="p">
+        <pre class="pre codeblock">qcrypto-<var class="keyword varname">plugin</var>.so</pre>
+      </div>
+<p class="p">For example, <span class="ph filepath">qcrypto-openssl-3.so</span> and
+          <span class="ph filepath">qcrypto-certicom.so</span>.</p>
+<p class="p">The <span class="ph filepath">qcrypto</span> library
+        allows you to create custom plugins. For more information, see <q class="q"><a class="xref" href="qcrypto_add_primitives.html" title="The libqcrypto_pluginS.a plugin library and qcrypto/qcrypto_plugin.h header file allow you to create a custom plugin to use with the qcrypto library.">Adding cryptographic primitives</a>.</q>
+      </p>
+</div>
+
+       <div class="section"><h2 class="title sectiontitle">Supported cryptographic primitives</h2>
+      
+      <p class="p">The <span class="ph filepath">qcrypto</span>
+      library APIs include functions for working with the following
+        cryptographic primitives:</p>
+
+      <div class="p">
+        <ul class="ul" id="qcrypto__ul_dnl_ry1_sfb">
+          <li class="li"><a class="xref" href="qcrypto_key_generation.html" title="The qcrypto library supports various types of cryptographic keys.">Key generation and usage</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_digests.html" title="The qcrypto library API includes cryptographic digest (hashing) functions.">Digests</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_symmetric_cryptography.html" title="The qcrypto library API includes cryptographic cipher functions.">Symmetric cryptography (ciphers)</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_mac.html" title="The qcrypto library API includes cryptographic MAC functions.">Message authentication code (MAC)</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_kdf.html" title="The qcrypto library API includes cryptographic KDF functions.">Key Derivation Function (KDF)</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_rng.html" title="The qcrypto library API includes RNG functions.">Random number generator (RNG)</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_digital_signing.html" title="The qcrypto library API includes functions that provide cryptographic signing and verification primitives. Several forms are provided to give you the flexibility of using one that is best suited to your needs.">Digital signing and verification</a></li>
+
+          <li class="li"><a class="xref" href="qcrypto_padding.html" title="Some cryptographic primitives, such as AES ciphers in block cipher modes of operation, often require that the input data size be a multiple of the primitive's block size. Because the size of some data (e.g., plaintext) can be variable, padding can be added to meet the primitive's size requirements.">Padding</a></li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+  <div class="section"><h2 class="title sectiontitle">Initialization</h2>You need to initialize the library before you can
+      successfully call any other algorithm functions. Use <a class="xref" href="../qcrypto_init.html" title="Initialize a library"><span class="keyword apiname">qcrypto_init()</span></a> to
+      initialize the <span class="ph filepath">qcrypto</span> library and <a class="xref" href="../qcrypto_uninit.html" title="Un-initialize a library"><span class="keyword apiname">qcrypto_uninit()</span></a>
+      to un-initialize it.</div>
+
+  <div class="section"><h2 class="title sectiontitle">Using algorithms</h2> After the library is initialized, the following steps are
+      the usual work flow for using cryptographic primitives: <ol class="ol" id="qcrypto__ol_kly_bfr_4fb">
+        <li class="li">Use a <span class="keyword apiname">qcrypto_*_request()</span> function to get an instance of the desired
+          algorithm (e.g., <span class="keyword apiname">qcrypto_cipher_request()</span>).</li>
+
+        <li class="li">Manipulate the primitive using the <span class="ph filepath">qcrypto</span> functions defined for
+          it.</li>
+
+        <li class="li">Call <span class="keyword apiname">qcrypto_release_ctx()</span> when you no longer need the algorithm.
+        </li>
+
+      </ol>
+The same work flow applies to handling cryptographic keys, whether you are generating
+      them for the first time or loading them from memory or files. See the section that discusses
+      each of the various supported cryptographic primitives for examples of how to use
+      them.</div>
+
+  
+  <div class="section"><h2 class="title sectiontitle">Reusing an algorithm instance</h2>An instance of an algorithm (a context) can
+      be reused if the caller reinitializes it using its initialization function. Reinitializing
+      allows you to reuse an instance without clearing memory all the time and may improve
+      performance.</div>
+
+  
+  <div class="section" id="qcrypto__requestalgorithm"><h2 class="title sectiontitle">Requesting an algorithm</h2>
+       When you call <span class="keyword apiname">qcrypto_*_request()</span>,
+      the function searches for the specified algorithm.<ul class="ul" id="qcrypto__ul_c3c_5hr_4fb">
+        <li class="li">If a tag value is specified, it searches plugins in the order they are defined (first
+          the plugin with the internal tag value that <a class="xref" href="../qcrypto_init.html" title="Initialize a library"><span class="keyword apiname">qcrypto_init()</span></a> creates,
+          then plugins in the configuration file) for a matching tag value (wildcard tags (*) match
+          anything).</li>
+
+        <li class="li">If a tag value is not provided (<var class="keyword varname">tag</var> = NULL), it searches plugins in
+          the order they are defined using the tag value <var class="keyword varname">__progname</var> (see the
+            <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/__progname.html"><var class="keyword varname">__progname</var></a> entry in the <cite class="cite">C
+            Library Reference</cite>).</li>
+
+      </ul>
+If a matching tag isn't found or the algorithm is not found in a matching plugin, the
+      algorithm resolution fails. <p class="p">For more information on how tags work with requests, see <a class="xref" href="qcrypto_configuration.html#qcrypto_configuration__tags"><q class="q">Tags</q></a> in the
+          <q class="q">Configuration file</q> section.</p>
+
+    </div>
+
+  
+  <div class="section"><h2 class="title sectiontitle">Error handling and logging</h2>
+      
+      <p class="p">Use <a class="xref" href="../qcrypto_strerror.html" title="Return the string associated with an error code"><span class="keyword apiname">qcrypto_strerror()</span></a> to retrieve the textual representation of
+          <span class="ph filepath">qcrypto</span> library error codes. </p>
+
+      <p class="p">By default, logging prints errors and other conditions to <span class="keyword cmdname">slogger2</span> and
+        is handled by QNX helper logging functionality (<span class="ph filepath">libqh</span>). For additional
+        logging options, see the <a class="xref" href="../../../com.qnx.doc.qh/topic/manual/about.html"><em class="ph i">QNX Helpers Developer's Guide</em></a>.</p>
+
+    </div>
+
+  <div class="section"><h2 class="title sectiontitle">Error codes</h2>For the error codes that the <span class="ph filepath">qcrypto</span>
+      library uses and returns, see <q class="q"><a class="xref" href="../group__QCRYPTO__ERROR__CODES.html" title="The error codes returned by the library and its plugins.">QNX cryptography library error codes</a>.</q></div>
+
+  <div class="section"><h2 class="title sectiontitle">General functions</h2> The <span class="ph filepath">qcrypto</span>
+      library provides the following
+      general-purpose and cryptography-related functions:<div class="p">
+        <ul class="ul" id="qcrypto__ul_ow2_fch_sfb">
+          <li class="li"><a class="xref" href="../qcrypto_memcmp.html" title="Fixed-time memory comparison"><span class="keyword apiname">qcrypto_memcmp()</span></a> (fixed-time memory comparison)</li>
+
+          <li class="li"><a class="xref" href="../qcrypto_memclear.html" title="Set the cryptography safe memory to zero"><span class="keyword apiname">qcrypto_memclear()</span></a> (set the cryptography safe memory to zero)</li>
+
+        </ul>
+
+      </div>
+</div>
+
+  <div class="section"><h2 class="title sectiontitle">Selecting the buffer size</h2>
+    
+    <p class="p">The <span class="keyword apiname">qcrypto_*_final()</span> functions (e.g.,
+          <span class="keyword apiname">qcrypto_cipher_final()</span>) take pointers to a buffer for a value and its
+        size. When <var class="keyword varname">buffer</var> is NULL, the function returns the size of the data it
+        wants to write in <var class="keyword varname">size</var> and allows the caller to allocate a buffer large
+        enough for the data. This type of call is useful for data like key values, which can vary
+        widely in size, unlike digests, which have known, fixed lengths.</p>
+
+  </div>
+
+</div>
+
+</body>
+</html>

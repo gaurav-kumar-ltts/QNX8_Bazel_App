@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="open(), dup(), and close()" />
+<meta name="abstract" content="Another convenient service that the resource manager shared library provides is the automatic handling of dup() messages." />
+<meta name="description" content="Another convenient service that the resource manager shared library provides is the automatic handling of dup() messages." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/resource_Resmgr_library.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="open_dup_close" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>open(), dup(), and close()</title>
+</head>
+<body id="open_dup_close">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">open()</span>, <span class="keyword apiname">dup()</span>, and <span class="keyword apiname">close()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Another convenient service that the resource manager shared
+library provides is the automatic handling of <span class="keyword apiname">dup()</span> messages.
+</p>
+
+
+<div class="p">
+
+Suppose that the client program executed code that
+eventually ended up performing:
+
+<pre class="pre codeblock">fd = open ("/dev/device", O_RDONLY);
+...
+fd2 = dup (fd);
+...
+fd3 = dup (fd);
+...
+close (fd3);
+...
+close (fd2);
+...
+close (fd);
+</pre>
+</div>
+
+
+<p class="p">
+The client would generate an <span class="ph codeph">io_open</span> message
+for the first <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>,
+and then two <span class="ph codeph">io_dup</span> messages for the two
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span> </a> calls.
+Then, when the client executed the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a> calls,
+three <span class="ph codeph">io_close</span> messages would be generated.
+
+</p>
+
+
+<p class="p">
+Since the <span class="keyword apiname">dup()</span> functions generate duplicates of
+the file descriptors, new context information should not be
+allocated for each one. When the <span class="ph codeph">io_close</span>
+messages arrive, because no new context has been allocated
+for each <span class="keyword apiname">dup()</span>, no <em class="ph i">release</em> of the memory
+by each <span class="ph codeph">io_close</span> message should occur either!
+(If it did, the first close would wipe out the context.)
+</p>
+
+
+<p class="p">
+The resource manager shared library provides default
+handlers that keep track of the <span class="keyword apiname">open()</span>,
+<span class="keyword apiname">dup()</span>, and <span class="keyword apiname">close()</span> messages and
+perform work only for the last close (i.e., the third
+<span class="ph codeph">io_close</span> message in the example above).
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/resource_Resmgr_library.html" title="In a custom embedded system, part of the design effort may be spent writing a resource manager, because there may not be an off-the-shelf driver available for the custom hardware component in the system.">The resource manager shared library</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html">Resource Managers (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

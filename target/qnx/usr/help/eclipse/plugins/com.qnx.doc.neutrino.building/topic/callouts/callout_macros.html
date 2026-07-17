@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel callout start and end macros" />
+<meta name="abstract" content="The build process recognizes that the code between CALLOUT_START and CALLOUT_END is a kernel callout that needs to be saved to a safe place in memory." />
+<meta name="description" content="The build process recognizes that the code between CALLOUT_START and CALLOUT_END is a kernel callout that needs to be saved to a safe place in memory." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_macros" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Kernel callout start and end macros</title>
+</head>
+<body id="callout_macros">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Kernel callout start and end macros</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The build process recognizes that the code between <span class="keyword const">CALLOUT_START</span> and
+		<span class="keyword const">CALLOUT_END</span> is a kernel callout that needs to be saved to a safe place in
+		memory.</p>
+
+		<div class="section" id="callout_macros__mod">
+			
+			
+			
+			
+			
+			
+			
+			
+			<div class="p">At the start of the source code (below the copyright boilerplate text and the comments),
+				kernel callout source code has one of the following:
+				<pre class="pre codeblock">#include "callout.ah"</pre>
+				or:
+				<pre class="pre codeblock">.include "callout.ah"</pre></div>
+
+			<p class="p">The assembly syntax determines whether the callout uses <span class="ph codeph">#include</span> or
+				<span class="ph codeph">.include</span>.</p>
+
+			<div class="p">The included file defines the following macros:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><span class="keyword const">CALLOUT_START</span></dt>
+
+						<dd class="dd">
+							<p class="p">The <span class="keyword const">CALLOUT_START</span> macro marks the start of a kernel callout.
+								Its three parameters are:</p>
+
+							<ol class="ol">
+								<li class="li">Name of the kernel callout routine.</li>
+
+								<li class="li">Address of a four-byte variable that contains the amount of
+									read/write storage needed by the callout (see <q class="q"><a class="xref" href="callout_rwstorage.html" title="In some cases, kernel callouts need access to static read/write storage, in particular to share information with other kernel callouts.">Allocating read/write storage</a></q> in this chapter).
+								</li>
+
+								<li class="li">Address of a patcher routine, or 0 (zero) if no
+									patching is needed (see <q class="q"><a class="xref" href="callout_patch.html" title="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code.">Patching the kernel callout code</a></q> in this chapter).</li>
+
+							</ol>
+
+						</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">CALLOUT_END</span></dt>
+
+						<dd class="dd">The <span class="keyword const">CALLOUT_END</span> macro marks the end of the kernel callout
+							routine. It takes one argument, which must be the same as the first
+							argument in the preceding <span class="keyword const">CALLOUT_START</span> macro.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<p class="p">If this code is the only version of the kernel callout available, or if the
+				discovery process selects this routine to be used by the kernel, the startup library
+				copies the code between <span class="keyword const">CALLOUT_START</span> and <span class="keyword const">CALLOUT_END</span>
+				to a safe place in memory. In this memory location, the code will be available to the
+				kernel after the memory that was allocated for the startup code has been overwritten.
+			</p>
+
+			<div class="p">The syntax of the two macros depends on the assembly used in the source code.
+				The following examples are two common versions (this code and all assembly code in this
+				document uses GNU Assembler (GAS) syntax):
+			<pre class="pre codeblock">CALLOUT_START(timer_load_8254, 0, 0)
+CALLOUT_END(timer_load_8254)</pre>
+				and:
+			<pre class="pre codeblock">CALLOUT_START timer_load_8254, 0, 0
+CALLOUT_END timer_load_8254</pre></div>
+
+			<p class="p">Keep whatever syntax is used in the file you started from, and replace the sections
+				of code from the original file with code that works with your hardware.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

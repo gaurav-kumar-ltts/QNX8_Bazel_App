@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="open(), dup(), and close()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out_Message_types.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Open_dup_close" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>open(), dup(), and close()</title>
+</head>
+<body id="Open_dup_close">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">open()</span>, <span class="keyword apiname">dup()</span>, and <span class="keyword apiname">close()</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+The resource manager shared library automatically handles
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a> messages.
+</p>
+
+
+<div class="p">
+Suppose that the client program executed code that eventually ended up performing:
+
+<pre class="pre codeblock">fd = open ("/dev/device", O_RDONLY);
+...
+fd2 = dup (fd);
+...
+fd3 = dup (fd);
+...
+close (fd3);
+...
+close (fd2);
+...
+close (fd);
+</pre>
+</div>
+
+
+<p class="p">
+
+
+
+The client generates an open connect message
+for the first <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>, and then two
+<span class="keyword const">_IO_DUP</span> messages for the two
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a>
+calls. Then, when the client executes the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>
+calls, it generates three close messages.
+</p>
+
+
+<p class="p">
+Since the <span class="keyword apiname">dup()</span> functions generate duplicates of
+the file descriptors, new context information shouldn't be
+allocated for each one. When the close
+messages arrive, because no new context has been allocated
+for each <span class="keyword apiname">dup()</span>, no <em class="ph i">release</em> of the memory
+by each close message should occur either!
+(If it did, the first close would wipe out the context.)
+</p>
+
+
+<p class="p">
+The resource manager shared library provides default
+handlers that keep track of the <span class="keyword apiname">open()</span>,
+<span class="keyword apiname">dup()</span>, and <span class="keyword apiname">close()</span> messages and
+perform work only for the last close (i.e., the third
+<span class="keyword cmdname">io_close</span> message in the example above).
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out_Message_types.html">Message types</a></div>
+</div>
+</div></body>
+</html>

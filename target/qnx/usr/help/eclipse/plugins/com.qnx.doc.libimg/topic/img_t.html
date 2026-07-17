@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="img_t" />
+<meta name="abstract" content="Information describing an image" />
+<meta name="description" content="Information describing an image" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_seeAPIs.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_decode_callouts_t.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_decode_frame.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_decode_validate.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_format_t.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_load_file.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="img_t" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>img_t</title>
+</head>
+<body id="img_t">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">img_t</span></h1>
+
+
+    
+    
+    <div class="body refbody"><p class="shortdesc"><em class="ph i">Information describing an image</em></p>
+
+
+        <div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+            
+            <pre class="pre">
+#include &lt;img/img.h&gt;
+
+typedef struct {
+    union {
+        struct {
+            uint8           *<var class="keyword varname">data</var>;
+            unsigned        <var class="keyword varname">stride</var>;
+        } <var class="keyword varname">direct</var>;
+
+        struct {
+            img_access_f    *<var class="keyword varname">access_f</var>;
+            Uintptrt        <var class="keyword varname">data</var>;
+        }               <var class="keyword varname">indirect</var>;
+    } access;
+    unsigned            <var class="keyword varname">w</var>, <var class="keyword varname">h</var>;
+    img_format_t        <var class="keyword varname">format</var>;
+    unsigned            <var class="keyword varname">npalette</var>;
+    img_color_t         *<var class="keyword varname">palette</var>;
+    unsigned            <var class="keyword varname">flags</var>;
+    union {
+            uint8           <var class="keyword varname">index</var>;
+            uint16          <var class="keyword varname">rgb16</var>;
+            img_color_t     <var class="keyword varname">rgb32</var>;
+    }                   <var class="keyword varname">transparency</var>;
+    unsigned            <var class="keyword varname">quality</var>;    
+} img_t;
+</pre>
+
+        </div>
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Description:</h2>
+            
+            <p class="p">The <span class="keyword dtype">img_t</span> structure describes a decoded frame. The members include: </p>
+
+            <dl class="dl">
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">access</var>
+                    </dt>
+
+
+                    <dd class="dd">A union of two structures, <var class="keyword varname">direct</var> and
+                            <var class="keyword varname">indirect</var>, depending on whether you want the image
+                        data to be accessed directly or indirectly. The <span class="keyword const">IMG_DIRECT</span> or
+                            <span class="keyword const">IMG_INDIRECT</span> flag should be set to indicate which mode of
+                        access is in place. <p class="p"> Using the direct access model, anyone operating on
+                            the image data can access it directly via a pointer. The beginning of
+                            the image data is pointed to by
+                                <var class="keyword varname">direct</var>.<var class="keyword varname">data</var>, and it is assumed
+                            that the data pointed to is a contiguous buffer of <var class="keyword varname">h</var>
+                            scanlines of <var class="keyword varname">direct</var>.<var class="keyword varname">stride</var> bytes
+                            each. </p>
+<div class="note"><span class="notetitle">Note:</span>  The <var class="keyword varname">stride</var> can be much larger (if
+                            needed) than the actual number of bytes required to represent a single
+                            scanline in the specified format; anyone operating on the image should
+                            never overwrite or otherwise give any regard to the <q class="q">in between</q>
+                            padding bytes. </div>
+
+                        <p class="p"> Using the indirect access model, anyone operating on the image data does
+                            it through a function; the function pointer is given by
+                                <var class="keyword varname">indirect</var>.<var class="keyword varname">access_f</var>, and
+                                <var class="keyword varname">indirect</var>.<var class="keyword varname">data</var> provides a
+                            facility to give your access function some context. </p>
+<p class="p"> An access
+                            function is a function you provide to read or write a run of pixels to
+                            or from your image. An access function must be coded either as a reader
+                            or writer, there is no way to tell from the parameters the direction of
+                            data flow. </p>
+<p class="p"> </p>
+<pre class="pre codeblock">    void access_f(uintptr_t data, unsigned x, 
+           unsigned y, unsigned n, uint8_t *pixels)
+    
+</pre>
+                        <ul class="ul">
+                            <li class="li"><var class="keyword varname">data</var> — the data field (from
+                                    img_t::<var class="keyword varname">access</var>.<var class="keyword varname">indirect</var>.<var class="keyword varname">data</var>) </li>
+
+                            <li class="li"><var class="keyword varname">x</var>, <var class="keyword varname">y</var> — the x and y
+                                position within the image of the pixel run being accessed </li>
+
+                            <li class="li"><var class="keyword varname">n</var> — the number of pixels in the run </li>
+
+                            <li class="li"><var class="keyword varname">pixels</var> — pointer to pixel data. If your
+                                function is a reader, it should copy the prescribed run of image
+                                data to this buffer; if it's a write it should copy the pixels in
+                                this buffer to your image </li>
+
+                        </ul>
+
+                        <div class="note"><span class="notetitle">Note:</span>  The format of the data in <var class="keyword varname">pixels</var> will be the same
+                            as the format of the image; that is, no data transformation is required
+                            at this level. The <var class="keyword varname">x</var>, <var class="keyword varname">y</var>, and
+                                <var class="keyword varname">n</var> arguments are guaranteed not to exceed the
+                            boundary of your image so you don't have to check for that.</div>
+
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">w</var>, <var class="keyword varname">h</var>
+                    </dt>
+
+
+                    <dd class="dd">The width and height of the image frame, in pixels. These members are only
+                        valid if the <span class="keyword const">IMG_W</span> and <span class="keyword const">IMG_H</span> flag bits are
+                        set. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">format</var>
+                    </dt>
+
+
+                    <dd class="dd">The <a class="xref" href="img_format_t.html" title="Image formats"><span class="keyword dtype">img_format_t</span></a> format
+                        of the image's pixel data. This field is valid if the
+                            <span class="keyword const">IMG_FORMAT</span> flag bit is set </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">npalette</var>
+                    </dt>
+
+
+                    <dd class="dd">The number of colors in the image <var class="keyword varname">palette</var> color table.
+                        This field should be used only if the format is palette-based (that is, the
+                            <span class="keyword const">IMG_FMT_PALETTE</span> bit is set in <var class="keyword varname">format</var>).
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">palette</var>
+                    </dt>
+
+
+                    <dd class="dd">The palette color table. This field is valid if the
+                            <span class="keyword const">IMG_PALETTE</span> flag bit is set. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">flags</var>
+                    </dt>
+
+
+                    <dd class="dd">Flags indicating which of the fields in the structure are valid. Can be one
+                        or more of: <dl class="dl">
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_TRANSPARENCY</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">transparency</var> field is valid and the
+                                    specified color within the image should be treated as
+                                    transparent. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_FORMAT</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">format</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_W</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">w</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_H</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">h</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_DIRECT</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">direct</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_INDIRECT</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">indirect</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_PALETTE</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">palette</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_QUALITY</span>
+                                </dt>
+
+
+                                <dd class="dd">The <var class="keyword varname">quality</var> field is valid. </dd>
+
+                            
+
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_PAL8_ALPHA</span>
+                                </dt>
+
+                                
+                                <dd class="dd">The PAL8 image palette contains alpha data. Therefore,
+                                    color values can be treated as 8888 instead of 888.
+                                </dd>
+
+                            
+                            
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_TRANSPARENCY_TO_ALPHA</span>
+                                </dt>
+
+                                
+                                <dd class="dd">Convert transparency into alpha values if supported
+                                    by destination format. This capability allows
+                                    transparency to be utilized even if chroma is
+                                    not supported.
+                                </dd>
+
+                            
+                            
+                            
+                                <dt class="dt dlterm"><span class="keyword const">IMG_SRC_FMT_TRANSPARENCY</span>
+                                </dt>
+
+                                
+                                <dd class="dd">Indicates whether or not the source image contains
+                                    any type of transparency. This flag is set by
+                                    the Image library only. Applications can't set
+                                    this flag, but they can use it to determine the
+                                    existence of transparency for optimizations.</dd>
+
+                            
+                        </dl>
+
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">transparency</var>
+                    </dt>
+
+
+                    <dd class="dd">The transparency color. This is valid only if the
+                            <span class="keyword const">IMG_TRANSPARENCY</span> flag bit is set. The union field that
+                        should be used depends on the format of the image: <ul class="ul">
+                            <li class="li"><var class="keyword varname">index</var> — for palette-based or grayscale
+                                images (the <span class="keyword const">IMG_FMT_PALETTE</span> bit is set in
+                                    <var class="keyword varname">format</var> or the format is
+                                    <span class="keyword const">IMG_FMT_G8</span>) </li>
+
+                            <li class="li"><var class="keyword varname">rgb16</var> — for 16bpp images. Encoded the same
+                                as the image data. </li>
+
+                            <li class="li"><var class="keyword varname">rgb32</var> — for 24 or 32 bpp RGB images.
+                                Encoding is always <span class="keyword const">IMG_FMT_PKHE_ARGB8888</span>. </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">quality</var>
+                    </dt>
+
+
+                    <dd class="dd">If the <span class="keyword const">IMG_QUALITY</span> flag is set, the codecs may process the
+                        new <span class="keyword dtype">img_t</span> member <span class="ph codeph">unsigned quality</span>. For
+                        example, the <var class="keyword varname">img_codec_jpg.so</var> will use this value to
+                        determine the output quality for encoding. For example, when
+                            <span class="keyword apiname">img_write()</span> is invoked. </dd>
+
+                
+
+            </dl>
+
+        </div>
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Classification:</h2>
+            
+            <p class="p">Image library</p>
+</div>
+
+
+    </div>
+
+
+    
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/images_seeAPIs.html">Image API</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/img_decode_callouts_t.html" title="Decoder callout table">img_decode_callouts_t</a></li>
+<li class="linklist"><a class="link" href="../topic/img_decode_frame.html" title="Decode a frame">img_decode_frame()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_decode_validate.html" title="Find a codec for decoding">img_decode_validate()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_format_t.html" title="Image formats">img_format_t</a></li>
+<li class="linklist"><a class="link" href="../topic/img_load_file.html" title="Decode a frame from a file on the filesystem">img_load_file()</a></li></ul></div>
+</div></body>
+</html>

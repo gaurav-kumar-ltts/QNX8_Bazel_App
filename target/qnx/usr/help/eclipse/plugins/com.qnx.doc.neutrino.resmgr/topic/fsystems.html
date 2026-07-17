@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Filesystem Resource Managers" />
+<meta name="abstract" content="Some resource managers need to implement filesystems by responding to access requests for any pathname within a directory structure." />
+<meta name="description" content="Some resource managers need to implement filesystems by responding to access requests for any pathname within a directory structure." />
+<meta name="DC.subject" content="filesystem resource managers, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="filesystem resource managers, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_Considerations.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_IO_msg.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_ReturnEntries.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="fsystems" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Filesystem Resource Managers</title>
+</head>
+<body id="fsystems">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Filesystem Resource Managers</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Some resource managers need to implement filesystems
+by responding to access requests for any pathname within a directory structure.
+</p>
+
+
+<p class="p">
+Up until this point, our discussion has focused on resource
+managers that associate each device name via a discrete call
+to <span class="keyword apiname">resmgr_attach()</span>.
+We've shown how to <q class="q">take over</q> individual pathnames.
+(Our examples have used pathnames under <span class="ph filepath">/dev</span>, but there's
+no reason you couldn't take over any other pathnames, such as
+<span class="ph filepath">/MyDevice</span>.)
+
+</p>
+
+
+<p class="p">
+A typical resource manager can take over any number of
+pathnames. A practical limit is on the order of a hundred;
+however, the real limit is a function of memory size
+and lookup speed in the process manager.
+
+</p>
+
+
+<p class="p">
+What if you wanted to take over thousands or even millions of pathnames?
+</p>
+
+
+<p class="p">
+The most straightforward method of doing this is to take
+over a <em class="ph i">pathname prefix</em> and manage a directory
+structure below that prefix (or <em class="ph i">mountpoint</em>).
+
+</p>
+
+
+<p class="p">
+Here are some examples of resource managers that may wish to do this:
+</p>
+
+
+<ul class="ul">
+<li class="li">An SD card filesystem might take over the pathname prefix <span class="ph filepath">/sd1</span>, and
+  then handle any requests for files below that pathname by going out to the SD card device.
+</li>
+
+
+<li class="li">A filesystem for managing compressed files might take over a pathname prefix of
+  <span class="ph filepath">/uncompressed</span>, and then uncompress
+  disk files on the fly as read requests arrive.
+  (Such a filesystem is often called a <dfn class="term">pass-through filesystem</dfn>, because it will
+  pass some operations through to another underlying filesystem.) 
+</li>
+
+
+<li class="li">A network filesystem could present the directory
+  structure of a remote machine called <q class="q">flipper</q>
+  under the pathname prefix of <span class="ph filepath">/mount/flipper</span>
+  and allow the user to access flipper's files as if they were local to the current machine.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+And those are just some obvious ones. The reasons (and possibilities) are almost endless.
+The common characteristic of these resource managers is that they all implement <em class="ph i">filesystems</em>.
+</p>
+
+
+<p class="p">
+Filesystem resource managers differ from device resource managers (at least, the ones that we have shown so far)
+in the following key areas:
+
+
+</p>
+
+
+<ol class="ol">
+<li class="li">The <span class="keyword const">_RESMGR_FLAG_DIR</span> bit must be set in the <var class="keyword varname">flags</var> argument to <span class="keyword apiname">resmgr_attach()</span>
+  to inform the process manager that the resource manager will accept matches at or below the defined mountpoint.
+  
+</li>
+
+
+<li class="li">The <a class="xref" href="fsystems_IO_msg.html"><span class="keyword const">_IO_CONNECT</span></a>
+  logic has to check the individual pathname components against permissions and access authorizations.
+  It must also ensure that the proper attribute is bound when a particular filename is accessed.
+  
+</li>
+
+
+<li class="li">The <a class="xref" href="fsystems_ReturnEntries.html"><span class="keyword const">_IO_READ</span></a>
+  logic has to return the data for either the <q class="q">file</q> or <q class="q">directory</q> specified by the pathname.
+  
+  
+</li>
+
+
+</ol>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+Running more than one pass-through filesystem or resource manager
+on overlapping pathname spaces might cause deadlocks.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/fsystems_Considerations.html">Considerations for filesystem resource managers</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/fsystems_IO_msg.html">The _IO_OPEN message for filesystems</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/fsystems_ReturnEntries.html">Returning directory entries from _IO_READ</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

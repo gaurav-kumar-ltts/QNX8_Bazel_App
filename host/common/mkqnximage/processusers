@@ -1,0 +1,141 @@
+#!/bin/bash
+# Process the value of the --users option. Creates the passwd and shadow files
+# (minus additions from snippets).
+# Outputs to stdout the new value of the users option (which omits passwds). This
+# new value will be preceded by a '+' if a password was set.
+
+new_option=$1
+
+IFS='
+'
+
+rm -f output/passwd output/group output/shadow output/data_files.processuser
+
+update=
+# If 1, ignore a - used as a user name. This is the case when the option provided
+# is +<users>. In this case you can't use '-' to specify a '-'
+ignore_dash=0
+user_list=()
+
+function add_password()
+{
+    existing=0
+    user_setting=$1
+
+    username=${user_setting%/*}
+    password=${user_setting#*/}
+    if [ ${password} = ${user_setting} ]; then
+       password=
+    fi
+    if [ "$username" = "-" -a "$ignore_dash" = 1 ]; then
+        return
+    fi
+    if [ "$username" = "-" ]; then
+        user_list=("${user_list[@]}" "-")
+        return
+    fi
+    for i in ${user_list[@]}; do
+        if [ $i = $username ]; then
+            existing=1
+        fi
+    done
+    if [ $existing = 0 ]; then
+        user_list=("${user_list[@]}" $username)
+    elif [ -z "$password" ]; then
+        # Ignore duplicate users that don't update the password
+        return
+    fi
+    if [ -n "$password" ]; then
+        if [ $existing = 1 ]; then
+            # If we've already seem this user, get rid of their previous shadow
+            # entry.
+            grep -v "^${username}:" output/shadow >output/shadow.new
+            mv output/shadow.new output/shadow
+        fi
+        # If the password is "-", they don't get a password
+        if [ "$password" != "-" ]; then
+            # A password has been provided so add it to the new shadow file.
+            mkshadow -u "${username}" -p "${password}" -o output/shadow 2> /dev/null
+            update="+"
+        else
+            # Create an empty entry in the shadow file to signify there is no
+            # password.
+            echo "$username:NOPASSWORD" >>output/shadow
+            update="+"
+        fi
+    elif ! grep -m 1 "^$username:" local/misc_files/shadow >>output/shadow 2>/dev/null; then
+        # There's not a password in the old shadow file so create one
+        mkshadow -u "${username}" -p "${username}" -o output/shadow 2> /dev/null
+        update="+"
+    fi
+}
+
+function process_arg()
+{
+    arg=$1
+    IFS=:
+    for user in $arg; do
+        add_password $user
+    done
+    ignore_dash=1
+}
+
+# If the option begins with a '+' then it just indicates new users to add or
+# passwords to change. So go over the previous value of the option to set the
+# initial passwords and user order.
+if [ "${new_option:0:1}" = '+' ]; then
+    new_option=${new_option:1}
+    # Add users for the current option setting. Any from the new setting will
+    # then either be added or just have their passwords updated.
+    process_arg "$OPT_USERS"
+fi
+
+process_arg "$new_option"
+
+cat >output/passwd <<EOF
+#include "inputs/definitions.inc"
+#include "inputs/uids.inc"
+root:x:0:0:root:/data/home/root:/bin/sh
+sshd:x:__SSHD_JAIL_ID__:__SSHD_JAIL_ID__:sshd:/data/var/chroot/sshd:/bin/false
+EOF
+
+cat >output/group <<EOF
+#include "inputs/definitions.inc"
+#include "inputs/uids.inc"
+root::0:root
+sshd::__SSHD_JAIL_ID__:sshd
+nobody::3000:
+EOF
+
+cat >output/data_files.processuser <<EOF
+[uid=0 gid=0 perms=600 dperms=700]
+EOF
+
+# UIDs for users start at 1000 (since affects where core files go)
+id=1000
+for username in ${user_list[@]}; do
+    if [ "$username" != root -a "$username" != sshd ]; then
+        if [ $username != "-" ]; then
+            echo $username:x:$id:$id:$username:/data/home/$username:/bin/sh >>output/passwd
+            echo $username::$id:$usernam >>output/group
+            cat >>output/data_files.processuser <<EOF
+[uid=$id gid=$id]
+[type=dir acl=u:__SSHD_ID__:x,u:__DUMPER_ID__:x] home/${username}
+[type=dir acl=u:__DUMPER_ID__:rwx] home/${username}/cores
+[type=dir acl=u:__SSHD_ID__:x] home/${username}/.ssh
+home/${username}/.ssh/environment = {
+TERM=qansi
+PATH=__IFS_PATH__:/system/bin
+}
+EOF
+        fi
+        id=$(($id+1))
+    fi
+    NEW_OPT=$NEW_OPT:$username
+done
+
+echo '#include "output/inc/_passwd_file.inc"' >>output/passwd
+echo '#include "output/inc/_group_file.inc"' >>output/group
+echo __DEFAULT_PERMISSIONS__ >>output/data_files.processuser
+
+echo "$update${NEW_OPT:1}"

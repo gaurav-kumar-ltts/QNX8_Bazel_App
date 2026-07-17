@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Command line for USB launcher service (usblauncher_otg)" />
+<meta name="abstract" content="Start usblauncher_otg device enumerator and publisher" />
+<meta name="description" content="Start usblauncher_otg device enumerator and publisher" />
+<meta name="DC.subject" content=", usblauncher_otg, command line, starting, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="keywords" content=", usblauncher_otg, command line, starting, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="DC.relation" scheme="URI" content="../topic/usblauncher_otg.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="usblauncher_usage" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Command line for USB launcher service (usblauncher_otg)</title>
+</head>
+<body id="usblauncher_usage">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">Command line for USB launcher service (<span class="keyword cmdname">usblauncher_otg</span>)</h1>
+
+    
+
+    
+
+    <div class="body conbody"><p class="shortdesc"><em class="ph i">Start <span class="keyword cmdname">usblauncher_otg</span> device enumerator and
+        publisher</em></p>
+
+
+        <div class="section"><h2 class="title sectiontitle">Synopsis</h2>
+            
+            <pre class="pre">
+usblauncher_otg [<span class="keyword option">-0</span>] [<span class="keyword option">-b</span>] [<span class="keyword option">-C</span>] [<span class="keyword option">-c</span> <var class="keyword varname">config</var>] [<span class="keyword option">-d</span> <var class="keyword varname">dll</var> [<var class="keyword varname">opts</var>]] [<span class="keyword option">-E</span>]
+                [<span class="keyword option">-l</span>] [<span class="keyword option">-M</span> <var class="keyword varname">mnt_rules</var>] [<span class="keyword option">-m</span> <var class="keyword varname">pub_path</var>] [<span class="keyword option">-n</span> <var class="keyword varname">name</var>] [<span class="keyword option">-P</span>]
+                [<span class="keyword option">-p</span> <var class="keyword varname">seconds</var>] [<span class="keyword option">-r</span>] [<span class="keyword option">-S</span> <var class="keyword varname">server_number</var>] [<span class="keyword option">-s</span> <var class="keyword varname">dll_path</var>] [<span class="keyword option">-t</span>]
+                [<span class="keyword option">-v[v]...</span>]
+</pre>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Options</h2>
+            
+            <dl class="dl">
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-0</span></dt>
+
+                    <dd class="dd">(<q class="q">zero</q>) Enable host events, including insertions and removals, on bus
+                        0. Bus 0 refers to the first DLL listed in the <span class="keyword cmdname">io-usb-otg</span>
+                        command line. This option allows you to use
+                            <span class="keyword cmdname">usblauncher_otg</span> in systems where it manages a
+                        host-only port, such as when it is used in a virtual machine. <p class="p">If you use
+                            the launcher service to role-switch (i.e., you're running USB device
+                            mode drivers through this service), you should always specify this
+                            option because you will likely have your host controller on bus 0.</p>
+
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-b</span></dt>
+
+                    <dd class="dd">Run <span class="keyword cmdname">usblauncher_otg</span> in the foreground instead of the
+                        background, which is the default behavior. Setting this option is handy for
+                        debugging because you can press <span class="keyword keychord">
+                            <span class="keyword key">Ctrl</span>
+                            <span class="keyword key">C</span>
+                        </span> to terminate the service.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-C</span></dt>
+
+                    <dd class="dd">Always select a configuration when a device is attached. By default,
+                            <span class="keyword cmdname">usblauncher_otg</span> selects a configuration only for
+                        devices with multiple configurations, based on the first driver that matches
+                        the device.</dd>
+
+                    <dd class="dd ddexpand">You should use this option alongside the <span class="keyword cmdname">io-usb-otg</span>
+                        <span class="keyword option">-C</span> option, which tells the latter server utility never to
+                        set the device configuration at enumeration time.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-c</span>
+                        <var class="keyword varname">config</var></dt>
+
+                    <dd class="dd">Use the specified configuration file. At startup,
+                            <span class="keyword cmdname">usblauncher_otg</span> reads this file to learn the USB
+                        matching rules, which specify how to process devices when they're
+                        attached.</dd>
+
+                    <dd class="dd ddexpand">If you don't specify a configuration file, the service looks for the default
+                        file, <span class="ph filepath">/etc/usblauncher/rules.lua</span>. In this case, this
+                        file must exist or the service won't run.</dd>
+
+                    <dd class="dd ddexpand">The main configuration file named with this option can include other Lua
+                        files by using the <tt class="ph tt">dofile()</tt> command. For example, if you use
+                        separate files to define descriptors to expose when running in USB device
+                        mode, you can include these other files in the main file.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-d</span>
+                        <var class="keyword varname">module</var></dt>
+
+                    <dd class="dd">Load the specified module, either <tt class="ph tt">Android</tt> or <tt class="ph tt">Apple</tt>. The
+                            <tt class="ph tt">Android</tt> module lets a process request a device personality
+                        switch to <a class="xref" href="usblauncher_supported_applications.html" title="The USB launcher service supports third-party applications and protocols used by a variety of devices. To work with these devices, the service can probe them for protocol support and request that they switch to another personality.">support
+                            certain applications</a>. The <tt class="ph tt">Apple</tt> module can check which
+                        protocol a device supports and role-swap the server, which entails changing
+                        the controller's role from USB host to USB device. Instructions on doing so
+                        are given in the <cite class="cite">Working with Apple Devices</cite> guide, which is
+                        part of the Apple Device Support package for the <span class="keyword">Multimedia for QNX SDP</span>.</dd>
+
+                    <dd class="dd ddexpand">These modules allow smartphones to project their UIs onto the target
+                        system's display. Information on configuring the USB launcher service to
+                        support projection technologies is given in the <cite class="cite">Smartphone
+                            Connectivity Developer's Guide</cite>, which is part of the QNX SDK for
+                        Smartphone Connectivity package.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-E</span></dt>
+
+                    <dd class="dd">Publish USB hub information. By default, <span class="keyword cmdname">usblauncher_otg</span>
+                        doesn't report whether a device is connected directly to the target or
+                        whether it's connected through a hub. If the device doesn't have a hub,
+                            <span class="keyword cmdname">usblauncher_otg</span> still publishes information about the
+                        parent via the topology stream or upstream section of the published device
+                        information. <p class="p">You must set <span class="keyword option">-E</span> to publish device
+                            information objects for USB hubs as well as information about the
+                            upstream hub for other devices connected to a hub. You can use this
+                            information to decide whether to allow role-switching of the USB server,
+                            based on which type of hub and which hub port a device is connected
+                            to.</p>
+</dd>
+
+                
+
+
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-l</span></dt>
+
+                    <dd class="dd">Log messages to <span class="ph filepath">slog2info</span> instead of to standard out
+                        (which is the default behavior). This option increases the verbosity level
+                        to <span class="keyword option">-vvv</span>, unless you use the <span class="keyword option">-v</span> option to
+                        set a different verbosity level.</dd>
+
+                
+
+
+                
+                    <dt class="dt dlterm" id="usblauncher_usage__mnt_rules"><span class="keyword option">-M</span>
+                        <var class="keyword varname">mnt_rules</var></dt>
+
+                    <dd class="dd">Specify the mount-rules file, which tells <span class="keyword cmdname">usblauncher_otg</span>
+                        where to mount the filesystems of devices represented by particular
+                            <span class="ph filepath">/dev</span> entries. Any file named with this option must
+                        be in the same format as the default mount rules found in
+                            <span class="ph filepath">/etc/usblauncher/rules.mnt</span>.</dd>
+
+                    <dd class="dd ddexpand">In the mount rules file, you can name not only mountpoints but also the
+                        mount options provided to the filesystem library, such as codepage mapping
+                        or long-filename handling in <span class="ph filepath">fs-dos</span>.</dd>
+
+                    <dd class="dd ddexpand">Use this option if you want to assign nondefault mountpoints to devices. You
+                        can also name an empty file or <span class="ph filepath">/dev/null</span> to <a class="xref" href="usblauncher_filesystem_mounting.html#usblauncher_filesystem_mounting__disabling_auto-mount">prevent the service from auto-mounting USB devices</a>.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-m</span>
+                        <var class="keyword varname">pub_path</var></dt>
+
+                    <dd class="dd">Use the specified publisher directory path. The subdirectories for storing
+                        the device, device control, driver, and mount objects are located in this
+                        directory. The default is <span class="ph filepath">/usb/launcher/</span>.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-n</span>
+                        <var class="keyword varname">name</var></dt>
+
+                    <dd class="dd">The server name of the USB server. The default is
+                            <span class="ph filepath">/dev/usb/io-usb-otg</span>. Use this option only if the
+                        server is stored in a nondefault location. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-P</span></dt>
+
+                    <dd class="dd">Probe the device to get its partition count only if it's ready. By default,
+                            <span class="keyword cmdname">usblauncher_otg</span> doesn't wait until the device is
+                        ready to try to obtain the count. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-p</span>
+                        <var class="keyword varname">seconds</var></dt>
+
+                    <dd class="dd">The polling interval, in seconds, that determines how often
+                            <span class="keyword cmdname">usblauncher_otg</span> checks for changes to the mountpoints
+                        associated with the active drivers. The default is 0. Note that polling can
+                        be CPU-intensive and cause a significant amount of logging. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-r</span></dt>
+
+                    <dd class="dd">Treat a device suspension event as a cable removal event. Some devices don't
+                        generate removal events, so you can set this option
+                        
+                        to make <span class="keyword cmdname">usblauncher_otg</span> force the server to change its
+                        role from device to host after receiving a configuration event followed by a
+                        suspension event. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-S</span>
+                        <var class="keyword varname">server_number</var></dt>
+
+                    <dd class="dd">Use the specified USB server (<span class="keyword cmdname">io-usb-otg</span>) number. The
+                            <span class="keyword cmdname">usblauncher_otg</span> service stores this value in the
+                        information for each USB device that it monitors, to differentiate the
+                        device from others that have the same bus number and device number but are
+                        managed by other instances of the <span class="keyword cmdname">io-usb-otg</span> server.
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-s</span>
+                        <var class="keyword varname">dll_path</var></dt>
+
+                    <dd class="dd">Use the specified plugin path. At startup, the service looks in this path
+                        for plugins that it can load and use to provide more device details (for
+                        more information, see <q class="q"><a class="xref" href="plugins.html" title="Plugins are external components that help device publishers provide extra media-related information.">Plugins</a></q>).</dd>
+
+                    <dd class="dd ddexpand">If this option isn't specified, no plugins are loaded.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-t</span></dt>
+
+                    <dd class="dd">Terminate launched drivers when exiting. By default,
+                            <span class="keyword cmdname">usblauncher_otg</span> doesn't terminate driver processes
+                        while deleting device and driver objects during shutdown.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword option">-v[v]...</span></dt>
+
+                    <dd class="dd">Increase the level of output verbosity. You can specify additional
+                            <span class="keyword option">-v</span> arguments to increase the verbosity. This is handy
+                        when you're trying to understand the operation of
+                            <span class="keyword cmdname">usblauncher_otg</span>. However, when lots of
+                            <span class="keyword option">-v</span> arguments are used, the logging becomes quite
+                        significant. A higher verbosity setting is good for systems under
+                        development but probably shouldn't be used in production systems or during
+                        performance testing.</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Description</h2>
+            
+            <p class="p">The <span class="keyword cmdname">usblauncher_otg</span> command starts a multipurpose service that
+                responds to USB device attachments and detachments, launches drivers for
+                communicating with the devices, and publishes their information through RMPS. The
+                service can also force a re-enumeration of a device, by resetting it or by
+                requesting that it change its USB role. </p>
+
+            <p class="p">On the command line, you can name a nondefault configuration file to make
+                    <span class="keyword cmdname">usblauncher_otg</span> use a custom set of rules for configuring
+                various device types. You can also name your own mount-rules file to mount
+                filesystems to nondefault locations, and configure how errors and events are logged. </p>
+
+            <p class="p">To reconfigure <span class="keyword cmdname">usblauncher_otg</span>, you must restart it with new
+                command-line options. For a production environment, we highly recommend putting the
+                command line in a startup script to automatically launch the service during bootup. </p>
+
+            
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Examples</h2>
+            
+            <div class="p"> To use <span class="ph filepath">/etc/enum.lua</span> as the configuration file and look for
+                plugins in <span class="ph filepath">/lib/dll/pubs</span>:
+                <pre class="pre">usblauncher_otg -c /etc/enum.lua -s /lib/dll/pubs</pre>
+
+            </div>
+
+            <div class="p"> To enable host events on bus 0, publish information about devices connected through
+                hubs, use the specified server and configuration file, and read plugins from the
+                specified directory: <pre class="pre">usblauncher_otg -0 -E -n /dev/usb/io-usb-otg \z
+ -c /option/etc/usblauncher/rules.lua -s /base/lib/dll/pubs/</pre>
+
+            </div>
+
+        </div>
+
+
+        
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/usblauncher_otg.html" title="The USB launcher service (usblauncher_otg) processes USB device attachments and detachments, launches drivers for communicating with devices, and publishes device information through RMPS. The service can also force a re-enumeration of a device, by resetting it or by requesting it to disconnect and change its personality.">The USB Launcher Service</a></div>
+</div>
+</div></body>
+</html>

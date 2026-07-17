@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A simple write I/O function handler example" />
+<meta name="abstract" content="The read I/O function handler example was fairly simple; let's take a look at the write I/O function handler." />
+<meta name="description" content="The read I/O function handler example was fairly simple; let's take a look at the write I/O function handler." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_examples.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="write_simple" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A simple write I/O function handler example</title>
+</head>
+<body id="write_simple">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A simple write I/O function handler example</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> The read I/O function handler example was fairly simple; let's take a look at the write
+  I/O function handler. </p>
+
+
+<p class="p">
+  
+  
+  
+  
+  The major hurdle to overcome with the write I/O function handler is to
+  access the data. Since the resource manager library reads in a small portion of the message
+  from the client, the data content that the client sent (immediately after the
+  <span class="keyword const">_IO_WRITE</span> header) may have only partially arrived at the write I/O
+  function handler. For example, for a client writing one megabyte, only the header and up to
+  1500 bytes of the data get read by the resource manager library.
+</p>
+
+<p class="p">
+  You use <span class="keyword apiname">resmgr_msgget()</span> to get any data that exceeds the 1500 or so
+  bytes that are available from the local message buffer. However, you can simplify the
+  process and reduce the likelihood of bugs by using <span class="keyword apiname">resmgr_msgget()</span> to
+  get both the data in the local message buffer and the data from the client's send
+  buffer, instead of using the data in the local message buffer directly. Making direct
+  use of the data from the message buffer might improve performance (because you avoid a
+  <span class="keyword apiname">memcpy()</span> from the message buffer to the buffer passed to
+  <span class="keyword apiname">resmgr_msgget()</span>), but you are unlikely to notice any improvement
+  unless your resource manager deals with a very large number of write operations that
+  contain a small amount of data. The best way to improve performance is for clients to
+  perform larger writes.
+  
+  
+</p>
+
+<p class="p">
+  One further wrinkle introduced in the write I/O function handler example is the handling of the
+  <span class="keyword const">_IO_XTYPE_OFFSET</span> modifier (and associated data); it's done slightly
+  differently than in the read I/O function handler example.
+  
+  
+  
+</p>
+
+
+<div class="p">
+Here's the code:
+
+<pre class="pre codeblock">/*
+ * io_write1.c
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/iofunc.h&gt;
+
+void process_data (int offet, void *buffer, int nbytes)
+{
+    // do something with the data
+}
+
+int io_write (resmgr_context_t *ctp, io_write_t *msg, iofunc_ocb_t *ocb) 
+{
+    int     sts;
+    size_t  nbytes;
+    size_t  off;
+    size_t  start_data_offset;
+    int     xtype;
+    char    *buffer;
+    struct _xtype_offset *xoffset;
+
+    // verify that the device is opened for write
+    if ((sts = iofunc_write_verify (ctp, msg, ocb, NULL)) != EOK) {
+        return (sts);
+    }
+
+    // 1) check for and handle an XTYPE override
+    xtype = msg -&gt; i.xtype &amp; _IO_XTYPE_MASK;
+    if (xtype == _IO_XTYPE_OFFSET) {
+        xoffset = _IO_INPUT_PAYLOAD(msg);
+        start_data_offset = sizeof (msg -&gt; i) + sizeof (*xoffset);
+        off = xoffset -&gt; offset;
+    } else if (xtype == _IO_XTYPE_NONE) {
+        off = ocb -&gt; offset;
+        start_data_offset = sizeof (msg -&gt; i);
+    } else {   // unknown, fail it
+        return (ENOSYS);
+    }
+
+    // 2) allocate a buffer big enough for the data
+    nbytes = _IO_WRITE_GET_NBYTES(msg);
+    if ((buffer = malloc (nbytes)) == NULL) {
+        return (ENOMEM);
+    }
+
+    // 3) read the message data
+    if (resmgr_msgget (ctp, buffer, nbytes, start_data_offset) == -1) {
+        free (buffer);
+        return (errno);
+    }
+
+    // 4) do something with the data
+    process_data (off, buffer, nbytes);
+
+    // 5) free the buffer
+    free (buffer);
+
+    // 6) set up the number of bytes for the client's "write"
+    // function to return
+    _IO_SET_WRITE_NBYTES (ctp, nbytes);
+
+    // 7) if any data written, update POSIX structures and OCB offset
+    if (nbytes) {
+        ocb -&gt; attr -&gt; flags |= IOFUNC_ATTR_MTIME | IOFUNC_ATTR_DIRTY_TIME;
+        if (xtype == _IO_XTYPE_NONE) {
+            ocb -&gt; offset += nbytes;
+        }
+    }
+
+    // 8) tell the resource manager library to do the reply, and that it
+    // was okay
+    return (EOK);
+}
+</pre>
+</div>
+
+
+<p class="p">
+  As you can see, a few of the initial operations performed were identical to those done in the
+  read I/O function handler example—the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_write_verify.html"><span class="keyword apiname">iofunc_write_verify()</span></a> is analogous to the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_verify.html"><span class="keyword apiname">iofunc_read_verify()</span></a> function, and the xtype override
+  check is the same.
+  
+  
+  
+  
+  
+  
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Step 1</dt>
+
+<dd class="dd">Here we performed much the same processing for the <q class="q">xtype override</q> as we did in the read
+  I/O function handler example, except for the fact that the offset is <em class="ph i">not</em>
+  stored as part of the incoming message structure. The reason it's not stored
+  there is because a common practice is to use the size of the incoming message
+  structure to determine the starting point of the actual data being transferred
+  from the client. We take special pains to ensure the offset of the start of the
+  data (<var class="keyword varname">doffset</var>) is correct in the xtype handling code. </dd>
+
+
+
+
+<dt class="dt dlterm">Step 2</dt>
+
+<dd class="dd">Here we allocate a buffer that's big enough for the data.
+  The number of bytes that the client is writing is presented to us in the
+  <var class="keyword varname">nbytes</var> member of the <var class="keyword varname">msg</var> union.
+  This is stuffed automatically by the client's C library in the <span class="keyword apiname">write()</span> routine.
+  Note that if we don't have sufficient memory to handle the <span class="keyword apiname">malloc()</span> request,
+  we return the error number <span class="keyword const">ENOMEM</span> to the client—effectively,
+  we're passing on the return code to the client to let it know why its request wasn't completed.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 3</dt>
+
+<dd class="dd">Here we use the helper function <span class="keyword apiname">resmgr_msgget()</span> to read the entire data
+  content from the client directly into the newly allocated buffer. In most cases,
+  we could have just used <span class="keyword apiname">MsgRead()</span>, but
+      <span class="keyword apiname">resmgr_msgget()</span> is often more efficient, and in cases
+  where this message is part of a <q class="q">combine message,</q>
+  <span class="keyword apiname">resmgr_msgget()</span> performs the appropriate <q class="q">magic</q> for us
+  (see the <q class="q">Combine message</q> section for more information on <em class="ph i">why</em> we
+  need to do this.)
+  <p class="p"> The parameters to <span class="keyword apiname">resmgr_msgget()</span> are
+    fairly straightforward; we give it the internal context pointer
+        (<var class="keyword varname">ctp</var>), the buffer into which we want the data placed
+        (<var class="keyword varname">buffer</var>), and the number of bytes that we wish read
+    (the <var class="keyword varname">nbytes</var> member of the message <var class="keyword varname">msg</var>
+    union). The last parameter is the offset into the current message, which we
+    calculated above, in step 1. The offset effectively skips the header
+    information that the client's C library implementation of
+        <span class="keyword apiname">write()</span> put there, and proceeds directly to the data.
+    This actually brings about two interesting points:
+    
+    
+    
+  </p>
+
+  <ul class="ul">
+    <li class="li">We could use an arbitrary offset value to read chunks of the client's
+        data in any order and size we want.</li>
+
+    <li class="li">We could use <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgreadv.html"><span class="keyword apiname">resmgr_msggetv()</span></a> (note the <q class="q">v</q>)
+        to read data from the client into an IOV, perhaps describing various
+        buffers, similar to what we did with the cache buffers in the filesystem
+        discussion in the Message Passing chapter.
+        
+        
+        
+    </li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 4</dt>
+
+<dd class="dd">Here you'd do whatever you want with the data—I've just called a
+  made-up function called <span class="keyword apiname">process_data()</span> and passed it
+  the buffer and size.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 5</dt>
+
+<dd class="dd">Now we free the buffer. This step is crucial!
+  Forgetting to do it is easy, and will lead to <q class="q">memory leaks.</q>
+  Notice how we also took care to free the memory in the case of a failure
+  in step 3.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 6</dt>
+
+<dd class="dd">We're using the macro <span class="keyword apiname">_IO_SET_WRITE_NBYTES()</span> (see the entry
+  for <span class="keyword apiname">iofunc_write_verify()</span>
+  in the <span class="keyword">QNX OS</span> <em class="ph i">C Library Reference</em>)
+  to store the number of bytes we've
+  written, which will then be passed back to the client as the return value
+  from the client's <span class="keyword apiname">write()</span>.
+  It's important to note that you should return the <em class="ph i">actual</em> number of bytes!
+  The client is depending on this.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 7</dt>
+
+<dd class="dd">Now we do similar housekeeping for <span class="keyword apiname">stat()</span>, <span class="keyword apiname">lseek()</span>, and
+  further <span class="keyword apiname">write()</span> functions as we did for the read I/O function
+  handler routine (and again, we modify the offset in the <var class="keyword varname">ocb</var>
+  only in the case of this <em class="ph i">not</em> being an <span class="keyword const">_IO_XTYPE_OFFSET</span> type
+  of message). Since we're writing to the device, however, we use the
+      <span class="keyword const">IOFUNC_ATTR_MTIME</span> constant instead of the
+      <span class="keyword const">IOFUNC_ATTR_ATIME</span> constant. The MTIME flag means
+      <q class="q">modification</q> time, and a <span class="keyword apiname">write()</span> to a resource
+  certainly <q class="q">modifies</q> it.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 8</dt>
+
+<dd class="dd">The last step is simple: we return the constant <span class="keyword const">EOK</span>,
+  which tells the resource manager library that it should reply to the client.
+  This ends our processing.
+  The resource manager will use the number of bytes that we stashed away with the <span class="keyword apiname">_IO_SET_WRITE_NBYTES()</span>
+  macro in the reply and the client will unblock; the client's C library <span class="keyword apiname">write()</span>
+  function will return the number of bytes that were written by our device.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_examples.html" title="I'm now going to show you a number of “cookbook” examples you can cut and paste into your code, to use as a basis for your projects. These aren't complete resource managers—you'll need to add the thread pool and dispatch “skeleton” shown immediately below, and ensure that your versions of the I/O functions are placed into the I/O functions table after you've done the iofunc_func_init(), in order to override the defaults!">Examples</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

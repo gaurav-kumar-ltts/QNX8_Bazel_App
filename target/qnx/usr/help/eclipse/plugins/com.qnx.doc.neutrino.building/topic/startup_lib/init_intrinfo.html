@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="init_intrinfo()" />
+<meta name="abstract" content="Initialize the intrinfo data structure in the system page." />
+<meta name="description" content="Initialize the intrinfo data structure in the system page." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="init_intrinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>init_intrinfo()</title>
+</head>
+<body id="init_intrinfo">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">init_intrinfo()</span></h1>
+
+	
+	
+	<div class="body refbody"><p class="shortdesc">Initialize the <span class="keyword dtype">intrinfo</span> data structure in the system page.</p>
+
+		<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+			
+			
+			
+			<pre class="pre codeblock">#include "startup.h"
+				
+void init_intrinfo (void)</pre></div>
+
+		<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+			
+			<p class="p">None.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Description:</h2>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">This function initializes the interrupt controller hardware and populates the system
+				page's <a class="xref" href="../syspage/intrinfo.html" title="Information about the interrupt system"><span class="keyword dtype">intrinfo</span></a> data structure. Because this function is
+				hardware-dependent, you may have to write your own, which you call from the generic
+					<span class="keyword apiname">init_intrinfo()</span> function.</p>
+<div class="p">Tasks the
+					<span class="keyword apiname">init_intrinfo()</span> function typically performs include
+				programming the interrupt controller register(s), and setting the interrupt masking.
+				Interrupt control register programming can include: <ul class="ul">
+					<li class="li">specifying edge or level triggering</li>
+
+					<li class="li">specifying whether an active interrupt is indicated by a high or low
+						signal</li>
+
+					<li class="li">nesting interrupts</li>
+
+					<li class="li">setting interrupt priorities</li>
+
+				</ul>
+</div>
+<p class="p">Initially, all interrupts should be masked. The kernel uses the
+				interrupt unmask kernel callout when necessary. For example, when a driver calls
+					<span class="keyword apiname">InterruptAttachThread()</span>, the kernel provides structures that
+				map the interrupt vector numbers used by the driver-level
+					<span class="keyword apiname">InterruptAttachThread()</span> and
+					<span class="keyword apiname">InterruptAttachEvent()</span> calls, and the interrupt connected to
+				the interrupt controllers.</p>
+<div class="p">The <span class="keyword apiname">init_intrinfo()</span> function
+				performs different tasks on ARM and x86 platforms: <dl class="dl">
+					
+						<dt class="dt dlterm">ARM</dt>
+
+						<dd class="dd">No default version exists; you must supply one.</dd>
+
+					
+					
+						<dt class="dt dlterm">x86</dt>
+
+						<dd class="dd">You would need to change this generic function only if your hardware
+							doesn't support the standard PC-compatible dual 8259 configuration.</dd>
+
+					
+				</dl>
+</div>
+<div class="p">If you're providing your own function, make sure it initializes: <ul class="ul">
+					<li class="li">the interrupt controller hardware as appropriate (e.g., on x86, it should
+						program the two 8259 interrupt controllers)</li>
+
+					<li class="li">the <var class="keyword varname">intrinfo</var> system page structure, with the information
+						needed to work with the interrupt controller hardware</li>
+
+				</ul>
+</div>
+<p class="p">This initialization of the structure is done via a call to the function
+					<a class="xref" href="add_interrupt_array.html" title="Populate the interrupt kernel callout array in the system page."><span class="keyword apiname">add_interrupt_array()</span></a>. </p>
+</div>
+
+		<div class="section"><h2 class="title sectiontitle">Example:</h2>
+			
+			
+			<div class="p">Below is the source code for an <span class="keyword apiname">init_intrinfo()</span> function for an
+				x86 board. Note that it simply calls a hardware-specific function that does the
+				work:
+<pre class="pre codeblock">void init_intrinfo() {
+    init_intrinfo_8259(3);
+}</pre></div>
+<div class="p">Below is the source code for a standard x86 interrupt controller setup
+				function (<span class="keyword apiname">init_intrinfo_8259()</span>) called in the example above:
+<pre class="pre codeblock">#include "startup.h"
+#include &lt;x86_64/intr.h&gt;
+
+// Initialize interrupt controller hardware and intrinfo structure in the
+// system page.
+// This code is hardware-dependent and may have to be changed by end users.
+// This version is for the standard IBM PC interrupt controller setup.
+#define CONTROLLER FIRST_HARDWARE_INTERRUPT
+#define WORKER (CONTROLLER+8)
+
+const static struct startup_intrinfo intrs[] = {
+{ _NTO_INTR_CLASS_EXTERNAL, 7, _NTO_INTR_SPARE, CONTROLLER, 1, 0,
+{INTR_GENFLAG_NOGLITCH, 0, &amp;interrupt_id_8259m},
+{0, 0, &amp;interrupt_eoi_8259m},
+        &amp;interrupt_mask_8259m, &amp;interrupt_unmask_8259m, &amp;interrupt_config_8259m,
+},
+{ _NTO_INTR_CLASS_EXTERNAL+7, 1, _NTO_INTR_SPARE, CONTROLLER+7, 1, 0,
+{0, 0, &amp;interrupt_id_8259m7},
+{0, 0, &amp;interrupt_eoi_8259m},
+        &amp;interrupt_mask_8259m7, &amp;interrupt_unmask_8259m7, 0,
+},
+{ _NTO_INTR_CLASS_EXTERNAL+8, 7, _NTO_INTR_SPARE, WORKER, 1, 0,
+{INTR_GENFLAG_NOGLITCH, 0, &amp;interrupt_id_8259s},
+{0, 0, &amp;interrupt_eoi_8259s},
+        &amp;interrupt_mask_8259s, &amp;interrupt_unmask_8259s, 0,
+},
+{ _NTO_INTR_CLASS_EXTERNAL+15, 1, _NTO_INTR_SPARE, WORKER+7, 1, 0,
+{0, 0, &amp;interrupt_id_8259s7},
+{0, 0, &amp;interrupt_eoi_8259s},
+        &amp;interrupt_mask_8259s7, &amp;interrupt_unmask_8259s7, 0,
+},
+{ X86_INTR_CLASS_NMI, 2, _NTO_INTR_SPARE, 2, 0, 
+        INTR_FLAG_NMI | INTR_FLAG_CPU_FAULT,
+{0, 0, &amp;interrupt_id_nmi_bios},
+{INTR_GENFLAG_LOAD_INTRMASK, 0, &amp;interrupt_eoi_nmi_bios},
+        &amp;interrupt_mask_nmi_bios, &amp;interrupt_unmask_nmi_bios,
+        &amp;interrupt_config_nmi_bios,
+},
+};
+
+void init_intrinfo_8259(unsigned top_prio_irq) {
+
+// Reprogram 8259 worker, edge mode, normal nested, IST visible
+out8(0xa0, 0x11);  io_safe();
+out8(0xa1, WORKER); io_safe();
+out8(0xa1, 0x02);  io_safe();
+out8(0xa1, 0x01);  io_safe();
+out8(0xa1, 0xff);
+out8(0xa0, 0x0b);
+
+// Reprogram 8259 controller, edge mode, normal nested, IST visible
+out8(0x20, 0x11);   io_safe();
+out8(0x21, CONTROLLER); io_safe();
+out8(0x21, 0x04);   io_safe();
+out8(0x21, 0x01);   io_safe();
+out8(0x21, 0xfb);   io_safe();
+out8(0x20, 0x0b);
+
+/*
+Here we're sending the OCW2, to pin down the *lowest* priority IRQ, and,
+in effect, choosing the highest one as well, since the highest priority IRQ
+must follow in rotation from the lowest.
+Suppose pin 2 is the lowest. Then the order is:
+3,4,5,6,7,0,1,2 -&gt; (worker) 8,9,10,11,12,13,14,15
+*/
+
+/* OCW2 to pin lowest prio IRQ */
+out8(0x20, (((top_prio_irq-1) &amp; 0x07) | 0xc0));
+
+// Make sure both NMI sources are masked
+out8(0x61,(in8(0x61) &amp; 0x3) | 0x0c);
+// Global NMI enable
+out8(0x70, 0x7f);
+
+/* Populate the interrupt kernel callout array in the system page */
+add_interrupt_array(intrs, sizeof(intrs));
+}</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

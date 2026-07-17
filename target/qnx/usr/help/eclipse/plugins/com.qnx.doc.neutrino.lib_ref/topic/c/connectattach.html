@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ConnectAttach(), ConnectAttach_r()" />
+<meta name="abstract" content="Establish a connection between a process and a channel" />
+<meta name="description" content="Establish a connection between a process and a channel" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-c.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/channelcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/connectdetach.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/connectflags.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/msgsendpulseptr.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/n/name_attach.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/n/name_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/o/open.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/o/open_ext.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/resmgr_attach.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="connectattach" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ConnectAttach(), ConnectAttach_r()</title>
+</head>
+<body id="connectattach">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ConnectAttach()</span>, <span class="keyword apiname">ConnectAttach_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Establish a connection between a process and a channel</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int ConnectAttach( uint32_t <var class="keyword varname">reserved</var>,
+                   pid_t <var class="keyword varname">pid</var>,
+                   int <var class="keyword varname">chid</var>,
+                   unsigned <var class="keyword varname">index</var>,
+                   int <var class="keyword varname">flags</var> );
+
+int ConnectAttach_r( uint32_t <var class="keyword varname">reserved</var>,
+                     pid_t <var class="keyword varname">pid</var>,
+                     int <var class="keyword varname">chid</var>,
+                     unsigned <var class="keyword varname">index</var>,
+                     int <var class="keyword varname">flags</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+  
+  
+    <dt class="dt dlterm"><var class="keyword varname">reserved</var></dt>
+
+    <dd class="dd">Set this argument to zero.
+    </dd>
+
+  
+  
+
+  <dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+<dd class="dd">The process ID of the owner of the channel.
+  If <var class="keyword varname">pid</var> is zero, the calling process is assumed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">chid</var></dt>
+
+<dd class="dd">The channel ID, returned by
+  <a class="xref" href="channelcreate.html" title="Create a communications channel"><span class="keyword apiname">ChannelCreate()</span></a>,
+  of the channel to connect to the process.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">index</var></dt>
+
+<dd class="dd" id="connectattach__side_channel">
+  
+  
+  
+  If <span class="keyword const">_NTO_SIDE_CHANNEL</span> is not set, the lowest acceptable connection ID.
+  The ID returned by the function will then be a file descriptor greater than or equal to this value.
+  If <span class="keyword const">_NTO_SIDE_CHANNEL</span> is set, the connection is created as a side channel, meaning the ID returned is from a different space
+  than file descriptors. In this case, any other bits in <var class="keyword varname">index</var> are ignored.
+  <div class="note"><span class="notetitle">Note:</span> 
+  <p class="p">
+    Having a connection ID in the file descriptor range can lead to unexpected behavior.
+    Therefore, you should pass in  <span class="keyword const">_NTO_SIDE_CHANNEL</span> for <var class="keyword varname">index</var> when you create a connection.
+    The C library creates connections at various times without <span class="keyword const">_NTO_SIDE_CHANNEL</span> (e.g., during <span class="keyword apiname">open()</span>);
+    however, it's unlikely that any applications would want to call it this way.
+  </p>
+
+  <p class="p">
+    Once the ID is created, there's no difference in the use of the messaging primitives on it.
+  </p>
+
+  </div>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="connectattach__flags"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags that affect the connection; a bitwise OR of zero or more of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">_NTO_COF_CLOEXEC</span> — close the connection when the calling process calls an 
+    <span class="keyword apiname">exec*()</span> function to start a new process.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_COF_NOEVENT</span> — prevent the server from sending <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>s over the channel to the
+                client. 
+              </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+        
+        
+        
+        
+        
+         The <span class="keyword apiname">ConnectAttach()</span> and
+          <span class="keyword apiname">ConnectAttach_r()</span> kernel calls establish a connection between the
+        calling process and the channel specified by <var class="keyword varname">chid</var> owned by the process
+        specified by <var class="keyword varname">pid</var>. </p>
+
+
+<p class="p">
+These functions are identical 
+except in the way they indicate errors. See the <q class="q">Returns</q> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If a process wants other processes to communicate with it, it typically will register a name with
+<a class="xref" href="../n/name_attach.html" title="Register a name in the pathname space and create a channel"><span class="keyword apiname">name_attach()</span></a>
+or <a class="xref" href="../r/resmgr_attach.html" title="Attach a path to the pathname space"><span class="keyword apiname">resmgr_attach()</span></a>
+to create a channel and associate a name with it, and the sender process uses
+<a class="xref" href="../n/name_open.html" title="Open a name to connect to a server"><span class="keyword apiname">name_open()</span></a> or one of
+<a class="xref" href="../o/open.html" title="Open a file"><span class="keyword apiname">open()</span></a> or <a class="xref" href="../o/open_ext.html" title="Open a path and set connection flags"><span class="keyword apiname">open_ext()</span></a>
+to locate that name and create a connection to it.
+</div>
+
+
+<p class="p">
+The return value is a connection ID, which is a small <span class="keyword dtype">int</span>
+representing the connection. The system returns the
+first available connection ID starting at the value specified by the
+<var class="keyword varname">index</var> argument. Any thread in the calling process can use the
+<a class="xref" href="../m/msgsend.html" title="Send a message to a channel"><span class="keyword apiname">MsgSend*()</span></a> or
+<a class="xref" href="../m/msgsendv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendv*()</span></a> functions to send messages or
+<a class="xref" href="../m/msgsendpulse.html" title="Send a pulse to a process"><span class="keyword apiname">MsgSendPulse()</span></a> 
+to send pulses over the connection.
+The connection ID is used directly as a POSIX file descriptor
+(<em class="ph i">fd</em>) when communicating with I/O Resource managers such as a
+filesystem manager.
+
+
+
+</p>
+
+
+<p class="p">
+We recommend that you OR <span class="keyword const">_NTO_SIDE_CHANNEL</span> into <var class="keyword varname">index</var>,
+to create the connection as a side channel. In this case, the <var class="keyword varname">index</var> argument
+is ignored, and the connection ID returned is the first available index in the 
+<span class="keyword const">_NTO_SIDE_CHANNEL</span> space, which is different than the file descriptor space.
+</p>
+
+    
+<p class="p">
+If you don't OR <span class="keyword const">_NTO_SIDE_CHANNEL</span> into <var class="keyword varname">index</var>,
+this behavior might result:
+</p>
+
+
+<ul class="ul">
+<li class="li">If file descriptor 0 is in use, file descriptor 1 isn't in use, and 
+  you call <span class="keyword apiname">ConnectAttach()</span> with 0 specified for <var class="keyword varname">index</var>, 
+  a connection ID of 1 is returned.
+
+  <p class="p">
+  File descriptor 1 (i.e., connection ID 1) is used as <var class="keyword varname">stdout</var>,
+  which is what <span class="keyword apiname">printf()</span> writes to. 
+  If your process makes any calls to <span class="keyword apiname">printf()</span>,
+  <span class="keyword const">NULL</span>-terminated character strings are sent to the channel
+  that you've connected to.
+  Similar situations can happen with connection IDs 0 (<var class="keyword varname">stdin</var>) and
+  2 (<var class="keyword varname">stderr</var>).
+  </p>
+
+</li>
+
+
+<li class="li">Depending on how a child process is created, it may inherit the parent's file descriptors.
+
+  <p class="p">
+  Since connections are treated like file descriptors, a connection created by the parent
+  without <span class="keyword const">_NTO_SIDE_CHANNEL</span> in <var class="keyword varname">index</var> and 
+  without <span class="keyword const">_NTO_COF_CLOEXEC</span> in <var class="keyword varname">flags</var>,
+  causes a child process to inherit that connection during process creation.
+  This inheritance is done during process creation by duplicating file descriptors.
+  </p>
+
+
+  <p class="p">
+  During duplication, an <span class="keyword const">_IO_DUP</span> message (with <span class="ph codeph">0x115</span>
+  as the first 2 bytes) is sent to the receiver on the other side of the connection.
+  The receiver won't be expecting this message.
+  </p>
+
+
+  <p class="p">
+  Connections created with <span class="keyword const">_NTO_SIDE_CHANNEL</span> are never inherited by child processes
+  created by a <span class="keyword apiname">fork()</span> call or new process images executed by an 
+  <span class="keyword apiname">exec*()</span> call. This means the receiver won't get an unexpected 
+  <span class="keyword const">_IO_DUP</span> message.
+  </p>
+
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If a client process creates multiple connections to the same channel,
+the system maintains a link count and shares internal kernel object resources for efficiency.
+The client should avoid using different flags (<var class="keyword varname">flags</var>) when making multiple connections,
+or unexpected behavior could result.
+</p>
+
+
+<p class="p">
+Connections are owned by the process and may be used simultaneously by any thread in the process.
+You can detach a connection by calling
+<a class="xref" href="connectdetach.html" title="Break a connection between a process and a channel"><span class="keyword apiname">ConnectDetach()</span></a>. 
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Connections and connection IDs persist until you call
+<span class="keyword apiname">ConnectDetach()</span>, even if the other process dies.
+</div>
+
+
+<p class="p">
+The connection is strictly local (i.e., it doesn't resolve across the network)
+and is resolved on the first use of the connection ID.
+</p>
+
+
+<h3 class="title sectiontitle">Blocking states</h3>
+
+
+
+<p class="p">
+These calls don't block.
+</p>
+
+      <h3 class="title sectiontitle">Returns:</h3>
+      <p class="p"> A connection ID (<dfn class="term">coid</dfn>) that's used by the message primitives. If an error
+        occurs: </p>
+
+      <ul class="ul">
+        <li class="li"><span class="keyword apiname">ConnectAttach()</span> returns -1 and sets <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>. </li>
+
+        <li class="li"><span class="keyword apiname">ConnectAttach_r()</span> returns the negative of a value from the Errors
+          section and <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>. </li>
+
+      </ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">Insufficent resources.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">One of the following:
+
+  <ul class="ul">
+  <li class="li">The value of <var class="keyword varname">index</var> is outside the range of valid connection IDs.
+    This error applies only to file descriptors, not side channels (there's
+    no limit on the range for side channels).
+  </li>
+
+
+  <li class="li">The combination of bits in the <var class="keyword varname">flags</var> argument is invalid.</li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EMFILE</span></dt>
+
+<dd class="dd">
+  <div class="p">One of the following occurred:
+  <ul class="ul">
+      <li class="li">The process has no unused file descriptors.</li>
+
+      <li class="li">The number of connections already owned by the process is greater than or equal to the 
+        limit specified for <span class="keyword const">RLIMIT_NOCONN_NP</span> (see
+        <a class="xref" href="../s/setrlimit.html" title="Set the limit on a system resource"><span class="keyword apiname">setrlimit()</span></a>).</li>
+
+      <li class="li">No file descriptors greater than or equal to <var class="keyword varname">index</var> are available.</li>
+
+  </ul>
+
+  </div>
+
+
+  <div class="p">If you aren't creating a side channel, the following also applies:
+  <ul class="ul">
+      <li class="li">There was no acceptable connection ID less than <span class="keyword const">RLIMIT_NOFILE</span>.</li>
+
+  </ul>
+
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENXIO</span></dt>
+
+<dd class="dd">The process indicated by <var class="keyword varname">pid</var> is no longer valid. 
+  It's going away, has core dumped, or become a zombie.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The process that created the channel used the <span class="keyword const">_NTO_CHF_PRIVATE</span> flag to mark it as
+            being private (see <a class="xref" href="channelcreate.html" title="Create a communications channel"><span class="keyword apiname">ChannelCreate()</span></a> for more information), or the process
+            doesn't have the necessary ability to connect
+              (<span class="keyword const">PROCMGR_AID_CHANNEL_CONNECT</span>).
+                
+          </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">The process indicated by <var class="keyword varname">pid</var>, or the channel indicated by
+  <var class="keyword varname">chid</var>, doesn't exist.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d557374e776">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d557374e778"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e776 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e778 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e776 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e778 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e776 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d557374e778 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-c.html">C</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg.html">Message Passing (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/c/channelcreate.html" title="Create a communications channel">ChannelCreate(), ChannelCreate_r(), ChannelCreatePulsePool()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/connectdetach.html" title="Break a connection between a process and a channel">ConnectDetach(), ConnectDetach_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/connectflags.html" title="Modify or query the flags associated with a connection">ConnectFlags(), ConnectFlags_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/msgsendpulse.html" title="Send a pulse to a process">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/msgsendpulseptr.html" title="Send a pulse (containing a pointer) to a process">MsgSendPulsePtr(), MsgSendPulsePtr_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/msgsendv.html" title="Send a message to a channel">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/n/name_attach.html" title="Register a name in the pathname space and create a channel">name_attach()</a></li>
+<li class="linklist"><a class="link" href="../../topic/n/name_open.html" title="Open a name to connect to a server">name_open()</a></li>
+<li class="linklist"><a class="link" href="../../topic/o/open.html" title="Open a file">open(), open64()</a></li>
+<li class="linklist"><a class="link" href="../../topic/o/open_ext.html" title="Open a path and set connection flags">open_ext()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/resmgr_attach.html" title="Attach a path to the pathname space">resmgr_attach()</a></li></ul></div>
+</div></body>
+</html>

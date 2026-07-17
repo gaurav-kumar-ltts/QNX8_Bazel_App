@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Initialization" />
+<meta name="abstract" content="To help avoid vulnerabilities, make sure that after startup a resource manager runs with minimum privilege and does not run as root." />
+<meta name="description" content="To help avoid vulnerabilities, make sure that after startup a resource manager runs with minimum privilege and does not run as root." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="initialization" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Initialization</title>
+</head>
+<body id="initialization">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Initialization</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">To help avoid vulnerabilities, make sure that after startup a resource manager runs
+    with minimum privilege and does not run as <span class="ph filepath">root</span>.</p>
+
+    <div class="section"><h2 class="title sectiontitle">Reducing privileges after startup</h2>
+      
+      <p class="p">
+        In almost all
+        cases, a resource manager needs more abilities during startup than it does during its
+        subsequent operation. Usually, many of the abilities it needs at startup are given only to
+          <span class="ph filepath">root</span> by default.</p>
+
+      <p class="p">Resources managers should call <span class="keyword apiname">secpol_transition_type()</span> after
+        initialization to drop privileges (see <a class="xref" href="../secpol_transition_type.html" title="Transition to a new type">secpol_transition_type()</a>).
+        Although this action has no effect if the system does not use security policies, the
+        resource manager should try it and then use the fallback method described below if it fails.
+        This behavior allows a resource manager to run successfully both in systems with security
+        policies and systems without them.</p>
+
+      <p class="p">For the fallback option, start the resource manager as <span class="ph filepath">root</span> and then,
+        after initialization, configure abilities and change to a non-root user ID. By convention,
+        resource managers use a command line parameter to specify the user ID, group ID, and
+        additional groups to run as. </p>
+
+      <div class="p">For example, for <span class="keyword cmdname">devi-hid</span>, the <tt class="ph tt">-U</tt> option uses one of the
+        following formats: <pre class="pre codeblock">-U <var class="keyword varname">user_name</var>[,<var class="keyword varname">sup_gid</var>]
+-U <var class="keyword varname">uid</var>[:<var class="keyword varname">gid</var>[,<var class="keyword varname">sup_gid</var>]*]]</pre>In
+        the first form, the service sets itself to the named user and uses that user's groups (and,
+        optionally, the specified supplementary groups). It depends on the
+          <span class="ph filepath">/etc/passwd</span> and <span class="ph filepath">/etc/group</span> files. In the second
+        form, the service sets its user ID (and, optionally, its group ID and supplementary groups)
+        to the specified values.</div>
+
+      <div class="p">For example, the following startup script entry sets the user ID for
+          <span class="keyword cmdname">pipe</span> to <tt class="ph tt">21</tt> and its group ID to <tt class="ph tt">22</tt>:
+        <pre class="pre codeblock">pipe -U 21:22</pre></div>
+
+      <p class="p">In addition, you can use the <a class="xref" href="../set_ids_from_arg.html" title="Change the caller's identifiers based on a given string"><span class="keyword apiname">set_ids_from_arg()</span></a> function in the
+          <span class="ph filepath">libsecpol</span> library to change the resource manager's user ID, group ID,
+        and additional groups.</p>
+
+    </div>
+
+
+    <div class="section"><h2 class="title sectiontitle">Channel accessibility</h2><p class="p">If a channel doesn't need to be accessed by other processes, make it private (using the
+        _NTO_CHF_PRIVATE flag) to reduce the attack surface exposed by the resource manager.</p>
+
+    </div>
+
+
+    <div class="section"><h2 class="title sectiontitle">Setting permissions</h2><p class="p">QNX recommends that you use
+          <span class="keyword apiname">secpol_resmgr_attach()</span> instead of <span class="keyword apiname">resmgr_attach()</span> to
+        add your channel to the pathname space. It is often difficult for a resource manager to set
+        permissions correctly as these are often system specific. Using
+          <span class="keyword apiname">secpol_resmgr_attach()</span> permits a system integrator to adjust the
+        permissions via a security policy. (When a security policy is not used,
+          <span class="keyword apiname">secpol_resmgr_attach()</span> behaves the same as
+          <span class="keyword apiname">resmgr_attach()</span>.)</p>
+<p class="p">In the event that permissions are not otherwise
+        configured, a resource manager should still attempt to set permissions as best it
+        can.</p>
+<p class="p">Before you call <span class="keyword apiname">secpol_resmgr_attach()</span> or <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>, make sure that you assign the
+        appropriate permissions to the resource manager, which is typically done using <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_init.html"><span class="keyword apiname">iofunc_attr_init()</span></a>. Although setting the user ID,
+        group ID, and POSIX permissions of the resource does not prevent clients from contacting the
+        resource manager, many of the internal resource manager library functions rely on correctly
+        set user ID, group ID, and POSIX permissions to implement proper permission
+        checking.</p>
+<p class="p">For example, the following code configures the device exposed by the
+        resource manager as a regular file with permissions of 0600 (a secure, default permission
+        value):</p>
+<div class="p">
+        <pre class="pre codeblock">iofunc_attr_t io_attr;
+iofunc_attr_init( &amp;io_attr, S_IFREG | 0600, 0 , 0 );</pre>
+      </div>
+By default, <span class="keyword apiname">iofunc_attr_init()</span> uses the current user and group ID of
+      the resource manager process when it assigns IDs to the resource. QNX recommends using the
+      resource manager's current user or group ID when you assign the user or group ID to the
+      resource. This is the default behavior of <span class="keyword apiname">iofunc_attr_init()</span> when the
+        <var class="keyword varname">info</var> parameter is <span class="keyword const">NULL</span>.  </div>
+
+    <div class="section"><h2 class="title sectiontitle">Restricting <span class="keyword cmdname">chown</span></h2>
+      
+      <p class="p">By default, the resource manager library allows a client with the same user ID as the
+        resource to change the user and group ID on the resource to any other user on the system. To
+        prevent a client from changing the user ID on a file exposed by a resource manager
+        mountpoint, set the <span class="keyword const">IOFUNC_PC_CHOWN_RESTRICTED</span> flag in the mount attributes
+        (see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mount_t.html"><span class="keyword dtype">iofunc_mount_t</span></a> in the <cite class="cite">C Library Reference</cite>). All the filesystem
+        resource managers that <span class="keyword">QNX OS</span> provides set
+        this flag.</p>
+
+      <p class="p">For example, the following code sets <span class="keyword const">IOFUNC_PC_CHOWN_RESTRICTED</span>:</p>
+
+      <pre class="pre codeblock">iofunc_mount_t mattr;
+iofunc_mount_init(&amp;mattr, sizeof(mattr));
+mattr.conf |= IOFUNC_PC_CHOWN_RESTRICTED;
+io_attr.mount = &amp;mattr;      </pre>
+      
+    </div>
+
+  </div>
+
+</body>
+</html>

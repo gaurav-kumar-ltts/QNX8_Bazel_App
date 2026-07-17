@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Working with Images" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_Attaching_to_library.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_Loading_image.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_Cleaning_up.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="images" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Working with Images</title>
+</head>
+<body id="images">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Working with Images</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+This chapter shows you how to load and render images using the image library, <span class="ph filepath">libimg</span>.
+</p>
+
+
+<p class="p"> The image library provides a common interface for image codecs.
+    You'll need to put any required image codecs (and their dependencies), plus the
+    image configuration file, onto targets running your application. You'll need to include (at least):
+</p>
+
+
+<ul class="ul">
+<li class="li">the configuration file at <span class="ph filepath">/etc/system/config/img.conf</span>
+  (see its description in the documentation for 
+  <a class="xref" href="img_lib_attach.html" title="Initialize the image library"><span class="keyword apiname">img_lib_attach()</span></a>)
+</li>
+
+
+<li class="li">the image codecs (<span class="ph filepath">img_codec_*.so</span>)
+  in <span class="ph filepath"><span class="keyword envar">$QNX_TARGET</span>/<var class="keyword varname">processor</var>/lib/dll</span> and
+  their dependencies, if any (usually in <span class="ph filepath"><span class="keyword envar">$QNX_TARGET</span>/<var class="keyword varname">processor</var>/usr/lib/</span>)
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The codecs used by the image library are:
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="ph filepath">img_codec_bmp.so</span></dt>
+
+<dd class="dd">Windows Bitmap format codec. Provides full Microsoft BMP support for all known variants (except Header Version 5.x) 
+  as well as the older OS/2 variant.  Does not support v1.x DDB format.</dd>
+
+
+  
+
+   <dt class="dt dlterm"><span class="ph filepath">img_codec_gif.so</span></dt>
+
+   <dd class="dd">
+     Graphics Interchange Format codec. This codec supports GIF 87a and GIF 89a
+     variants and the graphics control extension which provides most of
+     the significant features for this format (transparency, interlacing,
+     multiframe, etc). It ignores other extensions which allow embedded text,
+     comments, application data, etc.
+     <p class="p">
+       This codec requires the <span class="ph filepath">libgif.so.5</span> library.
+     </p>
+
+   </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">img_codec_jpg.so</span></dt>
+
+<dd class="dd">
+  Joint Photographic Experts Group file format codec. Supports 24-bit RGB, YUV, and grayscale.
+  <p class="p">
+    This codec requires the <span class="ph filepath">libjpeg.so.4</span> library.
+  </p>
+
+</dd>
+
+
+
+
+
+  <dt class="dt dlterm"><span class="ph filepath">img_codec_pcx.so</span></dt>
+
+  <dd class="dd">Personal Computer Exchange Format decoder.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">img_codec_png.so</span></dt>
+
+<dd class="dd">Portable Networks Graphics codec.  Provides full PNG support with alpha, transparency, and interlacing support.  
+  This codec ignores the following chunks:
+  <ul class="ul">
+    <li class="li">background color</li>
+
+    <li class="li">chromaticity</li>
+
+    <li class="li">gamma</li>
+
+    <li class="li">histogram</li>
+
+    <li class="li">physical pixel dimension</li>
+
+    <li class="li">significant bits</li>
+
+    <li class="li">text data</li>
+
+    <li class="li">image last-modified time</li>
+
+  </ul>
+
+  <div class="p">
+    This codec requires the following libraries:
+    <ul class="ul">
+      <li class="li"><span class="ph filepath">libpng16.so.16</span></li>
+
+      <li class="li"><span class="ph filepath">libz.so.2</span></li>
+
+    </ul>
+
+  </div>
+
+</dd>
+
+
+  
+
+<dt class="dt dlterm"><span class="ph filepath">img_codec_sgi.so</span></dt>
+
+<dd class="dd">SGI format codec.  It supports black-and-white, grayscale, and color images (*sgi, *.rgb, *.rgba, *.bw).
+
+    <div class="note"><span class="notetitle">Note:</span> 
+    This codec supports only decoding.
+    </div>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">img_codec_tga.so</span></dt>
+
+<dd class="dd">Truevision Graphics Adapter format codec.
+  For decoding, this codec handles run length encoding (RLE) compression and supports these formats:
+
+  <ul class="ul">
+  <li class="li">true color 16-, 24-, and 32-bit</li>
+
+  <li class="li">cmap 15-, 16-, 24-, and 32-bit</li>
+
+  <li class="li">black and white 8-bit</li>
+
+  </ul>
+
+
+  <p class="p">
+  For encoding, this codec supports true color (8888) 32-bit RLE.
+  </p>
+
+</dd>
+
+
+
+  
+    <dt class="dt dlterm"><span class="ph filepath">img_codec_tif.so</span></dt>
+
+    <dd class="dd">Tagged Image File Format codec. Supports full Baseline TIFF decoding from the Adobe TIFF Revision 6.0 
+      specification (for example, bilevel, grayscale, RGB, multiple subfiles, PackBits and Huffman compression). 
+      Some TIFF extensions are supported, such as CCITT bilevel encodings (enables fax image decoding), LZW 
+      compression, and associated alpha.
+      <p class="p">The TIFF encoder is limited to encoding grayscale and RGB images only.</p>
+
+      <div class="p">
+        This codec requires the following libraries:
+        <ul class="ul">
+          <li class="li"><span class="ph filepath">libtiff.so.5</span></li>
+
+          <li class="li"><span class="ph filepath">libz.so.2</span></li>
+
+          <li class="li"><span class="ph filepath">liblzma.so.5</span></li>
+
+        </ul>
+
+      </div>
+
+      <div class="note"><span class="notetitle">Note:</span> 
+        As TIFF images are not sequential streams of data, the TIFF decoder must be able to seek in the image 
+        stream to find image data. As a result, it may not be compatible with certain unidirectional or unbuffered 
+        IO streams. For the best results, decode a TIFF image from a file or a full memory buffer.
+      </div>
+
+    </dd>
+
+  
+  
+
+  <dt class="dt dlterm"><span class="ph filepath">img_codec_wbmp.so</span></dt>
+
+  <dd class="dd">Wireless Application Protocol Bitmap file format codec. Supports decoding and encoding of monochrome images.</dd>
+
+
+</dl>
+
+
+<p class="p">
+To display an image, your application  needs to:
+</p>
+
+<ul class="ul">
+<li class="li">attach to the image library</li>
+
+<li class="li">load the image file</li>
+
+<li class="li">clean up allocated resources and detach from the image library</li>
+
+</ul>
+
+
+<p class="p">
+Let's look at each of these steps in a little more detail.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/images_Attaching_to_library.html">Attaching to the image library</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/images_Loading_image.html">Load an image</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/images_Cleaning_up.html">Clean up resources</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

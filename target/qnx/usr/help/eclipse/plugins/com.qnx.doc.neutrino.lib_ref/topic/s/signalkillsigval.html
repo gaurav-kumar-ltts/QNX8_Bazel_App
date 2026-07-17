@@ -1,0 +1,664 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="SignalKillSigval(), SignalKillSigval_r()" />
+<meta name="abstract" content="Send a signal to a process group, process, or thread" />
+<meta name="description" content="Send a signal to a process group, process, or thread" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_kill.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/k/kill.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/siginfo_t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalprocmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalwaitinfomask.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigqueue.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="signalkillsigval" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>SignalKillSigval(), SignalKillSigval_r()</title>
+</head>
+<body id="signalkillsigval">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">SignalKillSigval()</span>, <span class="keyword apiname">SignalKillSigval_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Send a signal to a process group, process, or thread</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int SignalKillSigval( uint32_t <var class="keyword varname">reserved</var>,
+                      pid_t <var class="keyword varname">pid</var>,
+                      int <var class="keyword varname">tid</var>,
+                      int <var class="keyword varname">signo</var>,
+                      int <var class="keyword varname">code</var>,
+                      const union sigval *<var class="keyword varname">sigval</var>);
+
+int SignalKillSigval_r( uint32_t <var class="keyword varname">reserved</var>,
+                        pid_t <var class="keyword varname">pid</var>,
+                        int <var class="keyword varname">tid</var>,
+                        int <var class="keyword varname">signo</var>,
+                        int <var class="keyword varname">code</var>,
+                        const union sigval *<var class="keyword varname">sigval</var>);
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+  
+    <dt class="dt dlterm"><var class="keyword varname">reserved</var></dt>
+
+    <dd class="dd">Set this argument to zero.</dd>
+
+  
+
+
+<dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+<dd class="dd">0, or the ID of the process to send the signal to; see below.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">tid</var></dt>
+
+<dd class="dd">0, or the ID of the thread to send the signal to; see below.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">signo</var></dt>
+
+<dd class="dd">The signal that you want to send.
+  There are a total of 64 signals available.
+  Of these, at least 8 are POSIX realtime signals that range from
+  <span class="keyword const">SIGRTMIN</span> to <span class="keyword const">SIGRTMAX</span>.
+  For a complete list of signals, see
+  <q class="q"><a class="xref" href="signalaction.html#signalaction__POSIXSignals">POSIX and <span class="keyword">QNX OS</span> signals</a></q>
+  in the documentation for <span class="keyword apiname">SignalAction()</span>.
+  Valid user signals range from 1 to (<span class="keyword const">NSIG</span> - 1).
+
+  <p class="p">
+  
+  
+  You can OR the <span class="keyword const">SIG_APPID</span> flag into the <var class="keyword varname">signo</var> argument.
+  This tells <span class="keyword apiname">SignalKillSigval()</span> to send the signal to all the processes with an
+  application ID that matches the <var class="keyword varname">pid</var> argument.
+  </p>
+
+
+  <p class="p">
+  If the signal terminates a process, the cleanup of the terminated process occurs by default at the priority
+  of the thread that sent the signal.
+  If you OR the <span class="keyword const">SIG_TERMER_NOINHERIT</span> flag (defined in <span class="ph filepath">&lt;signal.h&gt;</span>) 
+  into <var class="keyword varname">signo</var>, the cleanup occurs at the priority of the thread that received the signal.
+  
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">code</var></dt>
+
+<dd class="dd">The code that you want to send with the signal; see
+  <a class="xref" href="siginfo_t.html" title="Information about a signal"><span class="keyword dtype">siginfo_t</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">sigval</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">union sigval</span> that contains a value that you want to send with the signal; see
+  <a class="xref" href="siginfo_t.html" title="Information about a signal"><span class="keyword dtype">siginfo_t</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+The <span class="keyword apiname">SignalKillSigval()</span> and <span class="keyword apiname">SignalKillSigval_r()</span>
+kernel calls send the signal
+<var class="keyword varname">signo</var> with the given <var class="keyword varname">code</var> and the value specified by <var class="keyword varname">sigval</var>
+to a process group, process, or thread.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In order to send signals to a process with a different real or effective user ID, your process must have the
+<span class="keyword const">PROCMGR_AID_SIGNAL</span> ability enabled.
+For more information, see
+<a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+
+</div>
+
+
+<p class="p">
+These functions are identical except in the way they indicate errors.
+See the <a class="xref" href="#signalkillsigval__Returns">Returns</a> section for details.
+</p>
+
+
+<p class="p">
+If <var class="keyword varname">signo</var> is zero, no signal is sent, but
+the validity of <var class="keyword varname">pid</var> is checked; if <var class="keyword varname">tid</var> is nonzero, it's also checked.
+You can use this as a test for existence.
+</p>
+
+
+<p class="p">
+<span class="keyword apiname">SignalKillSigval()</span> implements the capabilities of the POSIX functions
+<a class="xref" href="../k/kill.html" title="Send a signal to a process or a group of processes"><span class="keyword apiname">kill()</span></a>,
+<a class="xref" href="sigqueue.html" title="Queue a signal to a process"><span class="keyword apiname">sigqueue()</span></a>,
+and
+<a class="xref" href="../p/pthread_kill.html" title="Send a signal to a thread"><span class="keyword apiname">pthread_kill()</span></a>
+in one call.
+Consider using these functions instead of invoking these kernel calls directly.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">pid</var> and <var class="keyword varname">tid</var> determine the target of the signal, as follows:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d471315e444"><var class="keyword varname">pid</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d471315e448"><var class="keyword varname">tid</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d471315e452">target</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e444 ">= 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e448 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e452 ">Hit the process group of the caller</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e444 ">&lt; 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e448 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e452 ">Hit a process group identified by -<var class="keyword varname">pid</var></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e444 ">&gt; 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e448 ">= 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e452 ">Hit a single process identified by <var class="keyword varname">pid</var></td>
+
+</tr>
+
+
+<tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e444 ">&gt; 0, and you've ORed <span class="keyword const">SIG_APPID</span> into the <var class="keyword varname">signo</var> argument</td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e448 ">—</td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e452 ">Hit all processes with the application ID identified by <var class="keyword varname">pid</var></td>
+
+</tr>
+
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e444 ">&gt; 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e448 ">&gt; 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e452 ">Hit a single thread in process <var class="keyword varname">pid</var> identified by <var class="keyword varname">tid</var></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+If the target is a thread, the signal is always delivered to
+exactly that thread. If the thread has the signal blocked—see
+<a class="xref" href="signalprocmask.html" title="Modify or examine a thread's signal-blocked mask"><span class="keyword apiname">SignalProcmask()</span></a>—the
+signal remains pending on the thread.
+</p>
+
+
+<p class="p">
+If the target is a process, the signal is delivered to a
+thread that has the signal unblocked; see <span class="keyword apiname">SignalProcmask()</span>, 
+<a class="xref" href="signalsuspend.html" title="Suspend a thread until a signal is received"><span class="keyword apiname">SignalSuspend()</span></a>, and
+<a class="xref" href="signalwaitinfo.html" title="Select a pending signal"><span class="keyword apiname">SignalWaitinfo()</span></a>. 
+If multiple threads have the signal unblocked, only one thread is given the signal.  
+Which thread receives the signal isn't deterministic.
+To make it deterministic, you can:
+</p>
+
+
+<ul class="ul">
+<li class="li">Have all threads except one block all signals; that thread handles all signals.
+
+<p class="p">
+Or:
+</p>
+
+
+</li>
+
+
+<li class="li">Target the signals to specific threads.</li>
+
+
+</ul>
+
+
+<p class="p">
+If all threads have the signal blocked, it's made pending on the
+process.  The first thread to unblock the signal receives the pending
+signal.  If a signal is pending on a thread, it's never retargetted
+to the process or another thread, regardless of changes to the signal-blocked mask.
+</p>
+
+
+<p class="p">
+If the target is a process group, the signal is delivered as above to each process in the group.
+</p>
+
+
+<p class="p">
+A multithreaded application typically has one thread
+responsible for catching most or all signals. Threads that don't wish
+to be directly involved with signals block all signals in their mask.
+</p>
+
+
+<p class="p">
+The signal-blocked mask is maintained on a per-thread basis. The
+signal-ignore mask and signal handlers are maintained at the process
+level and are shared by all threads.
+</p>
+
+
+<p class="p">
+If multiple signals are delivered before the target can run and
+process the signals, the system queues them in priority order if the
+<span class="keyword const">SA_SIGINFO</span> bit was set for <var class="keyword varname">signo</var>. Lower
+numbered signals have greater priority. If the <span class="keyword const">SA_SIGINFO</span>
+bit isn't set for <var class="keyword varname">signo</var>, then at most one signal is
+queued at any time. Additional signals with the same <var class="keyword varname">signo</var>
+replace existing ones. This is the default behavior for POSIX signal
+handlers installed using the old
+<a class="xref" href="signal.html" title="Set handling for exceptional conditions"><span class="keyword apiname">signal()</span></a>
+function. The newer
+<a class="xref" href="sigaction.html" title="Examine or specify the action associated with a signal"><span class="keyword apiname">sigaction()</span></a>
+function lets you control queuing or not on a per-signal basis.
+Signals with a <var class="keyword varname">code</var> of <span class="keyword const">SI_TIMER</span> are never queued.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">code</var> and <var class="keyword varname">value</var> are always saved with the
+signal. This allows you to deliver data with the signal
+whether or not <span class="keyword const">SA_SIGINFO</span> has been set on the
+<var class="keyword varname">signo</var>.  If <span class="keyword const">SA_SIGINFO</span> is set, you can use
+signals to deliver small amounts of data without loss. If you wish to
+pass significant data, you may wish to consider using
+<a class="xref" href="../m/msgsendpulse.html" title="Send a pulse to a process"><span class="keyword apiname">MsgSendPulse()</span></a>
+and
+<a class="xref" href="../m/msgsendv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendv()</span></a>,
+which deliver data with much greater efficiency.
+</p>
+
+
+<p class="p">
+
+When a thread receives a signal by a signal handler or <span class="keyword apiname">SignalWaitinfo()</span> call, it can
+retrieve the <var class="keyword varname">signo</var>, <var class="keyword varname">code</var> and <var class="keyword varname">value</var> from a
+<a class="xref" href="siginfo_t.html" title="Information about a signal"><span class="keyword dtype">siginfo_t</span></a>
+structure, which contains at least the following members:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword dtype">int</span> <var class="keyword varname">si_signo</var></dt>
+
+<dd class="dd">The signal number.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int</span> <var class="keyword varname">si_code</var></dt>
+
+<dd class="dd">The signal code.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">union sigval</span> <var class="keyword varname">si_value</var></dt>
+
+<dd class="dd">The signal value.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The value of <var class="keyword varname">si_code</var> is limited to an 8-bit signed value as follows:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d471315e768">Value</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d471315e771">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e768 ">-128 &lt;= <var class="keyword varname">si_code</var> &lt;= 0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e771 ">User values</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e768 ">   0 &lt; <var class="keyword varname">si_code</var> &lt;= 127</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e771 ">System values generated by the kernel</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+Some of the common user values defined by POSIX are:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword const">SI_USER</span> — the
+  <a class="xref" href="../k/kill.html" title="Send a signal to a process or a group of processes"><span class="keyword apiname">kill()</span></a>
+  function generated the signal.
+  
+</li>
+
+
+<li class="li"><span class="keyword const">SI_QUEUE</span> — the
+  <a class="xref" href="sigqueue.html" title="Queue a signal to a process"><span class="keyword apiname">sigqueue()</span></a>
+  function generated the signal.
+  
+</li>
+
+
+<li class="li"><span class="keyword const">SI_TIMER</span> — a timer generated the signal.
+  
+</li>
+
+
+<li class="li"><span class="keyword const">SI_ASYNCIO</span> — asynchronous I/O generated the signal.
+  
+</li>
+
+
+<li class="li"><span class="keyword const">SI_MESGQ</span> — POSIX (not <span class="keyword">QNX OS</span>) message queues generated the signal.
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+A successful return from this function means the signal has been delivered.
+What the process(es) or thread does with the signal isn't considered.
+</p>
+
+
+<p class="p">
+If a thread delivers signals that the receiving process has marked
+as queued faster than the receiver can consume them, the kernel may
+fail the call if it runs out of signal queue entries. If the
+<var class="keyword varname">signo</var>, <var class="keyword varname">code</var>, and <var class="keyword varname">value</var> don't change, the
+kernel performs signal compression by saving an 8-bit count with each queued signal.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+None.</p>
+
+
+</div>
+
+
+
+<div class="section" id="signalkillsigval__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The only difference between these functions is the way they indicate errors:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword apiname">SignalKillSigval()</span></dt>
+
+<dd class="dd">If an error occurs, -1 is returned and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.
+  Any other value returned indicates success.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">SignalKillSigval_r()</span></dt>
+
+<dd class="dd"><span class="keyword const">EOK</span> is returned on success. This function does <strong class="ph b">NOT</strong> set <var class="keyword varname">errno</var>.
+  If an error occurs, any value in the Errors section may be returned.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">The kernel had insufficient resources to enqueue the signal.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The value of <var class="keyword varname">signo</var> is less than 0 or greater than (<span class="keyword const">_NSIG</span> -1).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span> </dt>
+
+<dd class="dd">The process or process group indicated by <var class="keyword varname">pid</var> or thread indicated 
+  by <var class="keyword varname">tid</var> doesn't exist.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d471315e1042">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d471315e1044"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1042 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1044 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1042 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1044 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1042 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d471315e1044 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html">Process termination (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_kill.html" title="Send a signal to a thread">pthread_kill()</a></li>
+<li class="linklist"><a class="link" href="../../topic/k/kill.html" title="Send a signal to a process or a group of processes">kill()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/siginfo_t.html" title="Information about a signal">siginfo_t</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalaction.html" title="Examine and/or specify actions for signals">SignalAction(), SignalAction_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalkill.html" title="Send a signal to a process group, process, or thread">SignalKill(), SignalKill_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalprocmask.html" title="Modify or examine a thread's signal-blocked mask">SignalProcmask(), SignalProcmask_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalsuspend.html" title="Suspend a thread until a signal is received">SignalSuspend(), SignalSuspend_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalwaitinfo.html" title="Select a pending signal">SignalWaitinfo(), SignalWaitinfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalwaitinfomask.html" title="Block a set of signals and then select a pending signal">SignalWaitinfoMask(), SignalWaitinfoMask_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigqueue.html" title="Queue a signal to a process">sigqueue()</a></li></ul></div>
+</div></body>
+</html>

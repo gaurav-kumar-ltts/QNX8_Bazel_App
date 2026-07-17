@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pthread_mutexattr_setrobust()" />
+<meta name="abstract" content="Set the robust attribute in a mutex attribute object" />
+<meta name="description" content="Set the robust attribute in a mutex attribute object" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-p.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutexattr_getrobust.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutexattr_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutexattr_settype.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_consistent.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_timedlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_trylock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_unlock.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pthread_mutexattr_setrobust" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>pthread_mutexattr_setrobust()</title>
+</head>
+<body id="pthread_mutexattr_setrobust">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pthread_mutexattr_setrobust()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Set the robust attribute in a mutex attribute object</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_mutexattr_setrobust( pthread_mutexattr_t *<var class="keyword varname">attr</var>,
+                                 int <var class="keyword varname">robust</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+<dd class="dd">A pointer to the <span class="keyword dtype">pthread_mutexattr_t</span> object whose attribute you want to set.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">robust</var></dt>
+
+<dd class="dd">The value for the attribute; one of:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">PTHREAD_MUTEX_STALLED</span></li>
+
+  <li class="li"><span class="keyword const">PTHREAD_MUTEX_ROBUST</span></li>
+
+  </ul>
+
+
+  <p class="p">
+  For more information, see below.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+The <span class="keyword apiname">pthread_mutexattr_setrobust()</span> function sets the robust
+attribute in the mutex attribute object <var class="keyword varname">attr</var>:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PTHREAD_MUTEX_STALLED</span></dt>
+
+<dd class="dd">No special actions are taken if the owner of the mutex is terminated while holding the mutex lock.
+  This can lead to deadlocks if no other thread can unlock the mutex.
+  This is the default value.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PTHREAD_MUTEX_ROBUST</span></dt>
+
+<dd class="dd">If the process containing the owning thread of a robust mutex terminates while holding the mutex
+lock, the next thread that acquires the mutex is notified about the termination by the return value
+<span class="keyword const">EOWNERDEAD</span> from the locking function. <p class="p"> The notified thread can then attempt to
+mark the state protected by the mutex as consistent again by a call to <a class="xref" href="pthread_mutex_consistent.html" title="Mark as consistent the state that's protected by a mutex"><span class="keyword apiname">pthread_mutex_consistent()</span></a>. After
+a subsequent successful call to <a class="xref" href="pthread_mutex_unlock.html" title="Unlock a mutex"><span class="keyword apiname">pthread_mutex_unlock()</span></a>, the mutex lock is released and can be used
+normally by other threads. </p>
+
+<p class="p"> If the mutex is unlocked without a call to <span class="keyword apiname">pthread_mutex_consistent()</span>, it
+remains in a permanently unusable state and all subsequent and in-progress attempts to lock the
+mutex will either fail with the error <span class="keyword const">ENOTRECOVERABLE</span> or will be left mutex-blocked.
+The only permissible operation on such a mutex is <a class="xref" href="pthread_mutex_destroy.html" title="Destroy a mutex"><span class="keyword apiname">pthread_mutex_destroy()</span></a>. </p>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+You can use
+<a class="xref" href="pthread_mutexattr_getrobust.html" title="Get the robust attribute from a mutex attribute object"><span class="keyword apiname">pthread_mutexattr_getrobust()</span></a>
+to get the value of this attribute.
+The behavior of a mutex also depends on its type; see
+<a class="xref" href="pthread_mutexattr_settype.html" title="Set a mutex type"><span class="keyword apiname">pthread_mutexattr_settype()</span></a>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Robust mutexes and mutexes with priority ceilings
+  use more system resources than other mutexes.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EOK</span></dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The value specified by <var class="keyword varname">robust</var> is invalid.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d799020e312">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d799020e314"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e312 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e314 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e312 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e314 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e312 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d799020e314 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-p.html">P</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutexattr_getrobust.html" title="Get the robust attribute from a mutex attribute object">pthread_mutexattr_getrobust()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutexattr_init.html" title="Initialize a mutex attribute object">pthread_mutexattr_init()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutexattr_settype.html" title="Set a mutex type">pthread_mutexattr_settype()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_consistent.html" title="Mark as consistent the state that's protected by a mutex">pthread_mutex_consistent()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_lock.html" title="Lock a mutex">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_timedlock.html" title="Lock a mutex, with a time limit">pthread_mutex_timedlock(), pthread_mutex_timedlock_monotonic()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_trylock.html" title="Attempt to lock a mutex">pthread_mutex_trylock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_unlock.html" title="Unlock a mutex">pthread_mutex_unlock()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Detecting the termination of daemons or of all processes" />
+<meta name="abstract" content="What would happen if you've created some processes that subsequently made themselves daemons (i.e., called procmgr_daemon())? As we mentioned above, the wait*() functions and sigwaitinfo() won't help." />
+<meta name="description" content="What would happen if you've created some processes that subsequently made themselves daemons (i.e., called procmgr_daemon())? As we mentioned above, the wait*() functions and sigwaitinfo() won't help." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_PROCDETECTTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Termination_of_daemons" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Detecting the termination of daemons or of all processes</title>
+</head>
+<body id="Termination_of_daemons">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Detecting the termination of daemons or of <em class="ph i">all</em> processes</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+What would happen if you've created some processes that subsequently
+made themselves daemons (i.e., called <span class="keyword apiname">procmgr_daemon()</span>)?
+As we mentioned above, 
+the <span class="keyword apiname">wait*()</span> functions and <span class="keyword apiname">sigwaitinfo()</span> won't help.
+</p>
+
+
+<p class="p">
+
+
+
+
+For these you can give the kernel an event, such as one containing
+a pulse, and have the kernel deliver that pulse to you whenever
+a daemon terminates. This request for notification is done by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_event_notify.html"><span class="keyword apiname">procmgr_event_notify()</span></a>
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_event_notify_add.html"><span class="keyword apiname">procmgr_event_notify_add()</span></a>
+with <span class="keyword const">PROCMGR_EVENT_DAEMON_DEATH</span> in <var class="keyword varname">flags</var>.
+</p>
+
+
+<p class="p">
+The difference between these functions is that with <span class="keyword apiname">procmgr_event_notify()</span>, your process
+can have one notification request; if you call the function again, the request replaces the previous one.
+With <span class="keyword apiname">procmgr_event_notify_add()</span>, your process can have more than one notification request.
+</p>
+
+
+<p class="p">
+See the documentation for 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_event_notify.html"><span class="keyword apiname">procmgr_event_notify()</span></a>
+for an example that uses <span class="keyword const">PROCMGR_EVENT_DAEMON_DEATH</span>.
+</p>
+
+
+<div class="p">
+
+
+The <span class="keyword const">PROCMGR_EVENT_PROCESS_DEATH</span> event type is similar to
+<span class="keyword const">PROCMGR_EVENT_DAEMON_DEATH</span>, but it requests notification of the death of <em class="ph i">all</em> processes.
+If you set the <span class="keyword const">SIGEV_FLAG_UPDATEABLE</span> flag in the event, the notification includes the process ID
+of the process that died.
+Here's an example:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;process.h&gt;
+#include &lt;sys/procmgr.h&gt;
+
+int main(void)
+{
+   int chid, coid;
+   rcvid_t rcvid;
+   struct _pulse pulse;
+   struct sigevent ev;
+
+   // Create a channel that's private to this process.
+   // No other process can connect to it.
+   chid = ChannelCreate( _NTO_CHF_PRIVATE );
+   if (-1 == chid)
+   {
+      // Was there an error creating the channel?
+      perror("ChannelCreate()"); // Look up the errno code and print
+      exit(EXIT_FAILURE);
+   }
+
+   // To ask for pulse delivery, we need a connection to our own channel.
+   coid = ConnectAttach( 0, 0, chid, _NTO_SIDE_CHANNEL, 0 );
+   if (-1 == coid)
+   {
+      // Was there an error creating the channel?
+      perror("ConnectAttach()"); // Look up the errno code and print
+      exit(EXIT_FAILURE);
+   }   
+
+   SIGEV_PULSE_INIT( &amp;ev, coid, 10, 1, 0 );
+   SIGEV_MAKE_UPDATEABLE(&amp;ev);
+
+   // Request process death notifications
+   procmgr_event_notify( PROCMGR_EVENT_PROCESS_DEATH, &amp;ev );
+
+   while (1)
+   {
+      rcvid = MsgReceive( chid, &amp;pulse, sizeof pulse, NULL );
+      if (-1 == rcvid)
+      {
+         // Was there an error receiving msg?
+         perror("MsgReceive"); // Look up errno code and print
+         exit(EXIT_FAILURE); // Give up
+      }
+
+      if( pulse.code == 1 )
+      {
+         printf("Process with pid %d died.\n", pulse.value.sival_int );
+      }
+      else
+      {
+         printf("Unexpected pulse, code: %d\n", pulse.code );
+      }
+   }
+   return 0;
+} 
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_PROCDETECTTERM.html" title="In an embedded application, it's often important to detect if any process terminates prematurely and, if so, to handle it.">Detecting process termination</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html">Thread life cycle (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html">Threads and processes (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html">struct sigaction</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html">SignalAction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

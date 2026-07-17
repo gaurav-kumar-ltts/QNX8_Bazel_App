@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="dns-sd" />
+<meta name="abstract" content="Multicast DNS (mDNS) and DNS Service Discovery (DNS-SD) test tool" />
+<meta name="description" content="Multicast DNS (mDNS) and DNS Service Discovery (DNS-SD) test tool" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-d.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mdnsd.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dns-sd" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>dns-sd</title>
+</head>
+<body id="dns-sd">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">dns-sd</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Multicast DNS (mDNS) and DNS Service Discovery (DNS-SD) test tool</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">dns-sd -R <var class="keyword varname">name</var> <var class="keyword varname">type</var> <var class="keyword varname">domain</var> <var class="keyword varname">port</var> [<var class="keyword varname">key</var>=<var class="keyword varname">value</var> ...]
+
+dns-sd -B <var class="keyword varname">type</var> <var class="keyword varname">domain</var>
+
+dns-sd -L <var class="keyword varname">name</var> <var class="keyword varname">type</var> <var class="keyword varname">domain</var>
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p"><span class="keyword">QNX OS</span></p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-B</span></dt>
+
+<dd class="dd">Browse for instances of a service.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-L</span></dt>
+
+<dd class="dd">Look up and display information about a service.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-R</span></dt>
+
+<dd class="dd">Register (advertize) a service.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+For more information, see below.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword cmdname">dns-sd</span> command is a network diagnostic tool, much like
+<a class="xref" href="../p/ping.html" title="Send ICMP ECHO_REQUEST packets to network hosts"><span class="keyword cmdname">ping</span></a>
+or
+<a class="xref" href="../t/traceroute.html" title="Print the route packets take to network host"><span class="keyword cmdname">traceroute</span></a>.
+However, unlike those tools, most of its functionality isn't implemented in the <span class="keyword cmdname">dns-sd</span>
+executable itself, but in library code that's available to any application.
+The library API that <span class="keyword cmdname">dns-sd</span> uses is documented in <span class="ph filepath">&lt;dns_sd.h&gt;</span>.
+</p>
+
+
+<p class="p">
+The <span class="keyword cmdname">dns-sd</span> command is primarily intended for interactive use.
+Because its command-line arguments and output format are subject to change,
+invoking it from a shell script will generally be fragile.
+Additionally, the asynchronous nature of DNS Service Discovery does not lend itself
+easily to script-oriented programming.
+For example, calls like <q class="q">browse</q> never complete; the action of performing a <q class="q">browse</q> sets in motion
+machinery to notify the client whenever instances of that service type appear or disappear from the network.
+These notifications continue to be delivered indefinitely, for minutes, hours, or even days, as services
+come and go, until the client explicitly terminates the call.
+</p>
+
+
+<p class="p">
+This style of asynchronous interaction works best with applications that are either
+multithreaded, or use a main event-handling loop to receive keystrokes,
+network data, and other asynchronous event notifications as they happen.
+If you wish to perform DNS Service Discovery operations from a scripting
+language, then the best way to do this isn't to execute the <span class="keyword cmdname">dns-sd</span> command
+and then attempt to decipher the textual output, but instead to
+directly call the DNS-SD APIs using a binding for your chosen language.
+
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword cmdname">dns-sd</span> <span class="keyword option">-R</span> <var class="keyword varname">name</var> <var class="keyword varname">type</var> <var class="keyword varname">domain</var> <var class="keyword varname">port</var> [<var class="keyword varname">key</var>=<var class="keyword varname">value</var> ...]</dt>
+
+<dd class="dd">Register (advertise) a service in the specified domain with the given
+  name and type as listening (on the current machine) on port.
+
+  <p class="p">
+  The <var class="keyword varname">name</var> can be arbitrary unicode text, containing any legal unicode characters
+  (including dots, spaces, slashes, colons, etc. without restriction), up to 63 UTF-8 bytes long.
+  The <var class="keyword varname">type</var> must be of the form <q class="q">_app-proto._tcp</q> or <q class="q">_app-proto._udp</q>,
+  where <q class="q">app-proto</q> is an application protocol name registered at
+  <a class="xref" href="http://www.dns-sd.org/ServiceTypes.html" target="_blank"><span class="ph filepath">http://www.dns-sd.org/ServiceTypes.html</span></a>.
+  </p>
+
+
+  <p class="p">
+  The <var class="keyword varname">domain</var> is the domain in which to register the service.
+  In current implementations, only the local multicast domain <tt class="ph tt">local</tt> is supported.
+  In the future, registering will be supported in any arbitrary domain
+  that has a working DNS Update server [RFC 2136]. The domain <tt class="ph tt">"."</tt> is a
+  synonym for <q class="q">pick a sensible default,</q> which today means <tt class="ph tt">local</tt>.
+  </p>
+
+
+  <p class="p">
+  The <var class="keyword varname">port</var> is a number from 0 to 65535, and is the TCP or UDP port number
+  on which the service is listening.
+  </p>
+
+
+  <p class="p">
+  Additional attributes of the service may optionally be described by
+  key/value pairs, which are stored in the advertised service's DNS TXT
+  record. Allowable keys and values are listed with the service registration at
+  <a class="xref" href="http://www.dns-sd.org/ServiceTypes.html" target="_blank"><span class="ph filepath">http://www.dns-sd.org/ServiceTypes.html</span></a>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">dns-sd</span> <span class="keyword option">-B</span> <var class="keyword varname">type</var> <var class="keyword varname">domain</var></dt>
+
+<dd class="dd">Browse for instances of service <var class="keyword varname">type</var> in <var class="keyword varname">domain</var>.
+
+  <p class="p">
+  For valid types see
+  <a class="xref" href="http://www.dns-sd.org/ServiceTypes.html" target="_blank"><span class="ph filepath">http://www.dns-sd.org/ServiceTypes.html</span></a>
+  as described above.
+  Omitting the domain or using <tt class="ph tt">"."</tt> means <q class="q">pick a sensible default.</q>
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">dns-sd</span> <span class="keyword option">-L</span> <var class="keyword varname">name</var> <var class="keyword varname">type</var> <var class="keyword varname">domain</var></dt>
+
+<dd class="dd">Look up and display the information necessary to contact and use the
+  named service: the hostname of the machine where that service is
+  available, the port number on which the service is listening, and (if
+  present) TXT record attributes describing properties of the service.
+
+  <p class="p">
+  Note that in a typical application, browsing happens rarely, while
+  looking up (or resolving) happens every time the service is used.
+  For example, a user browses the network to pick a default printer fairly
+  rarely, but once a default printer has been picked, that named service
+  is resolved to its current IP address and port number every time the user prints.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-d.html">D</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/m/mdnsd.html" title="Multicast and Unicast DNS daemon">mdnsd</a></li></ul></div>
+</div></body>
+</html>

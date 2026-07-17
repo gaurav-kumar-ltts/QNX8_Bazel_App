@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Putting in your own functions" />
+<meta name="abstract" content="When designing your very first resource manager, you'll most likely want to take an incremental design approach. It can be very frustrating to write thousands of lines of code only to run into a fundamental misunderstanding and then having to make the ugly decision of whether to try to kludge (er, I mean “fix”) all that code, or scrap it and start from scratch." />
+<meta name="description" content="When designing your very first resource manager, you'll most likely want to take an incremental design approach. It can be very frustrating to write thousands of lines of code only to run into a fundamental misunderstanding and then having to make the ugly decision of whether to try to kludge (er, I mean “fix”) all that code, or scrap it and start from scratch." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_structure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="your_functions" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Putting in your own functions</title>
+</head>
+<body id="your_functions">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Putting in your own functions</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When designing your very first resource manager, you'll most likely want to
+take an incremental design approach.
+It can be very frustrating to write thousands of lines of code only to
+run into a fundamental misunderstanding and then having to
+make the ugly decision of whether to try to kludge (er, I mean <q class="q">fix</q>)
+all that code, or scrap it and start from scratch.
+</p>
+
+
+<p class="p">
+The recommended approach for getting things running is to use the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a>
+POSIX-layer default initializer function to fill
+the connect and I/O tables with the POSIX-layer default functions.
+This means that you can literally write your initial cut of your resource manager as we did above,
+in a few function calls.
+
+
+
+
+</p>
+
+
+<p class="p">
+Which function you'll want to implement first really depends on what kind of resource manager
+you're writing. If it's a filesystem resource manager where you're taking over a mountpoint
+and everything below it, you'll most likely be best off starting with the <a class="xref" href="s1_resmgr_io_open.html">open connect function handler</a>. (The
+<span class="keyword const">_RESMGR_FLAG_DIR</span> flag indicates that the pathname should be treated as a directory.)
+On the other hand, if it's a discretely manifested (device) resource manager that does
+<q class="q">traditional</q> I/O operations (i.e., you primarily access it with client calls like
+<span class="keyword apiname">read()</span> and <span class="keyword apiname">write()</span>), then the best place to start would be the
+<a class="xref" href="s1_resmgr_io_read.html">read I/O function handler</a> and/or
+<a class="xref" href="s1_resmgr_io_write.html">write I/O function handler</a>.
+
+
+
+
+</p>
+
+
+<p class="p">
+The third possibility is that it's
+a discretely manifested resource manager that doesn't do traditional I/O operations, but instead
+relies on <span class="keyword apiname">devctl()</span> or <span class="keyword apiname">ioctl()</span> client calls to perform the
+majority of its functionality. In that case, you'd start at the
+<a class="xref" href="s1_resmgr_io_devctl.html">device control I/O function handler</a>.
+
+
+
+
+</p>
+
+
+<div class="p">
+Regardless of where you start, you'll want to make sure that your functions are getting called
+in the expected manner. The really cool thing about the POSIX-layer default functions is that they
+can be placed directly into the connect or I/O functions table. This means that if you simply want
+to gain control, perform a <span class="keyword apiname">printf()</span> to say <q class="q">I'm here in the io_open!</q>, and
+then <q class="q">do whatever should be done,</q> you're going to have an easy time of it. Here's a portion of
+a resource manager that takes over the <a class="xref" href="s1_resmgr_io_open.html">open connect function
+handler</a>:
+
+
+
+
+
+
+<pre class="pre codeblock">// forward reference
+int io_open (resmgr_context_t *, io_open_t *,
+             RESMGR_HANDLE_T *, void *);
+
+int main ()
+{
+    // everything as before, in the /dev/null example
+    // except after this line:
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;cfuncs,
+                      _RESMGR_IO_NFUNCS, &amp;ifuncs);
+
+    // add the following to gain control:
+    cfuncs.open = io_open;
+</pre>
+</div>
+
+
+<div class="p">
+Assuming that you've prototyped the <a class="xref" href="s1_resmgr_io_open.html">open connect function
+handler</a> correctly, as in the code example, you can just use the default one from within your
+own!
+
+
+
+<pre class="pre codeblock">int io_open (resmgr_context_t *ctp, io_open_t *msg,
+             RESMGR_HANDLE_T *handle, void *extra)
+{
+    printf ("I'm here in the io_open!\n");
+    return (iofunc_open_default (ctp, msg, handle, extra));
+}
+</pre>
+</div>
+
+
+<p class="p">
+In this manner, you're still using the default POSIX-layer
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open_default.html"><span class="keyword apiname">iofunc_open_default()</span></a>
+handler, but you've also gained control to do a <span class="keyword apiname">printf()</span>.
+</p>
+
+
+<p class="p">
+Obviously, you could do this for the <a class="xref" href="s1_resmgr_io_read.html">read I/O function
+handler</a>, <a class="xref" href="s1_resmgr_io_write.html">write I/O function handler</a>, and <a class="xref" href="s1_resmgr_io_devctl.html">device control I/O function handler</a> as well as any others that
+have POSIX-layer default functions. In fact, this is a really good idea, because it shows you that
+the client <em class="ph i">really is</em> calling your resource manager as expected.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_structure.html" title="Now that we've seen the data structures, we can discuss interactions between the parts that you'd supply to actually make your resource manager do something.">Resource manager structure</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

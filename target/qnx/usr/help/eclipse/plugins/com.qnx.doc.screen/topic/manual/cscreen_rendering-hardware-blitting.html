@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Blitting" />
+<meta name="abstract" content="Screen provides native rendering APIs that use the hardware blitter to move data from one area of memory to another without involving the CPU." />
+<meta name="description" content="Screen provides native rendering APIs that use the hardware blitter to move data from one area of memory to another without involving the CPU." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering-hardware.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_rendering-hardware-blitting" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Blitting</title>
+</head>
+<body id="cscreen_rendering-hardware-blitting">
+
+	<h1 class="title topictitle1" id="ariaid-title1"> Blitting </h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">
+		<span class="keyword">Screen</span> provides native rendering APIs that use the hardware
+		blitter to move data from one area of memory to another without involving the CPU. </p>
+
+		<p class="p">
+			 Graphics processing requires a lot of memory management and
+			movement of areas of memory. To do this efficiently, bit blitter hardware elements are
+			often supported. Bit blitters are aware of the different display formats, and memory
+			layouts that can be used, and so rather than moving bytes, blitters move pixels.
+			Blitters can also provide certain graphics capabilities such as scaling, pixel format
+			conversion, and transparency blending. </p>
+
+		<p class="p"> A blit operation copies a rectangular region of pixels from a source buffer to a
+			destination buffer. You'd likely use a blit operation to achieve such things as the
+			following: </p>
+
+		<ul class="ul">
+			<li class="li">pixel format conversion</li>
+
+			<li class="li">upscaling or downscaling</li>
+
+			<li class="li">pixel preservation</li>
+
+			<li class="li">copying buffers</li>
+
+		</ul>
+
+		<p class="p">
+			 Your application has access to the blitter through the following rendering
+			APIs provided by <span class="keyword">Screen API</span>: </p>
+
+		<ul class="ul">
+			<li class="li"><a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a></li>
+
+			<li class="li"><a class="xref" href="../screen_fill.html" title="Fill an area of a specified buffer"><span class="keyword apiname">screen_fill()</span></a></li>
+
+		</ul>
+
+		<p class="p"> When your application explicitly calls these native blit API functions, <span class="keyword">Screen</span> uses the blitter that's specified by the
+				<span class="keyword parmname">blit-config</span> parameter in your graphics configuration file
+			(e.g., <span class="ph filepath">graphics.conf</span>). </p>
+
+		<p class="p">
+			
+			Generally, the main steps you need to do in your application to perform blit operations
+			are: </p>
+
+		<ol class="ol">
+			<li class="li"> Create your render targets. </li>
+
+			<li class="li"> Get access to your buffers. </li>
+
+			<li class="li"> Draw to your buffer. </li>
+
+			<li class="li"> Trigger blit (or fill) operations (copy to your destination buffer). </li>
+
+		</ol>
+
+		<div class="section"><h2 class="title sectiontitle">Create your render targets</h2>
+			
+			<p class="p">
+				 This is what holds the buffer or buffers that your application will
+				render to. A render target can be a stream, a pixmap or a window. You can also use a
+				combination of these targets, depending on your application. If you're performing a
+					<a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a>, you're
+				copying pixels from a source buffer to a destination buffer. Therefore, you'll
+				likely have at least two render targets created in your application. </p>
+
+			<p class="p"> The code follows a very similar set of procedures whether you're using a pixmap, a
+				window, or a stream as your render target. In the following example, we use a pixmap
+				as the source for the blit operation, and a window as the destination. </p>
+
+			<pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_pixmap_t screen_pix;
+...
+screen_create_pixmap(&amp;screen_pix, screen_ctx);
+...
+            </pre>
+			or <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_window_t screen_win;
+...
+screen_create_window(&amp;screen_win, screen_ctx);
+            </pre>
+			<p class="p"> Now that you've created your targets, you must set the appropriate properties on
+				these targets. At a minimum, you should set the usage on each. You must set the
+					<span class="keyword const">SCREEN_PROPERTY_USAGE</span> property to include
+					<span class="keyword const">SCREEN_USAGE_NATIVE</span> when you're using your buffers for blit and
+				fill operations. For example, here's what the code might look like for setting a
+				pixmap, and a window: </p>
+
+			<pre class="pre codeblock">...
+int pusage;
+int psize[2] = { -1, -1 }; 
+...
+/* Indicate that the buffer associated with this render target will be written to,
+   and used in, native API operations such as screen_blit() or screen_fill().
+*/
+pusage = SCREEN_USAGE_WRITE | SCREEN_USAGE_NATIVE;
+
+/* Note that if you're using a pixmap as your off-screen render target and you
+   eventually wish to make at least parts of the pixmap buffer visible, then you
+   must set the usage and buffer size to be compatible with those of the window
+   you'll be using to display your pixmap-rendered content.
+*/
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_USAGE, &amp;pusage);
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_BUFFER_SIZE, psize);
+...
+
+int usage = SCREEN_USAGE_WRITE | SCREEN_USAGE_NATIVE;
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_USAGE, &amp;usage);
+...
+            </pre>
+			<p class="p">And finally, you'll need to create one, or more, buffers for your render targets. For
+				example:</p>
+
+			<pre class="pre codeblock">...
+screen_create_pixmap_buffer(screen_pix);  
+/* Use a double-buffered window. This allows your application to work on a frame
+ *  while Screen is updating the framebuffer with previous changes.
+ */
+screen_create_window_buffers(screen_win, 2);
+...
+            </pre>
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Get access to your buffers</h2>
+			
+			<p class="p">
+				 Once you've created your render targets, you'll want to make sure you
+				have access to the buffer(s) of your render targets. These are the areas that you'll
+				be copying from, and writing to. You'll want to retrieve the
+					<span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> of your render target(s). This
+				property will give you the handle to the buffers that are available for rendering. </p>
+
+			<p class="p"> Unlike pixmaps, windows and streams can have multiple buffers available for
+				rendering. For example: </p>
+
+			<pre class="pre codeblock">...
+screen_buffer_t screen_pbuf;
+screen_buffer_t screen_buf[2];
+...
+screen_get_pixmap_property_pv(screen_pix, SCREEN_PROPERTY_RENDER_BUFFERS,
+                                         (void **)&amp;screen_pbuf);
+screen_get_window_property_pv(screen_win, SCREEN_PROPERTY_RENDER_BUFFERS,
+                                         (void **)screen_buf);
+...
+            </pre>
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Draw to your buffer</h2>
+			
+			
+			<p class="p"> At this point, you can use <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> or <a class="xref" href="../screen_fill.html" title="Fill an area of a specified buffer"><span class="keyword apiname">screen_fill()</span></a> to request pixel copying with the
+				buffers you've created. For example, let's say that you want to specify different
+				colors for different regions of the window that you've created. </p>
+
+			<p class="p">
+				 Use an attribute list to provide a set of attributes for <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> and/or <a class="xref" href="../screen_fill.html" title="Fill an area of a specified buffer"><span class="keyword apiname">screen_fill()</span></a> to use when
+				performing the operation. The attribute list is an integer array that contains the
+				attributes defining the blit. This list consists of a series of token-value pairs
+				terminated with a <span class="keyword const">SCREEN_BLIT_END</span> token. </p>
+
+			<p class="p"> Blit attributes that can be set in your list are <a class="xref" href="../group__screen__blits_1Screen_Blit_Types.html" title="Types of blit attributes">Screen blit types</a>. </p>
+
+			<div class="note"><span class="notetitle">Note:</span>  Support for each of the blit attributes is blitter-dependent. Different blitters
+				have different capabilities and may even vary in how they each support these blit
+				attributes. </div>
+
+			<p class="p"> In this case, we'll set the window's background color. Set the blit attribute
+				<span class="keyword const">SCREEN_BLIT_COLOR</span> to be the color that you want for your
+				window background, in this case, yellow. </p>
+
+			<pre class="pre codeblock">...
+int bg[] = { SCREEN_BLIT_COLOR, 0xffffff00, SCREEN_BLIT_END };
+screen_fill(screen_ctx, screen_buf[0], bg);
+...
+            </pre>
+			<p class="p"> Let's set a specific area of the window buffer to be a different color. This time
+				when you set your blit attributes, you specify a position and width in addition to
+				the color for your blit. </p>
+
+			<pre class="pre codeblock">...
+int pos = 0;
+int barwidth = 32;
+
+int bar[] = {
+	SCREEN_BLIT_COLOR, 0xff0000ff,
+	SCREEN_BLIT_DESTINATION_X, pos,
+	SCREEN_BLIT_DESTINATION_WIDTH, barwidth,
+	SCREEN_BLIT_END };
+screen_fill(screen_ctx, screen_buf[0], bar);
+...
+            </pre>
+			<p class="p"> The fill operations will make your window look like this: </p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span> Window after fill operations </span>
+				
+				<br /><img class="image" src="../../images/blit_sample.svg" /><br />
+			</div>
+
+			<p class="p"> And what if you loaded an image, or drew an image, to a pixmap and wanted to blend
+				it with your window? You can use <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> to copy that image from your pixmap
+				buffer (<span class="ph codeph">screen_pbuf</span>) to your window buffer
+					(<span class="ph codeph">screen_buf[0]</span>). Again, set your blit attributes first. In this
+				example, the pixmap buffer is your source, and your window buffer is your
+				destination. Set your attributes so that your pixmap (source) is blended on top of
+				your window (destination) at a specific position: </p>
+
+			<pre class="pre codeblock">...
+int hg[] = {
+	SCREEN_BLIT_SOURCE_WIDTH, 100,
+	SCREEN_BLIT_SOURCE_HEIGHT, 100,
+	SCREEN_BLIT_DESTINATION_X, 10,
+	SCREEN_BLIT_DESTINATION_Y, 10,
+	SCREEN_BLIT_DESTINATION_WIDTH, 100,
+	SCREEN_BLIT_DESTINATION_HEIGHT, 100,
+	SCREEN_BLIT_TRANSPARENCY, SCREEN_TRANSPARENCY_SOURCE_OVER,
+	SCREEN_BLIT_END
+};
+screen_blit(screen_ctx, screen_buf[0], screen_pbuf, hg);	
+...
+            </pre>
+			<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p"> Note that both <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> and <a class="xref" href="../screen_fill.html" title="Fill an area of a specified buffer"><span class="keyword apiname">screen_fill()</span></a> may not execute immediately
+					(See the <a class="xref" href="rscreen_delayed_execution.html" title="Delayed execution functions queue the command so that it can be batch-processed later."><q class="q">Delayed
+						execution</q></a> section of this guide). </p>
+
+				<p class="p"> Therefore, you could still encounter an error when you actually trigger the blit
+					or fill operation even though calls to these functions are successful. </p>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Trigger blit or fill operations</h2>
+			
+			<p class="p">
+				 So up until this point, you've requested several fill and blit
+				operations, but you need to trigger the actual blit or fill. Do so by calling either
+					<a class="xref" href="../screen_flush_blits.html" title="Flush all the blits issued"><span class="keyword apiname">screen_flush_blits()</span></a> or <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>. </p>
+
+			<pre class="pre codeblock">...
+screen_post_window(screen_win, screen_buf[0], 1, rect, 0);
+...
+            </pre>
+		</div>
+
+		
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering-hardware.html" title="Applications use the target hardware's GPU to perform rendering operations with Khronos rendering API calls, or use blitting with the native Screen API function calls.">Hardware Rendering</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Supported third-party applications and protocols" />
+<meta name="abstract" content="The USB launcher service supports third-party applications and protocols used by a variety of devices. To work with these devices, the service can probe them for protocol support and request that they switch to another personality." />
+<meta name="description" content="The USB launcher service supports third-party applications and protocols used by a variety of devices. To work with these devices, the service can probe them for protocol support and request that they switch to another personality." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="DC.relation" scheme="URI" content="../topic/usblauncher_otg.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="usblauncher_supported_applications" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Supported third-party applications and protocols</title>
+</head>
+<body id="usblauncher_supported_applications">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Supported third-party applications and protocols</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> The USB launcher service supports third-party applications and protocols used by a
+        variety of devices. To work with these devices, the service can probe them for protocol
+        support and request that they switch to another personality. </p>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            <p class="p">The probing of protocol support can be automated through the USB launcher service or
+                manually done by a service or application after it reads a device's information
+                through RMPS and decides to use the device for a certain purpose. Publishing device
+                information and probing for protocol support prolongs the time from when a
+                smartphone is connected to when its UI appears on the target's display, but even
+                with the expected latency increase, vendor certification can still be achieved with
+                the target system.</p>
+
+            <p class="p">The design principle here is that <span class="keyword cmdname">usblauncher_otg</span> or another
+                process can decide if it wants to use a device's projection technology.</p>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Android Open Accessory</h2>
+            
+            
+            
+            <p class="p"> Some Android applications, such as Android Auto, require the device to run the
+                Android Open Accessory (AOA) protocol. To get the device to do this, you must
+                confirm that it supports this protocol and if necessary, request that it enable the
+                AOA modes you want to use. </p>
+
+            <p class="p"> To learn whether a device supports AOA, you must define the <tt class="ph tt">AOA</tt> table in
+                the configuration, which makes the USB launcher service probe the device for its AOA
+                support when the device is attached. If AOA support is confirmed, the <tt class="ph tt">aoa</tt>
+                attribute is written to the RMPS device information object and contains the protocol
+                version (e.g., <tt class="ph tt">aoa::2</tt>). The service works with AOA versions 1 and 2. </p>
+
+            <p class="p"> The <tt class="ph tt">AOA</tt> table can contain only the <tt class="ph tt">blacklist</tt> rule, which specifies
+                the devices to ignore during probing. You still must define the table (even if it's
+                empty) if you want to probe any devices. </p>
+
+            <pre class="pre">
+AOA = {
+    blacklist = {
+        { vid = 0x05ac; }; -- Any Apple device
+        { vid = 0x0781; did = 0x5530 }; -- SanDisk Cruzer
+        { vid = 0x04e8; did = 0x5091 }; -- Samsung YP-S3 media player
+    };
+}
+</pre>
+
+            <p class="p"> Some devices misbehave when probed for AOA support. In this example, we specify the
+                vendor ID for Apple devices because there's no need to probe them for AOA support.
+                In the remaining list entries, we use both the vendor ID (<tt class="ph tt">vid</tt>) and device
+                ID (<tt class="ph tt">did</tt>) to list other devices that we don't want to probe. </p>
+
+            <p class="p"> To request that a device enable AOA, a process external to
+                    <span class="keyword cmdname">usblauncher_otg</span> must monitor updates to the RMPS device
+                information object. When
+                it reads the <tt class="ph tt">aoa</tt> attribute, the process must write the <a class="xref" href="usblauncher_device_ctrl.html#usblauncher_device_ctrl_pps__start_aoa"><tt class="ph tt">start_aoa</tt></a> command to the device control object, requesting
+                the AOA modes it wants to enable.  The process can check whether the command succeeded by reading the
+                    <a class="xref" href="usblauncher_device_ctrl.html#usblauncher_device_ctrl_pps__last_cmd"><tt class="ph tt">last_cmd</tt></a> attribute from that same object. If it finds that
+                the command failed, the process can examine the execution details stored in that
+                attribute, take corrective action, and reissue the command. </p>
+
+            <div class="p"> When the device receives the AOA request, it becomes temporarily invisible on the
+                USB port but then, after enabling the requested AOA modes, reappears as a new device
+                with a different vendor ID and product ID. Any drivers that were already running
+                (e.g., MTP) are terminated and not restarted. There is no default driver to run for
+                communicating with devices over AOA because applications that use this protocol are
+                custom applications that need custom drivers. In <span class="ph filepath">rules.lua</span>, we
+                provide a sample matching rule as a placeholder: <pre class="pre">
+product(0x18d1, 0x2d00, 0x2d05) { -- Google AOA
+    interface(0) {
+        custom = function(obj)
+            if obj.EXTRA and obj.EXTRA:find('aoa::') then
+                return "echo AOA busno=$(busno),devno=$(devno)";
+            else
+                return "echo Error - AOA probe failed\z
+                        busno=$(busno),devno=$(devno)";
+            end
+        end;
+        driver"$(custom)";
+    };
+};
+</pre>
+
+            </div>
+
+            <p class="p"> This matching rule applies to devices running AOA. The rule contains a function that
+                reads the <tt class="ph tt">aoa</tt> attribute and echoes the device information. In your
+                configuration, you need to replace this with a suitable driver-launching command. If
+                the attribute isn't found (which means the second probe for AOA support failed), the
+                function prints an error message. This second probing is done when the device
+                reappears on the USB bus with its AOA personality. Although unlikely, it's possible
+                that this additional probe will fail, so it's good practice to handle the error.
+            </p>
+
+        </div>
+
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/usblauncher_otg.html" title="The USB launcher service (usblauncher_otg) processes USB device attachments and detachments, launches drivers for communicating with devices, and publishes device information through RMPS. The service can also force a re-enumeration of a device, by resetting it or by requesting it to disconnect and change its personality.">The USB Launcher Service</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="System monitoring using secpolgenerate" />
+<meta name="abstract" content="In addition to development tasks, you can use secpolgenerate in a secure, deployed system to detect errors." />
+<meta name="description" content="In addition to development tasks, you can use secpolgenerate in a secure, deployed system to detect errors." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>System monitoring using secpolgenerate</title>
+</head>
+<body id="bluetooth_client_api">
+
+  <h1 class="title topictitle1" id="ariaid-title1">System monitoring using <span class="keyword cmdname">secpolgenerate</span></h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc"> In addition to development tasks, you can use <span class="keyword cmdname">secpolgenerate</span> in a
+    secure, deployed system to detect errors.</p>
+
+    <p class="p">
+    </p>
+
+    <p class="p"> Ideally, <span class="keyword cmdname">secpolgenerate</span> starts like any other service with its own type.
+      When it is used for monitoring instead of policy generation, it runs after the security policy
+      is pushed to <span class="keyword cmdname">procnto</span> instead of before (that is, after
+        <span class="keyword cmdname">secpolpush</span> runs). For example, start it using the following command:</p>
+
+    <pre class="pre codeblock">on -T secpolgen_t -u 40 secpolgenerate</pre>
+    <p class="p">When <span class="keyword cmdname">secpolgenerate</span> runs this way (<span class="keyword cmdname">on</span> starts
+        <span class="keyword cmdname">secpolgenerate</span> without <span class="keyword option">-t</span> or <span class="keyword option">-u</span>), it
+      does not attempt to modify the existing policy but instead simply monitors system activity and
+      reports any errors in <span class="ph filepath">/dev/secpolgenerate/errors</span>.</p>
+
+    <p class="p">Although this technique requires security policy rules for <tt class="ph tt">secpolgen_t</tt>,
+        <span class="keyword cmdname">secpolgenerate</span> can't provide them because it can't monitor its own usage
+      until it starts, and after it has started it is too late to monitor its usage. The following
+      rules are the minimum set that is required:</p>
+
+    <pre class="pre codeblock">type secpolgen_t;
+allow secpolgen_t self:ability {
+    nonroot
+    pathspace
+    mem_phys
+    prot_exec
+    interrupt:2147418112
+    io
+    trace
+    map_fixed
+    public_channel
+};
+allow_attach secpolgen_t /dev/secpolgenerate/...;
+allow_attach secpolgen_t /dev/name/local/_tracelog;
+    </pre>
+    <p class="p">If any shared objects required by <span class="keyword cmdname">secpolgenerate</span> are located outside of
+      the IFS, you may have to add other abilities to these rules (e.g., if the security type for
+      the filesystem is <tt class="ph tt">devb_t</tt>, add <tt class="ph tt">channel_connect: devb_t</tt>) . Once
+        <span class="keyword cmdname">secpolgenerate</span> is running, you can look at
+        <span class="ph filepath">/dev/secpolgenerate/errors</span> to determine any further abilities it
+      needs.</p>
+
+  </div>
+
+</body>
+</html>

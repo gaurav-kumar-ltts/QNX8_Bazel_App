@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using the Receive Buffer as a Reply Buffer" />
+<meta name="abstract" content="When building a response to a client request, you often need a temporary buffer in which to build this response." />
+<meta name="description" content="When building a response to a client request, you often need a temporary buffer in which to build this response." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="using_receive_buffer_for_reply" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using the Receive Buffer as a Reply Buffer</title>
+</head>
+<body id="using_receive_buffer_for_reply">
+
+<h1 class="title topictitle1" id="ariaid-title1">Using the Receive Buffer as a Reply Buffer</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When building a response to a client request, you often need a temporary buffer in which to build this response.
+</p>
+
+<div class="p">
+    Using the <dfn class="term">receive buffer</dfn>, <var class="keyword varname">ctp-&gt;msg</var>, can be a convenient choice because:
+    <ul class="ul">
+        <li class="li">It does not require allocating or freeing</li>
+
+        <li class="li">It is local to the thread doing the work</li>
+
+        <li class="li">Unlike a stack buffer, it is valid after a return from the function, which is important if the library
+        replies on your behalf (e.g., by returning <span class="keyword apiname">_RESMGR_PTR()</span>)</li>
+
+    </ul>
+
+</div>
+
+<div class="p">
+    The <var class="keyword varname">ctp-&gt;msg</var> buffer has <var class="keyword varname">ctp-&gt;msg_max_size</var> bytes of space available in which to build
+    this response. The default value is a bit more than <span class="keyword const">2KiB</span>. If you find you need more, you can configure a larger
+    receive buffer at initialization by setting the <span class="keyword parmname">msg_max_size</span> field in the <span class="keyword dtype">resmgr_attr_t</span> structure
+    given to <span class="keyword apiname">resmgr_attach()</span>.
+    <div class="note"><span class="notetitle">Note:</span> 
+        When you're handling parts of combine messages that are not the last part of the message (i.e., when
+        <span class="ph codeph">ctp-&gt;rcvid == 0</span>), you are not allowed to reply, and should not touch the receive buffer at all.
+    </div>
+
+</div>
+
+<div class="p">While using the receive buffer as your reply buffer, you should:
+    <ul class="ul">
+        <li class="li">Make sure to extract any information you need from the receive buffer before overwriting it. For example, if you
+            need the client's number of bytes (<var class="keyword varname">msg-&gt;i.nbytes</var> in several cases), store that value before
+            you overwrite it. Some resource manager library helper functions (e.g., <span class="keyword apiname">iofunc_stat()</span> or
+            <span class="keyword apiname">resmgr_msgget()</span>) also examine or extract data from the receive buffer, and should not be used
+            after you have modified the contents of the buffer.</li>
+
+        <li class="li">Take care to not exceed your available space. Take special caution when assembling a response from multiple parts with variable
+            size, such as when assembling a path for a symbolic link reply or when building a list of directory entries in response to a
+            <span class="keyword apiname">readdir()</span> request.</li>
+
+        <li class="li">Remember that while many of the message types provide a <var class="keyword varname">msg-&gt;o</var> entry in their union for building
+            a response, you should always use <var class="keyword varname">ctp-&gt;msg</var> to have the full receive buffer available. If you're
+            handling later messages in a combine message, the <var class="keyword varname">msg-&gt;o</var> may be pointing arbitrarily close to the end
+            of your receive buffer, not giving you the space you expect.</li>
+
+    </ul>
+
+</div>
+
+</div>
+
+</body>
+</html>

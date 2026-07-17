@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Initialize the dispatch interface" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_SIMPLE_ST_EG.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="InitDispatchInterface" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Initialize the dispatch interface</title>
+</head>
+<body id="InitDispatchInterface">
+
+<h1 class="title topictitle1" id="ariaid-title1">Initialize the dispatch interface</h1>
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">/* initialize dispatch interface */
+dpp = dispatch_create_channel(-1, DISPATCH_FLAG_NOLOCK);
+if(dpp == NULL) {
+   fprintf(stderr, "%s: Unable to allocate dispatch handle.\n", argv[0]);
+   return EXIT_FAILURE;
+}
+</pre>
+
+<p class="p">
+
+
+
+We need to set up a mechanism so that clients can send messages to the resource manager. 
+This is done via
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_create_channel.html"><span class="keyword apiname">dispatch_create_channel()</span></a>,
+which creates and returns the dispatch structure. 
+You can pass it the ID of an existing channel to use, or -1 if you want it to create a channel for you.
+(There's also a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_create.html"><span class="keyword apiname">dispatch_create()</span></a>
+function that's equivalent to calling <span class="keyword apiname">dispatch_create_channel()</span>
+with a channel ID of -1 and no flags.)
+The channel ID is stored in the dispatch structure.
+</p>
+
+
+<p class="p">
+
+
+The <span class="keyword const">DISPATCH_FLAG_NOLOCK</span> flag says that the mapping of message types to handlers is static
+after initialization, so the lookup can omit locking to be more efficient;
+for more information, see 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_create_channel.html"><span class="keyword apiname">dispatch_create_channel()</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+Most resource managers can use this flag.
+</p>
+
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+In order to register a prefix in the pathname space,
+a resource manager must have the <span class="keyword const">PROCMGR_AID_PATHSPACE</span> ability enabled.
+In order to create a public channel (i.e., <em class="ph i">without</em> <span class="keyword const">_NTO_CHF_PRIVATE</span> set),
+your process must have the <span class="keyword const">PROCMGR_AID_PUBLIC_CHANNEL</span> ability enabled.
+For more information, see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>.
+</div>
+
+
+<p class="p">
+
+The dispatch structure (of type <span class="keyword dtype">dispatch_t</span>) is opaque; you can't access its contents directly.
+Use <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/message_connect.html"><span class="keyword apiname">message_connect()</span></a>
+to create a connection using this hidden channel ID.
+</p>
+
+
+<div class="p">Alternatively, you can initialize a resource manager using a channel with a pulse pool.
+For example: 
+<pre class="pre codeblock">/* create a channel with a pulse pool */
+const int channel_id = ChannelCreatePulsePool(flags, &amp;config);
+if(channel_id == -1) {
+   fprintf(stderr, "Unable to allocate channel\n");
+   exit(EXIT_FAILURE);
+}
+
+/* pass in the channel ID */
+dispatch_t* const dpp = dispatch_create_channel(channel_id, DISPATCH_FLAG_NOLOCK);
+if(dpp == NULL) {
+   fprintf(stderr, "Unable to allocate dispatch handle.\n");
+   exit(EXIT_FAILURE);
+}
+</pre>
+</div>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton_SIMPLE_ST_EG.html">Single-threaded device resource manager</a></div>
+</div>
+</div></body>
+</html>

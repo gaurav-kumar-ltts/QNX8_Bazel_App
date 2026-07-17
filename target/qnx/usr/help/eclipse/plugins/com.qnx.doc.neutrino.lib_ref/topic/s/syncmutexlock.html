@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="SyncMutexLock(), SyncMutexLock_r()" />
+<meta name="abstract" content="Lock a mutex synchronization object" />
+<meta name="description" content="Lock a mutex synchronization object" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_mutex_unlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/synctypecreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/synctypedestroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/syncmutexunlock.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="syncmutexlock" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>SyncMutexLock(), SyncMutexLock_r()</title>
+</head>
+<body id="syncmutexlock">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">SyncMutexLock()</span>, <span class="keyword apiname">SyncMutexLock_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Lock a mutex synchronization object</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int SyncMutexLock( sync_t * <var class="keyword varname">sync</var> );
+
+int SyncMutexLock_r( sync_t * <var class="keyword varname">sync</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">sync</var></dt>
+
+<dd class="dd">A pointer to the synchronization object for the mutex that you want to lock.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+
+The <span class="keyword apiname">SyncMutexLock()</span> and <span class="keyword apiname">SyncMutexLock_r()</span> 
+kernel calls try to lock the
+mutex synchronization object <var class="keyword varname">sync</var>. If the mutex isn't
+currently locked, the call returns immediately with the object
+locked. The mutex is considered unlocked if the owner field of
+<var class="keyword varname">sync</var> is zero. Otherwise, the owner field of <var class="keyword varname">sync</var>
+is treated as the thread ID of the current owner of the mutex.
+</p>
+
+
+<p class="p">
+These functions are similar, except for the way they indicate errors.
+See the <a class="xref" href="#syncmutexlock__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Don't use the SyncMutexLock() or SyncMutexLock_r() kernel call directly; instead, use the
+POSIX functions for mutexes (see <a class="xref" href="../p/pthread_mutex_lock.html" title="Lock a mutex"><span class="keyword apiname">pthread_mutex_lock()</span></a>).
+</div>
+
+
+<p class="p">
+If the mutex is already locked, the calling thread blocks on
+<var class="keyword varname">sync</var> until it's unlocked by the owner. If more than one
+thread is blocked on <var class="keyword varname">sync</var> they're queued in priority order.
+</p>
+
+
+<p class="p">
+If the priority of the blocking thread is higher than the thread
+that owns the mutex, the owner's priority is boosted to match that
+of the caller. In other words, the owner inherits the caller's
+priority if it's higher. If the owner's priority is boosted, it
+returns to its previous value before any boosts when the mutex is
+unlocked. Note that the owner may be boosted more than once as higher
+priority threads block on <var class="keyword varname">sync</var>.
+For more information, see
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Mutexes.html">Mutexes: mutual exclusion locks</a></q>
+in the <span class="keyword">IDE</span> Microkernel chapter of the
+<cite class="cite">System Architecture</cite> guide.
+</p>
+
+
+<p class="p">
+If a thread is boosted via this mechanism and subsequently changes
+its own priority, that priority takes immediate effect and also
+becomes the value it's returned to after it releases the mutex.
+</p>
+
+
+<p class="p">
+Waiting for a mutex isn't a cancellation point. If a signal is
+delivered to the thread while waiting for the mutex, the signal handler
+runs and, upon return from the handler, the thread resumes
+waiting for the mutex as if it wasn't interrupted.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Avoid timeouts on mutexes.  Mutexes should be locked for brief
+periods of time, eliminating the need for a timeout.
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">sync</var> argument must have been initialized by a call to
+<a class="xref" href="synctypecreate.html" title="Create a synchronization object"><span class="keyword apiname">SyncTypeCreate()</span></a>
+or have been statically initialized by the manifest <span class="keyword const">PTHREAD_MUTEX_INITIALIZER</span>.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">STATE_MUTEX</span></dt>
+
+<dd class="dd">The calling thread blocks waiting for the synchronization object to be unlocked.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section" id="syncmutexlock__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The only difference between these functions is the way they indicate errors:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword apiname">SyncMutexLock()</span></dt>
+
+<dd class="dd">If an error occurs, the function returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.
+  Any other value returned indicates success.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">SyncMutexLock_r()</span></dt>
+
+<dd class="dd">Returns <span class="keyword const">EOK</span> on success.
+  This function does <strong class="ph b">NOT</strong> set <var class="keyword varname">errno</var>.
+  If an error occurs, this function returns any value listed in the Errors section.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred when the kernel tried to access the buffers you provided.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">One of the following occurred:
+
+  <ul class="ul">
+    <li class="li">The mutex was created with a protocol attribute of <span class="keyword const">PTHREAD_PRIO_PROTECT</span>, 
+     and the calling thread's priority is higher than the mutex's current priority ceiling.</li>
+
+    
+  <li class="li">The synchronization ID specified in <var class="keyword varname">sync</var> doesn't exist.</li>
+
+
+  <li class="li">You're using safe shared mutexes (see the <span class="keyword option">-s</span> option for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>), and you tried to lock a
+                  <span class="keyword const">PTHREAD_PRIO_INHERIT</span> mutex whose owner isn't known to the kernel
+                and that the locking thread claims is from a different process. </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EOWNERDEAD</span></dt>
+
+<dd class="dd">The owner of the lock died while holding it.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ETIMEDOUT</span></dt>
+
+<dd class="dd">A kernel timeout unblocked the call.
+  See
+  <a class="xref" href="../t/timertimeout.html" title="Set a timeout on a blocking state"><span class="keyword apiname">TimerTimeout()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d972210e413">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d972210e415"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e413 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e415 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e413 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e415 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e413 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d972210e415 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_lock.html" title="Lock a mutex">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_mutex_unlock.html" title="Unlock a mutex">pthread_mutex_unlock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/synctypecreate.html" title="Create a synchronization object">SyncTypeCreate(), SyncTypeCreate_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/synctypedestroy.html" title="Destroy a synchronization object">SyncTypeDestroy(), SyncTypeDestroy_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/syncmutexunlock.html" title="Unlock a mutex synchronization object">SyncMutexUnlock(), SyncMutexUnlock_r()</a></li></ul></div>
+</div></body>
+</html>

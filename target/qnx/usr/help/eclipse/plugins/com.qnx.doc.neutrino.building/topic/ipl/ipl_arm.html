@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="ARM IPLs" />
+<meta name="abstract" content="IPLs for ARM are board-specific. This means that a great deal of work is usually required to adapt an IPL written for one ARM board so it can be used on another ARM board." />
+<meta name="description" content="IPLs for ARM are board-specific. This means that a great deal of work is usually required to adapt an IPL written for one ARM board so it can be used on another ARM board." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_arm" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ARM IPLs</title>
+</head>
+<body id="ipl_arm">
+
+	<h1 class="title topictitle1" id="ariaid-title1">ARM IPLs</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">IPLs for ARM are board-specific. This means that a great deal of work is usually
+		required to adapt an IPL written for one ARM board so it can be used on another ARM board.
+	</p>
+
+		<p class="p">QNX develops IPLs for the ARM platforms it supports and provides the source code and
+			binaries in its BSPs for these platforms.</p>
+
+		<div class="section"><h2 class="title sectiontitle">About ARM IPLs</h2>
+			
+			
+			
+			
+			<p class="p">Most ARM boards have a small segment of ROM code built directly into their SoC.
+				Unlike with the initialization firmware on x86 boards, you can't modify or update this
+				ROM code—all changes must be made in software. Typically, this ROM code does
+				only minimal hardware initialization before handing control to software (an IPL).</p>
+
+			<p class="p">IPLs for ARM boards are in two parts. Both IPL parts are stored in the same location
+				on the boot device. The first part is written in assembly, typically in a
+				<span class="ph codeph">_start</span> routine. The second part is written in C.
+				Since an ARM IPL is board-specific, its source code files are usually
+				included in the BSP. The <span class="keyword cmdname">make</span> process used to create the BSP
+				compiles the customized source code from the BSP directories.</p>
+
+			<p class="p">Some boards include the U-Boot boot loader, which you can use instead of a QNX IPL,
+				especially during the initial stages of a project when just getting a system booted
+				and running is more important that optimizing boot times.</p>
+
+		</div>
+
+		<div class="section" id="ipl_arm__init"><h2 class="title sectiontitle">Initializations</h2>
+			
+			
+			
+			
+			
+			<div class="p">The name of the first part of an ARM IPL usually begins with <span class="ph codeph">init</span>.
+				Written in assembly, it looks after hardware initializations. These tasks may include:
+				<ul class="ul">
+					<li class="li">configuring the chip selects and/or the PCI controller, the clocks, and the
+						memory controller</li>
+
+					<li class="li">setting Power Management IC (PMIC) voltage rails via I2C</li>
+
+					<li class="li">setting GPIO pins to control reset pins</li>
+
+					<li class="li">configuring a timer to accurately measure delays</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">When it completes its initializations and the system DRAM is available, the assembly
+				code sets up a stack. The stack allows the second part of the IPL (the
+				<span class="keyword apiname">main()</span> function) to get, validate, and load the IFS.</p>
+
+			<div class="p">Depending on what the board firmware and the assembly part of the IPL manage,
+				the <span class="keyword apiname">main()</span> function may have to complete the initialization tasks
+				that the assembly part didn't complete. These can include
+				anything from setting clocks to initializing the debug output; for example:
+<pre class="pre codeblock">int main(int argc, char **argv, char **envv)
+{
+    ...
+    /* Initialize debugging output */
+    select_debug(debug_devices, sizeof(debug_devices));
+
+     /* Initialize Timer-related information */
+    mx6sx_init_qtime();
+
+    /* Initialize Clocks (must happen after timer is initialized) */
+    mx6sx_init_clocks(); 
+    ...
+}</pre></div>
+
+		</div>
+
+		<div class="section" id="ipl_arm__prep"><h2 class="title sectiontitle">Preparing for startup</h2>
+			
+			
+			
+			
+			
+			
+			
+			<div class="p">The second part of an ARM IPL is written in C. The source file for this part of the IPL
+				is always called <span class="ph filepath">main.c</span> and it contains the
+				<span class="keyword apiname">main()</span> function. This function calls other functions to:
+				<ul class="ul">
+					<li class="li">Perform initializations not completed in the first part of the IPL</li>
+
+					<li class="li">Locate and prepare the bootable OS image (i.e., the IFS)</li>
+
+					<li class="li">Hand control to the startup code in the OS image</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Getting the OS image</h2>
+			
+			<div class="p">After it completes required initializations, the <span class="keyword apiname">main.c</span> function gets
+				the IFS and copies it into RAM. This step may involve a variety of scenarios, including:
+				<ul class="ul">
+					<li class="li">Using eXecute In Place (XIP), if the OS image is on linearly mapped media and not
+						compressed.</li>
+
+					<li class="li">Copying the entire IFS into RAM, if the OS image is on non-linearly mapped media,
+						it's compressed, or both.</li>
+
+					<li class="li">Calling a function (e.g., an
+						<a class="xref" href="../ipl_lib/image_download_8250.html" title="Download an OS image"><span class="keyword apiname">image_download_*()</span></a> function)
+						to download the OS image and copy it into RAM.</li>
+
+					<li class="li">Making the copying of the IFS into RAM the responsibility of the startup code,
+						and doing only the minimum needed to allow the startup code to run.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> Using the startup code to copy the IFS into RAM is particularly useful for systems
+				that must complete specific tasks within very strict time limits. For example, an
+				automotive system that needs to start communication with the CAN Bus or launch a
+				rearview camera within <em class="ph i">n</em> milliseconds. The IPL can copy only the minimum
+				required for the startup, which then takes the shortest possible route to get the
+				required software launched, while copying the full IFS into RAM in the background (see
+				the <em class="ph i"><a class="xref" href="../../../com.qnx.doc.neutrino.fastboot/topic/fb_about.html">Boot Optimization Guide</a></em>).</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Selecting the bootable image — <span class="keyword apiname">image_scan()</span></h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">If the OS image is on a linearly mapped device and not compressed, the IPL can use XIP
+				to execute the startup code before copying the image into RAM. In all other cases,
+				or if you don't want to use XIP, you need to copy the image into RAM before scanning it
+				for OS image signatures.</p>
+
+			<div class="p">When the OS image is in a location where it can execute (RAM, or linearly mapped storage
+				for XIP), the <span class="keyword apiname">main()</span> function passes the
+				<a class="xref" href="../ipl_lib/image_scan.html" title="Scan memory for a valid system image"><span class="keyword apiname">image_scan()</span></a> function a
+				start address and an end address to search in memory for valid OS image signatures (see
+				<q class="q"><a class="xref" href="ipl_image_storage.html#ipl_image_storage__validate">Image validation</a></q> in this chapter).
+				For instance, the following code returns the start address of an OS image on a linearly
+				mapped device:
+<pre class="pre codeblock">/* Image is located at 0x2840000 */
+image = image_scan(0x2840000, 0x2841000);</pre></div>
+
+			<p class="p">If <span class="keyword apiname">image_scan()</span> finds one or more OS images within the specified
+				address range, it returns the start address of the newest bootable image.
+				If a valid image can't be found, <span class="keyword apiname">image_scan()</span> returns -1.</p>
+
+			<div class="p">The function doesn't have a specific recovery strategy to use if it doesn't find a
+				valid image. Implementing a recovery mechanism is up to the code in
+				<span class="keyword apiname">main()</span>. Possible strategies include:
+				<ul class="ul">
+					<li class="li">Using a primary IFS and secondary IFS. If the primary IFS fails, call
+						<span class="keyword apiname">image_scan()</span> again, excluding the location of the primary IFS
+						from the scan so the function chooses the secondary IFS.</li>
+
+					<li class="li">Some boards may support keeping a secondary IFS on an alternative media device
+						(e.g., a small SPI NOR chip), and can be configured to fall back to this secondary
+						IFS if the primary one fails.</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Patching the startup header with the startup address — 
+				<span class="keyword apiname">image_setup()</span></h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">After <span class="keyword apiname">image_scan()</span> has found and validated an OS image, the IPL
+				<span class="keyword apiname">main()</span> function calls <a class="xref" href="../ipl_lib/image_setup.html" title="Copy the startup code and OS image into RAM and prepare it for execution"><span class="keyword apiname">image_setup()</span></a> to examine the startup header structure,
+				then patches its <span class="keyword dtype">startup_vaddr</span> member with the address to
+				which the IFS has been copied into RAM.</p>
+
+			<div class="p">The startup code is responsible for copying the IFS to its final destination in RAM,
+				but the startup code can't have knowledge of paged devices (e.g., serial, disk,
+				parallel, network). With these devices, the <span class="keyword apiname">main()</span> function must
+				copy the image to a location that's <em class="ph i">linearly accessible</em> by the startup code:
+				<ul class="ul">
+					<li class="li">If the image is not compressed, then the IPL can copy it from the paged
+						device directly to its final location in RAM. The startup code compares the
+						addresses and realizes that the image doesn't need to be copied to a temporary
+						location.</li>
+
+					<li class="li">If the image is compressed, then the IPL must copy it to a temporary location,
+						from which the startup code can extract it to its final location in RAM.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">When <span class="keyword apiname">image_setup()</span> returns, the startup code should be in RAM
+				(where it can execute), and the address of the OS image should be in the
+				<a class="xref" href="ipl_startup_header.html" title="The startup header (or boot header) structure is defined in startup.h."><span class="keyword dtype">startup_header</span></a>
+				structure's <a class="xref" href="ipl_startup_header.html#ipl_startup_header__startup_vaddr"><span class="keyword dtype">startup_vaddr</span></a> member.</p>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">
+				<p class="p">When copying a compressed image into RAM, make sure you leave enough room for
+					the entire extracted image between its final start address and the temporary
+					location. If there is insuffcient room, you may extract the image onto itself, with
+					unpredictable (and likely undesirable) results.</p>
+
+				<p class="p">Remember that if you add or change components, the image size may change. Check your
+					arithmetic.</p>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Jumping to the startup entry point — <span class="keyword apiname">image_start()</span></h2>
+			
+			
+			<p class="p">After the part of the OS image needed for the boot process has been copied into RAM,
+				the <span class="keyword apiname">main()</span> function calls
+				<a class="xref" href="../ipl_lib/image_start.html" title="Jump to the bootable OS image start point"><span class="keyword apiname">image_start()</span></a>.
+				This latter function jumps to the startup's entry point, which is the address stored in
+				the startup header's <span class="keyword dtype">startup_vaddr</span> member.
+				At this point, the IPL's work is done, and the
+				startup code takes over.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

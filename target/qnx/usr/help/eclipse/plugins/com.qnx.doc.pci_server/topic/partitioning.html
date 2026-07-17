@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Partitioning" />
+<meta name="abstract" content="The partitioning functionality extends the use of &#34;pci_db&#34;, &#34;pci_hw&#34;, and namespace node to provide separation between multiple single pci-server instances and allows some of the benefits afforded by multiple resource managers." />
+<meta name="description" content="The partitioning functionality extends the use of &#34;pci_db&#34;, &#34;pci_hw&#34;, and namespace node to provide separation between multiple single pci-server instances and allows some of the benefits afforded by multiple resource managers." />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/hierarchy.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="backward_compat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Partitioning</title>
+</head>
+<body id="backward_compat">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Partitioning</h1>
+
+    
+    
+    
+    <div class="body conbody"><p class="shortdesc">The partitioning functionality extends the use of  "pci_db", "pci_hw", and namespace node
+        to provide separation between multiple single <span class="keyword cmdname">pci-server</span> instances and
+        allows some of the benefits afforded by multiple resource managers. </p>
+
+        <p class="p">You can partition to separate the four segment hierarchies of the example system shown in
+            Figure 3 in the <a class="xref" href="terminology.html" title="The following terminology can be used to describe the hierarchy of PCI devices.">Terminology</a> section and enable the
+            use of multiple <span class="keyword cmdname">pci-server</span> instances. </p>
+
+        <div class="note"><span class="notetitle">Note:</span> It is important to understand that the partitioning and segmentation functionality is
+            facilitated entirely by the hardware module for the platform. If the hardware module
+            does not support this functionality, it will not be possible to use it. Starting
+            multiple <span class="keyword cmdname">pci-server</span> instances in separate partitions will result
+            in undefined behavior.</div>
+
+        <p class="p">You can use partitioning to separate one of the segments from the other three in systems such
+            as the ones shown in Figure 2 and Figure 3 in <a class="xref" href="terminology.html" title="The following terminology can be used to describe the hierarchy of PCI devices.">Terminology</a>. You can use the <span class="keyword envar">PCI_PARTITION_NAME</span> environment
+            variable is used to create and associate with a specific partition.</p>
+
+        <p class="p">Assume there is a hardware module that supports partitioning and the four root ports are
+            identified by the hardware module as <span class="ph codeph">PCIe0</span> through
+            <span class="ph codeph">PCIe3</span> respectively. For explicitly creating partitions, you must
+            make sure that each of these partitions is named uniquely such that "pci_db", "pci_hw"
+            and the namespace node for the <span class="keyword cmdname">pci-server</span> instance are all located at
+            a unique location within the namespace.</p>
+
+        <div class="note"><span class="notetitle">Note:</span> You have to decide the partitioning scheme and ensure that the
+            <span class="keyword cmdname">pci-server</span> instances managing the segments within those separate
+            partitions are properly configured.</div>
+
+        <div class="p">As an example the hierarchy is partitioned as follows: <ul class="ul">
+            <li class="li"> Partition 1 <ul class="ul">
+                <li class="li">Name: “pcie_0_2_part” </li>
+
+                <li class="li">Number of <span class="keyword cmdname">pci-server</span> instances: 1</li>
+
+                <li class="li">Description: The three segment hierarchies rooted at PCI controllers
+                    <span class="ph codeph">PCIe0</span> through <span class="ph codeph">PCIe2</span> will be
+                    associated with the same partition and share a global BDF space
+                    specified by <span class="ph codeph">B[255..0]:D[31..0]:F[7..0]</span>. However, the
+                    use of this space will be sparse.</li>
+
+            </ul>
+</li>
+
+            <li class="li"> Partition 2 <ul class="ul">
+                <li class="li">Name: “pcie_3_part” </li>
+
+                <li class="li">Number of <span class="keyword cmdname">pci-server</span> instances: 1</li>
+
+                <li class="li">Description: The segment hierarchy rooted at <span class="ph codeph">PCIe3</span> will
+                    be associated with its own partition and have its own BDF space
+                    specified by <span class="ph codeph">B[255..0]:D[31..0]:F[7..0]</span>.</li>
+
+            </ul>
+</li>
+
+        </ul>
+</div>
+
+        <p class="p">In a single partition, single <span class="keyword cmdname">pci-server</span> instance configuration, the
+            BDF space is necessarily global. To accommodate this across multiple segments, hardware
+            modules will typically assign a BDF or routing identifier to each of the root ports.</p>
+
+        <div class="p">The value of this BDF is typically selected to accommodate a “realistic” topology below
+            each of the root ports. For example, a realistic assignment of a BDF to each of the four
+            example root ports could be as follows: <ul class="ul" id="backward_compat__ul_ess_n4j_tyb">
+                <li class="li">Root Port #1: B0:D0:F0</li>
+
+                <li class="li">Root Port #2: B8:D0:F0</li>
+
+                <li class="li">Root Port #3: B16:D0:F0 </li>
+
+                <li class="li">Root Port #4: B24:D0:F0</li>
+
+            </ul>
+In this example, each segment hierarchy supports seven downstream bus numbers to
+            accommodate a hierarchy consisting of a couple of switch depths to fan out for multiple
+            endpoints. The actual assignments will be based on the system design. In embedded
+            systems in which the segment hierarchies may be fixed, the stride between root port BDF
+            assignments can be tightened to compress the BDF space to only what is necessary. </div>
+
+        <p class="p">In the case of partitioning, because the BDF space is partition global, it is possible to
+            reuse BDF in other partitions. This is effectively like adding another identifier to the
+            BDF tuple. Even though this expansion of the PCI Domain BDF space exists with
+            partitioning, it does not mean that the hardware module is required to support this.
+            Because the entire partitioning and segmentation functionality is facilitated by the
+            hardware module, the hardware module continues to provide the means, whether fixed or
+            configurable, on how BDF assignments to root ports will be done. If it chooses, it can
+            always ensure that these assignments are unique regardless of whether partitioning is
+            being used or not. The details of this BDF assignment are outside the scope of this
+            document and will be documented in the user information of each hardware module which
+            supports the partitioning and segmentation functionality. </p>
+
+        <div class="p">As for the two partition example, Figure 4 illustrates the relationship between the segment
+            hierarchies and the <span class="keyword cmdname">pci-server</span> instances which manage them. Each
+            <span class="keyword cmdname">pci-server</span> instance creates the 'pci_db', 'pci_hw' and the
+            namespace node names in their own unique portion of the name space based on the assigned
+            partition names. This allows for process separation between the two
+            <span class="keyword cmdname">pci-server</span> instances. <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Relationship between segment hierarchies and the pci-server instances</span>
+                <br /><div class="imagecenter"><img class="image imagecenter" src="../images/PCI_fig_4.svg" /></div><br /></div>
+
+            This example could be further extended to allow for each of the four segments to
+            be associated with its own partition with a single <span class="keyword cmdname">pci-server</span>
+            instance per partition.</div>
+
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hierarchy.html" title="Partitioning and segmentation provide flexibility in using the PCI subsystem, and specifically the pci-server. It provides the ability to achieve:">PCI Hierarchy: Partitioning and Segmentation</a></div>
+</div>
+</div></body>
+</html>

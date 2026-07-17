@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="At initialization" />
+<meta name="abstract" content="Issues at initialization time can be a result of problems in the drivers, or your graphics configuration." />
+<meta name="description" content="Issues at initialization time can be a result of problems in the drivers, or your graphics configuration." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_screen-debugging.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_degugging-init" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>At initialization</title>
+</head>
+<body id="cscreen_degugging-init">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        At initialization
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Issues at initialization time can be a result of problems in the drivers, or your graphics configuration.
+    </p>
+
+        <div class="section"><h2 class="title sectiontitle">Configuration</h2>
+            
+            
+
+            
+            <p class="p"><strong class="ph b">Configuration file</strong></p>
+
+            <p class="p">
+                Before starting <span class="keyword">Screen</span>, it's a good idea to check your configuration file
+                to make sure that it's what you expect it to be. For example, from a shell prompt on your target:
+            </p>
+
+            <p class="p">
+            </p>
+
+            <pre class="pre codeblock"># cat /usr/lib/graphics/imx6x/graphics.conf
+            </pre>
+            <p class="p">
+                You can usually find the configuration file, <span class="ph filepath">graphics.conf</span>, on your target under
+                <span class="ph filepath">/usr/lib/graphics/<var class="keyword varname">platform</var></span>, where <var class="keyword varname">platform</var>
+                is the name of your platform (e.g., imx6x). It's the file that's passed as the <span class="keyword option">-c</span>
+                when starting <a class="xref" href="rscreen_screen.html" title="Start Screen services"><span class="keyword cmdname">screen</span></a>.
+                
+            </p>
+
+            <p class="p">
+                If you're unsure what your <span class="ph filepath">graphics.conf</span> configuration should look like, refer to
+                <a class="xref" href="cscreen_technote_intro.html">Configuring <span class="keyword">Screen</span></a> for
+                more information.
+            </p>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">System logs</h2>
+            
+            <p class="p">
+                Look at the system logs after you've launched <a class="xref" href="rscreen_screen.html" title="Start Screen services"><span class="keyword cmdname">screen</span></a>,
+                and at least once after loading a BSP on your target to ensure that everything
+                started as expected. You can use the
+                <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/slog2info.html"><span class="keyword cmdname">slog2info</span></a>
+                command to check the system logs. You can view only graphics events by using the <span class="keyword option">-m</span>
+                option to specify the major code:
+            </p>
+
+            <pre class="pre codeblock">slog2info -m 8
+            </pre>
+
+            <p class="p">
+                Under normal circumstances you're not expected to find many error messages here with only the
+                initialization of <span class="keyword">Screen</span>. You'll need to check back here as applications
+                start.
+            </p>
+
+            <p class="p">
+                However, the lack of errors at startup doesn’t necessarily mean that graphics is up and running and
+                configured the way you think it should be.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle"><span class="keyword">Screen</span> resources</h2>
+            
+            <p class="p">
+                After you've confirmed your configuration file and your system logs, you can look at the files
+                under <span class="ph filepath">/dev/screen/</span> to verify that <span class="keyword">Screen</span> has
+                started correctly.
+            </p>
+
+            <p class="p">
+                To see all the resources created by <span class="keyword">Screen</span> so far, use this
+                command from a shell prompt on your target:
+            </p>
+
+            <pre class="pre codeblock"># ls /dev/screen/0
+            </pre>
+            <p class="p">
+                You'll see all the displays, any pixmaps that are used for cursor shapes, any windows or streams that
+                are used for framebuffers, or rotation buffers.
+            </p>
+
+            <p class="p">
+                You can access a snapshot of <span class="ph filepath">/dev/screen/</span>  through the <span class="ph filepath">/dev/screen/state.tar</span>
+                archive file. See the <a class="xref" href="cscreen_screen-debugging-app.html#cscreen_debugging-app__snapshot">
+                    Snapshot of <span class="ph filepath">/dev/screen/</span></a> section for more information.
+            </p>
+
+            <p class="p"><strong class="ph b">Displays</strong></p>
+
+            <p class="p">
+                Let's first look at the displays. There'll be one file for each display. The current internal state of
+                each display is serialized into text format. From your target, you can see the display configurations that
+                <span class="keyword">Screen</span>'s currently using by looking at the <span class="ph filepath">dpy-<var class="keyword varname">display_id</var></span>
+                file in <span class="ph filepath">/dev/screen/0/</span>. The values you see from this file are the values that are
+                currently used at the moment when you read the file.
+            </p>
+
+            For example:
+            <pre class="pre codeblock"># cat /dev/screen/0/dpy-2
+            </pre>
+            <p class="p">
+                The file will look something like this with some of the more important configuration values shown
+                in bold:
+            </p>
+
+            <pre class="pre codeblock">dpy-1/ctx-0/0(screen)
+=================================================
+id = __scrn-dpy-1-00000001-00000000000000000000000000000000
+id string =
+permissions = rwxrwxrwx--x--x--x--x---
+status = CREATED
+vendor = Qualcomm MultiMedia Systems
+renderer = Qualcomm Display Interface
+device id = 1
+port id = 1
+port type = internal
+technology = other
+WFD_QNX_egl_images = 1
+WFD_QNX_cbabc = 1
+WFD_QNX_bchs_filter = 0
+WFD_QNX_port_mode_info = 1
+WFD_QNX_vsync = 1
+WFD_QNX_writeback = 0
+WFD_QNX_port_brightness = 1
+WFD_QNX_port_color_profile = 0
+WFD_QNX_port_gamma_curve = 0
+WFD_QNX_pipeline_color_space = 1
+WFD_QNX_read_source_pixels = 0
+WFD_QNX_port_types = 1
+active = 1
+device_id = INTERNAL1
+video modes =
+*0 1920 x 720 @ 60 (progressive)
+video mode = 1920 x 720 @ 60 (progressive)
+native resolution = 1920 x 720
+physical size = 0 x 0
+color primaries = red(0, 0) green(0, 0) blue(0, 0) white(0, 0)
+detachable = 0
+protection requested = (none)
+protection enabled = DISPLAY_PROTECTION_NEXTERNAL
+rotation support = WFD_ROTATION_SUPPORT_NONE
+rotation mode = undefined
+rotation = 0, 0
+fill port area = 0
+destination = WFD_INVALID_HANDLE
+gamma range = [1 .. 1]
+gamma = 1
+aspect ratio = 0:0
+refresh = 0
+formats = RGB565 RGB888 RGBA8888 RGBX8888 NV12 UYVY YUY2 YVYU P010 RGBA1010102 RGBX1010102 BGRA1010102 BGRX1010102
+power mode = SCREEN_POWER_MODE_ON
+brightness = -1
+mirror mode = disabled
+viewport = (0,0 0x0)
+cbabc mode = WFD_PORT_CBABC_MODE_NONE_QNX
+updates = 0
+counter = 1
+priority = 15
+rebuild = 0
+splash = false
+defer-framebuffer-creation = true
+force-composition = false
+background color = 0xff000000
+transparent color = 0x00000000
+brightness = 0
+contrast = 1
+hue = 0
+saturation = 0
+idle timeout = 0
+idle state = not idle
+stream = (none)
+frame buffer = win-1/ctx-0/0(screen)
+rotation buffer = (none)
+cursor = auto
+cursor type = hardware
+cursor[arrow] = (none)
+cursor[keyboard] = (none)
+cursor[home] = (none)
+cursor[menu] = (none)
+cursor[none] = (none)
+cursor[hand] = (none)
+cursor[ibeam] = (none)
+cursor[wait] = (none)
+cursor[zoom-in] = (none)
+cursor[zoom-out] = (none)
+cursor[grab] = (none)
+cursor[grabbing] = (none)
+cursor[cross] = (none)
+cursor[move] = (none)
+cursor updates = 0
+window manager = (none)
+window manager mode = display
+composition module = (null) (not loaded)
+effect module = gles2 (not loaded)
+keep awakes = 0
+gesture focus = (none)
+joystick focus = (none)
+keyboard focus = (none)
+modifiers = (none)
+scene = (empty)
+strategy = WIN_RENDER_SKIP
+composition duration = nan ms (average over last 1 s)
+nan ms (average over last 3 s)
+nan ms (average over last 5 s)
+bypass = false - no windows or window buffers
+dirty = (none)
+windows = (none)
+sessions = (none)
+background = (0,0;1920,720)
+holes = (none)
+update mutex = 0x48e3743500
+update condvar = 0x48e3743508
+plane 0 {
+pipeline id = 15
+direct refresh = 1
+order = 2
+scale range = [1 .. 1]
+rotation support = WFD_ROTATION_SUPPORT_NONE
+format = SCREEN_FORMAT_RGBX8888
+layer = 2
+cursor = off
+source = (none)
+}
+plane 1 {
+pipeline id = 6
+direct refresh = 1
+order = 1
+scale range = [0.25 .. 20]
+rotation support = WFD_ROTATION_SUPPORT_NONE
+format = SCREEN_FORMAT_RGBX8888
+layer = 1
+cursor = off
+source = (none)
+}
+metrics.attach = 0
+metrics.power = 0
+metrics.idle = 0
+metrics.events = 0
+            </pre>
+            <p class="p"><strong class="ph b">Framebuffers</strong></p>
+
+            <p class="p">
+                Note that the example for this display has no framebuffer (<span class="ph codeph">frame buffer = (none)</span>)
+                immediately after initialization because of <span class="keyword">Screen</span>'s boot optimization
+                strategy. If you start an application that triggers the creation of a framebuffer, then you would see
+                that <span class="keyword">Screen</span> creates a framebuffer (e.g., <span class="ph filepath">win-1</span>). The
+                <span class="ph filepath">win-1</span> file in <span class="ph filepath">/dev/screen/0/win-1</span> shows the configurations of the
+                framebuffer that <span class="keyword">Screen</span>'s currently using. When you have an application
+                running, <span class="keyword">Screen</span> creates a directory for each window and stream, and each
+                of these directories contains files associated with the window and streams. Without any applications running, you
+                won't see the framebuffer directory.
+            </p>
+
+            <p class="p">
+                The values you see from this file are the values that are currently used at the moment when you
+                read the file.
+            </p>
+
+            <p class="p">For example, you can use this command from a shell prompt on your target:
+            </p>
+
+            <pre class="pre codeblock"># cat /dev/screen/0/win-1
+            </pre>
+            <p class="p">
+                The file will look something like this with some of the more important configuration values shown
+                in bold:
+            </p>
+
+            <pre class="pre codeblock">win-1/ctx-0/0(screen)
+=================================================
+id = screen-win-1-0000000e-45d451310638782e978a548c34787d13
+id string = framebuffer
+permissions = rwx--x--x--x--x--x--x---
+acl = (empty)
+display = dpy-2
+<strong class="ph b">status = VISIBLE</strong>
+<strong class="ph b">type = SCREEN_ROOT_WINDOW</strong>
+autonomous = 1
+references = 1
+window manager string =
+<strong class="ph b">pipeline id = 1</strong>
+parent = (none)
+children = (none)
+window above = (none)
+window below = (none)
+alternate window = (none)
+root window = (none)
+shadow = (none)
+reclip = 0
+updates = 0
+locked = 0
+valid = 0x00000044
+<strong class="ph b">class = framebuffer</strong>
+flags = WIN_FLAG_VISIBLE WIN_FLAG_FLOATING WIN_FLAG_FRAMEBUFFER
+<strong class="ph b">buffer size = 1280x720
+format = SCREEN_FORMAT_RGBA8888
+color space = SCREEN_COLOR_SPACE_UNCORRECTED
+usage = SCREEN_USAGE_DISPLAY</strong>
+order = 0
+swap interval = 1
+default = (none)
+sessions = (none)
+<strong class="ph b">streams = str-1</strong>
+holes = (none)
+regions = (none)
+flip = 0
+mirror = 0
+scale mode = (default)
+<strong class="ph b">source viewport = (0,0 1280x720)
+source clip rectangle = (0,0;1280,720)
+clipped source viewport = (0,0;1280,720 1280x720)
+destination rectangle = (0,0 1280x720)
+destination clip rectangle = (0,0;1280,720)
+clipped destination rectangle = (0,0;1280,720 1280x720)</strong>
+rotation = 0
+clipped rotation = 0
+transform = [[1 0 0],[0 1 0],[0 0 1]]
+transparency = SCREEN_TRANSPARENCY_SOURCE_OVER
+color = #ffcfcfcf
+global alpha = 255 -&gt; 255
+brightness = 0 -&gt; 0
+contrast = 1 -&gt; 1
+hue = 0 -&gt; 0
+saturation = 0 -&gt; 0
+scale quality = 0
+idle mode = normal
+protection requested = (none)
+protection enabled = (none)
+cbabc mode = SCREEN_CBABC_MODE_NONE
+metrics.dropped = 0
+metrics.visible.partial = 0
+metrics.visible.full = 0
+metrics.updates.count = 0
+metrics.updates.pixels = 289 Mpixels
+metrics.updates.reads = 765 Mbytes
+            </pre>
+            <p class="p">
+                From the above example, the window (<span class="ph codeph">win-1</span>) is for a framebuffer (<span class="ph codeph">class = framebuffer</span>),
+                and you can see the associated stream for this window by reading the file associated with the stream.
+                For example:
+            </p>
+
+            <pre class="pre codeblock"># cat /dev/screen/0/str-1/str-1
+str-1/ctx-0/0(screen)
+=================================================
+id = screen-str-1-0000000f-e0b082e90f32c96442c693d54d8636a2
+id string =
+permissions = rwx--x--x--x--x--x--x---
+acl = (empty)
+display = dpy-2
+status = INVISIBLE
+autonomous = 1
+mode = (SCREEN_STREAM_MODE_MAILBOX)
+buffer count = 3
+flags = (none)
+buffer size = 1280x720
+format = SCREEN_FORMAT_RGBA8888
+color space = SCREEN_COLOR_SPACE_UNCORRECTED
+usage = SCREEN_USAGE_DISPLAY
+swap interval = 1
+protection requested = (none)
+protection enabled = (none)
+owner = win-1/ctx-0/0(screen)
+refs = (self)
+front = 1
+back = 2 [ 0 ]
+rcvids = (none)
+buffers =
+  str-1-1 gd=2 nbytes=4194304 usage=0x0001 flags=0x8240 paddr=0x00000000 vaddr=0x40c00000
+          cvaddr=0x00000000 dvaddr=0x00000003 wfd=0x0000005b cm=0x08893d50 egl=0x00000000 native=0x00000000
+  str-1-2 gd=3 nbytes=4194304 usage=0x0001 flags=0x8240 paddr=0x00000000 vaddr=0x41000000
+          cvaddr=0x00000000 dvaddr=0x00000004 wfd=0x0000005c cm=0x08893e70 egl=0x00000000 native=0x00000000
+  str-1-3 gd=4 nbytes=4194304 usage=0x0001 flags=0x8240 paddr=0x00000000 vaddr=0x41400000
+          cvaddr=0x00000000 dvaddr=0x00000005 wfd=0x0000005d cm=0x08893e90 egl=0x00000000 native=0x00000000
+metrics.cpu = 0
+metrics.gpu = 0
+metrics.objcnt = 0
+metrics.apicnt = 0
+metrics.drawcnt = 0
+metrics.tricnt = 0
+metrics.vtxcnt = 0
+metrics.teximg = 0
+metrics.subdata = 0
+metrics.blits.count = 0
+metrics.blits.pixels = 0 pixels
+metrics.blits.reads = 0 bytes
+metrics.blits.writes = 0 bytes
+metrics.posts.count = 6392
+metrics.posts.pixels = 0 pixels
+            </pre>
+            <p class="p">
+                If you've verified that your configuration file, your display, and framebuffer configurations are
+                what you want, then you'll need to look what things are happening when there are some graphics
+                applications running.
+            </p>
+
+            
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_screen-debugging.html" title="Debugging graphics isn't easy. Figuring out where the problem is can be challenging because of the many aspects and components when it comes to graphics. The goal of this chapter is to show the tools and techniques that you can use to help with your investigation.">Debugging</a></div>
+</div>
+</div></body>
+</html>

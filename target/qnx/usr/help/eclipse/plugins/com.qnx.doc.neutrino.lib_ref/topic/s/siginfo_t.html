@@ -1,0 +1,1170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="siginfo_t" />
+<meta name="abstract" content="Information about a signal" />
+<meta name="description" content="Information about a signal" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.technotes/topic/proc_dump.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalwaitinfomask.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigtimedwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/w/waitid.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="siginfo_t" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>siginfo_t</title>
+</head>
+<body id="siginfo_t">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">siginfo_t</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Information about a signal</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;sys/siginfo.h&gt;
+
+typedef struct {
+    int             si_signo;
+    int             si_code;
+    int             si_errno;
+    union {
+        int             __pad[7];
+        struct {
+            pid_t           __pid;
+            union {
+                struct {
+                    uid_t           __uid;
+                    union sigval    __value;
+                } __kill;     /* si_code &lt;= 0 SI_FROMUSER */
+                struct {
+                    clock_t         __utime;
+                    int             __status; /* CLD_EXITED status, else signo */
+                    clock_t         __stime;
+                } __chld; /* si_signo=SIGCHLD si_code=CLD_* */
+            } __pdata;
+        } __proc;
+        struct {
+            int             __fltno;
+            void            *__fltip;   
+            void            *__addr;    
+            int             __bdslot;
+        } __fault;                /* si_signo=SIGSEGV,ILL,FPE,TRAP,BUS */
+    } __data;
+} siginfo_t;
+
+#define si_pid      __data.__proc.__pid
+#define si_value    __data.__proc.__pdata.__kill.__value
+#define si_uid      __data.__proc.__pdata.__kill.__uid
+#define si_status   __data.__proc.__pdata.__chld.__status
+#define si_utime    __data.__proc.__pdata.__chld.__utime
+#define si_stime    __data.__proc.__pdata.__chld.__stime
+#define si_fltno    __data.__fault.__fltno
+#define si_trapno   si_fltno
+#define si_addr     __data.__fault.__addr
+#define si_fltip    __data.__fault.__fltip
+#define si_bdslot   __data.__fault.__bdslot
+</pre>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword dtype">siginfo_t</span> structure is used to hold information about a signal.
+It's defined in <span class="ph filepath">&lt;sys/siginfo.h&gt;</span>, which
+<span class="ph filepath">&lt;signal.h&gt;</span> includes.
+This structure includes the following:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">si_signo</var></dt>
+
+<dd class="dd">The signal number.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">si_code</var></dt>
+
+<dd class="dd">The signal code, which is limited to an 8-bit signed value as follows:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e115">Value</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e118">Description
+
+  </th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e115 ">-128 &lt;= <var class="keyword varname">si_code</var> &lt;= 0</td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e118 ">User values; you can provide this when you call
+      <a class="xref" href="signalkill.html" title="Send a signal to a process group, process, or thread"><span class="keyword apiname">SignalKill()</span></a>
+      or
+      <a class="xref" href="signalkillsigval.html" title="Send a signal to a process group, process, or thread"><span class="keyword apiname">SignalKillSigval()</span></a>
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e115 ">0 &lt; <var class="keyword varname">si_code</var> &lt;= 127</td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e118 ">System values generated by the kernel</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  
+  
+  <span class="keyword">QNX OS</span> defines <span class="keyword apiname">SI_FROMUSER()</span> and <span class="keyword apiname">SI_FROMKERNEL()</span>
+  macros that determine whether or not an <var class="keyword varname">si_code</var> value falls
+  in the above ranges.
+  </p>
+
+
+  <p class="p">
+  POSIX defines the following values, not all of which <span class="keyword">QNX OS</span> uses:
+  </p>
+
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e211">Signal</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e214">Code</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e217">Reason</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="8" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGILL</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_ILLOPC</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Illegal opcode</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_ILLOPN</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Illegal operand (not currently used)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_ILLADR</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Illegal addressing mode (not currently used)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_ILLTRP</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Illegal trap (not currently used)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_PRVOPC</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Privileged opcode; instruction requires privileged CPU mode</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_PRVREG</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Privileged register (not currently used)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_COPROC</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Coprocessor instruction error</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">ILL_BADSTK</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Internal stack error 
+    </td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="8" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGFPE</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_INTDIV</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Integer division by zero</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_INTOVF</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Integer overflow</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTDIV</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Floating-point divide by zero</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTOVF</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Floating-point overflow</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTUND</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Floating-point underflow</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTRES</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Floating-point inexact result</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTINV</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Invalid floating-point operation</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">FPE_FLTSUB</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Subscript out of range (not currently used)</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGSEGV</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SEGV_MAPERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Address isn't mapped to an object</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SEGV_ACCERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">The mapping doesn't allow the attempted access</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="6" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGBUS</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_ADRALN</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Invalid address alignment</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_ADRERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">The MMU detected a problem with page table translation</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_OBJERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Object-specific hardware error</td>
+
+  </tr>
+
+    
+    <tr class="row">
+      
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_ENDOBJ</span>
+        
+      </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">The mapping doesn't span the area of the memory object</td>
+
+    </tr>
+
+    
+    <tr class="row">
+      
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_ENOMEM</span>
+        
+      </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">A fault failed to allocate memory; this should only occur when using lazy
+        mappings</td>
+
+    </tr>
+
+    
+    <tr class="row">
+      
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">BUS_SRVERR</span>
+        
+      </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Used in conjunction with another <span class="keyword const">SIGBUS</span> code to represent an error
+        returned by an external resource manager when faulting on a page backed by the
+        resource manager. For example, <span class="keyword const">BUS_SRVERR</span> +<span class="keyword const">BUS_EINVAL</span> means
+        that the resource manager replied with <span class="keyword const">EINVAL</span> to the memory manager's request
+        to read or write a page.</td>
+
+    </tr>
+
+    
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGTRAP</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">TRAP_BRKPT</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Process breakpoint trap</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">TRAP_TRACE</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Process trace trap</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="6" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGCHLD</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_EXITED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Child has exited</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_KILLED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Child has terminated abnormally and did not create a core file</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_DUMPED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Child has terminated abnormally and created a core file</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_TRAPPED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Traced child has trapped</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_STOPPED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Child has stopped</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">CLD_CONTINUED</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Stopped child has continued</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="6" style="vertical-align:top;" headers="d764381e211 "><span class="keyword const">SIGPOLL</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_IN</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Data input available</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_OUT</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Output buffers available</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_MSG</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Input message available</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_ERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">I/O error</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_PRI</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">High priority input available</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">POLL_HUP</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Device disconnected</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="5" style="vertical-align:top;" headers="d764381e211 ">Any</td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SI_USER</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Signal sent by
+        <a class="xref" href="../k/kill.html" title="Send a signal to a process or a group of processes"><span class="keyword apiname">kill()</span></a></td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SI_QUEUE</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Signal sent by
+        <a class="xref" href="sigqueue.html" title="Queue a signal to a process"><span class="keyword apiname">sigqueue()</span></a></td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SI_TIMER</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Signal generated by expiration of a timer set by
+        <a class="xref" href="../t/timer_settime.html" title="Arm a timer with the given expiration time, disarm it, or set its tolerance"><span class="keyword apiname">timer_settime()</span></a></td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SI_ASYNCIO</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Signal generated by completion of an asynchronous I/O request</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e214 "><span class="keyword const">SI_MESGQ</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e217 ">Signal generated by arrival of a message on an empty
+          POSIX (not QNX) message queue</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  <span class="keyword">QNX OS</span> also defines the following:
+  </p>
+
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e974">Signal</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e977">Code</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e980">Reason</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e974 "><span class="keyword const">SIGFPE</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">FPE_NOFPU</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">No floating point hardware or software emulator present</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">FPE_NOMEM</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">No memory for floating point context save area</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e974 "><span class="keyword const">SIGSEGV</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">SEGV_STKERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">Stack exception</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">SEGV_GPERR</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">General protection</td>
+
+  </tr>
+
+
+  
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e974 "><span class="keyword const">SIGTRAP</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">TRAP_KDBRK</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">Kdebug breakpoint</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e977 "><span class="keyword const">TRAP_CRASH</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e980 ">Crash</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  As a <span class="keyword">QNX OS</span> extension, if <var class="keyword varname">si_code</var> is
+  <span class="keyword const">SI_NOINFO</span>, only <var class="keyword varname">si_signo</var> is valid.
+  
+  </p>
+
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">si_errno</var></dt>
+
+<dd class="dd">Zero, or an
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>
+  value associated with the signal.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">si_value</var></dt>
+
+<dd class="dd">The signal value; you can provide this when you call
+  <a class="xref" href="signalkill.html" title="Send a signal to a process group, process, or thread"><span class="keyword apiname">SignalKill()</span></a>,
+  <a class="xref" href="signalkillsigval.html" title="Send a signal to a process group, process, or thread"><span class="keyword apiname">SignalKillSigval()</span></a>
+  or
+  <a class="xref" href="sigqueue.html" title="Queue a signal to a process"><span class="keyword apiname">sigqueue()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">__data</var></dt>
+
+<dd class="dd">A union that contains additional information, depending on the signal.
+  POSIX defines the following:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1204">Signal</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1207">Member</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1210">Value</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1204 "><span class="keyword const">SIGILL</span>, <span class="keyword const">SIGFPE</span>
+      
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1207 "><span class="keyword dtype">void *</span><var class="keyword varname">si_addr</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1210 ">The address of the faulting instruction</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1204 "><span class="keyword const">SIGSEGV</span>, <span class="keyword const">SIGBUS</span>
+      
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1207 "><span class="keyword dtype">void *</span><var class="keyword varname">si_addr</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1210 ">The address of the faulting memory reference</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="3" style="vertical-align:top;" headers="d764381e1204 "><span class="keyword const">SIGCHLD</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1207 "><span class="keyword dtype">pid_t</span> <var class="keyword varname">si_pid</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1210 ">The child process ID</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1207 "><span class="keyword dtype">int</span> <var class="keyword varname">si_status</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1210 ">The exit value or signal</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1207 "><span class="keyword dtype">uid_t</span> <var class="keyword varname">si_uid</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1210 ">The real user ID of the process that sent the signal</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  <span class="keyword">QNX OS</span> defines the following:
+  </p>
+
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1341">Signal</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1344">Member</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d764381e1347">Value</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="3" style="vertical-align:top;" headers="d764381e1341 "><span class="keyword const">SIGILL</span>, <span class="keyword const">SIGFPE</span>, <span class="keyword const">SIGSEGV</span>, <span class="keyword const">SIGBUS</span>
+      
+      
+      
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">int</span> <var class="keyword varname">si_fltno</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">The fault number (see below)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">void *</span> <var class="keyword varname">si_fltip</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">The address of the instruction that caused the fault</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">int</span> <var class="keyword varname">si_bdslot</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">Nonzero if the faulting instruction
+           is in a branch delay slot on architectures that support them
+
+           <p class="p">
+           Earlier versions of <span class="keyword cmdname">procnto</span> left this field as a
+           random value, so you should check the <span class="keyword cmdname">procnto</span> version
+           number before examining this field.
+           </p>
+
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1341 "><span class="keyword const">SIGTRAP</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">int</span> <var class="keyword varname">si_trapno</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">The trap number</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" rowspan="2" style="vertical-align:top;" headers="d764381e1341 "><span class="keyword const">SIGCHLD</span>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">clock_t</span> <var class="keyword varname">si_utime</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">The user time consumed, in clock ticks</td>
+
+  </tr>
+
+
+  <tr class="row">
+    
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1344 "><span class="keyword dtype">clock_t</span> <var class="keyword varname">si_stime</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d764381e1347 ">The system time consumed, in clock ticks</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The fault numbers (reported in <var class="keyword varname">si_fltno</var>), are defined in
+<span class="ph filepath">&lt;sys/fault.h&gt;</span> and include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">FLTILL</span></dt>
+
+<dd class="dd">Illegal instruction
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTPRIV</span></dt>
+
+<dd class="dd">Privileged instruction
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTBPT</span></dt>
+
+<dd class="dd">Breakpoint instruction
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTTRACE</span></dt>
+
+<dd class="dd">Trace trap (single-step)
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTACCESS</span></dt>
+
+<dd class="dd">Memory access (e.g., alignment)
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTBOUNDS</span></dt>
+
+<dd class="dd">Memory bounds (invalid address)
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTIOVF</span></dt>
+
+<dd class="dd">Integer overflow
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTIZDIV</span></dt>
+
+<dd class="dd">Integer zero divide
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTFPE</span></dt>
+
+<dd class="dd">Floating-point exception
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTSTACK</span></dt>
+
+<dd class="dd">Irrecoverable stack fault
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">FLTPAGE</span></dt>
+
+<dd class="dd">Recoverable page fault (no associated sig)
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Target-specific fault numbers are defined in
+&lt;<var class="keyword varname">platform</var><span class="ph filepath">/fault.h</span>&gt;.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a>, with <span class="keyword">QNX OS</span> extensions</p>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.technotes/topic/proc_dump.html">Reading a Kernel Dump (Technotes)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/s/sigaction.html" title="Examine or specify the action associated with a signal">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalaction.html" title="Examine and/or specify actions for signals">SignalAction(), SignalAction_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalwaitinfo.html" title="Select a pending signal">SignalWaitinfo(), SignalWaitinfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalwaitinfomask.html" title="Block a set of signals and then select a pending signal">SignalWaitinfoMask(), SignalWaitinfoMask_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigtimedwait.html" title="Wait for a signal or a timeout">sigtimedwait()</a></li>
+<li class="linklist"><a class="link" href="../../topic/w/waitid.html" title="Wait for a child process to change state">waitid()</a></li></ul></div>
+</div></body>
+</html>

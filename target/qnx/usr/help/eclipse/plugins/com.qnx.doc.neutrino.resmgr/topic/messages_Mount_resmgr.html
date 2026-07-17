@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Mount in the resource manager" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_HANDLING_mount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Mount_resmgr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Mount in the resource manager</title>
+</head>
+<body id="Mount_resmgr">
+
+<h1 class="title topictitle1" id="ariaid-title1">Mount in the resource manager</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+Your resource manager will be called upon to perform a mount request via
+the <var class="keyword varname">mount</var> function callout in the
+<span class="keyword dtype">resmgr_connect_funcs_t</span> structure, defined as:
+
+<pre class="pre codeblock">int mount( resmgr_context_t *ctp,
+           io_mount_t *msg,
+           RESMGR_HANDLE_T *handle,
+           io_mount_extra_t *extra );
+</pre>
+</div>
+
+
+<div class="p">
+
+The only field here that differs from the other connect functions is the
+<span class="keyword dtype">io_mount_extra_t</span> structure.
+It's defined in <span class="ph filepath">&lt;sys/iomsg.h&gt;</span> as:
+
+<pre class="pre codeblock">typedef struct _io_mount_extra {
+    uint32_t flags; /* _MOUNT_? or ST_? flags above */
+    uint32_t nbytes; /* Size of entire structure */
+    uint32_t datalen; /* Length of the data structure following */
+    uint32_t zero[1];
+
+    union { /* If EXTRA_MOUNT_PATHNAME these set*/
+        struct { /* Sent from client to resmgr framework */
+            struct _msg_info32 info; /* Special info on first mount, 
+                                        path info on remount */
+        } cl;
+
+        struct { /* Server receives this structure filled in */
+            void * ocb; /* OCB to the special device */
+            void * data; /* Server specific data of len datalen */
+            char * type; /* Character string with type information */
+            char * special; /* Optional special device info */
+            void * zero[4]; /* Padding */
+        } srv;
+    } extra;
+} io_mount_extra_t;
+</pre>
+</div>
+
+
+<p class="p">
+This structure is provided with all of the pointers already resolved,
+so you can use it without any extra fiddling.
+</p>
+
+
+<p class="p">
+The members are:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flag fields provided to the <span class="keyword cmdname">mount</span> command containing the
+  common mount flags defined in <span class="ph filepath">&lt;sys/mount.h&gt;</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes</var></dt>
+
+<dd class="dd">Size of the entire mount-extra message:
+
+<pre class="pre codeblock">sizeof(_io_mount_extra) + datalen + strlen(type) + 1 + strlen(special) + 1
+</pre>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">datalen</var></dt>
+
+<dd class="dd">Size of the <var class="keyword varname">data</var> pointer.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">info</var></dt>
+
+<dd class="dd">Used by the resource manager layer.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ocb</var></dt>
+
+<dd class="dd">OCB of the special device if it was requested via the
+  <span class="keyword const">_MOUNT_OCB</span> flag.
+  <span class="keyword const">NULL</span> otherwise.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var></dt>
+
+<dd class="dd">Pointer to the user data of length <var class="keyword varname">datalen</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+<dd class="dd">Null-terminated string containing the mount type, such as
+  <span class="ph codeph">nfs</span>, <span class="ph codeph">cifs</span>, or <span class="ph codeph">qnx6</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">special</var></dt>
+
+<dd class="dd">Null-terminated string containing the special device if it was
+  requested via the <span class="keyword const">_MOUNT_SPEC</span> flag.
+  <span class="keyword const">NULL</span> otherwise.
+  
+</dd>
+
+
+
+</dl>
+
+
+<div class="p">
+
+
+In order to receive mount requests, the resource manager should register
+a <span class="keyword const">NULL</span> path with an FTYPE of <span class="keyword const">_FTYPE_MOUNT</span>
+and with the flag <span class="keyword const">_RESMGR_FLAG_FTYPEONLY</span>.
+This is done with code that looks like this:
+
+
+<pre class="pre codeblock">mntid = resmgr_attach(
+           dpp, /* Dispatch pointer */
+           &amp;resmgr_attr, /* Dispatch attributes */
+           NULL, /* Attach at "/" */
+           /* We are a directory and want only matching ftypes */
+           _FTYPE_MOUNT,
+           _RESMGR_FLAG_DIR | _RESMGR_FLAG_FTYPEONLY,
+           mount_connect, /* Only mount filled in */
+           NULL, /* No io handlers */
+           &amp; handle); /* Handle to pass to mount callout */
+</pre>
+</div>
+
+
+<p class="p">
+Again, we're attaching at the root of the filesystem so that we'll be able
+to receive the full path of the new mount requests in the
+<var class="keyword varname">msg-&gt;connect</var> structure.
+</p>
+
+
+<p class="p">
+Adding the <span class="keyword const">_RESMGR_FLAG_FTYPEONLY</span> flag ensures that this request
+is used only when there's an <span class="keyword const">_FTYPE_MOUNT</span>-style of connection.
+Once this is done, the resource manager is ready to start receiving mount
+requests from users.
+</p>
+
+
+<div class="p">
+An outline of a sample mount handler look something like this:
+
+<pre class="pre codeblock">int io_mount( ... ) {
+
+   Do any sanity checks that you need to do.
+
+   Check type against our type with strcmp(), since
+   there may be no name for REMOUNT/UNMOUNT flags.
+
+   Error out with ENOENT if no match.
+
+   If no name, check the validity of the REMOUNT/UNMOUNT request.
+
+   Parse arguments or set up your data structure.
+
+   Check to see if we are remounting (_MOUNT_REMOUNT)
+
+      Change flags, etc., if you can remount.
+      Return EOK.
+
+   Check to see if we are unmounting _MOUNT_UNMOUNT
+
+      Change flags, etc., if you can unmount.
+      Return EOK.
+
+   Create a new node and attach it at the msg-&gt;connect.path
+   point (unless some other path is implied based on the
+   input variables and the resource manager) with resmgr_attach().
+
+   Return EOK.
+}
+</pre>
+</div>
+
+
+<p class="p">
+
+
+What's important to notice here is that each resource manager that registers
+a mount handler will potentially get a chance to examine the request to see if it can handle it.
+This means that you have to be rigorous in your type- and error-checking
+to make sure that the request is indeed destined for your manager.
+If your manager returns anything other than <span class="keyword const">ENOSYS</span> or
+<span class="keyword const">ENOENT</span>, it's assumed that the request was valid for this
+manager but there was some other sort of error (unless it returns <span class="keyword const">EOK</span>).
+Only errors of <span class="keyword const">ENOSYS</span> or <span class="keyword const">ENOENT</span> cause the
+request to <q class="q">fall through</q> to other resource managers.
+</p>
+
+
+<p class="p">
+When you unmount, you must perform any cleanup and integrity checks that
+you need, and then call <span class="keyword apiname">resmgr_detach()</span> with the
+<var class="keyword varname">ctp-&gt;id</var> field.
+In general, you should support umounted calls only on the root
+of a mounted filesystem.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages_HANDLING_mount.html">Handling mount()</a></div>
+</div>
+</div></body>
+</html>

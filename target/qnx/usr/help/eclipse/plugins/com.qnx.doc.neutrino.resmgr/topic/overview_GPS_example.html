@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="GPS devices" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="GPS_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>GPS devices</title>
+</head>
+<body id="GPS_example">
+
+<h1 class="title topictitle1" id="ariaid-title1">GPS devices</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+
+In general, a GPS device sends a stream of data every second.
+The stream is composed of information organized in command groups.
+Here's an example of the output from a GPS:
+
+<pre class="pre codeblock">$GPGSA,A,3,17,16,22,31,03,18,25,,,,,,1.6,1.0,1.2*39 
+$GPGGA,185030.30,4532.8959,N,07344.2298,W,1,07,1.0,23.8,M,-32.0,M,,*69 
+$GPGLL,4532.8959,N,07344.2298,W,185030.30,A*12 
+$GPRMC,185030.00,A,4532.8959,N,07344.2298,W,0.9,116.9,160198,,*27 
+$GPVTG,116.9,T,,,0.9,N,1.7,K*2D 
+$GPZDA,185030.30,16,01,1998,,*65 
+$GPGSV,2,1,08,03,55,142,50,22,51,059,51,18,48,284,53,31,23,187,52*78
+</pre>
+</div>
+
+
+<div class="p">
+Each line corresponds to a data set.
+Here's the C structure of some of the data sets:
+
+<pre class="pre codeblock">typedef struct GPSRMC_s { 
+   double UTC; 
+   int Status; 
+   Degree_t Latitude; 
+   NORTHSOUTH Northing; 
+   Degree_t Longitude; 
+   EASTWEST Easting; 
+   float Speed; 
+   float Heading; 
+} GPSRMC_t; 
+
+typedef struct GPSVTG_s { 
+   float Heading; 
+   float SpeedInKnots; 
+   float SpeedInKMH; 
+} GPSVTG_t; 
+
+typedef struct GPSUTM_s { 
+   UTM_t X; 
+   UTM_t Y; 
+} GPSUTM_t;
+</pre>
+</div>
+
+
+<p class="p">
+You could provide one API per GPS format command: <span class="keyword apiname">gps_get_rmc()</span>,
+<span class="keyword apiname">gps_get_vtg()</span>, <span class="keyword apiname">get_get_utm()</span>, and so on.
+Internally, each function would send a message with a different command,
+and the reply was the data last received by the GPS. 
+</p>
+
+
+<div class="p">
+The first obstacle was that <span class="keyword apiname">read()</span> and <span class="keyword apiname">write()</span> are
+half-duplex operations; you can't use them to send a command and get data back.
+You could do this:
+
+<pre class="pre codeblock">GPSUTM_t utm; 
+Int cmd = GPS_GET_GSA;
+
+fd = open( "/dev/gps1", O_RDWR ); 
+write( fd, &amp;cmd, sizeof( cmd) ); 
+read( fd, &amp;data, sizeof(data) ); 
+close(fd);
+</pre>
+
+but this code looks unnatural.
+Nobody would expect <span class="keyword apiname">read()</span> and <span class="keyword apiname">write()</span> to be used in that way.
+You could use <span class="keyword apiname">devctl()</span> to send a command and request specific data,
+but if you implement the driver as a resource manager, you can have a different path for every command set.
+The driver would create the following pathnames:
+
+<ul class="ul">
+<li class="li"><span class="ph filepath">/dev/gps1/gsa.txt</span></li>
+
+<li class="li"><span class="ph filepath">/dev/gps1/gsa.bin</span></li>
+
+<li class="li"><span class="ph filepath">/dev/gps1/gga.bin</span></li>
+
+<li class="li"><span class="ph filepath">/dev/gps1/gga.txt</span></li>
+
+</ul>
+
+
+and a program wanting to get GSA information would do this:
+
+<pre class="pre codeblock">gps_gsa_t gsa;
+int fd;
+
+fd = open ( "/dev/gps1/gsa.bin", O_RDONLY ); 
+read( fd, &amp;gsa, sizeof( gsa ) ); 
+close ( fd);
+</pre>
+</div>
+
+
+<div class="p">
+The benefit of having both the <span class="ph filepath">.txt</span> and <span class="ph filepath">.bin</span>
+extensions is that data returned by the <span class="keyword apiname">read()</span> would be in ASCII
+format if you use the <span class="ph filepath">.txt</span> file.
+If you use the <span class="ph filepath">.bin</span> file instead, the data is returned in a C structure for easier use.
+But why support <span class="ph filepath">*.txt</span> if most programs would prefer to use the binary representation?
+The reason is simple.
+From the shell you could type:
+
+<pre class="pre codeblock"># cat /dev/gps1/rmc.txt
+</pre>
+
+and you'd see:
+
+<pre class="pre codeblock"># GPRMC,185030.00,A,4532.8959,N,07344.2298,W,0.9,116.9,160198,,*27
+</pre>
+</div>
+
+
+<p class="p">
+You now have access to the GPS data from the shell.
+But you can do even more:
+</p>
+
+
+<ul class="ul">
+<li class="li">If you want to know all the commands the GPS supports, simply type:
+
+<pre class="pre codeblock"># ls /dev/gps1
+</pre>
+</li>
+
+
+<li class="li">To do the same from a C program, use <span class="keyword apiname">opendir()</span> and <span class="keyword apiname">readdir()</span>.</li>
+
+
+<li class="li">If you want your program to be informed when there's new data available,
+  simply use <span class="keyword apiname">poll()</span> or <span class="keyword apiname">ionotify()</span> instead of polling on the data.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Contrary to what you might think, it's quite simple to support these features from within the resource manager.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview_Examples.html">Examples of resource managers</a></div>
+</div>
+</div></body>
+</html>

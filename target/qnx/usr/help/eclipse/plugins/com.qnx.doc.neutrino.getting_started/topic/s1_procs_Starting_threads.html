@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Starting a thread" />
+<meta name="abstract" content="Now that we've seen how to start another process, let's see how to start another thread." />
+<meta name="description" content="Now that we've seen how to start another process, let's see how to start another thread." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_thread_attr.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_where.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_parallel.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_independent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Starting_threads" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Starting a thread</title>
+</head>
+<body id="Starting_threads">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Starting a thread</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Now that we've seen how to start another process, let's see how to start another thread.
+</p>
+
+
+<div class="p">
+Any thread can create another thread in the same process; there are no restrictions
+(short of memory space, of course!).
+The most common way of doing this is via the POSIX
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html"><span class="keyword apiname">pthread_create()</span></a> call:
+
+
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_create (pthread_t *<var class="keyword varname">thread</var>,
+                    const pthread_attr_t *<var class="keyword varname">attr</var>,
+                    void *(*<var class="keyword varname">start_routine</var>)(void *), void *<var class="keyword varname">arg</var>);
+</pre>
+</div>
+
+
+<p class="p">
+The <span class="keyword apiname">pthread_create()</span> function takes four arguments:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">thread</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">pthread_t</span> where the thread ID is stored.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+<dd class="dd">An <em class="ph i">attributes structure</em>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">start_routine</var></dt>
+
+<dd class="dd">The routine where the thread begins.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">arg</var></dt>
+
+<dd class="dd">An argument passed to the thread's <var class="keyword varname">start_routine</var>.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Note that the <var class="keyword varname">thread</var> pointer and the <var class="keyword varname">attr</var> attributes structure
+are optional—you can pass them as <span class="keyword const">NULL</span>.
+</p>
+
+
+<div class="p">
+The <var class="keyword varname">thread</var> parameter can be used to store the thread ID of the newly created
+thread. You'll notice that in the examples below, we'll pass a <span class="keyword const">NULL</span>,
+meaning that we don't care what the ID is of the newly created thread.
+If we did care, we could do something like this:
+
+<pre class="pre codeblock">pthread_t tid;
+
+pthread_create (&amp;tid, …);
+printf ("Newly created thread id is %d\n", tid);
+</pre>
+</div>
+
+
+<p class="p">
+This use is quite typical, because you'll often want to know which thread ID is
+running which piece of code.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+A small subtle point.
+It's possible that the newly created thread may be
+running <em class="ph i">before</em> the thread ID (the <var class="keyword varname">tid</var> parameter) is filled.
+This means that you should be careful about using the <var class="keyword varname">tid</var> as a global variable.
+The usage shown above is okay, because the <span class="keyword apiname">pthread_create()</span> call has
+returned, which means that the <var class="keyword varname">tid</var> value is stuffed correctly.
+</div>
+
+
+<p class="p">
+The new thread begins executing at <span class="keyword apiname">start_routine()</span>, with the argument <var class="keyword varname">arg</var>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_thread_attr.html">The thread attributes structure</a></strong><br />
+ When you start a new thread, it can assume some well-defined defaults, or you can explicitly specify its characteristics. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Examples.html">A few examples</a></strong><br />
+ Let's take a look at some examples. We'll assume that the proper include files (<span class="ph filepath">&lt;pthread.h&gt;</span> and <span class="ph filepath">&lt;sched.h&gt;</span>) have been included, and that the thread to be created is called <span class="keyword apiname">new_thread()</span> and is correctly prototyped and defined. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_where.html">Where a thread is a good idea</a></strong><br />
+ There are two classes of problems where the application of threads is a good idea. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_parallel.html">Threads in mathematical operations</a></strong><br />
+ Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: <em class="ph i">each raster line is independent of the others</em>. This immediately causes the problem to stand out as a threadable program. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_independent.html">Threads in independent situations</a></strong><br />
+ As discussed above in the <q class="q">Where a thread is a good idea</q> section, threads also find use where a number of independent processing algorithms are occurring with shared data structures. While strictly speaking you <em class="ph i">could</em> have a number of <em class="ph i">processes</em> (each with one thread) explicitly sharing data, in some cases it's far more convenient to have a number of threads in one process instead. Let's see why and where you'd use threads in this case. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Threads_and_processes.html" title="Let's return to our discussion of threads and processes, this time from the perspective of a real live system. Then, we'll take a look at the function calls used to deal with threads and processes.">Threads and processes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li></ul></div>
+</div></body>
+</html>

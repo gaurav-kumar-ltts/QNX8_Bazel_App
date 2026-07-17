@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="POSIX-Layer Data Structures" />
+<meta name="abstract" content="The resource manager library defines (in &lt;sys/iofunc.h&gt;) several key structures that are related to the POSIX-layer support routines." />
+<meta name="description" content="The resource manager library defines (in &lt;sys/iofunc.h&gt;) several key structures that are related to the POSIX-layer support routines." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/extend_ExtendingOCBstructures.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/extend_ExtendingMountStructure.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="structures" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>POSIX-Layer Data Structures</title>
+</head>
+<body id="structures">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">POSIX-Layer Data Structures</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The resource manager library defines (in <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>) several key structures that are
+related to the POSIX-layer support routines.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_ocb_t.html"><span class="keyword dtype">iofunc_ocb_t</span></a></dt>
+
+<dd class="dd">The Open Control Block (OCB) maintains the state information about a particular session involving
+  a client and a resource manager. 
+  For example, it's created during <span class="keyword apiname">open()</span> handling and exists until a
+  <span class="keyword apiname">close()</span> is performed.
+  It contains data such as the current position into a file (the <span class="keyword apiname">lseek()</span> offset)
+  and is used by the iofunc layer helper functions.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_t.html"><span class="keyword dtype">iofunc_attr_t</span></a></dt>
+
+<dd class="dd">Since a resource manager may be responsible for more than
+  one resource (e.g., <span class="keyword cmdname">devc-ser*</span> may be responsible for
+  <span class="ph filepath">/dev/ser1</span>, <span class="ph filepath">/dev/ser2</span>,
+  <span class="ph filepath">/dev/ser3</span>, etc.), the <em class="ph i">attributes</em>
+  structure holds data on a per-resource basis.
+  If the resource is a file, there's typically one attribute structure per name.
+  This structure contains such items as the user and group ID of
+  the owner of the resource, the last modification time, etc.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mount_t.html"><span class="keyword dtype">iofunc_mount_t</span></a></dt>
+
+<dd class="dd">Contains per-<em class="ph i">mountpoint</em> data items
+  that are global to the entire mount device.
+  Filesystem (block I/O device) managers use this structure;
+  a resource manager for a device typically won't have a mount structure.
+</dd>
+
+
+
+</dl>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Be sure to <span class="keyword cmdname">#include</span> <span class="ph filepath">&lt;sys/iofunc.h&gt;</span> before
+<span class="ph filepath">&lt;sys/resmgr.h&gt;</span>, or else the data structures won't be defined properly.
+</div>
+
+
+<p class="p">
+For information about what's in these structures, see their entries in the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<div class="p">
+This picture may help explain their interrelationships:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>How the data structures link to each other.</span>
+
+<br /><img class="image" src="../images/3struct.svg" width="432" alt="Three data structures of a resource manager" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Here are some other examples that illustrate how these structures are used:
+</p>
+
+
+<ul class="ul">
+<li class="li"><div class="p">Three clients open two paths associated with a resource manager.
+  Each open has an OCB associated with it, and each path has its own attribute structure.
+  The data structures are linked like this:
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Multiple clients with multiple OCBs, all linked to one mount structure.</span>
+
+<br /><img class="image" src="../images/clidevs.svg" width="624" alt="Figure showing three clients with three OCBs" /><br />
+</div>
+
+</div>
+
+</li>
+
+
+<li class="li">A process calls <span class="keyword apiname">open()</span> to open a serial port.
+  Here the file descriptor on the client side is associated with the OCB on the resource manager side,
+  and we can think of the OCB as <q class="q">per-open</q> data (e.g., open mode/permissions on the device).
+  The OCB points to an <span class="keyword dtype">iofunc_attr_t</span> that corresponds to the named device,
+  and that attribute structure was associated with the device name at initialization time.
+
+  <p class="p">
+  If the client issues a <span class="keyword apiname">dup()</span> on that file descriptor, there will be two client
+  file descriptors sharing the same OCB.
+  If the client or another process issues a new <span class="keyword apiname">open()</span> on the same device,
+  there will be a new file descriptor associated with a new OCB, but both OCBs will point to the
+  same attribute structure.
+  If the client process exits or closes both file descriptors, the OCB is freed, but the attribute structure remains.
+  </p>
+
+</li>
+
+
+<li class="li">A process calls <span class="keyword apiname">pipe()</span> to create a pipe.
+  Here there are two file descriptors (for the read and write sides of the pipe) in the client, each associated with
+  a different OCB. There's also an <span class="keyword dtype">iofunc_attr_t</span> that was created dynamically to handle the
+  <span class="keyword apiname">pipe()</span> request and not associated with a name, and that will track and buffer
+  the pipe contents.
+
+  <p class="p">
+  If the process that called <span class="keyword apiname">pipe()</span> then calls <span class="keyword apiname">fork()</span> so it can
+  <span class="keyword apiname">write()</span> data to the pipe for its child process to <span class="keyword apiname">read()</span>,
+  we will then have two file descriptors (one in each process) associated with each OCB,
+  and all four file descriptors associated through those two OCBs to the underlying attribute structure.
+  As the client processes close their file descriptors or exit, when both read file descriptors are gone,
+  the read OCB will be freed, and similarly for the write file descriptors.
+  And when both OCBs are gone, the attribute structure will, then, be released as well.
+  </p>
+
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The <span class="keyword apiname">iofunc_*()</span> default functions operate on the assumption
+that you've used the default definitions for the context block and the attributes structures.
+This is a safe assumption for these reasons:
+</p>
+
+
+<ul class="ul">
+<li class="li">The default context and attribute structures contain sufficient information for most applications.</li>
+
+
+<li class="li">If the default structures don't hold enough information, you can encapsulate them within the
+  structures that you've defined.
+</li>
+
+
+</ul>
+
+
+<div class="p">
+The default structures must be the first members of their respective superstructures, so that the 
+<span class="keyword apiname">iofunc_*()</span> default functions can access them:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>Encapsulating the POSIX-layer data structures.</span>
+
+<br /><img class="image" src="../images/defaults.svg" width="432" alt="Encapsulated and encapsulating structures" /><br />
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/extend_ExtendingOCBstructures.html">Extending the OCB and attribute structures</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/extend_ExtendingMountStructure.html">Extending the mount structure</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

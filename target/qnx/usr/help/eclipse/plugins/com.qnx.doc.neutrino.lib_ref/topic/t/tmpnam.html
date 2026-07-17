@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="tmpnam()" />
+<meta name="abstract" content="Generate a unique string for use as a filename" />
+<meta name="description" content="Generate a unique string for use as a filename" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/tempnam.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/tmpfile.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tmpnam" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>tmpnam()</title>
+</head>
+<body id="tmpnam">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">tmpnam()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Generate a unique string for use as a filename</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+
+char* tmpnam( char* <var class="keyword varname">buffer</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">buffer</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a buffer where the function can
+  store the filename.
+  If <var class="keyword varname">buffer</var> isn't <span class="keyword const">NULL</span>, the buffer must be at
+  least <var class="keyword varname">L_tmpnam</var> bytes long.
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword apiname">tmpnam()</span> function generates a unique string that's
+a valid filename and that's not the same as the name of an existing
+file.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+POSIX has marked this function as obsolescent; use
+<a class="xref" href="../m/mkstemp.html" title="Make a unique temporary filename and open the file"><span class="keyword apiname">mkstemp()</span></a>
+or
+<a class="xref" href="tmpfile.html" title="Create a temporary file"><span class="keyword apiname">tmpfile()</span></a>
+instead.
+</div>
+
+
+<p class="p">
+The <span class="keyword apiname">tmpnam()</span> function generates up to <span class="keyword const">TMP_MAX</span> unique file
+names before it starts to recycle them:
+</p>
+
+
+<ul class="ul">
+<li class="li">If a file with the new name doesn't exist, the new name is returned.</li>
+
+
+<li class="li">If a file with the new name does exist, a default pathname with a
+  basename of <tt class="ph tt">000000</tt> is returned.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The generated filename is prefixed with the first accessible directory contained in:
+</p>
+
+
+<ul class="ul">
+<li class="li">the <span class="keyword envar">TMPDIR</span> environment variable</li>
+
+
+<li class="li">the temporary file directory <var class="keyword varname">P_tmpdir</var> (defined in <span class="ph filepath">&lt;stdio.h&gt;</span>)</li>
+
+
+<li class="li">the <span class="keyword const">_PATH_TMP</span> constant (defined in <span class="ph filepath">&lt;paths.h&gt;</span>)</li>
+
+
+</ul>
+
+
+<p class="p">
+If all of these paths are inaccessible, <span class="keyword apiname">tmpnam()</span> attempts
+to use <span class="ph filepath">/tmp</span> and then the current working directory.
+</p>
+
+
+<p class="p">
+The generated filename is stored in an internal buffer; if <var class="keyword varname">buffer</var>
+is <span class="keyword const">NULL</span>, the function returns a pointer to this buffer;
+otherwise, <span class="keyword apiname">tmpnam()</span> copies the filename into <var class="keyword varname">buffer</var>.
+</p>
+
+
+<p class="p">
+Subsequent calls to <span class="keyword apiname">tmpnam()</span> reuse the internal buffer.
+If <var class="keyword varname">buffer</var> is <span class="keyword const">NULL</span>, you might
+want to duplicate the resulting string. For example,
+</p>
+
+
+<pre class="pre codeblock">char *name1, *name2;
+
+name1 = strdup( tmpnam( NULL ) );
+name2 = strdup( tmpnam( NULL ) );
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+A pointer to the generated filename for success, or <span class="keyword const">NULL</span> if an error occurred
+(<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main( void )
+{
+    char filename[L_tmpnam];
+    FILE *fp;
+
+    tmpnam( filename );
+    fp = fopen( filename, "w+b" );
+…
+    fclose( fp );
+    remove( filename );
+    
+    return EXIT_SUCCESS;
+}
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">ANSI</a>,
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1 OB</a>.
+This function is marked as obsolescent, and may be removed from a future version of the standard.
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d255228e306">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d255228e308"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e306 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e308 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e306 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e308 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e306 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d255228e308 ">Read the <em class="ph i">Caveats</em></td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">tmpnam()</span> function <em class="ph i">isn't thread-safe</em> if you pass it a
+<span class="keyword const">NULL</span> <var class="keyword varname">buffer</var>.
+</p>
+
+
+<p class="p">
+This function only creates pathnames; the application must create and remove the files.
+</p>
+
+
+<p class="p">
+It's possible for another thread or process to create a file with the 
+same name between when the pathname is created and the file is opened.
+</p>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/t/tempnam.html" title="Create a name for a temporary file">tempnam()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/tmpfile.html" title="Create a temporary file">tmpfile(), tmpfile64()</a></li></ul></div>
+</div></body>
+</html>

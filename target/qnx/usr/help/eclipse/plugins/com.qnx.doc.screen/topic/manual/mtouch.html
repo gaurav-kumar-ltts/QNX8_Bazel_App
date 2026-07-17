@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="mtouch" />
+<meta name="abstract" content="The mtouch service starts the resource managers for touch functionality and loads the configuration" />
+<meta name="description" content="The mtouch service starts the resource managers for touch functionality and loads the configuration" />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mkfifo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>mtouch</title>
+</head>
+<body id="mkfifo">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        <span class="keyword cmdname">mtouch</span>
+    </h1>
+
+
+    
+    
+    <div class="body refbody"><p class="shortdesc">
+        <em class="ph i">The <span class="keyword cmdname">mtouch</span> service starts the resource managers
+              for touch functionality and loads the configuration</em>
+    </p>
+
+
+        <div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+            
+            <pre class="pre codeblock">mtouch [-c <var class="keyword varname">configfile</var>] [-d] [-q <var class="keyword varname">queuebool</var>] [-r] [-U <var class="keyword varname">user</var>] [-v]
+</pre>
+        </div>
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p">
+<span class="keyword">QNX OS</span>
+</p>
+
+</div>
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword option">-c</span> <var class="keyword varname">configfile</var></dt>
+
+<dd class="dd">
+    Specify the location of the configuration file for <span class="ph codeph">mtouch</span>
+    resource manager (driver). If you don't specify the <span class="keyword option">-c</span> option, <span class="ph codeph">mtouch</span> uses
+    <span class="ph filepath">/etc/system/config/mtouch.conf</span> as the default.
+</dd>
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-d</span></dt>
+
+<dd class="dd">Enable debug mode. This allows you run this driver without having
+the <span class="keyword"></span> service running. Using this option 
+is useful if you function in verbose mode and want to see the slog2info with
+the coordinate information from the touch driver.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-q</span></dt>
+
+<dd class="dd"> Disable event queue for touch. This means that you won't see any
+     touch events when you touch the display. By default, this is set to
+    <span class="keyword const">1</span>(enabled). To disable the event queue, set it <span class="keyword const">0 (zero)</span>.
+</dd>
+
+
+    
+
+<dt class="dt dlterm"><span class="keyword option">-r</span></dt>
+
+    <dd class="dd">
+        Enable resource managers so that you can access information associated with touch events without using the
+        <span class="keyword">Screen API</span>. For example:
+        <pre class="pre codeblock">...
+mtouch -rd
+ls /dev/mtouch/
+
+touch_display0           
+        </pre>
+        <p class="p">
+            This information that's associated with the touch driver (e.g., <tt class="ph tt">touch_display0</tt>) is presented as a data structure of
+            type <a class="xref" href="../../../com.qnx.doc.inputevents/topic/mtouch_event_t.html"><span class="keyword dtype">mtouch_event_t</span></a>.
+            The information includes:
+        </p>
+
+        <ul class="ul">
+            <li class="li">event type</li>
+
+            <li class="li">timestamp</li>
+
+            <li class="li">sequence identifier</li>
+
+            <li class="li">contact identifier</li>
+
+            <li class="li">x coordinate</li>
+
+            <li class="li">y coordinate</li>
+
+            <li class="li">width</li>
+
+            <li class="li">height</li>
+
+            <li class="li">orientation</li>
+
+            <li class="li">pressure</li>
+
+            <li class="li">contact type</li>
+
+            <li class="li">selected buttons</li>
+
+        </ul>
+
+        See <a class="xref" href="../../../com.qnx.doc.inputevents/topic/structmtouch__event.html"><span class="keyword dtype">mtouch_event</span></a>
+        from the <cite class="cite">Input Events Library Reference</cite> for details.
+        <p class="p">
+            To retrieve the touch event information, you can open resource manager and read the file descriptor. For example: 
+        </p>
+
+        <pre class="pre codeblock">...
+int fd, nCount;
+mtouch_event_t touch_packet;
+...
+fd = open("/dev/mtouch/touch_display0", O_RDWR | O_NONBLOCK);
+...
+	while(1)
+	{
+		nCount = read(fd, &amp;touch_packet, sizeof(touch_packet));
+		if (0 &gt;= nCount) {
+			delay (100);
+		} else {
+			printf("Timestamp: %llu  Sequence ID: %u  Contact ID:%d X:%u, Y:%u Event: ",
+			        touch_packet.timestamp,
+			        touch_packet.seq_id,
+			        touch_packet.contact_id,
+			        touch_packet.x,
+			        touch_packet.y);
+
+			switch (touch_packet.event_type) {
+			case INPUT_EVENT_MTOUCH_TOUCH:
+				printf("Touch event.\n");
+				break;
+			case INPUT_EVENT_MTOUCH_MOVE:
+				printf("Move event.\n");
+				break;
+			case INPUT_EVENT_MTOUCH_RELEASE:
+				printf("Release event.\n");
+				break;
+			default:
+				printf("Other...\n");
+				break;
+			}
+		}
+	}
+	return 0;
+...
+        </pre>
+    </dd>
+
+
+    
+
+    <dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+    <dd class="dd">Enable verbose mode. In this mode,  per-event coordinates are printed that
+        include the x, y coordinates of the input region
+        and the coordinates that are mapped to the display. In addition, the width
+        and height relate to the size of the touched area, provided the hardware supports it.
+        For example, a 1 represents a small area (such as a pinkie finger) as opposed to a
+        larger area, such as a thumb.
+        Here's what  an event looks like where the user provided touch input
+        at coordinates (around 20 (x-value) and 400 (y-value)) on the display:
+        
+        <pre class="pre codeblock">Nov 09 15:38:16  5  9   200 touch_display[INFO]: x 21 y 400 width 1 height 1
+Nov 09 15:38:16  5  9   200 touch_display[INFO]: x 22 y 410 width 1 height 1
+Nov 09 15:38:16  5  9   200 touch_display[INFO]: x 19 y 413 width 1 height 1
+Nov 09 15:38:16  5  9   200 touch_display[INFO]: x 23 y 402 width 1 height 1
+Nov 09 15:38:16  5  9   200 touch_display[INFO]: x 20 y 401 width 1 height 1
+</pre>
+    </dd>
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+    
+    <p class="p">
+        The <span class="keyword cmdname">mtouch</span> service starts the touch drivers that are specified in the <span class="ph filepath">mtouch.conf</span>
+        file. To run this service, you must first have <span class="keyword">Screen</span> started. Other
+        dependencies may vary based on your touch device.
+    </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+    
+    <p class="p">
+        Use a Human Interface Device (HID) that uses a USB-based controller:
+    </p>
+
+    <ol class="ol">
+        <li class="li">
+            <p class="p">
+                You need to ensure that the shared objects and configuration files that <span class="keyword cmdname">mtouch</span>
+                depends on are included in your system image. For example:
+            </p>
+
+            <ul class="ul">
+                <li class="li"><span class="ph filepath">libmtouch-hid.so.1</span></li>
+
+                <li class="li"><span class="ph filepath">scaling.conf</span></li>
+
+                <li class="li"><span class="ph filepath">mtouch.conf</span></li>
+
+            </ul>
+
+            <p class="p">
+                See the
+                <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/config/shared_libraries.html">
+            Shared libraries</a></q> section of the <cite class="cite">Building Embedded Systems</cite> guide for more information
+                on how to determine which shared objects you need. 
+            </p>
+
+        </li>
+
+        <li class="li">
+            <p class="p">
+                On your target system, you typically require the USB drivers to be started before touch can be used.
+                For example:
+            </p>
+
+            <pre class="pre codeblock">io-usb-otg -d hcd-dm816x-mg ioport=0x47401c00,irq=19
+            </pre>
+        </li>
+
+        <li class="li">
+            <p class="p">
+                Start <span class="keyword cmdname">screen</span>.
+            </p>
+
+            <pre class="pre codeblock">screen
+            </pre>
+        </li>
+
+        <li class="li">
+            <p class="p">
+                Start <span class="keyword cmdname">mtouch</span>.
+            </p>
+
+            <pre class="pre codeblock">mtouch
+            </pre>
+        </li>
+
+    </ol>
+
+    
+</div>
+
+
+
+
+    </div>
+
+
+
+
+</body>
+</html>

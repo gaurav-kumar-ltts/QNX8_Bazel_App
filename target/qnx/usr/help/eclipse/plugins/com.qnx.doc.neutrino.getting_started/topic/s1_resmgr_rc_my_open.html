@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="my_open()" />
+<meta name="abstract" content="While my_open() is very short, it has a number of crucial points." />
+<meta name="description" content="While my_open() is very short, it has a number of crucial points." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_complex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rc_my_open" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>my_open()</title>
+</head>
+<body id="rc_my_open">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">my_open()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+While <span class="keyword apiname">my_open()</span> is very short, it has a number of crucial points.
+</p>
+
+
+<p class="p">
+Notice how we decide if the resource being opened is a <q class="q">file</q> or
+a <q class="q">directory</q>, based only on the pathname length.
+We can do this <q class="q">trick</q> because we know that there are no other directories
+in this resource manager apart from the main one.
+If you want to have multiple directories below the mountpoint, you have to do more
+complicated analysis of the <var class="keyword varname">path</var> member of the <var class="keyword varname">msg</var> structure.
+For our simple example, if there's nothing in the pathname, we know it's the directory.
+Also, notice the extremely simplified pathname validation checking:  we simply compare
+to make sure that there's only one character passed to us, and that the character
+lies within the range <q class="q">a</q> through <q class="q">z</q> inclusive.
+Again, for more complex resource managers, you'd be responsible for parsing the name
+past the registered mountpoint.
+</p>
+
+
+<p class="p">
+Now, the most important feature!
+Notice how we used the POSIX-layer default functions to do all the work for us!
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open_default.html"><span class="keyword apiname">iofunc_open_default()</span></a>
+function is usually installed in the connect functions table at the same spot that our new
+<span class="keyword apiname">my_open()</span> function is now occupying.
+This means that it takes the identical set of arguments!
+All we have to do is decide <em class="ph i">which</em> attributes structure we want to have
+bound with the OCB that the default function is going to create:  either the
+directory one (in which case we pass <var class="keyword varname">attr</var>), or one of the 26 different
+ones for the 26 different files (in which case we pass an appropriate element
+out of <var class="keyword varname">atoz_attrs</var>).
+This is key, because the handler that you put in the <var class="keyword varname">open</var> slot in
+the connect functions table acts as the gatekeeper to all further accesses to your
+resource manager.
+</p>
+
+
+<pre class="pre codeblock">static int
+my_open (resmgr_context_t *ctp, io_open_t *msg,
+         iofunc_attr_t *attr, void *extra)
+{
+    // an empty path means the directory, is that what we have?
+    if (msg -&gt; connect.path [0] == 0) {
+        return (iofunc_open_default (ctp, msg, attr, extra));
+
+    // else check if it's a single char 'a' -&gt; 'z'
+    } else if (msg -&gt; connect.path [1] == 0 &amp;&amp; 
+               (msg -&gt; connect.path [0] &gt;= 'a' &amp;&amp; 
+                msg -&gt; connect.path [0] &lt;= 'z')) {
+
+        // yes, that means it's the file (/dev/atoz/[a-z])
+        return (iofunc_open_default (ctp, msg, 
+                atoz_attrs + msg -&gt; connect.path [0] - 'a', extra));
+    } else {
+        return (ENOENT);
+    }
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_complex.html" title="In this example, we're going to create a resource manager called /dev/atoz that will be a directory resource manager. It's going to manifest the “files” /dev/atoz/a through to dev/atoz/z, with a cat of any of the files returning the uppercase letter corresponding to the filename.">Example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Gathering five events from four classes" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/tutorial-intro.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="FIVE_EVENTS.C" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Gathering five events from four classes</title>
+</head>
+<body id="FIVE_EVENTS.C">
+
+<h1 class="title topictitle1" id="ariaid-title1">Gathering five events from four classes</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Now that we can gather specific classes of events, we'll refine our search
+even further and gather only five specific types of events from four classes.
+</p>
+
+
+<p class="p">
+Here's the source, <span class="ph filepath">five_events.c</span>:
+</p>
+
+
+<pre class="pre codeblock">/*
+ * $QNXLicenseC:
+ * Copyright 2007, QNX Software Systems. All Rights Reserved.
+ * 
+ * You must obtain a written license from and pay applicable license fees to QNX 
+ * Software Systems before you may reproduce, modify or distribute this software, 
+ * or any work that includes all or part of this software.   Free development 
+ * licenses are available for evaluation and non-commercial purposes.  For more 
+ * information visit http://licensing.qnx.com or email licensing@qnx.com.
+ *  
+ * This file may contain contributions from others.  Please review this entire 
+ * file for other proprietary rights or license notices, as well as the QNX 
+ * Development Suite License Guide at http://licensing.qnx.com/license-guide/ 
+ * for other information.
+ * $
+ */
+
+#ifdef __USAGE
+%C - instrumentation example
+
+%C  - example that illustrates the very basic use of
+      the TraceEvent() kernel call and the instrumentation
+      module with tracelogger in a daemon mode.
+
+      Only five events from four classes are included and
+      monitored. Class _NTO_TRACE_KERCALL is intercepted
+      in a wide emitting mode.
+
+      In order to use this example, start the tracelogger
+      in the daemon mode as:
+
+      tracelogger -n iter_number -d1
+
+      with iter_number = your choice of 1 through 10
+
+      After you start the example, tracelogger
+      will log the specified number of iterations and then
+      terminate. There are no messages printed upon successful
+      completion of the example. You can view the intercepted
+      events with the traceprinter utility.
+
+      See accompanied documentation and comments within
+      the example source code for more explanations.
+#endif
+
+#include &lt;sys/trace.h&gt;
+#include &lt;sys/kercalls.h&gt;
+
+#include "instrex.h"
+
+int main(int argc, char **argv)
+{
+    /*
+     * Just in case, turn off all filters, since we
+     * don't know their present state - go to the
+     * known state of the filters.
+     */
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_DELALLCLASSES));
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_KERCALL));
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_KERCALL));
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_THREAD));
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_THREAD));
+
+    /*
+     * Set wide emitting mode
+     */
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_SETALLCLASSESWIDE));
+
+    /*
+     * Intercept two events from class _NTO_TRACE_THREAD
+     */
+    TRACE_EVENT
+    (
+     argv[0],
+     TraceEvent(_NTO_TRACE_ADDEVENT, _NTO_TRACE_THREAD, _NTO_TRACE_THRUNNING)
+    );
+    TRACE_EVENT
+    (
+     argv[0],
+     TraceEvent(_NTO_TRACE_ADDEVENT, _NTO_TRACE_THREAD, _NTO_TRACE_THCREATE)
+    );
+
+    /*
+     * Intercept one event from class _NTO_TRACE_PROCESS
+     */
+    TRACE_EVENT
+    (
+     argv[0],
+     TraceEvent(_NTO_TRACE_ADDEVENT, _NTO_TRACE_PROCESS, _NTO_TRACE_PROCCREATE_NAME)
+    );
+
+    /*
+     * Intercept one event from class _NTO_TRACE_INT
+     */
+    TRACE_EVENT
+    (
+     argv[0],
+     TraceEvent(_NTO_TRACE_ADDEVENT, _NTO_TRACE_INT, _TRACE_INT_DELIVER)
+    );
+
+    /*
+     * Intercept one event from class _NTO_TRACE_KERCALLEXIT,
+     * event __KER_MSG_READV.
+     */
+    TRACE_EVENT
+    (
+     argv[0],
+     TraceEvent(_NTO_TRACE_ADDEVENT, _NTO_TRACE_KERCALLEXIT, __KER_MSG_READV)
+    );
+
+    /*
+     * Start tracing process
+     *
+     * During the tracing process, the tracelogger (which
+     * is being executed in a daemon mode) will log all events.
+     * You can specify the number of iterations (i.e., the
+     * number of kernel buffers logged) when you start tracelogger.
+     */
+    TRACE_EVENT(argv[0], TraceEvent(_NTO_TRACE_START));
+
+    /*
+     * The main() of this execution flow returns.
+     * However, the main() function of the tracelogger
+     * will return after registering the specified number
+     * of events.
+     */
+    return (0);
+}
+</pre>
+
+<p class="p">
+Compile it, and then run <span class="keyword cmdname">tracelogger</span> in one window:
+</p>
+
+
+<pre class="pre codeblock">tracelogger -d1 -n 3 -f five_events.kev
+</pre>
+
+<p class="p">
+and run the compiled program in another:
+</p>
+
+
+<pre class="pre codeblock">./five_events
+</pre>
+
+<p class="p">
+The trace data is in <span class="ph filepath">five_events.kev</span>; to examine it, type:
+</p>
+
+
+<pre class="pre codeblock">traceprinter -f five_events.kev | less
+</pre>
+
+<p class="p">
+The output from <span class="keyword cmdname">traceprinter</span> will look something like this:
+</p>
+
+
+<pre class="pre codeblock">TRACEPRINTER version 1.02
+TRACEPARSER LIBRARY version 1.02
+ -- HEADER FILE INFORMATION -- 
+       TRACE_FILE_NAME:: five_events.kev
+            TRACE_DATE:: Wed Jun 24 10:56:04 2009
+       TRACE_VER_MAJOR:: 1
+       TRACE_VER_MINOR:: 01
+   TRACE_LITTLE_ENDIAN:: TRUE
+        TRACE_ENCODING:: 16 byte events
+       TRACE_BOOT_DATE:: Tue Jun 23 11:47:46 2009
+  TRACE_CYCLES_PER_SEC:: 736629000
+         TRACE_CPU_NUM:: 1
+         TRACE_SYSNAME:: QNX
+        TRACE_NODENAME:: localhost
+     TRACE_SYS_RELEASE:: 6.4.1
+     TRACE_SYS_VERSION:: 2009/05/20-17:35:56EDT
+         TRACE_MACHINE:: x86pc
+     TRACE_SYSPAGE_LEN:: 2264
+TRACE_TRACELOGGER_ARGS:: tracelogger -d1 -n 3 -f five_events.kev
+ -- KERNEL EVENTS -- 
+t:0x1a14da34 CPU:00 CONTROL: BUFFER sequence = 41, num_events = 714
+t:0x1a14da34 CPU:00 PROCESS :PROCCREATE_NAME
+                      ppid:0
+                       pid:1
+                      name:proc/boot/procnto-smp-instr
+t:0x1a14ea7d CPU:00 THREAD  :THCREATE      pid:1 tid:1
+t:0x1a14ed04 CPU:00 THREAD  :THCREATE      pid:1 tid:2
+
+...
+
+t:0x1a1cc345 CPU:00 THREAD  :THRUNNING     pid:1 tid:15 priority:10 policy:2
+t:0x1a1d01b9 CPU:00 THREAD  :THRUNNING     pid:8200 tid:5 priority:10 policy:3
+t:0x1a1d6424 CPU:00 INT_ENTR:0x00000000 (0)       IP:0xb8229890
+t:0x1a1ed261 CPU:00 THREAD  :THRUNNING     pid:1 tid:4 priority:10 policy:2
+t:0x1a1f0016 CPU:00 THREAD  :THRUNNING     pid:426022 tid:1 priority:10 policy:2
+
+...
+
+t:0x2e77ebc5 CPU:00 THREAD  :THRUNNING     pid:1613871 tid:1 priority:10 policy:2
+t:0x2e78598d CPU:00 THREAD  :THRUNNING     pid:8200 tid:5 priority:10 policy:3
+t:0x2e7ac4fc CPU:00 INT_ENTR:0x00000000 (0)       IP:0xb8229f61
+t:0x2e7cec3b CPU:00 KER_EXIT:MSG_READV/16
+                    rbytes:22540
+                      rmsg:"" (0x1a15080f 0x6e696273 0x6e69742f)
+t:0x2e7da478 CPU:00 THREAD  :THRUNNING     pid:1003562 tid:1 priority:10 policy:2
+t:0x2e7dc288 CPU:00 THREAD  :THRUNNING     pid:1 tid:15 priority:10 policy:2
+
+...
+</pre>
+
+<p class="p">
+We've now begun to selectively pick and choose events—the massive amount of data is now much more manageable.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/tutorial-intro.html">Tutorials: Controlling event tracing</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Methods of returning and replying" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="RETURNandREPLY" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Methods of returning and replying</title>
+</head>
+<body id="RETURNandREPLY">
+
+<h1 class="title topictitle1" id="ariaid-title1">Methods of returning and replying</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+You can return to the resource manager library from your handler functions in various ways. 
+This is complicated by the fact that the resource manager library can reply for you if you want it to, 
+but you must tell it to do so and put the information that it'll use in all the right places.
+</p>
+
+
+<p class="p">
+In this section, we'll discuss the following ways of returning to
+the resource manager library.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returning with an error</h2>
+
+
+<div class="p">
+
+To reply to the client such that the function the client is calling 
+(e.g., <span class="keyword apiname">read()</span>) will return with an error,
+you simply return with an appropriate <var class="keyword varname">errno</var> value (from <span class="ph filepath">&lt;errno.h&gt;</span>):
+
+<pre class="pre codeblock">return (ENOMEM);
+</pre>
+</div>
+
+
+<p class="p">
+In the case of a <span class="keyword apiname">read()</span>, 
+this causes the read to return -1 with <var class="keyword varname">errno</var> set to
+<span class="keyword const">ENOMEM</span>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You might sometimes see this in the code for a resource manager:
+
+
+<pre class="pre codeblock">_RESMGR_ERRNO (<var class="keyword varname">error_code</var>)
+</pre>
+
+but this is the same as simply returning the <var class="keyword varname">error_code</var> directly.
+The <span class="keyword apiname">_RESMGR_ERRNO()</span> macro is deprecated.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returning using an IOV array that points to your data</h2>
+
+
+<p class="p">
+
+Sometimes you'll want to reply with a header followed by one of <var class="keyword varname">N</var> buffers, 
+where the buffer used will differ each time you reply. 
+To do this, you can set up an IOV array whose elements point to the header and to a buffer.
+</p>
+
+
+<p class="p">
+
+The context structure already has an IOV array. 
+If you want the resource manager library to do your reply for you, then you must use this array. 
+But the array must contain enough elements for your needs. 
+To ensure that this is the case, set the <var class="keyword varname">nparts_max</var> member of the
+<span class="keyword dtype">resmgr_attr_t</span> structure that you passed to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+when you registered your name in the pathname space. 
+</p>
+
+
+<div class="p">
+
+The following example assumes that the variable <var class="keyword varname">i</var>
+contains the offset into the array of buffers of the desired
+buffer to reply with. The 2 in
+<span class="ph codeph">_RESMGR_NPARTS(2)</span> tells the library how many
+elements in <span class="ph codeph">ctp-&gt;iov</span> to reply with:
+
+<pre class="pre codeblock">my_header_t     header;
+a_buffer_t      buffers[N];
+
+...
+SETIOV(&amp;ctp-&gt;iov[0], &amp;header, sizeof(header));
+SETIOV(&amp;ctp-&gt;iov[1], &amp;buffers[i], sizeof(buffers[i]));
+return (_RESMGR_NPARTS(2));
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returning with a single buffer containing data</h2>
+
+
+<div class="p">
+An example of this would be replying to a <span class="keyword apiname">read()</span>
+where all the data existed in a single buffer. 
+You'll typically see this done in two ways: 
+
+
+<pre class="pre codeblock">return (_RESMGR_PTR(ctp, buffer, nbytes));
+</pre>
+
+
+and:
+
+<pre class="pre codeblock">SETIOV (ctp-&gt;iov, buffer, nbytes);
+return (_RESMGR_NPARTS(1));
+</pre>
+</div>
+
+
+<p class="p">
+The first method, using the <span class="keyword apiname">_RESMGR_PTR()</span> macro,
+is just a convenience for the second method where a single IOV is returned.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returning success but with no data</h2>
+
+
+<div class="p">
+This can be done in a few ways. The most simple would be:
+
+<pre class="pre codeblock">return (EOK);
+</pre>
+</div>
+
+
+<div class="p">
+But you'll often see:
+
+
+<pre class="pre codeblock">return (_RESMGR_NPARTS(0));
+</pre>
+</div>
+
+
+<p class="p">
+
+
+Note that in neither case are you causing the <span class="keyword apiname">MsgSend()</span> to return with a 0. 
+The value that the <span class="keyword apiname">MsgSend()</span> returns is the value passed to the
+<span class="keyword apiname">_IO_SET_READ_NBYTES()</span>, 
+<span class="keyword apiname">_IO_SET_WRITE_NBYTES()</span>, and other similar macros.
+These two were used in the read and write samples above.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Getting the resource manager library to do the reply</h2>
+
+
+<div class="p">
+In this case, you give the client the data and get the resource manager library to do the reply for you.
+However, the reply data won't be valid by that time.
+For example, if the reply data was in a buffer that
+you wanted to free before returning, you could use the following:
+
+<pre class="pre codeblock">resmgr_msgwrite (ctp, buffer, nbytes, 0);
+free (buffer);
+return (EOK);
+</pre>
+</div>
+
+
+<p class="p">
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgwrite.html"><span class="keyword apiname">resmgr_msgwrite()</span></a>
+function copies the contents of buffer into the client's reply buffer immediately. 
+Note that a reply is still required in order to unblock the client so it can examine the data. 
+Next we free the buffer. 
+Finally, we return to the resource manager library such that it does a reply with zero-length data.
+Since the reply is of zero length, 
+it doesn't overwrite the data already written into the client's reply buffer. 
+When the client returns from its send call, the data is there waiting for it.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Performing the reply in the server</h2>
+
+
+<div class="p">
+In all of the previous examples, it's the resource manager library that
+calls <span class="keyword apiname">MsgReply*()</span> or <span class="keyword apiname">MsgError()</span> to unblock the client.
+In some cases, you may not want the library to reply for you.
+For instance, you might have already done the reply yourself, or you'll reply later. 
+In either case, you'd return as follows: 
+
+
+<pre class="pre codeblock">return (_RESMGR_NOREPLY);
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Leaving the client blocked, replying later</h2>
+
+
+<p class="p">
+
+
+An example of a resource manager that would reply to clients later is a pipe resource manager. 
+If the client is doing a read of your pipe but you have no data for the client, then you have a choice:
+</p>
+
+
+<ul class="ul">
+<li class="li">You can reply with an error (<span class="keyword const">EAGAIN</span>). 
+  
+
+  <p class="p">
+  Or:
+  </p>
+
+</li>
+
+
+<li class="li">You can leave the client blocked and later, 
+  when your write handler function is called, you can reply to the client with the new data.  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Another example might be if the client wants you to write
+to some device but doesn't want to get a reply until the data has been fully written out. 
+Here's the sequence of events that might follow:
+</p>
+
+
+<ol class="ol">
+<li class="li">Your resource manager does some I/O to the hardware to tell it that data is available.</li>
+
+<li class="li">The hardware generates an interrupt when it's ready for a packet of data.</li>
+
+<li class="li">You handle the interrupt by writing data out to the hardware.</li>
+
+<li class="li">Many interrupts may occur before all the data is written—only then would you reply to the client.</li>
+
+</ol>
+
+
+<div class="p">
+The first issue, though, is whether the client wants to be left blocked. 
+If the client doesn't want to be left blocked, then it opens with the <span class="keyword const">O_NONBLOCK</span> flag:
+
+
+<pre class="pre codeblock">fd = open("/dev/sample", O_RDWR | O_NONBLOCK);
+</pre>
+</div>
+
+
+<p class="p">
+The default is to allow you to block it.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+One of the first things done in the read and write samples 
+above was to call some POSIX verification functions: 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_verify.html"><span class="keyword apiname">iofunc_read_verify()</span></a>
+and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_write_verify.html"><span class="keyword apiname">iofunc_write_verify()</span></a>.
+If we pass the address of an <span class="ph codeph">int</span> as the last parameter, 
+then on return the functions will stuff that <span class="ph codeph">int</span> with nonzero if
+the client doesn't want to be blocked (<span class="keyword const">O_NONBLOCK</span> flag was set) or with zero if
+the client wants to be blocked.
+</p>
+
+
+<pre class="pre codeblock">int    nonblock;                                                     
+                                                                     
+if ((status = iofunc_read_verify (ctp, msg, ocb, &amp;nonblock)) != EOK) 
+    return (status);                                                 
+...                                                                  
+                                                                     
+if ((status = iofunc_write_verify (ctp, msg, ocb, &amp;nonblock)) != EOK)
+    return (status);
+</pre>
+
+<div class="p">
+When it then comes time to decide if we should reply with an error or reply later, we do: 
+
+<pre class="pre codeblock">if (nonblock) {
+    /* client doesn't want to be blocked */
+    return (EAGAIN);                                          
+} else {                                                      
+    /*
+    *  The client is willing to be blocked.
+    *  Save at least the ctp-&gt;rcvid so that you can reply to it later.
+    */
+    ...
+    return (_RESMGR_NOREPLY);
+}                                                             
+</pre>
+</div>
+
+
+<div class="p">
+The question remains: How do you do the reply yourself? 
+The only detail to be aware of is that the <var class="keyword varname">rcvid</var> to reply to is <span class="ph codeph">ctp-&gt;rcvid</span>.
+If you're replying later, 
+then you'd save <span class="ph codeph">ctp-&gt;rcvid</span> and use the saved value in your reply:
+
+
+<pre class="pre codeblock">MsgReply(saved_rcvid, 0, buffer, nbytes);
+</pre>
+
+Or:
+
+
+<pre class="pre codeblock">iov_t    iov[2];
+SETIOV(&amp;iov[0], &amp;header, sizeof(header));
+SETIOV(&amp;iov[1], &amp;buffers[i], sizeof(buffers[i]));
+MsgReplyv(saved_rcvid, 0, iov, 2);
+</pre>
+</div>
+
+
+<p class="p">
+At this point, it's not safe to use <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgreply.html"><span class="keyword apiname">resmgr_msgreply()</span></a> or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgreplyv.html"><span class="keyword apiname">resmgr_msgreplyv()</span></a>,
+as explained in the references for those functions—you must use <span class="keyword apiname">MsgReply()</span> or <span class="keyword apiname">MsgReplyv()</span>.
+</p>
+
+
+<p class="p">
+
+
+Note that you can fill up the client's reply buffer as data becomes available by using 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgwrite.html"><span class="keyword apiname">resmgr_msgwrite()</span></a>
+and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgwritev.html"><span class="keyword apiname">resmgr_msgwritev()</span></a>.
+Just remember to do the <span class="keyword apiname">MsgReply*()</span> at some time to unblock the client.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If you're replying to an <span class="keyword const">_IO_READ</span> or <span class="keyword const">_IO_WRITE</span>
+message, the <var class="keyword varname">status</var> argument for <span class="keyword apiname">MsgReply*()</span> must be
+the number of bytes read  or written.
+</div>
+
+
+<p class="p">
+
+There's another way to resume the blocked operation, but it isn't as efficient as the other methods:
+you can call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msg_again.html"><span class="keyword apiname">resmgr_msg_again()</span></a>.
+This function restores the <span class="keyword dtype">resmgr_context_t</span> structure to the
+way it was when your resource manager received the message associated with
+the <var class="keyword varname">rcvid</var>, and then processes the message again as if it had just been received.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If your resource manager leaves clients blocked, you'll need to keep
+track of which clients are blocked, so that you can unblock them if necessary.
+For more information, see
+<q class="q"><a class="xref" href="read_write_unblocking.html">Unblocking if someone closes a file descriptor</a></q>
+in the Unblocking Clients and Handling Interrupts chapter.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returning and telling the library to do the default action</h2>
+
+
+<div class="p">
+The default action in most cases is for the library to cause
+the client's function to fail with <span class="keyword const">ENOSYS</span>:
+
+
+
+<pre class="pre codeblock">return (_RESMGR_DEFAULT);
+</pre>
+</div>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write.html" title="A resource manager must define routines or handlers to process requests by the client to receive data (read) or send data to the underlying device (write). Here, we give detailed examples of such handlers.">Handling Read and Write Messages</a></div>
+</div>
+</div></body>
+</html>

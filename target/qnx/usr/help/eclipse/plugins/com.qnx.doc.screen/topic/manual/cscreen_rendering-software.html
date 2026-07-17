@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Software Rendering" />
+<meta name="abstract" content="Software rendering is when applications render by accessing buffers and writing to them using the CPU (i.e., using a software rasterizer instead of a GPU)." />
+<meta name="description" content="Software rendering is when applications render by accessing buffers and writing to them using the CPU (i.e., using a software rasterizer instead of a GPU)." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_render-software" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Software Rendering</title>
+</head>
+<body id="cscreen_render-software">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Software Rendering
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Software rendering is when applications render by accessing buffers and writing to them using the CPU
+        (i.e., using a software rasterizer instead of a GPU).
+    </p>
+
+        <p class="p">
+            
+            Generally, you'll need to do the following steps in your application to render using software:
+        </p>
+
+        <ol class="ol">
+            <li class="li">
+                Create your render target.
+            </li>
+
+            <li class="li">
+                Get access to your buffer.
+            </li>
+
+            <li class="li">
+                Draw to your buffer.
+            </li>
+
+            <li class="li">
+                Post your content.
+            </li>
+
+        </ol>
+
+        <p class="p">
+            Your main rendering loop comprises of these latter steps: getting access to your buffer, drawing to
+            your buffer, and posting your content. When your render target has multiple buffers,
+            <span class="keyword">Screen</span> cycles the buffer handles accordingly so that
+            <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> always indicates the buffers that are available
+            for rendering into. So, updating the handle to your buffer by retrieving <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>
+            must be part of your main rendering loop.
+        </p>
+
+
+        <div class="section"><h2 class="title sectiontitle">Create your render target</h2>
+            
+            <p class="p">
+                
+                This target is where your application will render to. A render target can be
+                a stream, a pixmap, or a window. You can also use a combination of these targets, depending on your
+                application.
+            </p>
+
+            <p class="p">
+                The code follows a very similar set of procedures whether you're using a pixmap, a window, or a stream:
+            </p>
+
+            <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_pixmap_t screen_pix;
+...
+screen_create_pixmap(&amp;screen_pix, screen_ctx);
+...
+            </pre>
+            or:
+            <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_window_t screen_win;
+...
+screen_create_window(&amp;screen_win, screen_ctx);
+            </pre>
+            
+            or:
+            <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_stream_t screen_stream;
+...
+screen_create_stream(&amp;screen_stream, screen_ctx);
+            </pre>
+
+            <p class="p">
+                Now that you've created your target, you must set the appropriate properties on this target. At a
+                minimum, you should set usage, color format, and buffer size. In order to do software rendering, it's
+                important to set the usage flags with <span class="keyword const">SCREEN_USAGE_READ</span>, or <span class="keyword const">SCREEN_USAGE_WRITE</span>
+                or both. Otherwise, the buffer won't be mapped into your application's memory space and you won't be
+                able to get a pointer to the memory. For example, here's what the code might look like for creating a
+                pixmap:
+            </p>
+
+            <pre class="pre codeblock">...
+int size[2];
+...
+
+/* Note that if you're using a pixmap as your off-screen render target and you eventually wish
+   to make at least parts of the pixmap buffer visible, then you must set the usage, format,
+   and buffer size to be compatible with those of the window on which you'll be using to
+   display your pixmap-rendered content.
+*/
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_FORMAT,
+                                          (const int[]){ SCREEN_FORMAT_RGBX8888 });
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_USAGE,
+                                          (const int[])
+                                             { SCREEN_USAGE_WRITE | SCREEN_USAGE_NATIVE });
+screen_set_pixmap_property_cv(screen_pix, SCREEN_PROPERTY_ID_STRING,
+                                          strlen("sw-vsync-pix"), "sw-vsync-pix");
+screen_get_window_property_iv(screen_win, SCREEN_PROPERTY_BUFFER_SIZE, size);
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_BUFFER_SIZE, size);
+...
+            </pre>
+            <p class="p">And finally, you'll need to create a buffer for your render target. For example:</p>
+
+            <pre class="pre codeblock">screen_create_pixmap_buffer(screen_pix);            
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Get access to your buffers</h2>
+            
+            <p class="p">
+                
+                Once you've created your render target, you'll want to make sure you have access to the
+                buffer of your render target. You'll want to retrieve the <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>
+                of your render target. This property will give you the handle to the buffer that's available for
+                rendering. From the buffer, you can retrieve the pointer that is used by software renderers to read
+                from and/or write to the buffer.
+            </p>
+
+            <pre class="pre codeblock">...
+screen_buffer_t screen_pbuf;
+...
+screen_get_pixmap_property_pv(screen_pix, SCREEN_PROPERTY_RENDER_BUFFERS,
+                                          (void **)&amp;screen_pbuf);
+...
+            </pre>
+            <p class="p">
+                Next, retrieve the pointer that is used by software renderers to read from and/or write to the buffer;
+                take note that this is a property of the buffer, not the render target. For example:
+            </p>
+
+            <pre class="pre codeblock">...
+void *pointer;
+...
+screen_get_buffer_property_pv(screen_pbuf, SCREEN_PROPERTY_POINTER, &amp;pointer);
+...
+            </pre>
+            <p class="p">
+                To be able to properly read from and/or write to the buffer, you'll also need to know the stride
+                of the render buffer (i.e., the number of bytes allocated per line). The stride
+                too, is a property of the buffer, not the render target. For example:
+            </p>
+
+            <pre class="pre codeblock">...
+int stride;
+...
+screen_get_buffer_property_iv(screen_pbuf, SCREEN_PROPERTY_STRIDE, &amp;stride);
+...
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Draw to your buffers</h2>
+            
+            
+            <p class="p">
+                Draw (render) to the buffer associated to your render target. You can refresh all the dirty
+                pixels using simple software rendering (writing bits to your buffer). This is where you need to take
+                into account your color format, your memory layout, and the byte order.
+            </p>
+
+            <p class="p">
+                Along with the rendering, your application can track the rectangular regions that have changed
+                since the last frame was posted. These dirty rectangles define the area in which your application
+                has changed bits. Tracking the dirty rectangles, and making these regions known to
+                <span class="keyword">Screen</span> when you post, allows <span class="keyword">Screen</span> to
+                optimize when posting your content.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Post your content</h2>
+            
+            
+            
+            <p class="p"> Trigger <span class="keyword">Screen</span> to make your rendered content visible or to make it available to its consumers. The following example is specific to displaying content from a window (remember that if you're using a pixmap, you need to copy the buffer's content to a window before you can post it to make the buffer's content visible on a display): </p>
+
+            <pre class="pre codeblock">...
+int rects[8]; /* stores up to 2 dirty rectangles */
+screen_buffer_t screen_wbuf = NULL;
+...
+screen_post_window(screen_win, screen_wbuf, 2, rects, 0);
+            </pre>
+            <p class="p"> If your render target is a pixmap, you'll need to do an extra step before your pixmap buffer content can be made visible. You'll need to copy the region of your pixmap buffer you want to display to a window buffer. Then, post the window. For example: </p>
+
+            <pre class="pre codeblock">...
+int rects[8]; /* stores up to 2 dirty rectangles */
+...
+screen_buffer_t screen_wbuf = NULL;
+screen_get_window_property_pv(screen_win, SCREEN_PROPERTY_RENDER_BUFFERS,
+                                          (void **)&amp;screen_wbuf);
+int i;
+    for (i = 0; i &lt; 2; i++) {
+        screen_blit(screen_ctx, screen_wbuf, screen_pbuf, (const int []){
+                SCREEN_BLIT_SOURCE_X, rects[i*4+0],
+                SCREEN_BLIT_SOURCE_Y, rects[i*4+1],
+                SCREEN_BLIT_SOURCE_WIDTH, rects[i*4+2],
+                SCREEN_BLIT_SOURCE_HEIGHT, rects[i*4+3],
+                SCREEN_BLIT_DESTINATION_X, rects[i*4+0],
+                SCREEN_BLIT_DESTINATION_Y, rects[i*4+1],
+                SCREEN_BLIT_DESTINATION_WIDTH, rects[i*4+2],
+                SCREEN_BLIT_DESTINATION_HEIGHT, rects[i*4+3],
+                SCREEN_BLIT_END });
+    }
+...
+screen_post_window(screen_win, screen_wbuf, 2, rects, 0);
+...
+            </pre>
+            <p class="p"> Ensure that you perform a <a class="xref" href="../screen_flush_blits.html" title="Flush all the blits issued"><span class="keyword apiname">screen_flush_blits()</span></a> with <span class="keyword const">SCREEN_WAIT_IDLE</span> in the <span class="keyword parmname">flags</span> parameter, or call <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> before rendering to your pixmap buffer again. </p>
+
+            <p class="p"> When your application provides the dirty rectangle at the post request, <span class="keyword">Screen</span> uses this information as a hint to determine regions of the final scene that needs to be redrawn. Dirty rectangles influence <span class="keyword">Screen</span> to perform optimizations, but ultimately <span class="keyword">Screen</span> takes into account several factors when determining which regions are redrawn. </p>
+
+            <p class="p">
+                <span class="keyword">Screen</span> posts entire buffers. Therefore, your application must ensure that the entire content of a window buffer is suitable for display at all times. </p>
+
+            <p class="p"> The function, <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>, returns immediately when render buffers are available. If you call <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> with the <span class="keyword parmname">flags</span> parameter set to <span class="keyword const">SCREEN_WAIT_IDLE</span>, the function blocks until there's a render buffer available. If your window has two buffers, you might see a difference in the time it takes for your post to unblock between posting your first frame and your subsequent frames. After your first post, you still have your second buffer available, so your first post request can return immediately. When your application is in a steady state, <span class="keyword">Screen</span> is accessing one buffer while your application is rendering to, or posting the second buffer. In this case, there are no buffers available for rendering, so <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> can't return right away. If you set <span class="keyword parmname">flags</span> parameter to <span class="keyword const">SCREEN_WAIT_IDLE</span> when you call <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>, it returns when the contents of the display have been updated, or when the scanout (when the frame is sent out the display port to the physical display) of the posting buffer begins. </p>
+
+            <p class="p"> Other things that affect how long the your post request blocks are use of hardware pipelines and displays with active refreshes. In the case when hardware pipelines are used, <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> blocks until the display update is done whereas for a <span class="keyword">Screen</span>-composited buffer the function blocks until the display update has started. In the case where your display is not performing active refreshes, <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> can return as soon as the dirty rectangle region has been copied. </p>
+
+            <p class="p"> Most applications use two rendering buffers. The simplest way is to use the buffer in the first element of the <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> property of your window. There are added complexities in managing more than two rendering buffers for your window. The number of available buffers may vary, depending on GPU timing, between one and the maximum number of buffers you've created. Therefore, the time it takes for <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> to return can cause complexity for animations, or those who want to smooth the timing. That being said, there are cases where multiple buffers are required based on the hardware accelerator supported on the target. </p>
+
+            <p class="p"> Posting may cause the <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> property of the posting window to change. We recommend that only one thread per context operate on, or render to, this window. If your application uses multiple threads, you must ensure that access to this window's handle by these threads is guarded. If not, <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> may reflect out-of-date information that can lead to animation artifacts. The presentation of new content may result in a copy or a buffer flip, depending on how <span class="keyword">Screen</span> chooses to perform the operation. Use the window property <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFER_COUNT</span> to determine the number of buffers you have available for rendering. </p>
+
+        </div>
+
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></div>
+</div>
+</div></body>
+</html>

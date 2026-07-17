@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Pathname management" />
+<meta name="abstract" content="I/O resources aren't built into the microkernel, but are instead provided by resource manager processes that may be started dynamically at runtime. The procnto manager allows resource managers, through a standard API, to adopt a subset of the pathname space as a “domain of authority” to administer." />
+<meta name="description" content="I/O resources aren't built into the microkernel, but are instead provided by resource manager processes that may be started dynamically at runtime. The procnto manager allows resource managers, through a standard API, to adopt a subset of the pathname space as a “domain of authority” to administer." />
+<meta name="DC.subject" content="pathname, management, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="pathname, management, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_Resolving_pathnames.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_Procmgr_symlinks.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_File_descriptor.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="PATHMAN" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Pathname management</title>
+</head>
+<body id="PATHMAN">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Pathname management</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+I/O resources <em class="ph i">aren't</em> built into the <span class="keyword">microkernel</span>,
+but are instead provided by resource manager processes that may be started dynamically at runtime.
+The <span class="keyword cmdname">procnto</span> manager allows resource managers, through a standard API,
+to adopt a subset of the pathname space as a <q class="q">domain of authority</q> to administer.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+As other resource managers adopt their respective domains of
+authority, <span class="keyword cmdname">procnto</span> becomes responsible for
+maintaining a pathname tree to track the processes that own
+portions of the pathname space. An adopted pathname is
+sometimes referred to as a <q class="q">prefix</q> because it
+prefixes any pathnames that lie beneath it; prefixes can be arranged in
+a hierarchy called a <em class="ph i">prefix tree</em>.
+The adopted pathname is also called a <em class="ph i">mountpoint</em>, because
+that's where a server mounts into the pathname.
+</p>
+
+
+<p class="p">
+This approach to pathname space management is what allows
+<span class="keyword">QNX OS</span> to preserve the POSIX semantics for device and
+file access, while making the presence of those services
+optional for small embedded systems.
+</p>
+
+
+<div class="p">
+At startup, <span class="keyword cmdname">procnto</span> populates the pathname space
+with the following pathname prefixes:
+
+
+
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:33.33333333333333%" /><col style="width:66.66666666666666%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d54739e154">Prefix</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d54739e157">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e154 "><span class="ph filepath">/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e157 ">Root of the filesystem.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e154 "><span class="ph filepath">/proc/boot/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e157 ">Some of the files from the boot image presented as a flat filesystem.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e154 "><span class="ph filepath">/proc/</span><var class="keyword varname">pid</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e157 ">The running processes, each represented by its process ID (PID).
+        For more information, see
+        <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_proc_filesystem.html">Controlling processes via the <span class="ph filepath">/proc</span> filesystem</a></q>
+        in the Processes chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e154 "><span class="ph filepath">/dev/zero</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e157 ">A device that always returns zero. Used for allocating zero-filled pages using the
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a> function.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e154 "><span class="ph filepath">/dev/mem</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d54739e157 ">A device that represents all physical memory.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/proc_Resolving_pathnames.html">Resolving pathnames</a></strong><br />
+ When a process opens a file, the POSIX-compliant <span class="keyword apiname">open()</span> library routine first sends the pathname to <span class="keyword cmdname">procnto</span>, where the pathname is compared against the prefix tree to determine which resource managers should be sent the <span class="keyword apiname">open()</span> message. </li>
+<li class="link ulchildlink"><strong><a href="../topic/proc_Procmgr_symlinks.html">Process manager symbolic links</a></strong><br />
+ We've discussed prefixes that map to a resource manager. Another form of mapping is a     process manager symbolic link (procmgr symlink), which is a simple string substitution. Unlike a     filesystem symbolic link, it exists only in memory instead of being a filesystem     object.</li>
+<li class="link ulchildlink"><strong><a href="../topic/proc_File_descriptor.html">File descriptor namespace</a></strong><br />
+ Once an I/O resource has been opened, a different namespace  comes into play. The <span class="keyword apiname">open()</span> returns an integer referred to as a <em class="ph i">file descriptor</em> (FD), which is used to direct all further I/O requests to that resource manager. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/proc.html" title="The Process Manager can create and manage multiple POSIX processes, each of which may contain multiple POSIX threads.">Process Manager</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html">The client view (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html">Inheriting file descriptors (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html">Pathname space mapping (QNX OS User's Guide)</a></li></ul></div>
+</div></body>
+</html>

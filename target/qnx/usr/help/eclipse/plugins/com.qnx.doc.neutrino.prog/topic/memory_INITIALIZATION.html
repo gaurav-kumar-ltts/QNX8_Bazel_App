@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Memory initialization" />
+<meta name="abstract" content="Memory initialization happens when physical pages are associated with virtual addresses via mmap() calls." />
+<meta name="description" content="Memory initialization happens when physical pages are associated with virtual addresses via mmap() calls." />
+<meta name="DC.relation" scheme="URI" content="../topic/memory.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="memoryInitialization" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Memory initialization</title>
+</head>
+<body id="memoryInitialization">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">Memory initialization</h1>
+
+
+    
+
+    <div class="body conbody"><p class="shortdesc"> Memory initialization happens when physical pages are associated with virtual
+        addresses via <span class="keyword apiname">mmap()</span> calls.</p>
+
+        <p class="p">To protect confidential information, it’s essential to determine whether your memory has
+            been initialized. When your code releases memory, any sensitive data previously stored
+            in that memory can potentially be exposed during a future allocation. Therefore, the
+            memory should either be initialized (memory is filled with zeroes) or overwritten with
+            the contents of a secure object. The following scenarios outline when memory is
+            initialized and when it isn't:</p>
+
+        <div class="p">Memory is initialized to zero for:<ul class="ul">
+                <li class="li">anonymous allocations (<span class="keyword const">MAP_ANON</span>)</li>
+
+                <li class="li">initial mappings of shared-memory objects, unless populated from non-SYSRAM
+                    typed memory</li>
+
+                <li class="li">typed memory allocations from within SYSRAM</li>
+
+                <li class="li">the tail of non-page-aligned file-backed allocations (e.g., when mapping a file
+                    of size 3000, the first 3000 bytes are from the file, and the remaining 1096
+                    bytes are initialized)</li>
+
+            </ul>
+</div>
+
+        <div class="p">Memory isn't initialized for:<ul class="ul">
+                <li class="li">mappings of existing shared memory objects</li>
+
+                <li class="li">mappings of typed memory that isn't a subset of SYSRAM</li>
+
+                <li class="li">direct mappings of explicit physical addresses (i.e., <span class="keyword const">MAP_PHYS</span>
+                    without <span class="keyword const">MAP_ANON</span>)</li>
+
+            </ul>
+</div>
+
+        <p class="p">For file-backed mappings (with the exception of non-page-aligned file-backed allocations
+            as mentioned above), the memory is initialized to the contents of the file.</p>
+
+        <div class="note"><span class="notetitle">Note:</span> Only system allocations undergo memory initialization. In-process allocations,
+            such as those with a call to <span class="keyword apiname">malloc()</span>, don't guarantee that
+            reclaimed memory within the process is reinitialized. However, since threads within
+            the same process share all memory for that process, there is no way to hide data
+            among them.</div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/memory.html" title="(or The Persistence of Memory, with a nod to Salvador Dali) In the “Process Manager” chapter of the System Architecture guide, we looked at how the OS manages memory. This chapter describes how you can work with memory.">Working with Memory</a></div>
+</div>
+</div></body>
+</html>

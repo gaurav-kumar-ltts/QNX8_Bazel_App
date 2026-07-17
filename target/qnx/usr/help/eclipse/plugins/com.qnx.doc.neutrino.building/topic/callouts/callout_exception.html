@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="interrupt_id_*() and interrupt_eoi_*()" />
+<meta name="abstract" content="To improve performance, the interrupt_id_*() and interrupt_eoi_*() kernel callouts are intergrated directly into the kernel code." />
+<meta name="description" content="To improve performance, the interrupt_id_*() and interrupt_eoi_*() kernel callouts are intergrated directly into the kernel code." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_exception" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>interrupt_id_*() and interrupt_eoi_*()</title>
+</head>
+<body id="callout_exception">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">interrupt_id_*()</span> and <span class="keyword apiname">interrupt_eoi_*()</span></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">To improve performance, the <span class="keyword apiname">interrupt_id_*()</span> and
+		<span class="keyword apiname">interrupt_eoi_*()</span> kernel callouts are intergrated directly into the
+		kernel code.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The interrupt ID and end of interrupt (EOI) kernel callouts aren't called in the same
+				way as the other callouts. For details about
+				<span class="keyword apiname">interrupt_id_*()</span> and <span class="keyword apiname">interrupt_eoi_*()</span>,
+				see the <span class="ph filepath">callout_interrupt_*.s</span> files in the startup library for
+				the relevant CPU architecture. These files have descriptions that specify which
+				registers are used to pass values to and from these callouts.</p>
+
+			<div class="p">For example, the following comments are provided with a
+				<span class="ph filepath">callout_interrupt_*.s</span> file for an ARM board:
+<pre class="pre codeblock">/*
+ * MC9328MX1/MC9328MX21/MCIMX31 specific interrupt callouts.
+ *
+ * interrupt_id_* and interrupt_eoi_* are copied and intermixed with other
+ * kernel code during initialisation.
+ *
+ * They do not follow normal calling conventions, and must fall through
+ * to the end, rather than attempting to perform a return instruction.
+ *
+ * The INTR_GENFLAG_* bits in the intrinfo_entry defines which of the
+ * following values can be loaded on entry to these code fragments:
+ *
+ *	r5 - holds the syspageptr		(INTR_GENFLAG_SYSPAGE  set)
+ *	r6 - holds the intrinfo_entry pointer	(INTR_GENFLAG_INTRINFO set)
+ *	r7 - holds the interrupt mask count	(INTR_GENFLAG_INTRMASK set)
+ *
+ * The interrupt_id_* routine returns the controller-relative level in r4
+ */</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				You can't return from the middle of an <span class="keyword apiname">interrupt_id_*()</span> or
+				<span class="keyword apiname">interrupt_eoi_*()</span> callout—you must fall through
+				to the end of the callout code.
+				For more information about interrupt flags, see <q class="q"><a class="xref" href="../syspage/intrinfo.html#intrinfo__flags">INTR_* flags</a></q> in
+				the <a class="xref" href="../syspage/syspage_about.html" title="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory.">System Page</a> chapter.
+			</div>
+
+		</div>
+
+		<div class="section" id="callout_exception__irqid"><h2 class="title sectiontitle"><span class="keyword apiname">interrupt_id_*()</span> kernel callouts</h2>
+			
+			
+			
+			
+			
+			
+			<div class="p">An <span class="keyword apiname">interrupt_id_*()</span> kernel callout has the following
+				responsibilities:
+				<ul class="ul">
+					<li class="li">Put the asserted interrupt level into a CPU register.</li>
+
+					<li class="li">Mask the asserted interrupt level. Masking is necessary to handle
+						edge-triggered interrupts and prevent the current interrupt from interrupting
+						again before we’re finished responding to it.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">To perform these tasks, an interrupt ID callout needs to:
+				<ol class="ol">
+					<li class="li">Read information from some kind of interrupt Status register.</li>
+
+					<li class="li">Perform bit manipulation to determine the interrupt level.</li>
+
+					<li class="li">Put the interrupt level value into a general-purpose CPU register, so the
+						information can be used by the kernel.</li>
+
+					<li class="li">If a glitch or spurious assertion occurs, put a -1 into a
+						GPR to indicate no interrupt to the kernel.</li>
+
+					<li class="li">Mask the interrupt by manipulating bits in an enable-and-mask register.</li>
+
+				</ol>
+
+			</div>
+
+			<p class="p">Below is an example of a kernel callout that gets the interrupt ID and masks the
+				interrupt from an ARM V2 GIC. Check your hardware documentation to learn what your
+				callout must do to identify and mask callouts.</p>
+
+<pre class="pre codeblock">/*
+ * -----------------------------------------------------------------------
+ * Identify interrupt source
+ *
+ *	x20 - syspage pointer
+ * -----------------------------------------------------------------------
+ */
+CALLOUT_START(interrupt_id_gic_v2, rw_size, rw_patch)
+	mov		w7, 0xabcd              // offset to rw data (patched)
+	add		x7, x7, x20             // address of rw data
+	ldr		x6, [x7, #OFF_GICC]
+
+	/*
+	 * Get interrupt ID and handle special cases:
+	 * ID0    - used for IPIs
+	 * ID1022 - spurious interrupt
+	 * ID1023 - spurious interrupt
+	 */
+	ldr		w0, [x6, #ARM_GICC_IAR]
+	and		w19, w0, #ARM_GICC_IAR_IDMASK
+	cbz		w19, 0f
+	cmp		w19, #1022
+	bhi		1f
+
+	/*
+	 * Mask interrupt
+	 */
+	ldr		x5, [x7, #OFF_GICD]
+	add		x5, x5, #ARM_GICD_ICENABLERn
+	and		w0, w19, #0x1f
+	mov		w1, #1
+	lsl		w1, w1, w0              // bit to set = 1 &lt;&lt; (id % 32)
+	lsr		w0, w19, #5             // index = id / 32
+	str		w1, [x5, x0, lsl #2]    // ICENABLERn[index] = bit
+	b		2f
+
+	/*
+	 * IPI interrupt (ID0) - acknowledge using full SRCID and exit
+	 */
+0:	str		w0, [x6, #ARM_GICC_EOIR]
+	b		2f
+
+	/*
+	 * Spurious interrupt - set id to -1
+	 */
+1:	mov		x19, #-1
+
+	/*
+	 * Done - interrupt id is in x19
+	 */
+2:
+CALLOUT_END(interrupt_id_gic_v2)</pre>
+		</div>
+
+		<div class="section" id="callout_exception__eoi"><h2 class="title sectiontitle"><span class="keyword apiname">interrupt_eoi_*()</span> kernel callouts</h2>
+			
+			
+			
+			
+			<div class="p">An <span class="keyword apiname">interrupt_eoi_*()</span> kernel callout has the following
+				responsibilities:
+				<ul class="ul">
+					<li class="li">Tell the interrupt controller that the interrupt has been serviced.</li>
+
+					<li class="li">Unmask the interrupt level. Unmasking is usually done by manipulating bits in
+						the enable-and-mask register where the masking was done.</li>
+
+					<li class="li">If necessary, manipulate other bits in the register to
+						prompt the interrupt controller to reevaluate the input it received.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">Below is an example of a kernel callout that sends the EOI and unmasks the interrupt
+				from an ARM V2 GIC. See your hardware documentation to learn what your callout must
+				do to perform these tasks.</p>
+
+<pre class="pre codeblock">/*
+ * -----------------------------------------------------------------------
+ * Acknowledge specified interrupt
+ *
+ *	x19 - contains interrupt id
+ *	x20 - contains syspage pointer (INTR_GENFLAG_LOAD_SYSPAGE was used)
+ *	x22 - contains intr mask count (INTR_GENFLAG_LOAD_INTRMASK was used)
+ * -----------------------------------------------------------------------
+ */
+CALLOUT_START(interrupt_eoi_gic_v2, rw_size, rw_patch)
+	mov		w7, 0xabcd              // offset to rw data (patched)
+
+	/*
+	 * Skip ID0 because we EOI in the id callout and never mask it
+	 */
+	cbz		w19, 0f
+
+	add		x7, x7, x20             // address of rw data
+	ldr		x5, [x7, #OFF_GICD]
+	ldr		x6, [x7, #OFF_GICC]
+
+	/*
+	 * Send EOI
+	 */
+	str		w19, [x6, #ARM_GICC_EOIR]
+
+	/*
+	 * Unmask interrupt if mask count is zero.
+	 */
+	cbnz	w22, 0f
+	add		x5, x5, #ARM_GICD_ISENABLERn
+	and		w0, w19, #0x1f
+	mov		w1, #1
+	lsl		w1, w1, w0              // bit to set = 1 &lt;&lt; (id % 32)
+	lsr		w0, w19, #5             // index = id / 32
+	str		w1, [x5, x0, lsl #2]    // ISENABLERn[index] = bit
+0:
+CALLOUT_END(interrupt_eoi_gic_v2)</pre>
+		</div>
+
+	</div>
+
+</body>
+</html>

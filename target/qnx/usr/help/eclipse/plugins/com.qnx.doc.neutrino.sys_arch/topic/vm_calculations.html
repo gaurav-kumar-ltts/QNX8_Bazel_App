@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Calculating memory reserved by a process" />
+<meta name="abstract" content="You can use vmstat files to get information about system and per-process memory usage. The pmap files are another source of per-process memory information. The use of shared objects must also be taken into consideration when measuring memory consumption." />
+<meta name="description" content="You can use vmstat files to get information about system and per-process memory usage. The pmap files are another source of per-process memory information. The use of shared objects must also be taken into consideration when measuring memory consumption." />
+<meta name="DC.subject" content="pmap, virtual memory reservation, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="pmap, virtual memory reservation, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/memory_accounting.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="vm_calculations" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Calculating memory reserved by a process</title>
+</head>
+<body id="vm_calculations">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Calculating memory reserved by a process</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">You can use <span class="ph filepath">vmstat</span> files to get information about system and
+        per-process memory usage. The <span class="ph filepath">pmap</span> files are another source of
+        per-process memory information. The use of shared objects must also be taken into
+        consideration when measuring memory consumption. </p>
+
+        <div class="section"><h2 class="title sectiontitle">Per-process memory consumption and shared objects</h2>
+            
+            <p class="p">The memory that a process uses is provided via mapping: the <span class="keyword">QNX OS</span> process manager maps physical memory into a process's
+                address space. The memory is organized in fixed-sized chunks called pages (typically
+                4 KB each), which are the units the memory manager deals with. The statistics for
+                each mapped memory region includes the amount of memory, if any, that the region
+                reserves for the process.</p>
+
+            <p class="p">Because these mappings can be shared, determining how much each process contributes
+                to total system memory use can be complex. Every process maps multiple shared
+                objects, including its own executable and the C library. In the
+                    <span class="ph filepath">pmap</span> list, shared mapping of these objects shows up as
+                consuming no memory because the memory reservation is assumed by the underlying
+                object.</p>
+
+            <p class="p">Additionally, systems can have shared memory objects that are not mapped by any
+                process: a process can create this kind of object with a call to
+                    <span class="keyword apiname">shm_open()</span> and never map it. That process can exit and leave
+                the shared memory object to linger (which is required for POSIX semantics).</p>
+
+            <p class="p">Thus, while there are methods that allow you to view or calculate the memory reserved
+                for a specific process, a full system analysis of memory consumption requires a
+                careful consideration of all shared objects, along with which processes (if any) map
+                them.</p>
+
+            <p class="p">(For a detailed discussion of system and process memory, go to <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory</a></q> in the <span class="keyword">QNX OS</span>
+                <cite class="cite">Programmer's Guide</cite> and the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+                        entry in the <cite class="cite">C Library
+                    Reference</cite>.)</p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Memory reservation from reading the <span class="ph filepath">vmstat</span> files</h2>
+            
+            <p class="p">You can access memory statistics for an individual process using the appropriate
+                instance of
+                <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/vmstat</span>,
+                where <var class="keyword varname">pid</var> is the process ID. The statistics include the
+                <span class="keyword parmname">as_stats.anon.rsv</span> parameter, which represents the total
+                memory reserved by the process.</p>
+
+            <p class="p">The <span class="ph filepath">/proc/vm/stats</span> file provides the totaled values for all
+                <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/vmstat</span>
+                instances.</p>
+
+            <p class="p">To learn more about these file output, go to <q class="q"><a class="xref" href="vmstat.html" title="The vmstat files provide memory usage information for both the system and processes.">The
+                <span class="ph filepath">vmstat</span> files</a>.</q></p>
+
+            <p class="p">(Also, the following section includes an example of <span class="ph filepath">vmstat</span> file
+                content.)</p>
+
+        </div>
+
+        <div class="section" id="vm_calculations__read_pmap"><h2 class="title sectiontitle">Memory reservation from reading the <span class="ph filepath">pmap</span> file</h2>
+            
+            <p class="p">Reading the <span class="ph filepath">pmap</span> file gives you a more detailed look at the
+                memory mapping of the process. You can find how much memory is reserved by a process
+                by summing selected parameters in the file's output. You can read the file using
+                <span class="keyword cmdname">cat</span>:</p>
+
+            <pre class="pre codeblock">cat /proc/<var class="keyword varname">pid</var>/pmap
+            </pre>
+            <p class="p">For example (to make it easier to read, a return character (<tt class="ph tt">↵</tt>) is added to break long
+                lines):</p>
+
+            <pre class="pre codeblock">vaddr,size,flags,prot,maxprot,dev,ino,offset,rsv,guardsize,refcnt,mapcnt,path,asinfo
+0x0000000000002000,0x0000000000080000,0x00083002,0x03,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000080000,0x00001000,0x00000000,0x0000035b,{stack},{sysram}
+0x0000000008048000,0x0000000000001000,0x00000031,0x05,0x0d,0x0000040b,0x00000000000d600b,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x00000008,0x00000006,/system/local/bin/mmap_demo,{sysram}
+0x0000000008049000,0x0000000000001000,0x00000032,0x01,0x0f,0x0000040b,0x00000000000d600b,<tt class="ph tt">↵</tt>
+0x0000000000001000,0x0000000000001000,0x00000000,0x00000008,0x00000006,/system/local/bin/mmap_demo,{sysram}
+0x000000000804a000,0x0000000000001000,0x00000032,0x03,0x0f,0x0000040b,0x00000000000d600b,<tt class="ph tt">↵</tt>
+0x0000000000002000,0x0000000000001000,0x00000000,0x00000008,0x00000006,/system/local/bin/mmap_demo,{sysram}
+0x0000000009048000,0x000000000000d000,0x00080002,0x03,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x000000000000d000,0x00000000,0x00000000,0x0000035b,{heap},{sysram}
+0x0000000009055000,0x0000000000002000,0x00080001,0x03,0x0f,0x00000001,0x9fa48eb407e62f83,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x00000002,0x00000001,**anonymous**,{unknown}
+0x0000000009057000,0x00000000f4240000,0x00080002,0x00,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x00000000,0x0000035b,{heap},{sysram}
+0x0000000100000000,0x0000000000036000,0x00010031,0x05,0x0d,0x00000802,0x000000008000001c,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x0000024b,0x00000249,/proc/boot/ldqnx-64.so.2,{ram}
+0x0000000100036000,0x0000000000002000,0x00010032,0x01,0x0f,0x00000802,0x000000008000001c,<tt class="ph tt">↵</tt>
+0x0000000000036000,0x0000000000002000,0x00000000,0x0000024b,0x00000249,/proc/boot/ldqnx-64.so.2,{ram}
+0x0000000100038000,0x0000000000001000,0x00010032,0x03,0x0f,0x00000802,0x000000008000001c,<tt class="ph tt">↵</tt>
+0x0000000000038000,0x0000000000001000,0x00000000,0x0000024b,0x00000249,/proc/boot/ldqnx-64.so.2,{ram}
+0x0000000100039000,0x0000000000001000,0x00080032,0x03,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000001000,0x00000000,0x00000000,0x0000035b,{bss},{sysram}
+0x000000010003a000,0x00000000000a6000,0x00010031,0x05,0x0d,0x00000802,0x0000000080000010,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x0000024b,0x00000249,/proc/boot/libc.so.6,{ram}
+0x00000001000e0000,0x0000000000004000,0x00080032,0x01,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000004000,0x00000000,0x00000000,0x0000035b,{bss},{sysram}
+0x00000001000e4000,0x0000000000002000,0x00010032,0x03,0x0f,0x00000802,0x0000000080000010,<tt class="ph tt">↵</tt>
+0x00000000000aa000,0x0000000000002000,0x00000000,0x0000024b,0x00000249,/proc/boot/libc.so.6,{ram}
+0x00000001000e6000,0x0000000000006000,0x00080032,0x03,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000006000,0x00000000,0x00000000,0x0000035b,{bss},{sysram}
+0x00000001000ec000,0x000000000001c000,0x00010031,0x05,0x0d,0x00000802,0x0000000080000011,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x0000024b,0x00000249,/proc/boot/libgcc_s.so.1,{ram}
+0x0000000100108000,0x0000000000001000,0x00080032,0x01,0x0f,0x00000001,0x0000000000000003,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000001000,0x00000000,0x00000000,0x0000035b,{bss},{sysram}
+0x0000000100109000,0x0000000000001000,0x00010032,0x03,0x0f,0x00000802,0x0000000080000011,<tt class="ph tt">↵</tt>
+0x000000000001d000,0x0000000000001000,0x00000000,0x0000024b,0x00000249,/proc/boot/libgcc_s.so.1,{ram}
+0x0000000180000000,0x0000000000004000,0x00000002,0x03,0x0f,0x0000040c,0x000000000085890b,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000004000,0x00000000,0x00000004,0x00000002,/data/home/user/mmap_demo.qISt3b,{sysram}
+0x0000000180004000,0x0000000000004000,0x00000001,0x03,0x0f,0x0000040c,0x000000000085890b,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x00000004,0x00000002,/data/home/user/mmap_demo.qISt3b,{sysram}
+            </pre>
+            <p class="p">The first line lists the parameter names in the order in which they appear in
+                subsequent lines. In subsequent lines, the first two parameters show the virtual
+                address (<span class="keyword parmname">vaddr</span>) and maximum size of memory that it can reserve.
+                For example, in the following entry, the virtual address 0x0000000008048000 can
+                reserve 4 KB of memory (one 4K page):</p>
+
+<pre class="pre codeblock">0x0000000008048000,0x0000000000001000,0x00000031,0x05,0x0d,0x0000040b,0x00000000000d600b,<tt class="ph tt">↵</tt>
+0x0000000000000000,0x0000000000000000,0x00000000,0x00000008,0x00000006,/system/local/bin/mmap_demo,{sysram}
+</pre>
+            <p class="p">The next two parameters, <span class="keyword parmname">flags</span> and <span class="keyword parmname">prot</span>,
+                show the mapped memory and page protection flags. In this example, the values
+                represent a shared mapping with read-only and executable permissions.</p>
+
+            <div class="note"><span class="notetitle">Note:</span>  The <span class="keyword parmname">prot</span> values correspond to the protection bits defined in
+                <span class="ph filepath">sys/mman.h</span>, but are right-shifted by 8. For more
+                information, go to the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/memory.html"><span class="keyword apiname">mmap()</span></a></q> entry in the <span class="keyword">QNX OS</span>
+                <cite class="cite">C Library Reference</cite>. </div>
+
+            <p class="p">The ninth parameter is the reservation parameter (<span class="keyword parmname">rsv</span>) and it is
+                crucial. It shows how many bytes are billed to this process for the mapping. If it's
+                a private mapping of a shared object, the value is the same as the size of the
+                mapping because the mapping requires that the system allocate new pages for it with
+                a copy of the contents of the object (e.g., a temporary file). In contrast, a shared
+                mapping of the same object has a value of 0, as in the example above. (For more
+                details, go to <q class="q"><a class="xref" href="pmap.html" title="The pmap file provides details about memory mapping and other process information.">The <span class="ph filepath">pmap</span>
+                    parameters</a>.</q>)</p>
+
+            <p class="p">The second-last parameter, <span class="keyword parmname">path</span>, shows the mapped object. This
+                object can be a file, a shared-memory object, or a single anonymous object that is
+                used to map the process’s stacks and heaps. The <span class="keyword parmname">asinfo</span>
+                parameter, the last one, is the name of the <var class="keyword varname">asinfo</var> entry that
+                backs the mapping (the system page's <var class="keyword varname">asinfo</var> entries describe
+                different sections of the system memory map).</p>
+
+            <p class="p">(For a description of all parameters, go to <q class="q"><a class="xref" href="pmap.html" title="The pmap file provides details about memory mapping and other process information.">The
+                <span class="ph filepath">pmap</span> parameters.</a></q>)</p>
+
+            <div class="p">You can use the <span class="keyword parmname">size</span>, <span class="keyword parmname">flags</span>,
+                <span class="keyword parmname">prot</span>, and <span class="keyword parmname">rsv</span> parameters to calculate
+                the reserved memory of the process. In the second row, these parameters have the
+                following values: <dl class="dl" id="vm_calculations__dl_nyh_t5f_gbc">
+                    
+                        <dt class="dt dlterm">size</dt>
+
+                        <dd class="dd">0x0000000000001000 (4096 bytes)</dd>
+
+                    
+                    
+                        <dt class="dt dlterm">flags</dt>
+
+                        <dd class="dd">0x00000031 (MAP_FIXED, MAP_ELF, MAP_SHARED)</dd>
+
+                    
+                    
+                        <dt class="dt dlterm">prot</dt>
+
+                        <dd class="dd">0x05 (PROT_READ, PROT_EXEC)</dd>
+
+                    
+                    
+                        <dt class="dt dlterm">rsv</dt>
+
+                        <dd class="dd">0x0000000000000000 (0 bytes)</dd>
+
+                    
+                </dl>
+</div>
+
+            <p class="p">This region is type code (read only). It is a shared, read-only mapping of an object
+                and has reserved 0 KB of memory.</p>
+
+            <div class="p">The fifth row is a heap region and has the following parameter values: <dl class="dl" id="vm_calculations__dl_oyh_t5f_gbc">
+                
+                    <dt class="dt dlterm">size</dt>
+
+                    <dd class="dd">0x000000000000d000 (52 KB)</dd>
+
+                
+                
+                    <dt class="dt dlterm">flags</dt>
+
+                    <dd class="dd">0x00080002 (MAP_ANON, MAP_PRIVATE)</dd>
+
+                
+                
+                    <dt class="dt dlterm">prot</dt>
+
+                    <dd class="dd">0x03 (PROT_READ, PROT_WRITE)</dd>
+
+                
+                
+                    <dt class="dt dlterm">rsv</dt>
+
+                    <dd class="dd">0x000000000000d000 (52 KB)</dd>
+
+                
+            </dl>
+</div>
+
+            <div class="p">Analyzing the output line by line produces the table below with the total memory
+                reserved at the bottom: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" id="vm_calculations__table_pyh_t5f_gbc" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d52901e476">Region type</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d52901e479">Row numbers</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d52901e482">Reserved memory in KB</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d52901e485">Total in KB</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e476 ">Code</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e479 ">2, 8, 12, 16</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e482 ">0</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">0</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e476 ">Data (Read Only)</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e479 ">3, 9, 13, 17</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e482 ">4, 8, 16, 4</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">32</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e476 ">Data (Read/Write)</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e479 ">4, 6, 10, 11, 14, 15, 18-20</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e482 ">4, 0, 4, 4, 8, 24, 4, 16, 0</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">64</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e476 ">Stack</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e479 ">1</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e482 ">512</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">512</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e476 ">Heap</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e479 ">5, 7</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e482 ">52</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">52</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" colspan="3" style="vertical-align:top;" headers="d52901e476 d52901e479 d52901e482 ">Total memory reserved:</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d52901e485 ">660</td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+</div>
+
+            <div class="p">Reading the <span class="ph filepath">vmstat</span> file for the process, you can see that the
+                amount of reserved memory (<span class="keyword parmname">as_stat.anon_rsv</span>) is indeed 660 KB:
+                <pre class="pre codeblock" id="vm_calculations__codeblock_qyh_t5f_gbc"># cat /proc/103751721/vmstat
+as_stats.vm_region=21
+as_stats.vm_map=16
+as_stats.map_size=0xf43e7 (3.815GB)
+as_stats.map_phys=0xfb (1004.000kB)
+as_stats.map_shared=0x102 (1.007MB)
+as_stats.map_private=0xa5 (660.000kB)
+as_stats.rss=0x1a7 (1.652MB)
+as_stats.anon_rsv=0xa5 (660.000kB)
+as_stats.rlimit_data=0xd (52.000kB)
+                </pre></div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/memory_accounting.html" title="Accounting for the memory used by your system and processes can be useful, especially when debugging. This section covers examples of how to read memory-related files and calculate reserved memory.">Memory accounting</a></div>
+</div>
+</div></body>
+</html>

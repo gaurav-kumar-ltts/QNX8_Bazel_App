@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Timer and clock" />
+<meta name="abstract" content="The kernel uses the timer callouts to work with the hardware timer (i.e., the timer/counter chip)." />
+<meta name="description" content="The kernel uses the timer callouts to work with the hardware timer (i.e., the timer/counter chip)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_timer" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Timer and clock</title>
+</head>
+<body id="callout_timer">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Timer and clock</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The kernel uses the timer callouts to work with the hardware timer (i.e., the
+		timer/counter chip).</p>
+
+		<div class="section">
+			<p class="p">In many cases, a board can have several hardware timers. You choose one of these timers
+				to use for <span class="keyword apiname">timer_*()</span> functions in the startup code and
+				<span class="keyword apiname">timer_*()</span> kernel callouts.
+				In general, hardware timers either count up or count down and may or may not be
+				auto-reset (also called <dfn class="term">periodic</dfn>).</p>
+
+			<div class="p">The kernel uses a hardware timer to generate a periodic interrupt (i.e., the clock
+				tick). The kernel uses this interrupt for:
+				<ul class="ul">
+					<li class="li">Updating the system time and other software clocks</li>
+
+					<li class="li">Firing software timers</li>
+
+					<li class="li">Thread scheduling</li>
+
+				</ul>
+
+			</div>
+
+			
+		</div>
+
+		<div class="section" id="callout_timer__callouts"><h2 class="title sectiontitle">Kernel callouts</h2>
+			
+			
+			
+			
+			<p class="p">The kernel interacts with the specified hardware timer through a set of timer kernel
+				callouts.</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm" id="callout_timer__timer_load"><span class="keyword apiname">timer_load()</span></dt>
+
+					<dd class="dd">The kernel assumes that the hardware timer starts at 0, counts up to a
+						number (the divisor value), and then generates an interrupt. The kernel uses
+						the following method to specify a divisor value for the hardware timer:
+						<ol class="ol">
+							<li class="li">The kernel provides the divisor value to be loaded into the hardware timer,
+								by writing the value in the <var class="keyword varname">timer_load</var> field in the
+								<var class="keyword varname">qtime_entry</var> element of the system page.</li>
+
+							<li class="li">The kernel calls <span class="keyword apiname">timer_load()</span>.</li>
+
+							<li class="li">Because the kernel doesn't know the characteristics of the hardware
+								timer, <span class="keyword apiname">timer_load()</span> validates the divisor value.
+								For example, if the divisor value provided by the kernel is too
+								high, the callout writes the maximum divisor value supported
+								by the hardware timer into the hardware timer.</li>
+
+							<li class="li">The callout copies the value written to the hardware timer
+								into the <var class="keyword varname">timer_load</var> field in
+								<var class="keyword varname">qtime_entry</var>.</li>
+
+							<li class="li">The kernel reads the <var class="keyword varname">timer_load</var> field in
+								<var class="keyword varname">qtime_entry</var> to see what the callout
+								wrote to the hardware timer.</li>
+
+						</ol>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm" id="callout_timer__timer_reload"><span class="keyword apiname">timer_reload()</span></dt>
+
+					<dd class="dd">The kernel assumes that the hardware timer auto-resets (i.e., it's
+						periodic). If the timer does not auto-reset, you must implement the
+						<span class="keyword apiname">timer_reload()</span> callout. The kernel calls
+						<span class="keyword apiname">timer_reload()</span> at the beginning of the interrupt.</dd>
+
+					<dd class="dd ddexpand">If this callout returns 1, the interrupt is treated as
+						a clock tick. This return value is useful when several interrupt sources
+						can generate the same interrupt, to distinguish a clock tick from the
+						other sources.</dd>
+
+				
+				
+					<dt class="dt dlterm" id="callout_timer__timer_value"><span class="keyword apiname">timer_value()</span></dt>
+
+					<dd class="dd">If the kernel wants to know when to expect the next interrupt, it calls the
+						<span class="keyword apiname">timer_value()</span> callout and uses the following formula:
+						<pre class="pre codeblock">jiffies_until_interrupt = divisor_value - timer_value()</pre>
+						where a jiffy is how long it takes for the timer count to increment by one.</dd>
+
+					<dd class="dd ddexpand">If the hardware timer counts down, the <span class="keyword apiname">timer_value()</span>
+						callout performs a calculation to provide a value that is equivalent
+						to one from a count-up timer. The following pseudo-code is an example of the
+						<var class="keyword varname">timer_value</var> calculation for a
+						<span class="keyword apiname">timer_value()</span> callout:
+						<pre class="pre codeblock">curr_hw_timer_value = // read hardware timer value here
+value = divisor_value - curr_hw_timer_value
+return value</pre>
+					</dd>
+
+				
+			</dl>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

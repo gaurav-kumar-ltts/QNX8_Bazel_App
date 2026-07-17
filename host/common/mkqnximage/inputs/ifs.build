@@ -1,0 +1,174 @@
+#include "inputs/definitions.inc"
+#include "inputs/uids.inc"
+###############################################################################
+#
+# IFS Build file
+#
+###############################################################################
+
+[search=__MKFS_PATH__]
+
+[+dupignore]
+[+optional]
+
+#if defined(OPT_UNION_no)
+# With "--union=no", all paths here are relative to /ifs, the /proc/boot prefix is not applied to
+# relative paths.
+[prefix=]
+[mount=/ifs]
+#endif
+
+[uid=0 gid=0 dperms=0555 perms=0555]
+
+#include "output/inc/_boot.inc"
+
+[+script] startup-script = {
+#include "output/inc/_ifs_env.inc"
+#include "output/inc/_ifs_start.inc"
+}
+
+#if defined(OPT_SLM_no)
+startup.sh=output/build/startup.sh
+#endif
+mount_fs.sh=output/build/mount_fs.sh
+
+#############################################
+### Toybox
+#############################################
+toybox=usr/bin/toybox
+[type=link] cat=toybox
+[type=link] chmod=toybox
+[type=link] dd=toybox
+[type=link] echo=toybox
+[type=link] ln=toybox
+[type=link] ls=toybox
+[type=link] rm=toybox
+[type=link] grep=toybox
+[type=link] sleep=toybox
+
+#############################################
+### Utilities
+#############################################
+bin/on
+# waitfor and ability are same binary as on
+[type=link] waitfor=on
+[type=link] ability=on
+sbin/rtc
+bin/setfacl
+bin/ksh
+bin/pidin
+# Allow sh to be found in PATH
+[type=link] sh=ksh
+bin/mount
+bin/umount
+usr/bin/getconf
+# getconf and setconf are same binary
+[type=link] setconf=getconf
+sbin/__DEVC_NAME__
+bin/slog2info
+
+#if defined(__SYS_MAX_SECTORS__)
+sbin/chkqnx6fs
+sbin/fdisk
+usr/lib/__LIBNCURSESW__
+usr/bin/diskimage
+#if defined(IMAGE_TYPE_bios)
+boot/sys/ipl-diskpc1-nomsg
+#endif
+[perms=555] output/build/expandfs.sh
+[perms=555] __TOOL_DIR__/inputs/updatefs.sh
+#endif
+
+#############################################
+### Services
+#############################################
+sbin/__DEVB_NAME__
+bin/slogger2
+sbin/fsevmgr
+
+#if defined(OPT_SLM_yes)
+#############################################
+### slm
+#############################################
+[perms=0444] slm.cfg=output/build/slm.cfg
+usr/sbin/slm
+bin/slmctl
+usr/lib/__LIBEXPAT__
+#endif
+
+#if defined(__HAS_PCI__)
+#############################################
+### PCI
+#############################################
+
+[perms=0444] pci_server.cfg = {
+[buscfg]
+#if defined(__PCI_BUSCFG_MODULE__)
+PCI_SERVER_BUSCFG_MODULE=__IFS_PATH__/__PCI_BUSCFG_MODULE__
+DO_BUS_CONFIG=yes
+#else
+DO_BUS_CONFIG=no
+#endif
+
+[envars]
+PCI_DEBUG_MODULE=pci_debug2.so
+PCI_HW_MODULE=__PCI_HW_MODULE__
+#if defined(__PCI_HW_CUSTOM_CONFIG_FILE__)
+PCI_HW_CONFIG_FILE=__IFS_PATH__/__PCI_HW_CUSTOM_CONFIG_FILE__
+#endif
+#if defined(__PCI_HW_CONFIG_FILE__)
+PCI_HW_CONFIG_FILE=__IFS_PATH__/pci_hw.cfg
+#endif
+}
+
+#if defined(__PCI_HW_CONFIG_FILE__)
+[perms=0444] pci_hw.cfg = {
+[interrupts]
+B0:D17:F0    A    18
+B0:D17:F0    B    19
+B0:D17:F0    C    16
+B0:D17:F0    D    17
+B3:D0:F0     A    18
+B3:D0:F0     B    19
+B3:D0:F0     C    16
+B3:D0:F0     D    17
+}
+#endif
+
+lib/dll/pci/__PCI_HW_MODULE__
+lib/dll/pci/pci_slog2.so
+lib/dll/pci/pci_cap-0x01.so
+lib/dll/pci/pci_cap-0x05.so
+lib/dll/pci/pci_cap-0x10.so
+lib/dll/pci/pci_cap-0x11.so
+lib/dll/pci/pci_strings.so
+lib/dll/pci/pci_bkwd_compat.so
+lib/dll/pci/pci_debug2.so
+#if defined(__PCI_BUSCFG_MODULE__)
+lib/dll/pci/__PCI_BUSCFG_MODULE__
+#endif
+lib/libpci_hw_common.so.3.0
+sbin/pci-server
+
+#endif
+
+#############################################
+### Miscellaneous
+#############################################
+# Capture the build information
+
+[perms=0444] build/options=local/options
+[perms=0444] build/options.inc=output/inc/options.inc
+[perms=0444] build/ifs.build=output/build/ifs.build
+[perms=0444] build/system.build=output/build/system.build
+[perms=0444] build/data.build=output/build/data.build
+
+[perms=0444] build.date = output/build/build.date
+
+#############################################
+### Customization
+#############################################
+
+[-autolink]
+
+#include "output/inc/_ifs_files.inc"

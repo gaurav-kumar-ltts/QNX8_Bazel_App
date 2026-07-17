@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="IP Tunneling (Generic Routing Encapsulation)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="gre" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>IP Tunneling (Generic Routing Encapsulation)</title>
+</head>
+<body id="gre">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">IP Tunneling (Generic Routing Encapsulation)</h1>
+
+
+<div class="body conbody">
+
+<p class="p">    
+GRE (Generic Routing Encapsulation) or IP tunneling (IP encapsulation) 
+is a technique that encapsulates IP datagrams within IP datagrams.
+GRE is a technique that allows datagrams to be encapsulated into IP packets and then redirected to an intermediate host.
+At this intermediate destination, the datagrams are decapsulated and then routed to the next leg.
+In doing so, the trip to the intermediate host appears to the inner datagrams as one hop.  
+The general outline of GRE can be found in <cite class="cite">RFC 1701</cite>.
+</p>
+
+
+<p class="p">
+In the current stack, GRE is performed via GRE pseudo interfaces which simulate point-to-point connections.
+You can use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/ifconfig.html"><span class="keyword cmdname">ifconfig</span></a>
+utility to create GRE interfaces:
+</p>
+
+
+<pre class="pre codeblock"># ifconfig gre0 create
+</pre>
+
+<p class="p">
+Each GRE interface supports the following modes of operation:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">GRE encapsulation (default)</dt>
+
+<dd class="dd">Outgoing datagrams are encapsulated by an IP header of protocol type 47,
+    and a GRE header specifying the type of the encapsulated datagram (currently only IP).  
+    This mode is described in <cite class="cite">RFC 1702</cite>.
+    It's also the default mode on Cisco routers.
+</dd>
+
+
+
+
+<dt class="dt dlterm">MOBILE encapsulation (IP protocol number 55)</dt>
+
+<dd class="dd">Applicable for IP encapsulation only.
+    Outgoing IP datagrams are encapsulated by a smaller header, and the original IP header is modified.
+    This mode is described in <cite class="cite">RFC 2004</cite>.
+</dd>
+
+
+
+</dl>
+
+
+
+<div class="section"><h2 class="title sectiontitle">How do I use it?</h2>
+
+
+<p class="p">
+Let's illustrate by use of an example:
+</p>
+
+
+<p class="p">
+Suppose you have the following two machines at your disposal on the ubiquitous LAN:
+</p>
+
+
+<ul class="ul">
+<li class="li">machine A with IP address 10.0.0.25</li>
+
+<li class="li">machine B with IP address 10.0.0.163</li>
+
+</ul>
+
+
+<p class="p">
+We'll assume that they're connected by a <q class="q">real</q> interface, 
+and that they can communicate through generic methods.
+Here's how you create a tunnel between <q class="q">pseudo</q> addresses 12.0.0.1 and 12.0.0.2:
+</p>
+
+
+<p class="p">
+On machine A (10.0.0.25), enter:
+</p>
+
+
+<pre class="pre codeblock"># ifconfig gre0 create                 &lt;- create the pseudo device
+# ifconfig gre0 12.1 12.2 link1        &lt;- set the local (inner) addrs
+# ifconfig gre0 tunnel 10.25 10.163    &lt;- set the encapsulating (outer) addrs
+# ifconfig gre0                        &lt;- print the current state
+</pre>
+
+<p class="p">
+The IP packet that's sent from machine A looks like this:
+</p>
+
+
+<pre class="pre">
++------------+----------+------+
+| dst 10.163 | dst 12.2 | data |
++------------+----------+------+
+\_IP address_/\______data______/
+</pre>
+
+
+<p class="p">
+On machine B (10.0.0.163), do the reverse:
+</p>
+
+
+<pre class="pre codeblock"># ifconfig gre0 12.2 12.1 link1
+# ifconfig gre0 tunnel 10.163 10.25
+# ifconfig gre0
+</pre>
+
+<p class="p">
+Since the IP packet is decapsulated on machine B, it now looks like this:
+</p>
+
+
+<pre class="pre">
++------------+------------------+
+|  dst 12.2  |    data          |
++------------+------------------+
+\_IP address_/\______data______/
+</pre>
+
+
+<p class="p">
+From machine A, you should now be able to ping 12.0.0.2.
+What happens under the covers is an IP packet with 
+source 12.0.0.1 and destination 12.0.0.2 
+is encapsulated with the <q class="q">real</q> source 10.0.0.25 and destination 10.0.0.163.
+</p>
+
+
+<p class="p">
+That's interesting but not very useful since you would have accomplished the same thing if you
+went to 10.0.0.163 directly.
+Let's take a look at a more typical example.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">A more typical example</h2>
+
+
+<p class="p">
+Let's say you usually work at the office on machine A that has an IP address 10.0.0.25
+(we'll use the same IP addresses as in the above example).
+You use the corporate LAN and you have access to all the machines on your subnet.  
+You've just been sent on a business trip and you'll be able to access the
+corporate gateway only using the Internet.
+Let's call the gateway machine C, 
+and assume it has forwarding enabled between the following two <q class="q">real</q> interfaces: 
+</p>
+
+
+<ul class="ul">
+<li class="li">10.0.0.1 — attached to the corporate subnet.</li>
+
+<li class="li">C.C.C.C  — some address on the Internet.</li>
+
+</ul>
+
+
+<p class="p">
+From your remote location, you'll set up the tunnel in similar way to the example above.
+Assuming that A.A.A.A is machine A's Internet address:
+</p>
+
+
+<pre class="pre codeblock"># ifconfig gre0 10.25 10.1 link1
+# ifconfig gre0 tunnel A.A.A.A C.C.C.C
+</pre>
+
+<p class="p">
+Then set up a route for all of network 10 to the other end of the tunnel:
+</p>
+
+
+<pre class="pre codeblock"># route add -net 10 10.1
+</pre>
+
+<p class="p">
+Now on to machine C.  
+Either before you leave for your trip, or from your remote location,
+call your colleague in the IS department and get set up with a proxy 
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/a/arp.html"><span class="keyword cmdname">arp</span></a>
+entry on the gateway.
+When this is done, the machines behind the gateway will think that you're still at the office.
+Assuming interface <span class="ph codeph">en0</span> is attached to the local subnet (network 10), they'd enter the following:
+</p>
+
+
+<pre class="pre codeblock"># arp -s 10.0.0.25 $(netstat -in | grep en0 | grep Link | cut -c 27-43) pub
+</pre>
+
+<p class="p">
+The command in the brackets cuts out machine C's <span class="ph codeph">en0</span> MAC address 
+and passes it on to the <span class="keyword cmdname">arp</span> command. 
+These commands set up the tunnel:
+</p>
+
+
+<pre class="pre codeblock"># ifconfig gre0 10.1 10.25 link1
+# ifconfig gre0 tunnel C.C.C.C A.A.A.A
+</pre>
+
+<p class="p">
+You should now have transparent remote access to your corporate LAN—just as if you were sitting at your desk!
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Final tidbits</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">What's that <span class="ph codeph">link1</span> stuff in the 
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/ifconfig.html"><span class="keyword cmdname">ifconfig</span></a>
+    command for?
+</dt>
+
+<dd class="dd">It's a flag to the stack to suppress the creation of a nonspecific route
+  that attempts to prevent loops when the inner destination address and
+  real (tunnel) destination address are the same.
+  The algorithm currently is to toggle the last bit in the tunnel destination.
+
+  <p class="p">
+  This currently also applies to ipip tunneling, but there's no way to
+  disable it as the inner and tunnel addresses are always the same for an ipip
+  interface (ipip doesn't support the <span class="ph codeph">tunnel</span> keyword to
+  <span class="keyword cmdname">ifconfig</span>).
+  </p>
+
+
+  <p class="p">
+  For example, using an ipip interface to create a tunnel to from 10.1 to 10.2:
+  </p>
+
+
+<pre class="pre codeblock"># ifconfig en0 10.1
+# route add default 10.3
+# ifconfig ipip0 11.1 11.2
+</pre>
+
+  <p class="p">
+  The last command tries to create an implicit route to 11.3 (last bit
+  of 11.2 is toggled) that resolves the default to 10.3, not the desired 10.2.
+  The following shows how to reach the desired 10.2:
+  </p>
+
+
+<pre class="pre codeblock"># ifconfig en0 10.1
+# route add default 10.3
+# route add -net 11 10.2
+# ifconfig ipip0 11.1 11.2
+</pre>
+
+  <p class="p">
+  The implicit route to 11.3 now resolves to the route to network
+  11 (gateway 10.2) instead of the default route.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">If GRE encapsulation is the default, how do I enable MOBILE encapsulation?</dt>
+
+<dd class="dd">Use <span class="keyword cmdname">ifconfig</span> to clear the <span class="ph codeph">link0</span> flag on the
+  <span class="ph filepath">gre</span> device.
+  For example:
+
+<pre class="pre codeblock"># ifconfig gre0 10.1 10.25 link1 -link0
+</pre>
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+</body>
+</html>

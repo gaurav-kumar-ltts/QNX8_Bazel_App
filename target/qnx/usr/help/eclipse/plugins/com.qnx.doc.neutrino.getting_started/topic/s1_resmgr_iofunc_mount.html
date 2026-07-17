@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The iofunc_mount_t mount structure" />
+<meta name="abstract" content="The mount structure contains information that's common across multiple attributes structures." />
+<meta name="description" content="The mount structure contains information that's common across multiple attributes structures." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_posixdata.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_dev_inode_rdev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="iofunc_mount" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The iofunc_mount_t mount structure</title>
+</head>
+<body id="iofunc_mount">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The <span class="keyword dtype">iofunc_mount_t</span> mount structure</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The mount structure contains information that's common across multiple attributes structures.
+</p>
+
+
+<div class="p">
+
+
+
+Here are the contents of the mount structure (from <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>):
+
+<pre class="pre codeblock">typedef struct _iofunc_mount {
+  uint32_t       <var class="keyword varname">flags</var>;
+  uint32_t       <var class="keyword varname">conf</var>;
+  dev_t          <var class="keyword varname">dev</var>;
+  int32_t        <var class="keyword varname">blocksize</var>;
+  iofunc_funcs_t *<var class="keyword varname">funcs</var>;
+} iofunc_mount_t;
+</pre>
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">flags</var> member contains at least one flag, <span class="keyword const">IOFUNC_MOUNT_32BIT</span>.
+This flag indicates that <var class="keyword varname">offset</var> in the OCB, and <var class="keyword varname">nbytes</var>
+and <var class="keyword varname">inode</var> in the attributes structure, are 32-bit.
+Note that you can define your own flags in <var class="keyword varname">flags</var>, using any of
+the bits from the constant <span class="keyword const">IOFUNC_MOUNT_FLAGS_PRIVATE</span>.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">conf</var> member contains the following flags:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">IOFUNC_PC_CHOWN_RESTRICTED</span></dt>
+
+<dd class="dd">Indicates if the filesystem is operating in a <q class="q"><span class="keyword cmdname">chown</span>-restricted</q>
+  manner, meaning if only <span class="ph filepath">root</span> is allowed to <span class="keyword cmdname">chown</span> a file.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">IOFUNC_PC_NO_TRUNC</span></dt>
+
+<dd class="dd">Indicates that the filesystem doesn't truncate the name.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">IOFUNC_PC_SYNC_IO</span></dt>
+
+<dd class="dd">Indicates that the filesystem supports synchronous I/O operations.
+  If this bit isn't set, the following may occur:
+  
+  
+  
+
+  <ul class="ul">
+  <li class="li">The default iofunc layer <span class="keyword const">_IO_OPEN</span> handler,
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open_default.html"><span class="keyword apiname">iofunc_open_default()</span></a>,
+    fails if the client specifies <span class="keyword const">O_DSYNC</span>, <span class="keyword const">O_RSYNC</span>,
+    or <span class="keyword const">O_SYNC</span>.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </li>
+
+
+  <li class="li">The
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_sync_verify.html"><span class="keyword apiname">iofunc_sync_verify()</span></a>
+    function returns <span class="keyword const">EINVAL</span>.
+    
+    
+    
+  </li>
+
+
+  <li class="li">Attempts to set <span class="keyword const">O_DSYNC</span>, <span class="keyword const">O_RSYNC</span>, or <span class="keyword const">O_SYNC</span> with
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>
+    or the
+    <a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/all/dcmd_all_setflags.html"><span class="keyword const">DCMD_ALL_SETFLAGS</span></a>
+    <span class="keyword apiname">devctl()</span> command fails.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">IOFUNC_PC_LINK_DIR</span></dt>
+
+<dd class="dd">Indicates that linking/unlinking of directories is allowed.
+
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">IOFUNC_PC_ACL</span></dt>
+
+<dd class="dd">Indicates whether or not the resource manager supports access control lists.
+  For more information about ACLs, see <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/acl.html">Working with Access Control Lists (ACLs)</a></q>
+  in the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The <var class="keyword varname">dev</var> member contains the device number and is described
+below in <a class="xref" href="s1_resmgr_dev_inode_rdev.html" title="The mount structure contains a member called dev. The attributes structure contains two members: inode and rdev. Let's look at their relationships by examining a traditional disk-based filesystem."><q class="q">Of device numbers, inodes, and our friend <var class="keyword varname">rdev</var>.</q></a>
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">blocksize</var> member describes the native blocksize of the device in bytes.
+For example, on a typical rotating-medium storage system, this would be the value 512.
+</p>
+
+
+<div class="p">
+Finally, the <var class="keyword varname">funcs</var> pointer points to a structure (from <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>):
+
+<pre class="pre codeblock">typedef struct _iofunc_funcs {
+  unsigned      <var class="keyword varname">nfuncs</var>;
+
+  IOFUNC_OCB_T *(*<var class="keyword varname">ocb_calloc</var>)
+                    (resmgr_context_t *<var class="keyword varname">ctp</var>,
+                     IOFUNC_ATTR_T *<var class="keyword varname">attr</var>);
+
+  void          (*<var class="keyword varname">ocb_free</var>)
+                    (IOFUNC_OCB_T *<var class="keyword varname">ocb</var>);
+} iofunc_funcs_t;
+</pre>
+</div>
+
+
+<p class="p">
+As with the connect and I/O functions tables, the <var class="keyword varname">nfuncs</var> member should be
+stuffed with the current size of the table.
+Use the constant <span class="keyword const">_IOFUNC_NFUNCS</span> for this.
+
+
+
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">ocb_calloc</var> and <var class="keyword varname">ocb_free</var> function pointers can be filled with
+addresses of functions to call whenever an OCB is to be allocated or deallocated.
+We'll discuss why you'd want to use these functions later when we talk about extending OCBs.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_dev_inode_rdev.html">Of device numbers, inodes, and our friend rdev</a></strong><br />
+ The mount structure contains a member called <var class="keyword varname">dev</var>. The attributes structure contains two members: <var class="keyword varname">inode</var> and <var class="keyword varname">rdev</var>. Let's look at their relationships by examining a traditional disk-based filesystem. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_posixdata.html" title="There are three data structures that relate to the POSIX-layer support routines. As far as the base layer is concerned, you can use any data structures you want; it's the POSIX layer that requires you to conform to a certain content and layout. The benefits delivered by the POSIX layer are well worth this tiny constraint. As we'll see later, you can add your own content to the structures as well.">POSIX-layer data structures</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

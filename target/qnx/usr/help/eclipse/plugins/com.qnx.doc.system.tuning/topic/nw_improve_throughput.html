@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Improving the network throughput" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Performance Tuning User Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Performance Tuning User Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/networking_tuning.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="improve_performance" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Improving the network throughput</title>
+</head>
+<body id="improve_performance">
+
+<h1 class="title topictitle1" id="ariaid-title1">Improving the network throughput</h1>
+
+
+<div class="body conbody">
+<div class="section">
+	<div class="p">You may improve the network throughput with the following methods:
+		<ul class="ul">
+			<li class="li"><a class="xref" href="#improve_performance__iflib_rx">increasing the <span class="ph filepath">iflib</span> Rx budget</a></li>
+
+			<li class="li"><a class="xref" href="#improve_performance__thread_priority">changing the thread priorities</a></li>
+
+			<li class="li"><a class="xref" href="#improve_performance__netisr_policy">changing the network dispatch service (netisr) policies</a></li>
+
+			<li class="li"><a class="xref" href="#improve_performance__uds_buffer">increasing the UDS stream buffer sizes</a></li>
+
+			<li class="li"><a class="xref" href="#improve_performance__icmp_redirect">disabling the ICMP redirects</a></li>
+
+			<li class="li"><a class="xref" href="#improve_performance__tcp_ack_threshold">enabling the TCP ACK threshold settings</a></li>
+
+		</ul>
+
+	</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Increasing the <span class="ph filepath">iflib</span> Rx budget</h2>
+    
+    <p class="p">Many of the PCI network drivers use the <span class="ph filepath">iflib</span> framework.
+        This framework has a number of <span class="keyword cmdname">sysctl</span> and tunable
+        parameters that you can set, including <span class="ph codeph">rx_budget</span>.
+        The <span class="ph codeph">rx_budget</span> tunable determines the maximum number
+        of packets that the Rx task queue thread can process in a batch.
+        Under heavy load, increasing this value can improve the Rx performance.
+        For example:</p>
+
+    <pre class="pre codeblock"># sysctl -w dev.ix.0.iflib.rx_budget=100</pre>
+    <p class="p">A value of 0 means the default of 16 is used.</p>
+
+    <h3 class="title sectiontitle">Considerations</h3>
+    <p class="p">Increasing the number of packets processed in a batch increases
+        the latency on other packet flows in the network stack.</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Changing the thread priorities</h2>
+    <p class="p">Generally speaking, there are three threads involved in the transmission and reception of a
+                packet:</p>
+
+            <div class="p"><ul class="ul" id="improve_performance__ol_gzj_qmw_hyb">
+                    <li class="li">A resource manager thread talking to the client application</li>
+
+                    <li class="li">A task queue thread performing most of the work</li>
+
+                    <li class="li">An interrupt service thread (IST)</li>
+
+                </ul>
+The relative priorities of these threads can influence performance because they
+                may briefly contend for the same resources as packets that are passed among them.
+                The resource manager thread inherits the priority from the client on the message
+                pass for the <span class="keyword apiname">read()</span>, <span class="keyword apiname">write()</span>, or similar
+                calls. The priority of the task queue thread and the IST are set by tunables and
+                default to 21. For example:</div>
+
+            <pre class="pre" id="improve_performance__pre_g54_4nw_hyb"># sysctl -d qnx.taskq_prio
+qnx.taskq_prio: taskq thread priority
+# sysctl -d qnx.ist_prio
+qnx.ist_prio: interrupt thread priority</pre>
+
+    <h3 class="title sectiontitle">Considerations</h3>
+    <p class="p">Changing the relative priorities may increase Rx performance at the
+        expense of Tx performance and vice versa.
+        Take care when you set priorities to make sure you do not starve
+        other functionality of CPU time.
+    </p>
+
+</div>
+
+
+<div class="section" id="improve_performance__netisr_policy"><h2 class="title sectiontitle">Changing the network dispatch service (netisr) policies</h2>
+    <p class="p">The netisr code is invoked as part of packet processing.
+        It has three different dispatch policies (descriptions taken from the code):
+    </p>
+
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><span class="keyword const">NETISR_DISPATCH_DEFERRED</span></dt>
+
+            <dd class="dd">All work is deferred for a netisr, regardless of context (may be overriden by protocols).</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">NETISR_DISPATCH_HYBRID</span></dt>
+
+            <dd class="dd">If the executing context allows direct dispatch, and we're running on the CPU the
+                work would be performed on, then direct dispatch it if it wouldn't violate
+                ordering constraints on the workstream.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">NETISR_DISPATCH_DIRECT</span></dt>
+
+            <dd class="dd">If the executing context allows direct dispatch,
+                always direct dispatch. (The default.)</dd>
+
+        
+    </dl>
+
+    <p class="p">Also from the code: Notice that changing the global policy could lead to short periods of
+        misordered processing, but this is considered acceptable as compared to the
+        complexity of enforcing ordering during policy changes. Protocols can override the
+        global policy (when they're not doing that, they select
+        NETISR_DISPATCH_DEFAULT).</p>
+
+    <p class="p">The <span class="keyword const">NETISR_DISPATCH_DIRECT</span> policy guarantees that all packet ordering
+        constraints are met, but means that the netisr code is invoked directly by the task
+        queue thread. </p>
+
+    <p class="p">When the policy is <span class="keyword const">NETISR_DISPATCH_DEFERRED</span>, the netisr occurs in its own
+        thread. This adjustment divides the work among the task queue and netisr threads,
+        which potentially increases the throughput.</p>
+
+    <p class="p">You set the netisr (kernel network dispatch service) dispatch policy via a
+        <span class="keyword cmdname">sysctl</span> variable. For more information, go to the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/sysctl.html"><span class="keyword cmdname">sysctl</span></a> entry in the <cite class="cite">Utilities
+        Reference</cite>.</p>
+
+        <h3 class="title sectiontitle">Considerations</h3>
+    <p class="p">The <span class="keyword const">NETISR_DISPATCH_DEFERRED</span> policy may violate ordering
+        constraints.</p>
+
+    <p class="p">Additional work needs to be performed when passing the work between the threads in a
+        deferred dispatch scenario. If the task queue isn't maximized, deferring may result
+        in worse throughput or increased CPU usage.</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Increasing the UDS stream buffer sizes</h2>
+    <p class="p">Unix Domain Sockets (UDS) have <span class="keyword cmdname">sysctl</span> parameters that
+        define their socket buffer sizes.
+        For <span class="keyword const">SOCK_STREAM</span> types, the transmit and receive buffers
+        default to 8 kB. For example:</p>
+
+    <pre class="pre codeblock"># sysctl net.local.stream
+net.local.stream.sendspace: 8192
+net.local.stream.recvspace: 8192</pre>
+    <p class="p">If large amounts of data are to be transferred over a stream
+        UDS using reads and writes of more than 8 kB, increasing the
+        <span class="keyword cmdname">sysctl</span> parameter values can reduce
+        the number of message passes and improve throughput.
+        The following example increases them to 64 kB:
+    </p>
+
+    <pre class="pre codeblock"># sysctl -w net.local.stream.sendspace=65536
+net.local.stream.sendspace: 8192 -&gt; 65536
+# sysctl -w net.local.stream.recvspace=65536
+net.local.stream.recvspace: 8192 -&gt; 65536</pre>
+    <h3 class="title sectiontitle">Considerations</h3>
+    <p class="p">Increasing the socket buffer sizes increases the memory consumed by each UDS.
+        In a system with a large number of UDS, this additional memory usage can be significant.
+    </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Disabling the ICMP redirects for improved routing performance</h2>
+    <p class="p">By default, <span class="keyword cmdname">io-sock</span> sends ICMP redirects when it acts as a router.
+        The redirect functionality in <span class="keyword cmdname">io-sock</span> requires the
+        packets to go via a slower, full-functionality path in the code.
+        If sending redirects when routing is not required, you should disable them,
+        which lets the packets be forwarded via a fast-forwarding path. For example:
+    </p>
+
+    <pre class="pre codeblock"># sysctl net.inet.ip.redirect=0
+net.inet.ip.redirect: 1 -&gt; 0
+# sysctl net.inet6.ip6.redirect=0
+net.inet6.ip6.redirect: 1 -&gt; 0</pre>
+    <p class="p">You can use protocol statistics to find out the number of packets
+        forwarded and fast forwarded and the number of redirects sent. For example:
+    </p>
+
+    <pre class="pre codeblock"># netstat -s -p ip
+ip:
+...
+0 packets forwarded (0 packets fast forwarded)
+...
+0 redirects sent</pre>
+    <h3 class="title sectiontitle">Considerations</h3>
+    <p class="p">ICMP redirects are required by RFC 792 but are rarely part of a modern network with a single
+                router on a network segment.</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Enabling the TCP ACK threshold settings</h2>
+    <h3 class="title sectiontitle">LRO (large receive offload)</h3>
+    <p class="p">The <span class="keyword cmdname">io-sock</span> networking manager supports the
+        large receive offload feature (LRO), which reassembles incoming
+        network packets into larger buffers for Rx processing.
+        LRO also has the effect of significantly reducing the number of ACK responses.
+        Because <span class="keyword cmdname">io-sock</span> is processing fewer ingress
+        (batched data) packets, it generates fewer ACK responses.
+    </p>
+
+    <h3 class="title sectiontitle">ACK threshold <span class="keyword cmdname">sysctl</span> variables</h3>
+    <p class="p">If your hardware or driver do not support LRO, you can use
+        <span class="keyword cmdname">sysctl</span> variables to reduce the number of ACK responses.
+        (If LRO is supported, these variables have no effect because the ACK rate is already throttled.)
+    </p>
+
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><span class="ph codeph">qnx.net.inet.tcp.tcp_ack_thres</span></dt>
+
+            <dd class="dd">Normally, a TCP receiver sends an acknowledgment packet (ACK) after two Rx
+                packets: the first one sets a delayed ACK timer, and the second one sends an
+                ACK (if the previous ACK is delayed). The
+                    <span class="ph codeph">qnx.net.inet.tcp.tcp_ack_thres</span> variable delays the
+                second ACK until the outstanding data exceeds the specified size, expressed
+                as a multiple of the maximum segment size (MSS). For an example, if set to
+                20, the second ACK is not sent until the size of the outstanding data is
+                more than 20 times the MSS. However, if the threshold exceeds the space
+                remaining in the Rx socket buffer, the receiver resumes sending ACKs and
+                    <span class="ph codeph">qnx.net.inet.tcp.tcp_ack_thres</span> is ignored. The delayed
+                ACK is still sent if timeout occurs before the set threshold. </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="ph codeph">qnx.net.inet.tcp.tcp_win_update_thres</span></dt>
+
+            <dd class="dd">Adjusts when a window update packet is sent according to the rate at which
+                the receiving application is reading data. If the read buffer is emptied by
+                the specified multiple of the maximum segment size (MSS) and is within a
+                certain range of the socket buffer size, a window update packet is sent. The
+                value could be equal to or smaller than the value set by
+                    <span class="ph codeph">qnx.net.inet.tcp.tcp_ack_thres</span>.</dd>
+
+            <dd class="dd ddexpand">Because <span class="keyword cmdname">io-sock</span> enables auto-scaling buffers by default,
+                in most cases, the socket buffer size quickly scales beyond this window
+                update threshold. It is more likely to affect ACK rate if smaller,
+                fixed-socket buffer sizes are used.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="ph codeph">qnx.net.inet.tcp.tcp_ack_on_push</span></dt>
+
+            <dd class="dd">Enables an event-based ACK. It is designed for use with sockets that are
+                sending less data, and thus fewer ACKs. When the sender sends a TCP data
+                packet with the PUSH flag set (to report that it has no further data to send
+                in its sending socket buffer), the receiver sends the ACK instead of relying
+                on the delayed ACK.</dd>
+
+        
+    </dl>
+
+    <p class="p">These <span class="keyword cmdname">sysctl</span> variables allow you to set ACK thresholds to reduce
+        the amount of ACKs in best-case conditions (no packet loss).
+        Because the delayed ACK is still armed, that ACK is sent at timeout.
+        In addition, because algorithms such as FAST retransmit are still
+        engaged and missed segments still generate ACK responses, the threshold
+        is only in effect under ideal conditions (without detected packet loss).
+    </p>
+
+</div>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/networking_tuning.html">Networking stack (io-sock)</a></div>
+</div>
+</div></body>
+</html>

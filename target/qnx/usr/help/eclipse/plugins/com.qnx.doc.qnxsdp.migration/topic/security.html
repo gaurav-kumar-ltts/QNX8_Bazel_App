@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Security" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Migrating to QNX OS 8.0, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Migrating to QNX OS 8.0, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/guidelines.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="security" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Security</title>
+</head>
+<body id="security">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Security</h1>
+
+
+<div class="body conbody">
+<div class="section"><h2 class="title sectiontitle">Cryptography</h2>
+    
+    <p class="p">
+        OpenSSL 3.0 is the LTS version shipped with QNX SDP 8.0. The corresponding QNX Cryptography Library (<span class="ph filepath">qcrypto</span>) plugin <span class="ph filepath">qcrypto-openssl-3.so</span> is available.</p>
+
+            <p class="p">For more information, see
+                <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/qcrypto.html">QNX Cryptography Library</a></q>
+                in the <span class="keyword">QNX OS</span> <cite class="cite">System Security</cite> guide.</p>
+
+            <p class="p">For more information about migration to OpenSSL 3.0, go to <a class="xref" href="https://www.openssl.org/docs/man3.0/man7/migration_guide.html" target="_blank">https://www.openssl.org/docs/man3.0/man7/migration_guide.html</a>.</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Security policies</h2>
+    
+        <h3 class="title sectiontitle"><span class="keyword apiname">resmgr_attach()</span></h3>
+<p class="p">The new API <span class="keyword apiname">secpol_resmgr_attach()</span> should replace
+                        <span class="keyword apiname">resmgr_attach()</span> in all drivers. It allows full control of
+                    the user and group ID, mode, and ACLs on nodes created by a resource manager
+                    directly from the security
+                    policy
+                    without the need to recompile driver code or provide alternative ways to control
+                    behavior. This method removes the race condition that was produced in system
+                    startup when you used <span class="keyword cmdname">waitfor</span>, <span class="keyword cmdname">chmod</span>,
+                        <span class="keyword cmdname">chown</span>, and <span class="keyword cmdname">setfacl</span> on driver nodes to
+                    push proper values.</p>
+
+                <p class="p">For more information, see <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/secpol_resmgr_attach.html"><span class="keyword apiname">secpol_resmgr_attach()</span></a></q>
+                    in the
+                    <q class="q">The libsecpol API (<span class="ph filepath">secpol.h</span>)</q> section of the
+                    <span class="keyword">QNX OS</span>
+                    <cite class="cite">System Security</cite> guide.</p>
+
+            <h3 class="title sectiontitle"><tt class="ph tt">interruptevent</tt></h3>
+            <p class="p">The security policies <tt class="ph tt">interruptevent</tt> ability (and
+                        <span class="keyword const">PROCMGR_AID_INTERRUPTEVENT</span> constant) is discontinued.
+                    Processes only need the <tt class="ph tt">interrupt</tt> ability to attach to interrupts.
+                    Policy generation tools automatically use <tt class="ph tt">interrupt</tt> instead. </p>
+
+                <p class="p">For more information, go to the <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/security_policies.html">Security Policies</a></q> chapter of the <span class="keyword">QNX OS</span>
+                    <cite class="cite">System Security</cite> guide.</p>
+
+</div>
+
+
+    <div class="section"><h2 class="title sectiontitle">Fortified functions</h2>
+        
+            <p class="p">Because a greater number of <span class="ph filepath">libc</span>, kernel, and
+                    <span class="ph filepath">libsocket</span> functions in QNX SDP 8.0 have fortified
+                implementations when compared with QNX SDP 7.1, compiling your source code with the
+                use of fortified system functions enabled may result in additional program anomalies
+                being detected at compile time, runtime, or both.</p>
+
+                 <p class="p">Setting the _FORTIFY_SOURCE feature test macro to 2 now disables the
+                    <span class="ph codeph">n</span> conversion specifier for formatted I/O functions (e.g.,
+                    <span class="ph codeph">%n</span>) .</p>
+
+            <p class="p">For more information, see the
+                <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/fortified.html">Fortified System Functions</a></q>
+                chapter in the <span class="keyword">QNX OS</span> <cite class="cite">System Security</cite> guide.</p>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Entropy sources for <span class="keyword cmdname">random</span></h2>
+        
+            <div class="p">The entropy from interrupts that the <span class="keyword cmdname">random</span> service uses is now
+                automatically gathered from the kernel. The following options have been removed:<ul class="ul" id="security__ul_vzc_wdd_3zb">
+                    <li class="li"><span class="keyword option">-i</span> (specified interrupts as a source for entropy)</li>
+
+                    <li class="li"><span class="keyword option">-p</span> (polled system information from <strong class="ph b">/proc</strong> for
+                        entropy)</li>
+
+                </ul>
+</div>
+
+            <p class="p">For more information, see the entry for <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/r/random.html"><span class="keyword cmdname">random</span></a> in the <span class="keyword">QNX OS</span>
+                <cite class="cite">Utilities Reference</cite>.</p>
+
+    </div>
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/guidelines.html" title="This chapter provides tips for specific aspects of moving to the current version of QNX SDP.">Migration Guidelines</a></div>
+</div>
+</div></body>
+</html>

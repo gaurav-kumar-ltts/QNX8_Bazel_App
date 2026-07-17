@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Database example" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Database_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Database example</title>
+</head>
+<body id="Database_example">
+
+<h1 class="title topictitle1" id="ariaid-title1">Database example</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+This particular design asked for a program to centralize file access.
+Instead of having each program handle the specific location of the data
+files (on the hard disk or in FLASH or RAM), the developers decided that one program would handle it.
+Furthermore, file updates done by one program required that all programs using that file be notified.
+So instead of having each program notify each other, only one program would take care of the notification.
+That program was cleverly named <q class="q">database</q>.
+</p>
+
+
+<p class="p">
+The API in the original design included <span class="keyword apiname">db_read()</span>,
+<span class="keyword apiname">db_write()</span>, <span class="keyword apiname">db_update_notification()</span>, etc.,
+but a resource manager is an even better fit.
+The API was changed to the familiar <span class="keyword apiname">open()</span>, <span class="keyword apiname">read()</span>,
+<span class="keyword apiname">write()</span>, <span class="keyword apiname">poll()</span>, <span class="keyword apiname">ionotify()</span> and so on.
+</p>
+
+
+<p class="p">
+Client programs were seeing only one path, <span class="ph filepath">/dbase/filename</span>,
+but the files found in <span class="ph filepath">/dbase/</span> weren't physically there;
+they could be scattered all over the place.
+</p>
+
+
+<p class="p">
+The database resource manager program looked at the filename during
+<span class="keyword apiname">open()</span> and decided where the file needed to go or to read from.
+This, of course, depended on the specific field in the filename.
+For example, if the file had a <span class="ph filepath">.tmp</span> extension, it would go
+to the RAM disk.
+</p>
+
+
+<p class="p">
+The real beauty of this design is that the designers of the client program
+could test their application without having the database program running.
+The <span class="keyword apiname">open()</span> would be handled directly by the filesystem.
+</p>
+
+
+<p class="p">
+To support notification of a file change, a client would use
+<span class="keyword apiname">ionotify()</span> or <span class="keyword apiname">poll()</span> on the file descriptor of the files.
+Unfortunately, that feature isn't supported natively by the filesystem,
+so the database program needs to be running in order for you to test the
+operation.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview_Examples.html">Examples of resource managers</a></div>
+</div>
+</div></body>
+</html>

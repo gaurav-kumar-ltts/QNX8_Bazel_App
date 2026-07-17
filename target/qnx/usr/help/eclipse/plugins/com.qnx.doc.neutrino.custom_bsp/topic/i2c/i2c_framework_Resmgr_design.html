@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Resource manager design" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i2c/i2c.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Resmgr_design" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Resource manager design</title>
+</head>
+<body id="Resmgr_design">
+
+<h1 class="title topictitle1" id="ariaid-title1">Resource manager design</h1>
+
+
+<div class="body conbody">
+
+<p class="p">The resource manager layer is implemented as a library that's statically
+linked with the hardware library.
+We currently provide a single-threaded manager, <span class="ph filepath">libi2c-master</span>.
+
+
+
+</p>
+
+<p class="p">On startup, the <span class="ph codeph">resmgr</span> layer does the following:
+
+</p>
+
+<pre class="pre codeblock">i2c_master_getfuncs(&amp;masterf)
+masterf.init()
+masterf.set_bus_speed()
+</pre>
+
+<p class="p">The resource manager then makes itself run in the background.
+
+</p>
+
+<p class="p">Here's how the resource manager handles these <span class="keyword apiname">devctl()</span> commands:
+
+</p>
+
+<ul class="ul">
+<li class="li"><span class="keyword const">DCMD_I2C_DRIVER_INFO</span> calls
+  <span class="keyword apiname">masterf.driver_info()</span>.
+
+</li>
+
+<li class="li"><span class="keyword const">DCMD_I2C_SET_BUS_SPEED</span> only updates the 
+  state of the current connection.
+
+</li>
+
+<li class="li"><span class="keyword const">DCMD_I2C_SEND</span>, <span class="keyword const">DCMD_I2C_RECV</span>,
+  and <span class="keyword const">DCMD_I2C_SENDRECV</span> result in the following:
+
+  <pre class="pre codeblock">if (bus_speed has changed)
+    masterf.set_bus_speed() 
+masterf.set_slave_address()
+masterf.send() or masterf.recv()
+  
+</pre>
+
+
+</li>
+
+</ul>
+
+<p class="p">The resource manager thread remains occupied until the transaction
+is complete and replies to the client.
+
+
+
+</p>
+
+<p class="p">You can terminate the resource manager by sending a <span class="keyword const">SIGTERM</span>
+to it.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/i2c/i2c.html">I2C</a></div>
+</div>
+</div></body>
+</html>

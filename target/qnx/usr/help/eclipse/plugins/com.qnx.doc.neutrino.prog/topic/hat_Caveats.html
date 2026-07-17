@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Caveats" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_DetectingAndReportingErrors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Caveats" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Caveats</title>
+</head>
+<body id="Caveats">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Caveats</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<ul class="ul">
+<li class="li">The <span class="ph filepath">librcheck</span> library, when enabled with various checking,
+uses more stack space (i.e., calls more functions, uses more local variables, etc.)
+than the regular <span class="ph filepath">libc</span> allocator.
+
+<p class="p">
+
+
+This design implies that programs that explicitly set the stack size to something smaller than
+the default may encounter problems such as running out of stack space. This may cause the program
+to crash. You can prevent this by increasing the stack space allocated to the threads in question.
+</p>
+
+</li>
+
+
+<li class="li">
+
+
+When the <span class="ph filepath">librcheck</span> library reports errors, it doesn't always exit immediately; 
+instead it continues  to perform the operation that causes the error, and 
+corrupts the heap (since the operation that raises the warning
+is actually an illegal operation). You can control this behavior by using
+the <span class="keyword const">MALLOC_WARN</span> and <span class="keyword const">MALLOC_FATAL</span> handlers described earlier. 
+If you don't provide specific handlers, the heap gets corrupted, and other
+errors could result and be reported later because of the first error. The best
+solution is to focus on the first error and fix it before moving onto other errors.
+</li>
+
+
+<li class="li">
+Although the <span class="ph filepath">librcheck</span> library allocates blocks to the process
+using the same algorithms as the standard allocator, the library 
+itself requires additional storage to maintain block information, as well as 
+to perform sanity checks. This means that the layout of blocks in memory using
+the debug allocator is slightly different than with the standard allocator. 
+</li>
+
+
+<li class="li">
+
+
+If you use certain optimization options such as <span class="keyword option">-O1</span>,
+<span class="keyword option">-O2</span>, or <span class="keyword option">-O3</span>,
+the <span class="ph filepath">librcheck</span> library won't work correctly
+because these options make <span class="keyword cmdname">gcc</span>
+use builtin versions of some functions, such as
+<span class="keyword apiname">strcpy()</span> and <span class="keyword apiname">strcmp()</span>. 
+Use the <span class="keyword option">-fno-builtin</span> option to prevent this.
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat_DetectingAndReportingErrors.html" title="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time.">Detecting and reporting errors</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

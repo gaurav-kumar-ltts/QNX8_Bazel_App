@@ -1,0 +1,185 @@
+#!/bin/bash
+
+# ANSI escape sequences to get colour into the output
+clr_red=
+clr_bold=
+clr_normal=
+
+# Only use colour if outputting to a terminal
+if [ -t 1 ]; then
+    clr_red="\033[91;1m"
+    clr_bold="\033[1m"
+    clr_normal="\033[0m"
+fi
+
+. ${TOOL_DIR}/functions
+. local/options
+
+rm -f output/build/build.date
+date --iso-8601=seconds >output/build/build.date
+
+# partitions is a string indicating the partitions we want to build. But
+# build them anyway of they don't exist.
+partitions=$OPT_BUILD
+if [ "$partitions" = all ]; then
+	partitions=bsd
+else
+	if [ ! -e output/boot.part ]; then
+		partitions=b$partitions
+	fi
+	if [ ! -e output/system.part ]; then
+		partitions=s$partitions
+	fi
+	if [ ! -e output/data.part ]; then
+		partitions=d$partitions
+	fi
+fi
+
+OPT_PART_SIZES=${OPT_PART_SIZES:=full}
+
+### System Partition ###########################################################
+
+if [[ $partitions = *s* ]]; then
+	echo Generating system partition . . .
+	echo -ne $clr_red
+	if [ "$OPT_QCFS" != no ]; then
+		rm -f output/qcfs.output
+		mkqfs qcfs -o output/system.part output/build/system.build >output/qcfs.output 2>&1
+		cat output/qcfs.output | grep -v 'search path'
+	elif [ "$OPT_QTSAFEFS" = no ]; then
+		mkqnx6fsimg output/build/system.build output/system.part
+	fi
+	rc=$?
+	echo -ne $clr_normal
+	if [ $rc != 0 ]; then
+		echo "Failed to create system partition"
+		exit 1
+	fi
+
+	if [ "$OPT_QTSAFEFS" = yes ]; then
+		qtsafefs_options=(-B 4096 -H sha512-256 -K local/misc_files/qtsafefs_private_key.pem -S ecdsa-sha256)
+		mkqfs qtsafefs ${qtsafefs_options[@]} -o output/system.part output/build/system.build
+		if [ $? != 0 ]; then
+			echo "Failed to create QTSAFEFS disk image"
+			exit 1
+		fi
+		echo "#define __SYS_PART_TYPE__ 186"  >>output/inc/diskoptions.inc
+	fi
+
+	if [ "$OPT_QTD" = yes ]; then
+		qtd_options=(-B 4096 -H sha512-256 -K local/misc_files/qtd_private_key.pem -S eddsa-448)
+		if [ "${OPT_PART_SIZES}" != full ]; then
+			IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+			SYS_SIZE=$((${PART_SIZES[1]} * 2048 * 512))
+			qtd_options=("${qtd_options[@]}" -M -P $SYS_SIZE)
+		fi
+		mkqfs qtd ${qtd_options[@]} -o output/system-qtd.part output/system.part
+		if [ $? != 0 ]; then
+			echo "Failed to create QTD disk image"
+			exit 1
+		fi
+		if [ "${OPT_PART_SIZES}" == full ]; then
+			rm -f output/system.part
+			mv output/system-qtd.part output/system.part
+		fi
+		echo "#define __SYS_PART_TYPE__ 185"  >>output/inc/diskoptions.inc
+	fi
+fi
+
+### Data Partition #############################################################
+
+if [[ $partitions = *d* ]]; then
+	echo Generating data partition . . .
+	echo -ne $clr_red
+	mkqnx6fsimg output/build/data.build output/data.part
+	rc=$?
+	echo -ne $clr_normal
+	if [ $? != 0 ]; then
+		echo "Failed to create data partition"
+		exit 1
+	fi
+fi
+
+### IFS Partition ##############################################################
+
+if [[ $partitions = *b* ]]; then
+	echo Generating ifs . . .
+	echo -ne $clr_red
+	mkifs -o output output/build/ifs.build output/ifs.bin
+	rc=$?
+	echo -ne $clr_normal
+	if [ $rc != 0 ]; then
+		echo "Failed to create ifs boot image"
+		exit 1
+	fi
+
+	if [ "${OPT_IPL}" = "yes" ]; then
+
+		echo "Generating IPL boot image..."
+
+		IPL_LNK=$(find_repo_path "${OPT_REPOS}" ${OPT_ARCH}/boot/sys/armv8_fm.lnk)
+		IPL_LINK_PATHS=$(make_repo_paths " -L " "" "aarch64le/lib:aarch64le/usr/lib:aarch64le/boot/sys" "${OPT_REPOS}")
+		IPL_LINK_PATHS="${IPL_LINK_PATHS} -L output"
+
+		# Dual linking to resolve all symbols
+		qcc -Vgcc_ntoaarch64 -Wl,--no-keep-memory -nostdlib -M -nostartup -Wl,-T${IPL_LNK} \
+			-fuse-ld=bfd -nopie -o output/ipl-armv8_fm-ifs ${IPL_LINK_PATHS} -lipl-armv8_fm -lipl \
+			-lipl-armv8_fm -lipl -EL
+	fi
+
+	echo Building boot partition . . .
+
+	if [ "${OPT_PART_SIZES}" == full ]; then
+		if [ "${IMAGE_TYPE}" = bios ]; then
+			if [ "${OPT_BOOT_SIZE}" = 0 ]; then
+				# If we don't need any extra space, make the boot partition 80 sectors
+				# bigger than its contents. We have to allow a bit or mkqnx6fsimg will fail.
+				BOOT_SECTORS='*80'
+			else
+				# Convert boot size in MB to sectors
+				BOOT_SECTORS="*$((${OPT_BOOT_SIZE} * 2048))"
+			fi
+		else
+			# We don't know exactly how big the boot partition has to be so just make it
+			# a bit bigger than the size of the ifs.
+			BOOT_SECTORS=`file_size output/ifs.bin 512`
+			BOOT_SECTORS=$((BOOT_SECTORS+500))
+		fi
+		rm -f output/disk-*
+	else
+		IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+		BOOT_SECTORS=$((${PART_SIZES[0]} * 2048))
+	fi
+
+	# Provide the IFS size since it's needed for FAT.
+	preprocess_options=(-D __BOOT_SECTORS__=${BOOT_SECTORS})
+
+	preprocess ${TOOL_DIR}/inputs/boot_part.build output/build/boot_part.build ${preprocess_options[@]}
+
+	if [ "${IMAGE_TYPE}" = bios ]; then
+		fsbuilder=mkqnx6fsimg
+	else
+		fsbuilder=mkfatfsimg
+	fi
+
+	echo -ne $clr_red
+	${fsbuilder} output/build/boot_part.build output/boot.part
+	rc=$?
+	echo -ne $clr_normal
+	if [ $rc != 0 ]; then
+		echo "Failed to create ifs partition"
+		exit 1
+	fi
+fi
+
+################################################################################
+
+# If boot mode is other, we just create the partition files and let someone else worry
+# about what to do with them.
+if [ "${OPT_PART_SIZES}" == full ]; then
+	echo Building disk . . .
+	copyimage bsd
+elif [ "$OPT_COPY_DEST" = none ]; then
+	echo Creating image file . . .
+	buildinstaller
+fi

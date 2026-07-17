@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Optimize the Screen configuration file" />
+<meta name="abstract" content="The graphics.conf file is a Screen configuration file that you can optimize to help reduce the time it takes for the Screen service to start." />
+<meta name="description" content="The graphics.conf file is a Screen configuration file that you can optimize to help reduce the time it takes for the Screen service to start." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_optimizing-startup_configure_file" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Optimize the Screen configuration file</title>
+</head>
+<body id="cscreen_optimizing-startup_configure_file">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Optimize the <span class="keyword">Screen</span> configuration file</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        The <span class="ph filepath">graphics.conf</span> file is a <span class="keyword">Screen</span> configuration file that 
+        you can optimize to help reduce the time it takes for the <span class="keyword">Screen</span> service to start.
+    </p>
+
+        <div class="p">
+            
+            A default version of the <span class="ph filepath">graphics.conf</span> is provided in the BSP kit for your hardware platform.
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Optimize the <tt class="ph tt">graphics.conf</tt> file.</span>
+                
+                <br /><img class="image" src="../images/bootup_timeline_screen_areatwo.svg" width="624" /><br />
+            </div>
+
+        </div>
+
+        <div class="p">
+            The <span class="ph filepath">graphics.conf</span> file can be found at these locations:
+            <ul class="ul">
+                <li class="li">your host machine at 
+                    <span class="ph filepath"><span class="keyword envar">$QNX_TARGET</span>/<var class="keyword varname">cpu</var>/usr/lib/graphics/<var class="keyword varname">platform</var>/</span>
+                </li>
+
+                <li class="li">your target at <span class="ph filepath">/usr/lib/graphics/<var class="keyword varname">platform</var>/</span>, where <var class="keyword varname">platform</var>
+                    is the name of the hardware platform (e.g., <tt class="ph tt">imx6x</tt>)</li>
+
+            </ul>
+
+        </div>
+
+        <div class="p">Here's how you can modify the <span class="ph filepath">graphics.conf</span> file to optimize the startup time for
+            <span class="keyword">Screen</span>:
+            <ul class="ul">
+                <li class="li">
+                    Specify the pixel format in the <span class="ph filepath">graphics.conf</span> file. For more information about modifying
+                    these settings, see <q class="q"><a class="xref" href="#cscreen_optimizing-startup_configure_file__configure-display-options">Configure display options</a></q>
+                    in this chapter.
+                </li>
+
+                <li class="li">
+                    Reduce what's in the <span class="ph filepath">graphics.conf</span> file. You should remove any options that 
+                    aren't required for your system. For more information, see the the following sections:
+                    <ul class="ul">
+                        <li class="li"><a class="xref" href="#cscreen_optimizing-startup_configure_file__reduce_config_file">Optimize the contents of the graphics.conf file</a></li>
+
+                        <li class="li"><a class="xref" href="#cscreen_optimizing-startup_configure_file__headless_screen">Optimize the contents of the graphics.conf file when your system doesn't support or use displays</a></li>
+
+                        <li class="li"><a class="xref" href="#cscreen_optimizing-startup_configure_file__noGPU_screen">Optimize the contents of the graphics.conf file when your system doesn't have or use a GPU</a></li>
+
+                    </ul>
+
+                    
+                </li>
+
+            </ul>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_file__configure-display-options"><h2 class="title sectiontitle">Configure display options</h2>
+            
+            
+            <p class="p">
+                <span class="keyword">Screen</span> is designed to be flexible and fault-tolerant. For this reason, by default,
+                <span class="keyword">Screen</span> scans the hardware to determine the best settings for the display, which requires
+                extra time. When possible, configure the pixel format in the <span class="ph filepath">graphics.conf</span> file to skip the scanning
+                process and save time–provided you know the correct settings on the display or monitor.
+            </p>
+
+            <p class="p">
+                To configure the pixel format, modify the following option in the <tt class="ph tt">display</tt> section of
+                the <span class="ph filepath">graphics.conf</span> file:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">
+                        <tt class="ph tt">formats</tt>
+                    </dt>
+
+                    <dd class="dd">All the pixel formats that will be returned as <em class="ph i">supported</em> to applications.
+                        If this display option isn't specified, <span class="keyword">Screen</span> must take the time to determine which
+                        pixel formats are supported by your display hardware. You can save time if you can avoid this discovery stage.</dd>
+
+                
+                
+            </dl>
+
+            <p class="p">For more information about the <tt class="ph tt">display</tt> parameters, see the
+                <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_config_intro.html#screen_winmgr_display"><q class="q">Configure <tt class="ph tt">display</tt> subsection</q></a>
+                in the <q class="q">Configuring Screen</q> chapter of the <cite class="cite">Screen Developer's Guide</cite>.
+            </p>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_file__reduce_config_file"><h2 class="title sectiontitle">Optimize the contents of the <span class="ph filepath">graphics.conf </span>file</h2>
+            
+            <div class="p">As part of the <span class="keyword">Screen</span> initialization process, <em class="ph i">everything</em> in the
+                <span class="ph filepath">graphics.conf</span> file is read and parsed. These are some recommended approaches to
+                help you reduce the size of the <span class="ph filepath">graphics.conf </span>:
+                <ul class="ul">
+                    <li class="li">Put files that the <span class="ph filepath">graphics.conf</span> refers to in the primary IFS if they are
+                        required to show content on the display. Your <span class="ph filepath">graphics.conf</span> can still refer
+                        to files that aren't in the primary IFS, but loaded in the secondary IFS or filesystem. This is
+                        also an important consideration to help you to reduce the size of the primary IFS.
+                    </li>
+
+                    <li class="li">Remove all comments and unnecessary options from the <span class="ph filepath">graphics.conf</span> file
+                        to make it as small (or short) as possible. This helps to improve the startup time for the
+                        <span class="keyword">Screen</span> service because there isn't as much to process.</li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_file__headless_screen"><h2 class="title sectiontitle">Optimize the contents of the <span class="ph filepath">graphics.conf </span>file when your system doesn't support or
+                use displays</h2>
+            
+            <p class="p">
+                Your configuration file can be optimized to exclude sections that don't apply to your system and to
+                the applications running on your system. There are sections of the <span class="ph filepath">graphics.conf</span> file
+                that are related to display drivers, libraries, and physical displays. If your system doesn't support
+                displays, or if there aren't any applications that use displays on your system, then you should
+                exclude the following sections from your <span class="ph filepath">graphics.conf</span>:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">the <tt class="ph tt">wfd device</tt> subsection</dt>
+
+                    <dd class="dd">For more information about the <tt class="ph tt">wfd</tt> subsection that's under the
+                        of the <tt class="ph tt">khronos</tt> section of <span class="ph filepath">graphics.conf</span>, see the
+                        <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_config_intro.html#screen_khronos_wfd_device"><q class="q">Configure <tt class="ph tt">wfd device</tt> subsection</q></a>
+                        in the <q class="q">Configuring Screen</q> chapter of the <cite class="cite">Screen Developer's Guide</cite>.
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">the <tt class="ph tt">display</tt> subsection</dt>
+
+                    <dd class="dd">For more information about the <tt class="ph tt">display</tt> subsection that's under the
+                        of the <tt class="ph tt">winmgr</tt> section of <span class="ph filepath">graphics.conf</span>, see the
+                        <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_config_intro.html#screen_winmgr_display"><q class="q">Configure <tt class="ph tt">display</tt> subsection</q></a>
+                        in the <q class="q">Configuring Screen</q> chapter of the <cite class="cite">Screen Developer's Guide</cite>.
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">the <tt class="ph tt">class</tt> subsection</dt>
+
+                    <dd class="dd">For more information about the <tt class="ph tt">display</tt> subsection that's under the
+                        of the <tt class="ph tt">winmgr</tt> section of <span class="ph filepath">graphics.conf</span>, see the
+                        <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_config_intro.html#screen_winmgr_class"><q class="q">Configure <tt class="ph tt">class</tt> subsection</q></a>
+                        in the <q class="q">Configuring Screen</q> chapter of the <cite class="cite">Screen Developer's Guide</cite>.
+                    </dd>
+
+                
+            </dl>
+
+            <p class="p">
+                The <span class="keyword parmname">default-display</span> parameter that's specified in the <tt class="ph tt">globals</tt> section,
+                of <span class="ph filepath">graphics.conf</span> isn't valid if your system doesn't support displays.
+            </p>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_file__noGPU_screen"><h2 class="title sectiontitle">Optimize the contents of the <span class="ph filepath">graphics.conf </span>file when your system doesn't have or use a GPU</h2>
+            
+            <p class="p">
+                Your configuration file can be optimized to exclude sections that don't apply to your system, and to
+                the applications running on your system. There's a section of the <span class="ph filepath">graphics.conf</span> file
+                that's related to GPU drivers and libraries. If your system doesn't have a GPU, or if there
+                aren't any applications that use the graphics drivers on your system, then you should exclude the
+                following from your <span class="ph filepath">graphics.conf</span>:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">the <tt class="ph tt">egl display</tt> subsection of the <tt class="ph tt">khronos</tt> section</dt>
+
+                    <dd class="dd">For more information about the <tt class="ph tt">egl display</tt> subsection that's under the
+                        of the <tt class="ph tt">khronos</tt> section of <span class="ph filepath">graphics.conf</span>, see the
+                        <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_config_intro.html#screen_khronos_egl_display"><q class="q">Configure <tt class="ph tt">egl display</tt> subsection</q></a>
+                        in the <q class="q">Configuring Screen</q> chapter of the <cite class="cite">Screen Developer's Guide</cite>.
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

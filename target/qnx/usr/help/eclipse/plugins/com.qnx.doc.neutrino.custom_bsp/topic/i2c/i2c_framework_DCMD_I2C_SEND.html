@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="DCMD_I2C_SEND" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i2c/i2c_framework_Resmgr.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DCMD_I2C_SEND" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>DCMD_I2C_SEND</title>
+</head>
+<body id="DCMD_I2C_SEND">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword const">DCMD_I2C_SEND</span></h1>
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">#include &lt;hw/i2c.h&gt;
+
+#define DCMD_I2C_SEND               __DIOT (_DCMD_I2C, 5, i2c_send_t)
+</pre>
+
+<p class="p">
+The arguments to <span class="keyword apiname">devctl()</span> are:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d7282e59">Argument</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d7282e62">Value</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e59 "><var class="keyword varname">filedes</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e62 ">A file descriptor that you obtained by opening the device.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e59 "><var class="keyword varname">dcmd</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e62 "><span class="keyword const">DCMD_I2C_SEND</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e59 "><var class="keyword varname">dev_data_ptr</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e62 ">A pointer to a <span class="keyword dtype">i2c_send_t</span> that's followed by additional data</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e59 "><var class="keyword varname">n_bytes</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e62 "><span class="ph codeph">sizeof(i2c_send_t)</span> plus the size of the additional data</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e59 "><var class="keyword varname">dev_info_ptr</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d7282e62 "><span class="keyword const">NULL</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">The <span class="keyword const">DCMD_I2C_SEND</span> command executes a master send transaction.
+It returns when the transaction is complete.
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm">Input</dt>
+
+
+<dd class="dd"><ul class="ul">
+<li class="li"><span class="keyword dtype">i2c_send_t</span> — the message header:
+
+    <pre class="pre codeblock">typedef struct {
+    i2c_addr_t slave;  /* slave address */
+    uint32_t   len;    /* length of send data in bytes */
+    uint32_t   stop;   /* send stop when complete? (0=no, 1=yes) */
+} i2c_send_t;
+    </pre>
+  </li>
+
+<li class="li"><span class="keyword dtype">uint8_t[]</span> — the data buffer
+  </li>
+
+</ul>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Output</dt>
+
+
+<dd class="dd">None.
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">If an error occurs, the command returns:
+
+</p>
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EIO</span></dt>
+
+
+<dd class="dd">The master send failed. The causes include:
+  bad slave address, bad bus speed, bus is busy.
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+
+<dd class="dd">An error occurred while accessing the data buffer.
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+
+<dd class="dd">Bad message format.
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+
+<dd class="dd">Insufficient memory.
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+
+<dd class="dd">The master is locked by another connection.
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/i2c/i2c_framework_Resmgr.html">Resource manager interface</a></div>
+</div>
+</div></body>
+</html>

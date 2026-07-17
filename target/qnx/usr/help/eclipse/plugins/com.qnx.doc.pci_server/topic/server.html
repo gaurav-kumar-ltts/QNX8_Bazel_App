@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The PCI server" />
+<meta name="abstract" content="The PCI server (pci-server) is a resource manager process that manages the PCI hierarchy." />
+<meta name="description" content="The PCI server (pci-server) is a resource manager process that manages the PCI hierarchy." />
+<meta name="DC.subject" content="server, PCI server, pci-server, QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="server, PCI server, pci-server, QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/design.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="server" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The PCI server</title>
+</head>
+<body id="server">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The PCI server</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The PCI server (<span class="keyword cmdname">pci-server</span>) is a resource manager process that manages the PCI hierarchy.
+</p>
+
+
+<p class="p">
+It's responsible for enumerating and optionally configuring all PCI/PCIe devices, providing access control
+to some device information and settings, and for all configuration space writes.
+For information about the command-line options, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pci-server.html"><span class="keyword cmdname">pci-server</span></a>
+in the <cite class="cite">Utilities Reference</cite>.
+</p>
+
+
+<p class="p">
+Without any command-line arguments, the PCI server enumerates the PCI bus, but doesn't configure it.
+This is the mode of operation for systems that have already enumerated and configured the PCI devices.
+</p>
+
+
+<p class="p">
+
+
+
+
+If requested, the PCI server configures a bus (after doing the enumeration),
+using the bus configuration module specified with the <span class="keyword envar">PCI_SERVER_BUSCFG_MODULE</span>
+environment variable, or the generic module identified by the <span class="keyword const">PCI_SERVER_BUSCFG_MODULE_DEFAULT</span> string
+(which is defined in <span class="ph filepath">&lt;pci/pci.h&gt;</span>) if that variable is unset.
+A bus is configured if you provide the <span class="keyword option">-c</span> and/or the <span class="keyword option">--config=</span><var class="keyword varname">filename</var>
+option, where <var class="keyword varname">filename</var> is a server configuration file that contains the parameter
+<span class="ph codeph">DO_BUS_CONFIG=yes/true</span> in the <span class="ph codeph">[buscfg]</span> section.
+</p>
+
+
+<p class="p">
+As mentioned in
+<q class="q"><a class="xref" href="config.html">Configuration files</a></q>
+and as documented in <span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}/etc/system/config/pci/pci_server-template.cfg</span>,
+the PCI server can load other optional modules, each with its own set of arguments.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Server modules</h2>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+To provide maximum flexibility, the PCI server can use a number of server-specific modules.
+One such module is for device configuration.
+As previously mentioned, device configuration is optional, and so this functionality is supplied by a
+bus configuration module that you can specify with the <span class="keyword envar">PCI_SERVER_BUSCFG_MODULE</span> environment variable.
+If not specified, and configuration is to be done, the default module
+<span class="ph filepath">pci_server-buscfg_generic.so</span> is used.
+</p>
+
+
+<p class="p">
+The server module mechanism is a means of extending the functionality of the PCI server while minimizing impacts
+to the server code base.
+This is facilitated by a set of internal APIs between the server and server modules.
+It doesn't necessarily mean that a new <span class="keyword cmdname">pci-server</span> binary won't be required when a new module
+is created, but because of the defined module interface, the impacts will be localized and minimized.
+It all depends on the functionality being added.
+</p>
+
+
+<p class="p">
+Server configuration modules are contained in
+<span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}/<var class="keyword varname">processor</var>/lib/dll/pci</span> and have the prefix
+<tt class="ph tt">pci_server-</tt>.
+There is <q class="q">use</q> information in each module explaining what it's for and how to use it.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">The <q class="q">Known Devices</q> list (<span class="ph filepath">pci_db</span>)</h2>
+
+
+<p class="p">
+
+
+
+The PCI server creates and maintains a known devices list in <span class="ph filepath">/dev/shmem/pci_db</span>.
+This database is created during the enumeration phase.
+If live insertion and deletion of devices (i.e., hotplug) is enabled, this database is updated by the
+PCI server to reflect the current hierarchy.
+</p>
+
+
+<p class="p">
+This shared object is available to every process that uses <span class="ph filepath">libpci</span>,
+and this database is consulted when you call
+<a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>.
+This allows every driver process to search for supported devices independently of one another
+and without ever generating any PCI bus/link activity.
+You can use 
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/r/rsrcdb_query.html"><span class="keyword cmdname">rsrcdb_query</span></a>
+to view the resource database entries.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/design.html">Design Details</a></div>
+</div>
+</div></body>
+</html>

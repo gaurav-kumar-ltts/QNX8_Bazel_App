@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example program" />
+<meta name="abstract" content="The following is an example program that connects to the smmuman service and monitors IOMMU/SMMU transgressions reported by the service." />
+<meta name="description" content="The following is an example program that connects to the smmuman service and monitors IOMMU/SMMU transgressions reported by the service." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Example program</title>
+</head>
+<body id="example">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Example program</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The following is an example program that connects to the <span class="keyword cmdname">smmuman</span>
+		service and monitors IOMMU/SMMU transgressions reported by the service.</p>
+
+		<div class="p">This program is taken from a system that maps all DMA devices in the
+			<span class="keyword cmdname">smmuman</span> startup configuration
+			(see <q class="q"><a class="xref" href="../use/use_startup.html" title="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up.">Startup mappings</a></q>).
+			It monitors transgressions reported by the <span class="keyword cmdname">smmuman</span> service,
+			but doesn't create SMMU objects or memory mappings:
+<pre class="pre codeblock">#ifdef __USAGE
+%C - SMMU violations monitor
+
+Syntax:
+%C
+
+Options:
+    -v verbosity
+#endif
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdarg.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;smmu.h&gt;
+#include &lt;inttypes.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/siginfo.h&gt;
+#include &lt;sys/slogcodes.h&gt;
+#include &lt;sys/procmgr.h&gt;
+
+#define PULSE_CODE_SMMU_VIOLATION 0
+#define _SLOGC_SMMUMON (_SLOGC_PRIVATE_END - 6)
+
+static int verbosity_level = 0;
+
+static int smmumon_slogf(int severity, int verbosity, int vlevel, const char *fmt, ...)
+{
+    int     ret;
+    va_list arglist;
+
+    ret = 0;
+
+    if (severity &lt;= _SLOG_ERROR || verbosity &gt; 5) {
+        va_start(arglist, fmt);
+        vfprintf(stderr, fmt, arglist);
+        va_end(arglist);
+        fprintf(stderr, "\n");
+    }
+    if (vlevel &lt;= 4 || verbosity &gt;= vlevel) {
+        va_start(arglist, fmt);
+        ret = vslogf(_SLOGC_SMMUMON, severity, fmt, arglist);
+        va_end(arglist);
+    }
+    return (ret);
+}
+
+static void options(int argc, char **argv)
+{
+    int     opt;
+    while (optind &lt; argc)
+    {
+        while ((opt = getopt(argc, argv, "v")) != -1)
+        {
+            switch (opt)
+            {
+                case 'v':
+                    if (verbosity_level &lt; 20) {
+                        verbosity_level++;
+                    }
+                    break;
+                default:
+                    smmumon_slogf(
+                        _SLOG_ERROR, 1, 0,
+                        "options: unexpected parameter\n");
+                    exit(-1);
+            }
+        }
+    }
+}
+
+static int process_all_violations(void)
+{
+    int result;
+    for(;;) {
+        struct smmu_status status;
+        result = smmu_xfer_status(&amp;status);
+        if (result == -1) {
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "process_all_violations: smmu_xfer_status failed, errno=%d\n",
+                errno);
+            return -1;
+        }
+
+        if (result == 0)
+        {
+            return 0;
+        }
+
+        if (result != 1) {
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "process_all_violations: unexpected result from smmu_xfer_status,"
+                " result=%d\n", result);
+            return -1;
+        }
+
+        switch(status.devid.type) {
+            case SDT_PCI: {
+                smmumon_slogf(
+                    _SLOG_CRITICAL, verbosity_level, 0,
+                    "pci device violation detected : "
+                    "fault_addr=0x%" PRIx64 " "
+                    "hw_specific=0x%" PRIx64 " "
+                    "flags=0x%x "
+                    "pci bdf=%d:%d:%d"
+                    "\n",
+                    status.fault_addr,
+                    status.hw_specific,
+                    status.flags,
+                    status.devid.pci.bus,
+                    status.devid.pci.dev,
+                    status.devid.pci.func);
+                break;
+            }
+            case SDT_MMIO: {
+                smmumon_slogf(
+                    _SLOG_CRITICAL, verbosity_level, 0,
+                    "mmio device violation detected : "
+                    "fault_addr=0x%" PRIx64 " "
+                    "hw_specific=0x%" PRIx64 " "
+                    "flags=0x%x "
+                    "mmio.phys=0x%" PRIx64 " "
+                    "mmio.length=0x%x"
+                    "\n",
+                    status.fault_addr,
+                    status.hw_specific,
+                    status.flags,
+                    status.devid.mmio.phys,
+                    status.devid.mmio.length);
+                break;
+            }
+            default:
+            {
+                smmumon_slogf(
+                    _SLOG_CRITICAL, verbosity_level, 0,
+                    "unknown device type violation detected, "
+                    "type=%d : "
+                    "fault_addr=0x%" PRIx64 " "
+                    "hw_specific=0x%" PRIx64 " "
+                    "flags=0x%x "
+                    "\n",
+                    status.devid.type,
+                    status.fault_addr,
+                    status.hw_specific,
+                    status.flags);
+                break;
+            }
+        }
+    }
+    return -1;
+}
+
+static int wait_for_violations(int channel, int coid)
+{
+    int result;
+
+    struct sigevent event;
+    SIGEV_PULSE_INIT(&amp;event, coid, -1, PULSE_CODE_SMMU_VIOLATION, NULL);
+
+    result = MsgRegisterEvent(&amp;event,-1);
+    if (result!=0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "wait_for_violations: MsgRegisteredEvent failed , errno=%d\n",
+            errno);
+        return -1;
+    }
+
+    result = smmu_xfer_notify(&amp;event);
+    if (result!=0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "wait_for_violations: smmu_xfer_notify-1 failed , errno=%d\n",
+            errno);
+        return -1;
+    }
+
+    for(;;) {
+        struct _pulse pulse;
+        result = MsgReceivePulse(channel, &amp;pulse, sizeof(pulse), NULL);
+        if (result != 0) {
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "wait_for_violations: MsgReceivePulse failed, errno=%d\n",
+                errno);
+            return -1;
+        }
+
+        if (pulse.code != PULSE_CODE_SMMU_VIOLATION) {
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "wait_for_violations: unexpected pulse.code=%d\n",
+                pulse.code);
+            return -1;
+        }
+
+        result = smmu_xfer_notify(&amp;event);
+        if (result!=0) {
+            process_all_violations();
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "wait_for_violations: smmu_xfer_notify-2 failed , errno=%d\n",
+                errno);
+            return -1;
+        }
+
+        result = process_all_violations();
+        if (result != 0) {
+            smmumon_slogf(
+                _SLOG_ERROR, verbosity_level, 0,
+                "wait_for_violations: process_all_violations failed, errno=%d\n",
+                errno);
+            return -1;
+        }
+    }
+
+    return -1;
+}
+
+static int connect_attach_channel_and_process(int channel)
+{
+    int coid;
+    coid = ConnectAttach_r(0, 0, channel, _NTO_SIDE_CHANNEL, 0);
+    if(coid &lt; 0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "connect_attach_channel_and_process : ConnectAttach_r %d\n",
+            -coid);
+        return -1;
+    }
+
+    int result;
+    result = wait_for_violations(channel,coid);
+
+    ConnectDetach_r(coid);
+
+    return result;
+}
+
+static int open_channel_and_process(void)
+{
+    int channel;
+    channel = ChannelCreate_r(0);
+    if(channel &lt; 0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "open_channel_and_process: ChannelCreate_r failed: %d\n",
+            -channel);
+        return -1;
+    }
+
+    int result;
+    result = connect_attach_channel_and_process(channel);
+
+    ChannelDestroy_r(channel);
+
+    return result;
+}
+
+int main(int argc, char *argv[])
+{
+    int result;
+
+    options(argc,argv);
+
+    result = procmgr_daemon( 0,
+        PROCMGR_DAEMON_NODEVNULL | PROCMGR_DAEMON_NOCLOSE);
+
+    if (result &lt; 0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "main: procmgr_daemon failed : %s\n", strerror(errno));
+        return -1;
+    }
+
+    result = smmu_init(0);
+    if (result != 0) {
+        smmumon_slogf(
+            _SLOG_ERROR, verbosity_level, 0,
+            "main: smmu_init failed, errno=%d\n",errno);
+        return -1;
+    }
+
+    result = open_channel_and_process();
+
+    smmu_fini();
+
+    return result;
+}
+</pre>
+		</div>
+
+	</div>
+
+</body>
+</html>

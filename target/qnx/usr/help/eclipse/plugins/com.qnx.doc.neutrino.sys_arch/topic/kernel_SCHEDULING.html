@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread scheduling" />
+<meta name="abstract" content="When and how are scheduling decisions made?" />
+<meta name="description" content="When and how are scheduling decisions made?" />
+<meta name="DC.subject" content="scheduling, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="scheduling, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Scheduling_priority.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SchedulingAlgorithms.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_IPC_issues.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Thread_complexity.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_External_Code.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="SCHEDULING" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread scheduling</title>
+</head>
+<body id="SCHEDULING">
+
+<h1 class="title topictitle1" id="ariaid-title1">Thread scheduling</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When and how are scheduling decisions made?
+</p>
+
+
+<p class="p">
+The <span class="keyword">microkernel</span> makes scheduling decisions whenever it's entered as the result of a
+kernel call, exception, or hardware interrupt. A scheduling
+decision is made whenever the execution state of any thread
+changes—it doesn't matter which processes the
+threads might reside within. Threads are scheduled globally
+across all processes.
+</p>
+
+
+<p class="p">
+Normally a running thread continues to run,
+but the thread scheduler will perform a context switch from one
+thread to another whenever this running thread:
+
+</p>
+
+
+<ul class="ul">
+<li class="li">blocks</li>
+
+<li class="li">is preempted</li>
+
+<li class="li">yields</li>
+
+</ul>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">When does a thread block?</dt>
+
+<dd class="dd">A running thread blocks when it must wait for some
+  event to occur (response to an IPC request, wait on a mutex, etc.).
+  The blocked thread is removed from the running array
+  and the highest-priority ready thread that is allowed to run
+  on the processor making the scheduling decision is then run.
+  When the blocked thread is subsequently unblocked, it's usually placed at
+  the end of the ready queue for its own priority level.
+</dd>
+
+
+
+
+<dt class="dt dlterm">When is a thread preempted?</dt>
+
+<dd class="dd">A running thread is preempted when a higher-priority
+  thread is placed on the ready queue (i.e., it becomes READY, as
+  the result of its block condition being resolved).
+  The preempted thread is put at the beginning of the ready queue for
+  its own priority level and the higher-priority thread runs.
+</dd>
+
+
+
+
+<dt class="dt dlterm">When does a thread yield?</dt>
+
+<dd class="dd">A running thread voluntarily yields its processor (e.g., via
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_yield.html"><span class="keyword apiname">sched_yield()</span></a>) and is placed at the end of the
+  ready queue for that priority. The highest-priority thread that can run on
+  that same processor then runs (this may still be the thread that just yielded).
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/kernel_Scheduling_priority.html">Scheduling priority</a></strong><br />
+ Every thread is assigned a priority. The thread scheduler selects the next thread to run     by comparing the priorities of READY threads (i.e., those capable of using a processor). </li>
+<li class="link ulchildlink"><strong><a href="../topic/kernel_SchedulingAlgorithms.html">Scheduling policies</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/kernel_IPC_issues.html">IPC issues</a></strong><br />
+ Since all the threads in a process have unhindered access to the shared data space, wouldn't this execution model <q class="q">trivially</q> solve all of our IPC problems? Can't we just communicate the data through shared memory and dispense with any other execution models and IPC mechanisms? </li>
+<li class="link ulchildlink"><strong><a href="../topic/kernel_Thread_complexity.html">Thread complexity issues</a></strong><br />
+ Although threads are very appropriate for some system designs, it's important to respect the Pandora's box of complexities their use unleashes. </li>
+<li class="link ulchildlink"><strong><a href="../topic/kernel_External_Code.html">External code invoked by the scheduler</a></strong><br />
+     The scheduler may use code that's external to the kernel to perform certain functions.     This code can affect thread scheduling and, thus, the deterministic behavior of the     <span class="keyword">QNX OS</span>. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel.html" title="The microkernel implements the core POSIX features used in embedded realtime systems, along with the fundamental QNX OS message-passing services.">The QNX OS Microkernel</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

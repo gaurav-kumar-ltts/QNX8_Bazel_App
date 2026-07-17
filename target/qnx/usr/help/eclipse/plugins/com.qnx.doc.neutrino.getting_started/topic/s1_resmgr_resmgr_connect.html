@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="resmgr_connect_funcs_t connect table" />
+<meta name="abstract" content="When the resource manager library receives a message, it looks at the type of message and sees if it can do anything with it. In the base layer, there are two tables that affect this behavior: The resmgr_connect_funcs_t table, which contains a list of connect message handlers, and the resmgr_io_funcs_t table, which contains a similar list of I/O message handlers." />
+<meta name="description" content="When the resource manager library receives a message, it looks at the type of message and sees if it can do anything with it. In the base layer, there are two tables that affect this behavior: The resmgr_connect_funcs_t table, which contains a list of connect message handlers, and the resmgr_io_funcs_t table, which contains a similar list of I/O message handlers." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_datastruct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="resmgr_connect" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>resmgr_connect_funcs_t connect table</title>
+</head>
+<body id="resmgr_connect">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">resmgr_connect_funcs_t</span> connect table</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When the resource manager library receives a message, it looks at the type of
+message and sees if it can do anything with it.
+In the base layer, there are two tables that affect this behavior:
+The <span class="keyword dtype">resmgr_connect_funcs_t</span> table, which contains a list of
+connect message handlers, and the <span class="keyword dtype">resmgr_io_funcs_t</span> table,
+which contains a similar list of I/O message handlers.
+</p>
+
+
+<p class="p">
+
+
+
+
+</p>
+
+
+<div class="p">
+When it comes time to fill in the connect and I/O tables, we recommend
+that you use the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a>
+function to load up the tables with the POSIX-layer default handler routines.
+Then, if you need to override some of the functionality of particular
+message handlers, you'd simply assign your own handler function instead
+of the POSIX default routine.
+We'll see this in the section
+<a class="xref" href="s1_resmgr_your_functions.html" title="When designing your very first resource manager, you'll most likely want to take an incremental design approach. It can be very frustrating to write thousands of lines of code only to run into a fundamental misunderstanding and then having to make the ugly decision of whether to try to kludge (er, I mean “fix”) all that code, or scrap it and start from scratch."><q class="q">Putting in your own functions.</q></a>
+Right now, let's look at the connect functions table itself
+(this is from <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>):
+
+
+
+<pre class="pre codeblock">typedef struct _resmgr_connect_funcs {
+  unsigned nfuncs;
+
+  int (*open)
+      (ctp, io_open_t *msg, handle, void *extra);
+  int (*unlink)
+      (ctp, io_unlink_t *msg, handle, void *reserved);
+  int (*rename)
+      (ctp, io_rename_t *msg, handle, io_rename_extra_t *extra);
+  int (*mknod)
+      (ctp, io_mknod_t *msg, handle, void *reserved);
+  int (*readlink)
+      (ctp, io_readlink_t *msg, handle, void *reserved);
+  int (*link)
+      (ctp, io_link_t *msg, handle, io_link_extra_t *extra);
+  int (*unblock)
+      (ctp, io_pulse_t *msg, handle, void *reserved);
+  int (*mount)
+      (ctp, io_mount_t *msg, handle, io_mount_extra_t *extra);
+
+} resmgr_connect_funcs_t;
+</pre>
+</div>
+
+
+<div class="p">
+Note that I've shortened the prototype down by omitting the <span class="keyword dtype">resmgr_context_t *</span>
+type for the first member (the <var class="keyword varname">ctp</var>), and the <span class="keyword dtype">RESMGR_HANDLE_T *</span>
+type for the third member (the <var class="keyword varname">handle</var>).
+For example, the full prototype for <var class="keyword varname">open</var> is really:
+
+<pre class="pre codeblock">int (*<var class="keyword varname">open</var>) (resmgr_context_t *<var class="keyword varname">ctp</var>,
+            io_open_t *<var class="keyword varname">msg</var>,
+            RESMGR_HANDLE_T *<var class="keyword varname">handle</var>,
+            void *<var class="keyword varname">extra</var>);
+</pre>
+</div>
+
+
+<p class="p">
+The very first member of the structure (<var class="keyword varname">nfuncs</var>) indicates how big
+the structure is (how many members it contains).
+In the above structure, it should contain the value <q class="q">8,</q> for there
+are 8 members (<var class="keyword varname">open</var> through to <var class="keyword varname">mount</var>).
+This member is mainly in place to allow <span class="keyword">BlackBerry QNX</span> to upgrade this library without
+any ill effects on your code.
+For example, suppose you had compiled in a value of 8, and then <span class="keyword">BlackBerry QNX</span> upgraded the
+library to have 9.
+Because the member only had a value of 8, the library could say to
+itself, <q class="q">Aha!  The user of this library was compiled when we had only
+8 functions, and now we have 9.  I'll provide a useful default for the ninth
+function.</q>
+There's a manifest constant in <span class="ph filepath">&lt;sys/resmgr.h&gt;</span> called
+<span class="keyword const">_RESMGR_CONNECT_NFUNCS</span> that has the current number.
+Use this constant if manually filling in the connect functions table (although it's
+<em class="ph i">best</em> to use <span class="keyword apiname">iofunc_func_init()</span>).
+
+
+
+
+</p>
+
+
+<p class="p">
+Notice that the function prototypes all share a common format.
+The first parameter, <var class="keyword varname">ctp</var>, is a pointer to a <span class="keyword dtype">resmgr_context_t</span>
+structure.
+This is an internal context block used by the resource manager library, and which
+you should treat as read-only (except for one field, which we'll come back to).
+
+
+</p>
+
+
+<p class="p">
+The second parameter is always a pointer to the message.
+Because the functions in the table are there to handle
+different types of messages, the prototypes match the kind of message that
+each function will handle.
+</p>
+
+
+<p class="p">
+The third parameter is a <span class="keyword dtype">RESMGR_HANDLE_T</span> structure called a
+<var class="keyword varname">handle</var>—it's used to identify the device that this message was targeted at.
+We'll see this later as well, when we look at the attributes structure.
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+In order to correctly define <span class="keyword dtype">RESMGR_HANDLE_T</span>, <span class="ph codeph">#include</span>
+<span class="ph filepath">&lt;sys/iofunc.h&gt;</span> before <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>.
+</div>
+
+
+<p class="p">
+Finally, the last parameter is either <q class="q">reserved</q> or an <q class="q">extra</q>
+parameter for functions that need some extra data.
+We'll show the <var class="keyword varname">extra</var> parameter as appropriate during our discussions of
+the handler functions.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_datastruct.html" title="The first thing we need to understand is the data structures used to control the operation of the library.">Data structures</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

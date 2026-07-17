@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Obtaining and printing a memory map" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/backtrace_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Print_memmap" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Obtaining and printing a memory map</title>
+</head>
+<body id="Print_memmap">
+
+<h1 class="title topictitle1" id="ariaid-title1">Obtaining and printing a memory map</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Use the following sample code segment to obtain and then print the contents of a memory map:
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;backtrace.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;errno.h&gt;
+
+int main(int argc, char *argv[])
+{
+    char out[1024];
+
+    bt_accessor_t acc;
+    bt_memmap_t memmap;
+
+    if (bt_init_accessor(&amp;acc, BT_SELF) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_init_accessor", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    if (bt_load_memmap( &amp;acc, &amp;memmap) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_load_memmap", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    if (bt_sprn_memmap(&amp;memmap, out, sizeof(out)) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_sprn_memmap", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    /* Make sure that the string is null-terminated. */
+    out[sizeof(out) - 1] = '\0';
+    puts(out);
+
+    bt_unload_memmap( &amp;memmap );
+
+    if (bt_release_accessor(&amp;acc) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_release_accessor", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+</pre>
+
+<p class="p">
+Additional notes about memory:
+</p>
+
+
+<ul class="ul">
+<li class="li">The formula for calculating memory used by a memory map is roughly the following:
+
+  <pre class="pre codeblock">(16 + strlen(filename)) * num_files
+  </pre>
+</li>
+
+
+<li class="li">Some memory is temporarily allocated while the memory map is read. 
+  For example, an executable with three shared libraries loaded
+  (assuming an average file name length of 40 characters, and excluding
+  overhead from <span class="keyword apiname">malloc()</span>), would consume 224 bytes.
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+There are no explicit links between the memory map and a backtrace.
+Consequently, you're responsible for ensuring that the memory map is reread
+to account for the proper handling of the removal of the
+<span class="keyword apiname">dlopen()</span> and <span class="keyword apiname">dlclose()</span> processes, as well as the
+recycling of process IDs.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/backtrace_Examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="img_encode_callouts_t" />
+<meta name="abstract" content="Encoder callout table" />
+<meta name="description" content="Encoder callout table" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_seeAPIs.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_encode_frame.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_fmt_bpl.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_format_t.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_write_file.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="img_encode_callouts_t" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>img_encode_callouts_t</title>
+</head>
+<body id="img_encode_callouts_t">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">img_encode_callouts_t</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Encoder callout table</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre">
+#include &lt;img/img.h&gt;
+
+typedef struct {
+    img_encode_choose_format_f      *<var class="keyword varname">choose_format_f</var>;
+    img_encode_setup_f              *<var class="keyword varname">setup_f</var>;
+    img_encode_abort_f              *<var class="keyword varname">abort_f</var>;
+    img_encode_scanline_f           *<var class="keyword varname">scanline_f</var>;
+    img_encode_set_palette_f        *<var class="keyword varname">get_palette_f</var>;
+    img_encode_set_transparency_f   *<var class="keyword varname">get_transparency_f</var>;
+    img_encode_frame_f              *<var class="keyword varname">frame_f</var>;
+    uintptrt_t                       <var class="keyword varname">data</var>;
+
+} img_encode_callouts_t;
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">The <a class="xref" href="img_encode_callouts_t.html" title="Encoder callout table"><span class="keyword dtype">img_encode_callouts_t</span></a> structure defines an encoder callout table. It provides the encoder with a list of callouts for it to invoke at various stages of the encoding:
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_choose_format_f"><span class="keyword dtype">img_encode_choose_format_f *</span><var class="keyword varname">choose_format_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_setup_f"><span class="keyword dtype">img_encode_setup_f* </span><var class="keyword varname">setup_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_abort_f"><span class="keyword dtype">img_encode_abort_f* </span><var class="keyword varname">abort_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_scanline_f"><span class="keyword dtype">img_encode_scanline_f* </span><var class="keyword varname">scanline_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_get_transparency_f"><span class="keyword dtype">img_encode_get_transparency_f* </span><var class="keyword varname">get_transparency_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_get_palette_f"><span class="keyword dtype">img_encode_get_palette_f* </span><var class="keyword varname">get_palette_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__img_encode_frame_f"><span class="keyword dtype">img_encode_frame_f* </span><var class="keyword varname">frame_f</var></a></li>
+
+<li class="li"><a class="xref" href="#img_encode_callouts_t__data"><span class="keyword dtype">uintptrt_t </span><var class="keyword varname">data</var></a></li>
+
+</ul>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_choose_format_f"><strong class="ph b">img_encode_choose_format_f *<var class="keyword varname">choose_format_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that chooses an alternate format for the image from the list provided by the decoder. This is the first callout called during an encode, but it will only be called if the format of the supplied image cannot be represented by the encoder.  In this case, the application may prepare to provide the data in one of the formats requested, or it may abort the encode altogether.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typdef unsigned (<var class="keyword varname">img_encode_choose_format_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        const img_t *<var class="keyword varname">img</var>,
+        const img_format_t *<var class="keyword varname">formats</var>,
+        unsigned <var class="keyword varname">nformats</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data -- the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to the <span class="keyword dtype">img_t</span> structure describing the frame being encoded.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">formats</var>
+    </dt>
+
+
+<dd class="dd">An array of possible <span class="keyword dtype">img_format_t</span> formats to choose from.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nformats</var>
+    </dt>
+
+
+<dd class="dd">The number of elements in the <var class="keyword varname">formats</var> array.</dd>
+
+
+
+</dl>
+
+
+<p class="p">If you do not supply a <span class="keyword apiname">choose_format()</span> callout, the library will choose the format that best matches the provided image, and it will automatically convert the data to that format as needed.
+
+</p>
+
+<p class="p">The function should return an index within the formats array, or an out-of-bounds value (for example, <var class="keyword varname">nformats</var>) to indicate that no format was desired; the encoder will error out with <span class="keyword const">IMG_ERR_NOSUPPORT</span>.
+
+</p>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_setup_f"><strong class="ph b">img_encode_setup_f* <var class="keyword varname">setup_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that does any setup required to begin frame encoding.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef int (<var class="keyword varname">img_encode_setup_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var>,
+        unsigned <var class="keyword varname">flags</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to the <span class="keyword dtype">img_t</span> structure describing the frame being encoded.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var>
+    </dt>
+
+
+<dd class="dd">Flags to provide hints about how the data will be encoded, which may influence assumptions and actions your function takes. It can have the following values:
+        <ul class="ul">
+<li class="li"><span class="keyword const">IMG_SETUP_TOP_DOWN</span> — scanlines are encoded in order, moving from the top down
+            </li>
+
+<li class="li"><span class="keyword const">IMG_SETUP_BOTTOM_UP</span> — scanlines are encoded in order, moving from the bottom up
+            </li>
+
+<li class="li"><span class="keyword const">IMG_SETUP_MULTIPASS</span> — scanline are fragmented across multiple passes (for example, planar and some interlacing schemes).
+        </li>
+
+</ul>
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">This function should return <span class="keyword const">IMG_ERR_OK</span> if everything is ok, otherwise return some other error code. Anything other than <span class="keyword const">IMG_ERR_OK</span> causes the encode to stop and the error code is propagated back to the application.
+
+</p>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_abort_f"><strong class="ph b">img_encode_abort_f* <var class="keyword varname">abort_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that called if the encode fails (after <span class="keyword apiname">setup_f()</span> has been called).
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef void (<var class="keyword varname">img_encode_abort_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to the <span class="keyword dtype">img_t</span> structure describing the frame being encoded.</dd>
+
+
+
+</dl>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_scanline_f"><strong class="ph b">img_encode_scanline_f* <var class="keyword varname">scanline_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that's invoked to notify the application when a scanline has been encoded.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef int (<var class="keyword varname">img_encode_scanline_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var>,
+        unsigned <var class="keyword varname">row</var>,
+        unsigned <var class="keyword varname">npass_line</var>,
+        unsigned <var class="keyword varname">npass_total</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to an <span class="keyword dtype">img_t</span> describing the frame being encoded.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">row</var>
+    </dt>
+
+
+<dd class="dd">The index of the scanline that has been encoded. Scanlines are numbered starting at 0 (the topmost scanline) to image height - 1.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">npass_line</var>
+    </dt>
+
+
+<dd class="dd">The number of additional passes required (after this pass) to complete the scanline. Planar formats and some interlaced formats partition scanlines across multiple passes, encoding only portions of the data at a time (this is the case when the <span class="keyword const">IMG_SETUP_MULTIPASS</span> flag bit is set in the <span class="keyword apiname">setup_f()</span> callout). You know the scanline is complete when this value is <span class="ph codeph">0</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">npass_total</var>
+    </dt>
+
+
+<dd class="dd">The number of additional scanline passes remaining (after this pass) to complete the entire frame. You will know the frame is complete when this value is passed in as <var class="keyword varname">0</var>.
+    <p class="p">This total includes partial passes, where the <span class="keyword const">IMG_SETUP_MULTIPASS</span> flag was set in the <span class="keyword apiname">setup_f()</span> callout. If this flag was not set, then a <q class="q">scanline pass</q> is equivalent to <q class="q">scanline completion</q>, that is, <var class="keyword varname">npass_total</var> reflects the number of lines left to be encoded. In either case, this value gives you a gauge of the total work left versus what has already been completed.</p>
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">This function should return <span class="keyword const">IMG_ERR_OK</span> to continue encoding or some other value to abort the encode. The code you return is propagated back to the application. Normally <span class="keyword const">IMG_ERR_INTR</span> is a good value to use in this case, unless there's another value you wish to use.
+
+</p>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_get_transparency_f"><strong class="ph b">img_encode_get_transparency_f* <var class="keyword varname">get_transparency_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that satisfies the request of the image transparency color.  You only need to provide this function if, for some reason, the transparency color is not accurately represented in the transparency field of the <span class="keyword dtype">img_t</span>.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef int (<var class="keyword varname">img_encode_get_transparency_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var>,
+        img_color_t *<var class="keyword varname">color</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the data member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to an <span class="keyword dtype">img_t</span> describing the frame.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">color</var>
+    </dt>
+
+
+<dd class="dd">A pointer to an <span class="keyword dtype">img_color_t</span> to fill with the transparent color.  The format of this data should match the format of the frame data itself.</dd>
+
+
+
+</dl>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If you do not provide this callout, the library will automatically use and convert the image transparency field as needed.</div>
+
+
+<p class="p">This function should return <span class="keyword const">IMG_ERR_OK</span> to signify the validity of the requested field.  If some other value is returned, the encoder will ignore the transparency and it will not be represented in the resulting encoded data.  The encode will proceed regardless.
+
+
+</p>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_get_palette_f"><strong class="ph b">img_encode_get_palette_f* <var class="keyword varname">get_palette_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that satisfies the request of an image's palette. You only need to provide this function if, for some reason, the palette is not accurately represented in the <span class="keyword dtype">img_t</span>.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef int (<var class="keyword varname">img_encode_get_palette_f</var>) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var>,
+        uint8_t *<var class="keyword varname">palette</var>,
+        img_format_t <var class="keyword varname">format</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to an <span class="keyword dtype">img_t</span> describing the frame being encoded.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">palette</var>
+    </dt>
+
+
+<dd class="dd">A pointer to a buffer to fill with palette data.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">format</var>
+    </dt>
+
+
+<dd class="dd">The format that the encoder is expecting the palette data to be in.</dd>
+
+
+
+</dl>
+
+
+<p class="p">This function should return <span class="keyword const">IMG_ERR_OK</span> if everything is ok, otherwise return some other error code. Anything other than <span class="keyword const">IMG_ERR_OK</span> causes the encode to stop and the error code is propagated back to the application.
+
+
+
+</p>
+
+
+<p class="p" id="img_encode_callouts_t__img_encode_frame_f"><strong class="ph b">img_encode_frame_f* <var class="keyword varname">frame_f</var></strong></p>
+
+
+<p class="p">A pointer to a function that is called once a frame is successfully encoded.
+
+</p>
+
+<p class="p">The function takes this form:
+
+</p>
+
+<pre class="pre codeblock">typedef void ( <var class="keyword varname">img_encode_frame_f</var> ) (
+        uintptrt_t <var class="keyword varname">data</var>,
+        img_t *<var class="keyword varname">img</var> );
+</pre>
+
+<p class="p">The arguments for this function are:
+
+</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var>
+    </dt>
+
+
+<dd class="dd">Application data — the value of the <var class="keyword varname">data</var> member of the <span class="keyword dtype">img_encode_callouts_t</span>.
+
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">img</var>
+    </dt>
+
+
+<dd class="dd">A pointer to an <span class="keyword dtype">img_t</span> describing the frame being encoded.</dd>
+
+
+
+</dl>
+
+
+<p class="p" id="img_encode_callouts_t__data"><strong class="ph b">uintptrt_t <var class="keyword varname">data</var></strong></p>
+
+
+<p class="p">User-defined data passed as an additional argument to callouts.
+
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p">Image library</p>
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/images_seeAPIs.html">Image API</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/img_encode_frame.html" title="Encode a frame">img_encode_frame()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_fmt_bpl.html" title="Calculate the minimum number of bytes required to represent a pixel run">IMG_FMT_BPL()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_format_t.html" title="Image formats">img_format_t</a></li>
+<li class="linklist"><a class="link" href="../topic/img_write_file.html" title="Encode a frame to a file on the filesystem">img_write_file()</a></li></ul></div>
+</div></body>
+</html>

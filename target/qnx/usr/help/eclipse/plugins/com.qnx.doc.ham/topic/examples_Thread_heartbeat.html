@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread 2 is made to heartbeat" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples_STARVE.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Thread_heartbeat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread 2 is made to heartbeat</title>
+</head>
+<body id="Thread_heartbeat">
+
+<h1 class="title topictitle1" id="ariaid-title1">Thread 2 is made to heartbeat</h1>
+
+
+<div class="body conbody">
+
+<p class="p">Now consider the case where Thread 2 is made to heartbeat.
+A HAM will automatically detect when the thread is
+unresponsive and can terminate it and/or perform recovery.
+
+</p>
+
+<pre class="pre codeblock">Thread 1                             Thread 2
+
+...                                  ...
+(Run at high priority)               (Run at low priority)
+while true                           while true
+do                                   do
+    obtain lock a                        obtain lock a
+                                             <em class="ph i">send heartbeat</em>
+        (compute section1)                   (compute section1)
+    release lock a                       release lock a
+done                                 done
+...                                  ...
+</pre>
+
+<p class="p">Here Thread 2 is expected to send heartbeats to a HAM. By
+placing the heartbeat call within the inside loop, the HAM
+detects when Thread 2 begins to starve.
+
+
+
+
+
+</p>
+
+<p class="p">The threads will execute as described earlier, but
+eventually Thread 2 will starve. We'll wait for a reasonable
+amount of time (some seconds) until it does. The threads
+write a simple execution log in
+<span class="ph filepath">/dev/shmem/mutex-starvation-heartbeat.log</span>.
+The HAM detects that the thread has stopped heartbeating and
+terminates the process, after saving its state for
+postmortem analysis.  
+
+
+
+</p>
+
+<p class="p">Let's look at what happens:
+
+</p>
+
+<ol class="ol">
+<li class="li">Waiting for some time.
+    
+<p class="p">Here's the current state of the threads in process 753682
+and the state of mutex-starvation when it missed heartbeats:
+
+</p>
+<pre class="pre codeblock">     pid tid name               prio STATE       Blocked
+  753682   1 t/mutex-starvation  10r JOIN        4
+  753682   2 t/mutex-starvation  63r RECEIVE     1
+  753682   3 t/mutex-starvation   1r MUTEX       753682-04 #-2147
+  753682   4 t/mutex-starvation  63r NANOSLEEP
+
+
+    Entity state from HAM
+
+Path            : mutex-starvation
+Entity Pid      : 753682
+Num conditions  : 1
+Condition type  : ATTACHEDSELF
+Stats:
+HeartBeat Period: 1000000000
+HB Low Mark     : 5
+HB High Mark    : 5
+Last Heartbeat  : 2001/09/03 14:44:37:796119160
+HeartBeat State : MISSEDHIGH
+Created         : 2001/09/03 14:44:34:780239800
+Num Restarts    : 0
+</pre>
+
+
+<p class="p">And here's the tail from the threads' log file:
+
+</p>
+<pre class="pre codeblock">Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+</pre>
+
+
+</li>
+
+<li class="li">Extracting core current process information:
+
+<pre class="pre codeblock">/tmp/mutex-starvation.core:
+ processor=ARM num_cpus=2
+  cpu 1 cpu=602370 name=604e speed=299
+   flags=0xc0000001 FPU MMU EAR
+  cpu 2 cpu=602370 name=604e speed=299
+   flags=0xc0000001 FPU MMU EAR
+ cyc/sec=16666666 tod_adj=999522656000000000 nsec=5627098907040 inc=999960
+ boot=999522656 epoch=1970 intr=-2147483648
+ rate=600000024 scale=-16 load=16666
+   MACHINE="mtx604-smp" HOSTNAME="localhost"
+ hwflags=0x000004  
+ pretend_cpu=0 init_msr=36866 
+pid=753682 parent=729105 child=0 pgrp=753682 sid=1
+ flags=0x000300 umask=0 base_addr=0x48040000 init_stack=0x4803f9f0
+ ruid=0 euid=0 suid=0  rgid=0 egid=0 sgid=0
+ ign=0000000006801000 queue=ff00000000000000 pending=0000000000000000
+ fds=5 threads=4 timers=1 chans=4
+ thread 1 REQUESTED
+  ip=0xfe32f8c8 sp=0x4803f880 stkbase=0x47fbf000 stksize=528384
+  state=JOIN flags=0 last_cpu=2 timeout=00000000
+  pri=10 realpri=10 policy=RR
+ thread 2
+  ip=0xfe32f1a8 sp=0x47fbef50 stkbase=0x47f9e000 stksize=135168
+  state=RECEIVE flags=4000000 last_cpu=2 timeout=00000000
+  pri=63 realpri=63 policy=RR
+  blocked_chid=1
+ thread 3
+  ip=0xfe32f838 sp=0x47f9df80 stkbase=0x47f7d000 stksize=135168
+  state=MUTEX flags=4000000 last_cpu=2 timeout=00000000
+  pri=1 realpri=1 policy=RR
+ thread 4
+  ip=0xfe32f9a0 sp=0x47f7cf20 stkbase=0x47f5c000 stksize=135168
+  state=NANOSLEEP flags=4000000 last_cpu=1 timeout=0x1001000
+  pri=63 realpri=63 policy=RR
+</pre>
+</li>
+
+</ol>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples_STARVE.html">Process starvation</a></div>
+</div>
+</div></body>
+</html>

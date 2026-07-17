@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Capturing Trace Data" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/datacapture_Running_tracelogger.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/datacapture_Using_TraceEvent.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="datacapture" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Capturing Trace Data</title>
+</head>
+<body id="datacapture">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Capturing Trace Data</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The program that captures data is the <q class="q">messenger</q> between the instrumented kernel and the filesystem.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Possible data capture configurations.</span>
+
+<br /><img class="image" src="../images/data_capture.svg" alt="Data capture" /><br />
+</div>
+
+
+<div class="p">
+The main function of the data-capture program is to send the buffers given
+to it by the instrumented kernel to an output device or a file.
+To accomplish this function, the program must also:
+
+<ul class="ul">
+<li class="li">interface with the kernel</li>
+
+<li class="li">specify data-filtering requirements the kernel will use</li>
+
+</ul>
+
+</div>
+
+
+<div class="p">
+
+
+You must configure the instrumented kernel before logging.
+The kernel configuration settings include:
+
+<ul class="ul">
+<li class="li">buffer allocations (size)</li>
+
+<li class="li">which events and classes of events to log (filtering)</li>
+
+<li class="li">whether to log the events in wide mode or fast mode</li>
+
+</ul>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The kernel retains the settings, and multiple programs access a single kernel configuration.
+Changing the settings in one process supercedes the settings made in another.
+</div>
+
+
+<p class="p">
+We've provided
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/tracelogger.html"><span class="keyword cmdname">tracelogger</span></a>
+as the default data-capture utility.
+Although you can write your own utility, there's little need to.
+</p>
+
+
+<div class="p">
+
+
+
+
+
+
+
+You can control the capture of data via
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qconn.html"><span class="keyword cmdname">qconn</span></a>
+(under the control of the Integrated Development Environment, or IDE),
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/tracelogger.html"><span class="keyword cmdname">tracelogger</span></a>
+(from the command line), or directly from your application.
+All three approaches use the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html"><span class="keyword apiname">TraceEvent()</span></a>
+function to control the kernel:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Controlling the capture of trace data.</span>
+
+<br /><img class="image" src="../images/trace_control.svg" alt="Trace control" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+For information about controlling the trace from the IDE, see the
+<q class="q"><a class="xref" href="../../com.qnx.doc.ide.userguide/topic/analyze_sys_behavior.html">Analyzing System Behavior</a></q> chapter of the IDE <cite class="cite">User's Guide</cite>.
+</p>
+
+
+<p class="p">
+Let's look first at using <span class="keyword cmdname">tracelogger</span>, and then
+we'll describe how you can use <span class="keyword apiname">TraceEvent()</span> to control tracing
+from your application.
+</p>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+<ul class="ul">
+<li class="li">Don't run more than one instance of <span class="keyword cmdname">tracelogger</span> at a time.
+  Similarly, don't run <span class="keyword cmdname">tracelogger</span> and trace events under control of the IDE at the same time.
+</li>
+
+
+<li class="li">The hardware underlying <span class="keyword apiname">ClockCycles()</span>
+  must be synchronized across all processors on an SMP system.
+  If the clocks aren't synchronized, then <span class="keyword cmdname">tracelogger</span> produces
+  data with inconsistent timestamps, and the IDE won't be able to load the trace file.
+  The IDE attempts to properly order the events in
+  the trace file, and this can go awry if the timestamp data is incorrect.
+  
+  
+  
+
+  <p class="p">
+  The <span class="keyword cmdname">traceprinter</span> utility doesn't have any issues with such
+  traces because it doesn't attempt to reorder and then interpret the data;
+  it simply dumps the contents of each event.
+  </p>
+
+</li>
+
+
+</ul>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/datacapture_Running_tracelogger.html">Using tracelogger to control tracing</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/datacapture_Using_TraceEvent.html">Using TraceEvent() to control tracing</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

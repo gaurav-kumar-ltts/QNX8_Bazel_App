@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="DCMD_FSYS_ERRNOTIFY" />
+<meta name="abstract" content="Register for error notifications from a filesystem" />
+<meta name="description" content="Register for error notifications from a filesystem" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Devctl and Ioctl Commands, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Devctl and Ioctl Commands, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/fsys.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DCMD_FSYS_ERRNOTIFY" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>DCMD_FSYS_ERRNOTIFY</title>
+</head>
+<body id="DCMD_FSYS_ERRNOTIFY">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword const">DCMD_FSYS_ERRNOTIFY</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Register for error notifications from a filesystem</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;sys/dcmd_blk.h&gt;
+
+#define DCMD_FSYS_ERRNOTIFY   __DIOT(_DCMD_FSYS, 32, struct blk_errnotify)
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments to <span class="keyword apiname">devctl()</span>:</h2>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d91456e83">Argument</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d91456e86">Value</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e83 "><var class="keyword varname">filedes</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e86 ">A file descriptor that you obtained by opening the device.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e83 "><var class="keyword varname">dcmd</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e86 "><span class="keyword const">DCMD_FSYS_ERRNOTIFY</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e83 "><var class="keyword varname">dev_data_ptr</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e86 ">A pointer to a <span class="keyword dtype">struct blk_errnotify</span> (see below)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e83 "><var class="keyword varname">n_bytes</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e86 "><span class="ph codeph">sizeof(struct blk_errnotify)</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e83 "><var class="keyword varname">dev_info_ptr</var></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e86 "><span class="keyword const">NULL</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+This command registers a process for error notifications from a block filesystem.
+The command must come from the local process running
+with superuser privileges, and be directed at one of the driver's block devices.
+</p>
+
+
+<p class="p">
+If you successfully register for error notifications, the
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk.so</span></a>
+module does the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">It immediately sends your process an acknowledgement pulse, including the <var class="keyword varname">ack_data</var>
+  you provide (see below).
+</li>
+
+
+<li class="li">If any errors have occurred in the past, <span class="ph filepath">io-blk.so</span> sends a notification pulse to
+  your process, with <span class="keyword const">BLK_ERRNOTIFY_STALE</span> as the pulse data.
+  
+</li>
+
+
+<li class="li">If another client is already registered for error notifications, <span class="ph filepath">io-blk.so</span> disconnects
+  from it.
+  The client receives a pulse with a code of <span class="keyword const">_PULSE_CODE_DISCONNECT</span>.
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If a filesystem error occurs, <span class="ph filepath">io-blk.so</span> sends your process a pulse with the
+code and priority that you provided (<var class="keyword varname">pulse_code</var> and <var class="keyword varname">pulse_prio</var>,
+respectively).
+The pulse's value describes the error; it consists of the following 32 bits:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d91456e228">Bits</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d91456e231">Mask</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d91456e234">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e228 ">31</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e231 ">0x80000000 (<span class="keyword const">BLK_ERRNOTIFY_STALE</span>)</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e234 ">One or more errors occured before the client registered to receive error notifications</td>
+
+</tr>
+
+  
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e228 ">30–9</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e231 ">0x7FFFFE00</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e234 ">Currently undefined</td>
+
+</tr>
+
+  
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e228 ">8–0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e231 ">0x000001FF</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d91456e234 ">An error code from <span class="ph filepath">&lt;error.h&gt;</span></td>
+
+</tr>
+
+  
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+
+You can use this macro to extract the error code:
+</p>
+
+
+<pre class="pre codeblock">#define BLK_ERRNOTIFY_GETERROR(v)  ((v) &amp; 0x000001ff)
+</pre>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Input:</h2>
+
+
+<p class="p">
+
+A pointer to a <span class="keyword dtype">blk_errnotify</span> structure:
+</p>
+
+
+<pre class="pre codeblock">typedef struct blk_errnotify {
+        uint32_t  signature;
+        int       chid;
+        int       pulse_prio;
+        uint32_t  ack_data;
+        uint8_t   pulse_code;
+        uint8_t   spare[15];   /* reserved; set to zero */
+} blk_errnotify_t;
+</pre>
+
+<p class="p">
+The members include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">signature</var></dt>
+
+<dd class="dd">This must be <span class="keyword const">BLK_ERRNOTIFY_SIGNATURE</span>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">chid</var></dt>
+
+<dd class="dd">The channel ID that you want <span class="keyword cmdname">io-blk</span> to send the pulse to.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">pulse_prio</var></dt>
+
+<dd class="dd">The priority to send the pulse at.
+  This must not be higher than the caller's priority.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ack_data</var></dt>
+
+<dd class="dd">Data to send back with the acknowledgement pulse.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">pulse_code</var></dt>
+
+<dd class="dd">The notification pulse's code.
+  This must be within the range allowed for user processes (see the entry for
+  <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/_pulse.html"><span class="keyword dtype">_pulse</span></a>
+  in the <cite class="cite">C Library Reference</cite>).
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Output:</h2>
+
+
+<p class="p">
+None.
+</p>
+
+</div>
+
+
+
+
+<div class="section"><h2 class="title sectiontitle">See also:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>,
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/_pulse.html"><span class="keyword dtype">_pulse</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>
+</p>
+
+
+<p class="p">
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk.so</span></a>
+in the <cite class="cite">Utilities Reference</cite>
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/fsys.html">DCMD_FSYS_*</a></div>
+</div>
+</div></body>
+</html>

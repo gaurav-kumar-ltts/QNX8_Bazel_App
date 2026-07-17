@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Consider the placement of waitfor statements" />
+<meta name="abstract" content="The waitfor statements in the boot script aren't group for optimal performance." />
+<meta name="description" content="The waitfor statements in the boot script aren't group for optimal performance." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_optimize_app.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="conisder_waitfor_placement" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Consider the placement of waitfor statements</title>
+</head>
+<body id="conisder_waitfor_placement">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Consider the placement of <span class="keyword cmdname">waitfor</span> statements</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">The <span class="keyword cmdname">waitfor</span> statements in the boot script aren't group for optimal performance.</p>
+
+        <p class="p">
+            
+            
+            
+            
+            The boot script contains multiple calls to <span class="keyword cmdname">waitfor</span>, which ensure
+            that a resource manager is loaded before any of the programs that might use it. This is
+            a very good practice, since the programs that follow may fail if they don't find the
+            resource they require.</p>
+
+        <div class="p">However, in the default boot script, these
+           <span class="keyword cmdname">waitfor</span> statements are grouped to make sense, rather than to ensure maximum
+            performance. For example, consider the following (simplified) sample code:
+<pre class="pre codeblock">...
+
+# I2C driver
+display_msg starting I2C driver...
+
+# I2C0 interface
+i2c-omap35xx-j5 -i 70 -p0x48028000 --u0
+waitfor /dev/i2c0
+
+# I2C1 interface
+i2c-omap35xx-j5 -i 71 -p0x4802A000 --u1
+waitfor /dev/i2c1
+
+# I2C2 interface
+i2c-omap35xx-j5 -i 30 -p0x4819C000 --u2
+waitfor /dev/i2c2
+
+# I2C3 interface
+i2c-omap35xx-j5 -i 31 -p0x4819E000 --u3
+waitfor /dev/i2c3
+
+# USB OTG Host Controller driver
+io-usb-otg -vvv -d dm816x-mg ioport=0x47401400,irq=18
+waitfor /dev/usb/io-usb-otg 4
+devb-umass cam pnp
+
+# AUDIO Driver - I2C must be running
+display_msg Starting Audio driver...
+# MCASP2
+io-audio -vv -d mcasp-j5_aic3106 mcasp=2
+waitfor /dev/snd/pcmC0D0p
+
+# SPI driver
+display_msg starting SPI driver...
+# SPI 0
+spi-master -u0 -d dm816x base=0x48030100,irq=65,somi=0,edma=1,edmairq=529,edmachannel=17
+
+# PCIe server
+display_msg Starting PCI server...
+pci-dm814x
+waitfor /dev/pci 4
+
+...
+</pre>
+        </div>
+
+        <p class="p">This script does the reasonable thing of starting each driver, then waiting for it to
+            finish loading before continuing. Some of these drivers require hardware initialization.
+            If a driver is waiting on the hardware, then <span class="keyword cmdname">waitfor</span> can prevent the
+            next program from loading prematurely.</p>
+
+        <p class="p">The behavior of <span class="keyword cmdname">waitfor</span> is very simple: it polls the device, and if
+            the device isn't found, it sleeps for 100 milliseconds and tries again. It terminates
+            when either the device is found or the timeout is reached, whichever happens first. As a
+            result, each <span class="keyword cmdname">waitfor</span> might do nothing except poll and hold up the
+            rest of the show. You want the CPU 100% utilized during the boot—any idle time adds to
+            the total boot duration. Ideally, then, each <span class="keyword cmdname">waitfor</span> would do a
+            single device check that succeeds and then continues. An ordering that breaks the
+            logical grouping can minimize unwanted sleeps by using other program loads to introduce
+            any required delay.</p>
+
+        <p class="p">For instance, let's say that you need to start an IDE driver in your boot process. That driver
+            must wait for the hardware to initialize, an operation that always takes 100
+            milliseconds. That's what <span class="keyword cmdname">waitfor</span> does: it waits until your driver
+            has the hardware initialized before proceeding. But why waste those 100 milliseconds?
+            After starting the IDE driver, start your USB driver (or any other software) that can
+            effectively utilize that time. If your USB driver takes 100 milliseconds to prepare the
+            hardware, you've gotten some extra time "for free." Then, when you actually need the IDE
+            device, the <span class="keyword cmdname">waitfor</span> test will succeed immediately. And you've managed
+            to shorten the total boot time.</p>
+
+        <div class="p">See the following code for an example of modifying the script in this way:
+<pre class="pre codeblock">...
+
+# I2C driver
+# We won't wait for any of these, since nothing needs them yet
+display_msg starting I2C driver...
+
+# I2C0 interface
+i2c-omap35xx-j5 -i 70 -p0x48028000 --u0
+
+# I2C1 interface
+i2c-omap35xx-j5 -i 71 -p0x4802A000 --u1
+
+# I2C2 interface
+i2c-omap35xx-j5 -i 30 -p0x4819C000 --u2
+
+# I2C3 interface
+i2c-omap35xx-j5 -i 31 -p0x4819E000 --u3
+
+# USB OTG Host Controller driver
+display_msg Starting USB OTG Host driver...
+io-usb-otg -vvv -d dm816x-mg ioport=0x47401400,irq=18
+
+# Start the SPI driver before checking on USB, since SPI doesn't rely on io-usb-otg
+    
+# SPI driver
+display_msg starting SPI driver...
+# SPI 0
+spi-master -u0 -d dm816x base=0x48030100,irq=65,somi=0,edma=1,edmairq=529,edmachannel=17
+
+# Check on USB relocated from above
+waitfor /dev/usb/io-usb-otg 4
+devb-umass cam pnp
+
+# PCIe server
+display_msg Starting PCI server...
+pci-dm814x
+waitfor /dev/pci 4
+
+# I2C driver should be up by now, and we need it for audio
+waitfor /dev/i2c0
+waitfor /dev/i2c1
+waitfor /dev/i2c2
+waitfor /dev/i2c3
+
+# The audio driver requires I2C, so we've moved it later in the boot script
+# (after SPI and PCIe), to allow more time for the I2C drivers to initialize
+
+# AUDIO Driver - I2C must be running
+# McASP2
+io-audio -vv -d mcasp-j5_aic3106 mcasp=2
+waitfor /dev/snd/pcmC0D0p
+
+...
+</pre>
+        </div>
+
+        <p class="p">These examples illustrate the benefits of optimized <span class="keyword cmdname">waitfor</span> placement.
+            This technique has a potential drawback, however: the driver might not be waiting on the
+            hardware, but rather using the processor to do real work. In that case, the reordering
+            will cause all the drivers to load at once, which will make the task scheduler
+            continually switch between all the active threads. This can be less efficient than the
+            first method.</p>
+
+        <p class="p">To determine whether reordering improves boot performance, use
+                <span class="keyword cmdname">tracelogger</span> to capture a system profiler snapshot during boot. If
+            the snapshot shows blocks of time where the CPU is idle after a driver load and
+            indicates that calls are being made into the kernel every 100 milliseconds, then that
+            driver is a reasonable target for this technique.</p>
+
+        <p class="p">See the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/about.html"><em class="ph i">Utilities Reference</em></a> for more information about 
+            <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/tracelogger.html"><span class="keyword cmdname">tracelogger</span></a> or
+            <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/w/waitfor.html"><span class="keyword cmdname">waitfor</span></a>.</p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_optimize_app.html" title="This chapter present optimization techniques you can apply in the bootup sequence at, and after, the boot script.">Optimizing the Platform Application Stack</a></div>
+</div>
+</div></body>
+</html>

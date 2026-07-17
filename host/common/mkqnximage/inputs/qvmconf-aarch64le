@@ -1,0 +1,40 @@
+hypervisor/guest/guest.conf = {
+system mkqnximage-guest
+
+unsupported instruction ignore
+unsupported reference ignore
+unsupported register ignore
+
+logger error,fatal,internal,warn,info,debug,verbose stderr
+
+ram 0x80000000,512M
+
+cpu
+load /data/hypervisor/guest/ifs.bin
+
+vdev pl011
+        # Since we are using virtio-console, point the PL011 at qvm stdout, so we can still see
+        # startup driver output (startup uses the PL011)
+        hostdev >-
+        loc 0x1c090000
+        intr gic:37
+
+vdev virtio-console
+        loc 0x20000000
+        intr gic:42
+
+vdev virtio-net
+        loc 0x1c0c0000
+        intr gic:40
+        peer /dev/vdevpeers/vp0
+        peerfeats 0x0382
+	    #Name required for virtio-net
+        name network
+
+vdev virtio-blk
+        loc 0x1c0d0000
+        intr gic:41
+        hostdev /dev/qvmdisk0
+        #Name given here so that pidin threads output will be easier to read
+        name virtio-blk_qvmdisk0
+}

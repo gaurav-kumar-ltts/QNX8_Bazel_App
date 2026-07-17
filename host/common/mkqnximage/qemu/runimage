@@ -1,0 +1,174 @@
+#!/bin/bash
+
+headless=0
+while getopts h opt $*; do
+    case "$opt" in
+    h)
+        headless=1
+        ;;
+    [?])
+        exit 1
+        ;;
+    esac
+done
+shift $(($OPTIND-1))
+
+QEMU_OPTIONS=$(cat output/build/qemu_options)
+if [ -e local/qemu-options ]; then
+    echo Use of local/qemu-options is deprecated, use local/snippets/qemu_options.custom
+    QEMU_OPTIONS="${QEMU_OPTIONS} $(cat local/qemu-options)"
+fi
+
+case "$OPT_ARCH" in
+    x86_64)
+        qemu_bin=qemu-system-x86_64
+        ;;
+    aarch64le)
+        qemu_bin=qemu-system-aarch64
+        ;;
+esac
+
+
+NETWORKING=1
+# In theory networking should be possible on OSX but will take some work.
+# Don't know if Windows will work at all but certainly won't pass the check-net script
+if [ "${HOST_UNAME}" = Darwin -o "${HOST_UNAME}" = WINNT ]; then
+    echo Networking not supported
+    unset NETWORKING
+fi
+
+if [ -n "$NETWORKING" ]; then
+    # Check the networking setup
+    ${TOOL_DIR}/qemu/check-net $qemu_bin
+    rc=$?
+    if [ "$rc" != 0 ]; then
+        exit $rc
+    fi
+
+    if [ -z "${OPT_NETWORK}" ]; then
+        OPT_NETWORK=nat
+    fi
+	VALUES=(${OPT_NETWORK//:/ })
+	NET_TYPE=${VALUES[0]}
+	NET_NAME=${VALUES[1]:-br1}
+
+    if [ "${NET_TYPE}" = nat ]; then
+        brctl show | grep -q ^virbr0
+        if [ $? -eq 0 ]
+        then
+            INTF=virbr0
+        else
+            INTF=br0
+        fi
+    elif [ "${NET_TYPE}" = bridge ]; then
+        INTF=${NET_NAME}
+    fi
+fi
+
+if [ -w "/dev/kvm" ]; then
+    QEMU_CPU="--enable-kvm --cpu host"
+else
+    if [ "${HOST_UNAME}" != Darwin -a "${HOST_UNAME}" != WINNT ]; then
+        if [ ! -d "/sys/module/kvm" ]; then
+            echo -e "${clr_yellow}WARNING: kvm module not loaded, emulation will be slower.\n${clr_normal}"
+        else
+            echo -e "${clr_yellow}You do not have write access to /dev/kvm which will make emulation slower."
+            echo -e "To fix this you need to add yourself to the kvm group. You can usually do this"
+            echo -e "by running 'sudo adduser <username> kvm' and logging in again.\n${clr_normal}"
+        fi
+    fi
+    QEMU_CPU="--cpu max"
+fi
+
+std_args=(-pidfile output/qemu.pid -nographic)
+if [ "$OPT_GRAPHICS" = no ]; then
+    graphics_args=(-nographic)
+else
+    # The settings here are correct for QEMU 7.2.3 and 8.0.2 at some earlier version
+    # one might instead require:
+    # graphics_args=(-vga virtio -display sdl,gl=on)
+    graphics_args=(-vga none -device virtio-vga-gl -display sdl,gl=on)
+fi
+console_args=(-serial mon:stdio)
+memory_args=(-m $OPT_RAM)
+
+if [ "$OPT_ARCH" = "x86_64" ]; then
+    machine_args=(-smp $OPT_CPU $QEMU_CPU)
+    disk_args=(-drive file=output/disk-qemu.vmdk,if=ide,id=drv0)
+    network_args=(-netdev bridge,br=$INTF,id=net0 -device virtio-net-pci,netdev=net0,mac=$OPT_MACADDR)
+    random_args=(-object rng-random,filename=/dev/urandom,id=rng0 -device virtio-rng-pci,rng=rng0)
+
+    if [ "${IMAGE_TYPE}" = uefi ]; then
+        boot_args=(-bios /usr/share/qemu/OVMF.fd)
+    else
+        boot_args=(-kernel output/ifs.bin)
+    fi
+
+elif [ "$OPT_ARCH" = "aarch64le" ]; then
+    num_cpu=$OPT_CPU
+    qemu_version=`$qemu_bin --version`
+    qemu_version=${qemu_version##*version }     # Strip out to get first number of the version number
+    qemu_version=${qemu_version%%.*}            # Strip out to get first number of the version number
+    #Set CPU number to 1 if the qemu version of aarch64 is 2.*.
+    if (($qemu_version < 3)); then
+        num_cpu=1
+    fi
+
+    if [ "$OPT_QVM" = yes ]; then
+        #On AARCH64, this sub-option is required to enable Hypervisor (ARM Virtual Extensions)
+        qvm_machine_opt=",virtualization=on,gic-version=3"
+    fi
+
+    ## see 'opt_scripts/opt_aarch64_version'
+    if [ "$OPT_AARCH64_VERSION" == "8" ]; then
+        aarch64_machine="virt-4.2"
+        aarch64_cpu="cortex-a57"
+    elif [ "$OPT_AARCH64_VERSION" == "8.2" ]; then
+        aarch64_machine="virt-7.2"
+        aarch64_cpu="cortex-a76"
+    elif [ "$OPT_AARCH64_VERSION" == "9" ]; then
+        aarch64_machine="virt-8.2"
+        aarch64_cpu="cortex-a710"
+    fi
+
+    machine_args=(-machine $aarch64_machine${qvm_machine_opt} -cpu $aarch64_cpu -smp $num_cpu)
+
+    random_args=(-object rng-random,filename=/dev/urandom,id=rng0 -device virtio-rng-device,rng=rng0)
+    network_args=(-netdev bridge,br=$INTF,id=net0 -device virtio-net-device,netdev=net0,mac=$OPT_MACADDR)
+    disk_args=(-drive file=output/disk-qemu.vmdk,if=none,id=drv0 -device virtio-blk-device,drive=drv0)
+
+    if [ "${IMAGE_TYPE}" = uefi ]; then
+        boot_args=(-bios /usr/share/qemu/OVMF.fd)
+    else
+        if [ "${OPT_IPL}" = "yes" ]; then
+            boot_args=(-kernel output/ipl-armv8_fm-ifs)
+        else
+            boot_args=(-kernel output/ifs.bin)
+        fi
+    fi
+
+else
+    echo Unknown architecture
+    exit 1
+fi
+
+if [ -z "$NETWORKING" ]; then
+    network_args=()
+fi
+
+if [ ${headless} = 1 ]; then
+    rm -f output/qemu.out
+    console_args=(-serial file:output/qemu.out)
+fi
+
+command=($qemu_bin ${machine_args[@]} ${memory_args[@]} ${disk_args[@]} ${network_args[@]} ${std_args[@]} ${boot_args[@]} ${console_args[@]} ${random_args[@]} ${graphics_args[@]} ${QEMU_OPTIONS})
+echo "QEMU Command: ${command[@]}"
+
+if [ ${headless} = 1 ]; then
+    ${command[@]} >/dev/null </dev/null &
+else
+    ${command[@]}
+    rm -f output/qemu.pid
+fi
+stty sane 2>/dev/null
+exit 0

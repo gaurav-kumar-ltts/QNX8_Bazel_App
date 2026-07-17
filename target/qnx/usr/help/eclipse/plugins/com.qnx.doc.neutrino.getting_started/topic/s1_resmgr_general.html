@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="General notes" />
+<meta name="abstract" content="Each handler function gets passed an internal context block (the ctp argument) that should be treated as “read-only,” except for the iov member." />
+<meta name="description" content="Each handler function gets passed an internal context block (the ctp argument) that should be treated as “read-only,” except for the iov member." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_routines.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Locking_unlocking.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="general" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>General notes</title>
+</head>
+<body id="general">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">General notes</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Each handler function gets passed an internal context block (the
+<var class="keyword varname">ctp</var> argument) that should be treated as <q class="q">read-only,</q>
+except for the <var class="keyword varname">iov</var> member.
+</p>
+
+
+<p class="p">
+
+
+
+This context block contains a few items of interest, as described
+above in <q class="q"><a class="xref" href="s1_resmgr_resmgr_context.html" title="Finally, one data structure is used by the lowest layer of the library to keep track of information that it needs to know about. You should view the contents of this data structure as “read-only,” (except for the iov member)."><span class="keyword dtype">resmgr_context_t</span></a> internal context block.</q>
+Also, each function gets passed a pointer to the message (in the <var class="keyword varname">msg</var> argument).
+You'll be using this message pointer extensively, as that contains the parameters that the
+client's C library call has placed there for your use.
+</p>
+
+
+<p class="p">
+The function that you supply must return a value (all functions are prototyped
+as returning in <span class="keyword dtype">int</span>).
+The values are selected from the following list:
+
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_NOREPLY</span></dt>
+
+<dd class="dd">Indicates to the resource manager library that it should <em class="ph i">not</em> perform
+  the <span class="keyword apiname">MsgReplyv()</span>—the assumption is that you've either performed
+  it yourself in your handler function, or that you're going to do it some time later.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_RESMGR_NPARTS (</span> <var class="keyword varname">n</var> <span class="keyword apiname">)</span></dt>
+
+<dd class="dd">The resource manager library should return an <var class="keyword varname">n</var>-part IOV when it
+  does the <span class="keyword apiname">MsgReplyv()</span> (the IOV is located in <span class="ph codeph">ctp-&gt;iov</span>).
+  Your function is responsible for filling in the <var class="keyword varname">iov</var> member of the
+  <var class="keyword varname">ctp</var> structure, and then returning <span class="keyword apiname">_RESMGR_NPARTS()</span> with
+  the correct number of parts.
+  
+  
+  
+  
+  
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The <var class="keyword varname">iov</var> member of <var class="keyword varname">ctp</var> is allocated dynamically, so it
+  must be <em class="ph i">big enough</em> to hold the number of array elements that you're writing
+  into the <var class="keyword varname">iov</var> member!
+  See the section <q class="q"><span class="keyword dtype">resmgr_attr_t</span> control structure</q> above, for information on setting the
+  <var class="keyword varname">nparts_max</var> member.
+  
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_DEFAULT</span></dt>
+
+<dd class="dd">This instructs the resource manager library to perform the <em class="ph i">low-level default</em>
+  function (This is <em class="ph i">not</em> the same as the <span class="keyword apiname">iofunc_*_default()</span>
+  functions!)  You'd rarely ever use this return value.  In general, it causes the
+  resource manager library to return an errno of <span class="keyword const">ENOSYS</span> to the client,
+  which indicates that the function is not supported.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">An <var class="keyword varname">errno</var> value</dt>
+
+<dd class="dd">Indicates to the resource manager library that it should call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html"><span class="keyword apiname">MsgError()</span></a>
+  with this value as the <var class="keyword varname">error</var> parameter.
+  This generally causes the client function (e.g., <span class="keyword apiname">open()</span>) to
+  return -1 and set
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/errno.html"><var class="keyword varname">errno</var></a>
+  on the client side to the returned value.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_RESMGR_ERRNO (</span> <var class="keyword varname">errno</var> <span class="keyword apiname">)</span></dt>
+
+<dd class="dd">(Deprecated) This return value had been used to <q class="q">wrap</q> an errno number
+  as the return value of the message.  For example, if a client issued an <span class="keyword apiname">open()</span>
+  request for a read-only device, it would be appropriate to return the error value
+  <span class="keyword const">EROFS</span>.  Since this function is deprecated, you can return the error
+  number directly instead of wrapping it with the <span class="keyword apiname">_RESMGR_ERRNO()</span>
+  macro (e.g., <span class="ph codeph">return (EROFS);</span> instead of the more cumbersome
+  <span class="ph codeph">return (_RESMGR_ERRNO (EROFS));</span>.)
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_RESMGR_PTR (</span> <var class="keyword varname">ctp</var><span class="keyword apiname">, </span><var class="keyword varname">addr</var><span class="keyword apiname">, </span><var class="keyword varname">len</var> <span class="keyword apiname">)</span></dt>
+
+<dd class="dd">This is a convenience macro that accepts the context pointer <var class="keyword varname">ctp</var>,
+  and fills its first IOV element to point to the address specified by <var class="keyword varname">addr</var> for the length
+  specified by <var class="keyword varname">len</var>, and then returns the equivalent of <span class="ph codeph">_RESMGR_NPARTS (1)</span>
+  to the library.
+  You'd generally use this if you return single-part IOVs from your function.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_Locking_unlocking.html">Locking, unlocking, and combine message handling</a></strong><br />
+ We saw the client side of a combine message when we looked at <span class="keyword apiname">readblock()</span> (in <q class="q">Combine messages</q>). The client was able to atomically construct a message that contained multiple resource manager <q class="q">submessages</q> corresponding to the functions <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">read()</span>. From the client's perspective, the two (or more) functions were at least <em class="ph i">sent</em> atomically (and will be <em class="ph i">received</em> atomically by the resource manager). What we haven't yet talked about is how we ensure that the messages are <em class="ph i">processed</em> atomically. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_routines.html" title="Not all outcalls correspond to client messages—some are synthesized by the kernel, and some by the library.">Handler routines</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

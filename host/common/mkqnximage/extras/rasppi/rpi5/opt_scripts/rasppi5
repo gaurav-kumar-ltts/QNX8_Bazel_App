@@ -1,0 +1,100 @@
+#!/bin/bash
+
+. $TOOL_DIR/functions
+
+firmware_files=(
+    bcm2712-rpi-5-b.dtb
+    bcm2712d0-rpi-5-b.dtb
+)
+
+function validate()
+{
+    status=0
+    missing=()
+    for f in ${firmware_files[@]}; do
+        if ! check_dependency $f; then
+            missing+=($f)
+        fi
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+        sep=
+        echo -n "Missing Raspberry Pi 5 firmware files: "
+        for f in ${missing[@]}; do
+            echo -n $sep $f
+            sep=", "
+        done
+        echo
+        echo Perhaps add the directory containing the firmware to the list of directories
+        echo for the --repos option.
+        status=1
+    fi
+
+    exit $status
+}
+
+function configure()
+{
+    # Use a name distinct from files in the snippets directory
+    rm -f output/option_files/*.type_rasppi5_opt
+
+    # Add Wifi support if the driver is available
+    if ! check_dependency lib/dll/devs-qwdi_dhd_sdio-2_11-rpi5.so; then
+        exit 0
+    fi
+
+    # Package currently has all the firmware in a tar file. If one day this is
+    # fixed take the files directly out of QNX_TARGET. Otherwise, untar in local
+    # and use them from there.
+    if check_dependency etc/firmware/2.10/brcmfmac43455-sdio.bin; then
+        BASE=$QNX_TARGET/etc/firmware/2.10/
+    elif [ -e $QNX_TARGET/etc/firmware/2.10/bcm43455_firmware_pkg.tar ]; then
+        if [ ! -e local/misc_files/bcm43455_firmware_pkg ]; then
+            cd local/misc_files
+            tar xf $QNX_TARGET/etc/firmware/2.10/bcm43455_firmware_pkg.tar
+            cd ../..
+        fi
+        BASE=local/misc_files/bcm43455_firmware_pkg/
+    else
+        BASE=
+    fi
+
+    cat >output/option_files/system_files.type_rasppi5_opt <<EOF
+[perms=444] etc/wifi/firmware/brcmfmac43455-sdio.bin=${BASE}brcmfmac43455-sdio.bin
+[perms=444] etc/wifi/firmware/brcmfmac43455-sdio.clm_blob=${BASE}brcmfmac43455-sdio.clm_blob
+[perms=444] etc/wifi/firmware/brcmfmac43455-sdio.txt=${BASE}brcmfmac43455-sdio.txt
+lib/dll/devs-qwdi_dhd_sdio-2_11-rpi5.so=lib/dll/devs-qwdi_dhd_sdio-2_11-rpi5.so
+
+
+[perms=644] etc/io-sock/io-sock.conf = {
+hw.dhdsdio.dev0="rpi5"
+dev.qwdi_wifi.conf="/system/etc/wifi/qwdi_wifi.conf"
+}
+
+[perms=644] etc/wifi/qwdi_wifi.conf = {
+fw=/system/etc/wifi/firmware/brcmfmac43455-sdio.bin
+nvram=/system/etc/wifi/firmware/brcmfmac43455-sdio.txt
+clm_blob=/system/etc/wifi/firmware/brcmfmac43455-sdio.clm_blob
+sdio_baseaddr=0x1001100000
+sdio_irq=306
+drv_supp=7
+key_delay=5
+sdio_verbose=0
+dhd_verbose=1
+qwdi_dbg_level=0
+}
+EOF
+
+    cat >output/option_files/definitions.type_rasppi5_opt <<EOF
+#define __WIFIDRIVER__ -o config=/system/etc/io-sock/io-sock.conf -d qwdi_dhd_sdio-2_11-rpi5
+#define __WIFIDEVICE__ bcm0
+EOF
+
+    exit 0
+}
+
+case "$1" in
+    validate)
+        validate;;
+    configure)
+        configure;;
+esac

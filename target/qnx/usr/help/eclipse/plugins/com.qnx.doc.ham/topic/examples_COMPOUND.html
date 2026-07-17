@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Compound restart" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="COMPOUND" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Compound restart</title>
+</head>
+<body id="COMPOUND">
+
+<h1 class="title topictitle1" id="ariaid-title1">Compound restart</h1>
+
+
+<div class="body conbody">
+
+<p class="p">Recovery often involves more than restarting a single
+component. The death of one component might actually require
+restarting and resetting many other components. We might
+also have to do some initial cleanup before the dead
+component is restarted.
+
+
+
+</p>
+
+<p class="p">A HAM lets you specify a list of actions that will be
+performed when a given condition is triggered. For example,
+suppose the entity being monitored is <span class="keyword cmdname">fs-nfs3</span>,
+and there's a set of directories that have been mounted and
+are currently in use. If <span class="keyword cmdname">fs-nfs3</span> were to die, 
+the simple restart of that component won't remount the
+directories and make them available again! We'd have to
+restart <span class="keyword cmdname">fs-nfs3</span>, and then follow that up with the
+explicit mounting of the appropriate directories.
+
+</p>
+
+<p class="p">Similarly, if <span class="keyword cmdname">io-sock</span> were to die, it would take down the network drivers and
+TCP/IP stack with it. So recovering from an <span class="keyword cmdname">io-sock</span> failure involves
+not just restarting <span class="keyword cmdname">io-sock</span>, but also resetting any other
+components that use a network connection (like <span class="keyword cmdname">ptpd2</span>) so that they
+can establish their connections again. </p>
+
+<p class="p">Consider the following example of performing a compound
+restart mechanism.
+
+</p>
+
+<pre class="pre codeblock">/* addnfs.c */
+
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;sys/netmgr.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;ha/ham.h&gt;
+
+int main(int argc, char *argv[])
+{
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+    char *fsnfspath = "/usr/sbin/fs-nfs3";
+
+    ham_connect(0);
+    ehdl = ham_attach("Fs-nfs3", 0, -1, fsnfspath, 0);
+    if (ehdl == NULL) {
+        perror("ham_attach");
+        exit(EXIT_FAILURE);
+    }
+    chdl = ham_condition(ehdl, CONDDEATH, "Death", HREARMAFTERRESTART);
+    if (chdl == NULL) {
+        perror("ham_condition");
+        exit(EXIT_FAILURE);
+    }
+    ahdl = ham_action_restart(chdl, "Restart", fsnfspath, HREARMAFTERRESTART);
+    if (ahdl == NULL) {
+        perror("ham_action_restart");
+        exit(EXIT_FAILURE);
+    }
+    ahdl = ham_action_waitfor(chdl, "Delay1", NULL, 2000, HREARMAFTERRESTART);
+    if (ahdl == NULL) {
+        perror("ham_action_waitfor(Delay1)");
+        exit(EXIT_FAILURE);
+    }
+    ahdl = ham_action_execute(chdl, "Mount_bin",
+            "/bin/mount -t nfs 10.12.1.115:/qnx/bin /bin",
+            HREARMAFTERRESTART|HACTIONDONOW);
+    if (ahdl == NULL) {
+        perror("ham_action_execute(Mount_bin)");
+        exit(EXIT_FAILURE);
+    }
+
+    ahdl = ham_action_waitfor(chdl, "Delay2", NULL, 2000, HREARMAFTERRESTART);
+    if (ahdl == NULL) {
+        perror("ham_action_waitfor(Delay2)");
+        exit(EXIT_FAILURE);
+    }
+
+    ahdl = ham_action_execute(chdl, "MountWeb",
+            "/bin/mount -t nfs 10.12.1.115:/web /web",
+            HREARMAFTERRESTART|HACTIONDONOW);
+    if (ahdl == NULL) {
+        perror("ham_action_execute(MountWeb)");
+        exit(EXIT_FAILURE);
+    }
+
+    ham_disconnect(0);
+    exit(EXIT_SUCCESS);
+}
+</pre>
+
+<p class="p">This example attaches <span class="keyword cmdname">fs-nfs3</span> as an entity, and
+then attaches a series of <em class="ph i">execute</em> and
+<em class="ph i">waitfor</em> actions to the condition <em class="ph i">death</em>.
+When <span class="keyword cmdname">fs-nfs3</span> dies, HAM will restart it and also
+remount the remote directories that need to be remounted in
+sequence. Note that you can specify <em class="ph i">delays</em> as
+actions and also wait for specific names to appear in the
+namespace.
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

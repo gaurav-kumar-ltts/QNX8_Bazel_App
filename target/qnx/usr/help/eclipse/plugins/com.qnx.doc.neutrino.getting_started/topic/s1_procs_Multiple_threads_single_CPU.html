@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Multiple threads on a single CPU" />
+<meta name="abstract" content="Suppose that we modify our example slightly so that we can illustrate why it's also sometimes a good idea to have multiple threads even on a single-CPU system." />
+<meta name="description" content="Suppose that we modify our example slightly so that we can illustrate why it's also sometimes a good idea to have multiple threads even on a single-CPU system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_parallel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Multiple_threads_single_CPU" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Multiple threads on a single CPU</title>
+</head>
+<body id="Multiple_threads_single_CPU">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Multiple threads on a single CPU</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Suppose that we modify our example slightly so that we can illustrate
+why it's also sometimes a good idea to have multiple threads even on
+a single-CPU system.
+</p>
+
+
+<div class="p">
+
+In this modified example, one node on a network is responsible for
+calculating the raster lines (same as the graphics example, above).
+However, when a line is computed, its data should be sent over
+the network to another node, which will perform the display functions.
+Here's our modified <span class="keyword apiname">main()</span> (from the original example,
+without threads):
+
+
+<pre class="pre codeblock">int main (int argc, char **argv)
+{
+    int x1;
+    …    // perform initializations
+
+    for (x1 = 0; x1 &lt; num_x_lines; x1++) {
+        do_one_line (x1);           // "C" in our diagram, below
+        tx_one_line_wait_ack (x1);  // "X" and "W" in diagram below
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+You'll notice that we've eliminated the display portion and instead added
+a <span class="keyword apiname">tx_one_line_wait_ack()</span> function.
+Let's further suppose that we're dealing with a reasonably slow network,
+but that the CPU doesn't really get involved in the transmission aspects—it fires the data
+off to some hardware that then worries about transmitting it.
+The <span class="keyword apiname">tx_one_line_wait_ack()</span> uses a bit of CPU to get the data to the hardware,
+but then uses <em class="ph i">no CPU</em> while it's waiting for the acknowledgment from the far end.
+</p>
+
+
+<p class="p">
+Here's a diagram showing the CPU usage (we've used <q class="q">C</q> for the graphics compute part, <q class="q">X</q>
+for the transmit part, and <q class="q">W</q> for waiting for the acknowledgment from the far end):
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Serialized, single CPU.</span>
+   
+   <br /><img class="image" src="../images/dpt3.svg" alt="Serialized, single CPU" /><br />
+</div>
+
+
+<p class="p">
+Wait a minute!
+We're wasting precious seconds waiting for the hardware to do its thing!
+</p>
+
+
+<p class="p">
+If we made this multithreaded, we should be able to get much better use of our CPU, right?
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Multithreaded, single CPU.</span>
+   
+   <br /><img class="image" src="../images/dpt4.svg" alt="Multithreaded, single CPU" /><br />
+</div>
+
+
+<p class="p">
+This is much better, because now, even though the second thread spends
+a bit of its time waiting, we've reduced the total overall time required to compute.
+</p>
+
+
+<p class="p">
+If our times were <var class="keyword varname">T</var><sub class="ph sub"><var class="keyword varname">compute</var></sub> to compute,
+<var class="keyword varname">T</var><sub class="ph sub"><var class="keyword varname">tx</var></sub>
+to transmit, and <var class="keyword varname">T</var><sub class="ph sub"><var class="keyword varname">wait</var></sub> to let the hardware
+do its thing, in the first case our total running time would be:
+</p>
+
+
+<p class="p">
+(T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub> + T<sub class="ph sub"><var class="keyword varname">wait</var></sub>) × <var class="keyword varname">num_x_lines</var>
+</p>
+
+
+<p class="p">
+whereas with the two threads it would be
+</p>
+
+
+<p class="p">
+(T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub>) × <var class="keyword varname">num_x_lines</var> + T<sub class="ph sub"><var class="keyword varname">wait</var></sub>
+</p>
+
+
+<p class="p">
+which is shorter by
+</p>
+
+
+<p class="p">
+T<sub class="ph sub"><var class="keyword varname">wait</var></sub> × (<var class="keyword varname">num_x_lines</var> - 1)
+</p>
+
+
+<p class="p">
+assuming of course that <var class="keyword varname">T</var><sub class="ph sub"><var class="keyword varname">wait</var></sub> is less than or equal to
+<var class="keyword varname">T</var><sub class="ph sub"><var class="keyword varname">compute</var></sub>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Note that we will ultimately be constrained by:
+
+<p class="p">
+T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub> × <var class="keyword varname">num_x_lines</var>
+</p>
+
+
+<p class="p">
+because we'll have to incur at least one full computation, and we'll
+have to transmit the data out the hardware—while we can use
+multithreading to overlay the computation cycles, we have only one hardware
+resource for the transmit.
+
+</p>
+
+</div>
+
+
+<div class="p">
+Now, if we created a four-thread version and ran it on an SMP system with four CPUs, we'd end up
+with something that looked like this:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>Four threads, four CPUs.</span>
+   
+   <br /><img class="image" src="../images/dpt5.svg" width="624" alt="Four threads, four CPUs" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Notice how each of the four CPUs is underutilized (as indicated by the empty rectangles in the
+<q class="q">utilization</q> graph).
+There are two interesting areas in the figure above.
+When the four threads start, they each compute.
+Unfortunately, when the threads are finished each computation, they're contending for the transmit
+hardware (the <q class="q">X</q> parts in the figure are offset—only one transmission may be in
+progress at a time).
+This gives us a small anomaly in the startup part.
+Once the threads are past this stage, they're naturally synchronized to the transmit hardware,
+since the time to transmit is much smaller than ¼ of a compute cycle.
+Ignoring the small anomaly at the beginning, this system is characterized by the formula:
+
+
+</p>
+
+
+<p class="p">
+(T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub> + T<sub class="ph sub"><var class="keyword varname">wait</var></sub>) × <var class="keyword varname">num_x_lines</var> / <var class="keyword varname">num_cpus</var>
+</p>
+
+
+<p class="p">
+This formula states that using four threads on four CPUs will be approximately 4 times faster than
+the single-threaded model we started out with.
+</p>
+
+
+<div class="p">
+By combining what we learned from having a multithreaded single-processor version, we would
+ideally like to have more threads than CPUs, so that the extra threads can <q class="q">soak up</q>
+the idle CPU time from the transmit acknowledge waits (and the transmit slot contention waits)
+that naturally occur.
+In that case, we'd have something like this:
+
+
+
+
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 4. </span>Eight threads, four CPUs.</span>
+   
+   <br /><img class="image" src="../images/dpt5a.svg" width="624" alt="Eight threads, four CPUs" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+This figure assumes a few things:
+</p>
+
+
+<ul class="ul">
+<li class="li">threads 5, 6, 7, and 8 are bound to processors 1, 2, 3, and 4 (for simplification)</li>
+
+<li class="li">once a transmit begins, it does so at a higher priority than a computation</li>
+
+<li class="li">a transmit is a non-interruptible operation</li>
+
+</ul>
+
+
+<p class="p">
+Notice from the diagram that even though we now have twice as many threads as CPUs, we still run
+into places where the CPUs are underutilized.
+In the diagram, there are three such places where the CPU is <q class="q">stalled</q>; these are
+indicated by numbers in the individual CPU utilization bar graphs:
+
+</p>
+
+
+<ol class="ol">
+<li class="li">Thread 1 was waiting for the acknowledgment (the <q class="q">W</q> state), while
+  thread 5 had completed a calculation and was waiting for the transmitter.</li>
+
+
+<li class="li">Both thread 2 and thread 6 were waiting for an acknowledgment.</li>
+
+
+<li class="li">Thread 3 was waiting for the acknowledgment while thread 7 had completed a calculation
+  and was waiting for the transmitter.</li>
+
+
+</ol>
+
+
+<p class="p">
+This example also serves as an important lesson—you can't just keep adding CPUs in the
+hopes that things will keep getting faster.
+There are limiting factors.
+In some cases, these limiting factors are simply governed by the design of the
+multi-CPU motherboard—how much memory and device contention occurs when many CPUs
+try to access the same area of memory.
+In our case, notice that the <q class="q">TX Slot Utilization</q> bar graph was starting to become full.
+If we added enough CPUs, they would eventually run into problems because their threads would be
+stalled, waiting to transmit.
+</p>
+
+
+<p class="p">
+In any event, by using <q class="q">soaker</q> threads to <q class="q">soak up</q> spare CPU, we now
+have much better CPU utilization.
+This utilization approaches:
+</p>
+
+
+
+<p class="p">
+(T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub>) × <var class="keyword varname">num_x_lines</var> / <var class="keyword varname">num_cpus</var>
+</p>
+
+
+<p class="p">
+In the computation <em class="ph i">per se</em>, we're limited only by the amount of CPU we have;
+we're not idling any processor waiting for acknowledgment.
+(Obviously, that's the ideal case.
+As you saw in the diagram there are a few times when we're idling one CPU periodically.
+Also, as noted above,
+</p>
+
+
+<p class="p">
+T<sub class="ph sub"><var class="keyword varname">compute</var></sub> + T<sub class="ph sub"><var class="keyword varname">tx</var></sub> × <var class="keyword varname">num_x_lines</var>
+</p>
+
+
+<p class="p">
+is our limit on how fast we can go.)
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_parallel.html" title="Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: each raster line is independent of the others. This immediately causes the problem to stand out as a threadable program.">Threads in mathematical operations</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li></ul></div>
+</div></body>
+</html>

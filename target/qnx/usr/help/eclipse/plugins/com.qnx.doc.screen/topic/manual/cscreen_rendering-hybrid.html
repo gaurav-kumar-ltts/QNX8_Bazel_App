@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Hybrid Rendering" />
+<meta name="abstract" content="When applications use a mix of rendering options, your application must ensure that there's synchronization between your rendering types (e.g., software rendering, Khronos APIs rendering, and blitting)." />
+<meta name="description" content="When applications use a mix of rendering options, your application must ensure that there's synchronization between your rendering types (e.g., software rendering, Khronos APIs rendering, and blitting)." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_rendering-hybrid" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Hybrid Rendering</title>
+</head>
+<body id="cscreen_rendering-hybrid">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Hybrid Rendering
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        When applications use a mix of rendering options, your application must ensure that there's synchronization
+        between your rendering types (e.g., software rendering, Khronos APIs rendering, and blitting).
+    </p>
+
+        <p class="p">
+            The following example demonstrates how you'd mix software rendering with Khronos rendering APIs.
+            You need to follow these steps to set up your render target and context:
+        </p>
+
+        <ol class="ol">
+            <li class="li">
+                Create your render target.
+            </li>
+
+            <li class="li">
+                Create a rendering context.
+            </li>
+
+            <li class="li">
+                Render.
+            </li>
+
+            <li class="li">
+                Post your image.
+            </li>
+
+        </ol>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            <p class="p">
+                If you're using both software and Khronos API rendering, your hardware's driver must support the
+                <span class="keyword const">EGL_KHR_lock_surface</span> extension if you want to use both software and this type of hardware
+                rendering together.
+            </p>
+
+            <p class="p">
+                Refer to Khronos's specifications on <span class="keyword apiname">eglLockSurfaceKHR()</span>,
+                <span class="keyword apiname">eglQuerySurface()</span>, and <span class="keyword apiname">eglUnlockSurfaceKHR()</span> for more details
+                on these functions (<a class="xref" href="http://www.khronos.org" target="_blank">www.khronos.org</a>).
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create your render target</h2>
+            
+            
+            <p class="p">
+                Follow the same steps as you would to create a render target for hardware rendering using Khronos
+                rendering APIs with the exception of setting the usage flag.
+            </p>
+
+            <p class="p">
+                When using hybrid rendering, you need to ensure that the <span class="keyword const">SCREEN_PROPERTY_USAGE</span> flag is to
+                indicate that the buffer associated with the render target will be rendered to by OpenGL ES as well as
+                being written to by software:
+            </p>
+
+            <pre class="pre codeblock">...
+int usage = SCREEN_USAGE_OPENGL_ES2 | SCREEN_USAGE_OPENGL_ES3 | SCREEN_USAGE_WRITE;
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_USAGE, &amp;usage);
+...
+                </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create a rendering context</h2>
+            
+            <p class="p">
+                Follow the same steps as you would to create a render context for hardware rendering using Khronos
+               rendering APIs.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Render</h2>
+            
+            
+            <p class="p">
+                Render as you would using OpenGL ES API calls until you intend to perform some rendering with
+                software. At this point, you must get access to the buffer you want to render to through EGL, rather
+                than through <span class="keyword">Screen</span>.
+            </p>
+
+            <p class="p">
+                Unlike when you use software rendering alone, you can't use the buffer of your render target
+                that you retrieve with <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> because your render
+                target (e.g., native <span class="keyword">Screen</span> window) is bound to an EGL rendering surface.
+                As you perform GL operations, these rendering calls may be deferred and only rendered to the surface
+                when there's a finish or lock command. The point in time when the rendering is complete on the
+                surface may depend on your hardware. Other reasons that could cause your buffer to be
+                indeterminate could be anti-aliasing, or cache coherency to name a few.
+                
+            </p>
+
+            <p class="p">
+                Because the status of the rendering and the buffer can't be determined at the time you want to render in
+                software, you need to let the hardware know your intentions to write to the buffer. You do this by
+                using <span class="keyword apiname">eglLockSurfaceKHR()</span> followed by <span class="keyword apiname">eglQuerySurface()</span>.
+            </p>
+
+            <p class="p">
+                Before any software rendering, call <span class="keyword apiname">eglLockSurfaceKHR()</span> on the surface you want to
+                write to. This function notifies the hardware that you want access to the buffer. The rendering may or may not
+                be rendered to the surface by the hardware at this time, but in the least, it will signify that no more
+                rendering operations will be performed by the hardware at this point. Next, retrieve the pointer to the
+                buffer (<span class="keyword const">EGL_BITMAP_POINTER_KHR</span>) by calling <span class="keyword apiname">eglQuerySurface()</span>. Some of
+                the valid attributes you can retrieve through the <span class="keyword apiname">eglQuerySurface()</span> are:
+            </p>
+
+            <ul class="ul">
+                <li class="li"><span class="keyword const">EGL_BITMAP_POINTER_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PITCH_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_ORIGIN_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PIXEL_RED_OFFSET_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PIXEL_GREEN_OFFSET_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PIXEL_BLUE_OFFSET_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PIXEL_ALPHA_OFFSET_KHR</span></li>
+
+                <li class="li"><span class="keyword const">EGL_BITMAP_PIXEL_LUMINANCE_OFFSET_KHR</span></li>
+
+            </ul>
+
+            <p class="p">
+                The time it takes to lock the surface and to retrieve the pointer to the buffer depends entirely on
+                the implementation of your driver.
+            </p>
+
+            <p class="p">
+                Once you've locked the EGL surface and retrieved the buffer pointer from EGL, you can proceed to
+                write to the buffer as your application sees fit. When you've completed writing to the buffer and
+                wish to continue with more GL operations, then you need to unlock the surface before making any
+                OpenGL ES rendering API calls. Unlock the surface by calling <span class="keyword apiname">eglUnlockSurfaceKHR()</span>.
+            </p>
+
+            <p class="p">
+                The order of rendering calls in your application should go something like this:
+            </p>
+
+            <pre class="pre codeblock">...
+/* Render using some GL operations */
+glClear(GL_COLOR_BUFFER_BIT);
+glPushMatrix();
+...
+/* Now you want to render with software */
+eglLockSurfaceKHR(egl_disp, egl_surf, (EGLint*)&amp;egl_surf_attr);
+...
+/* Now get a pointer to the buffer you want to write to */
+EGLint *buf_ptr = NULL;
+eglQuerySurface(egl_disp, egl_surf, EGL_BITMAP_POINTER_KHR, buf_ptr); 
+...
+/* write to buffer */
+...
+/* Finished writing, unlock the surface */
+eglUnlockSurfaceKHR(egl_disp, egl_surf);
+...
+/* Continue to render using GL operations if you wish */
+...
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Post your image</h2>
+            
+            <p class="p">
+                Follow the same steps as you would to post an image for hardware rendering using OpenGL ES
+                (using <span class="keyword apiname">eglSwapBuffers()</span>).
+            </p>
+
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></div>
+</div>
+</div></body>
+</html>

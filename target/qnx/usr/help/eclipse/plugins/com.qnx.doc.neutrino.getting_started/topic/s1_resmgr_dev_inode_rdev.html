@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Of device numbers, inodes, and our friend rdev" />
+<meta name="abstract" content="The mount structure contains a member called dev. The attributes structure contains two members: inode and rdev. Let's look at their relationships by examining a traditional disk-based filesystem." />
+<meta name="description" content="The mount structure contains a member called dev. The attributes structure contains two members: inode and rdev. Let's look at their relationships by examining a traditional disk-based filesystem." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_iofunc_mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dev_inode_rdev" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Of device numbers, inodes, and our friend rdev</title>
+</head>
+<body id="dev_inode_rdev">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Of device numbers, inodes, and our friend <var class="keyword varname">rdev</var></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The mount structure contains a member called <var class="keyword varname">dev</var>.
+The attributes structure
+contains two members: <var class="keyword varname">inode</var> and <var class="keyword varname">rdev</var>.
+Let's look at their relationships by examining a traditional disk-based filesystem.
+</p>
+
+
+<p class="p">
+
+The filesystem is mounted on a block device (which is the entire disk).
+This block device might be known as <span class="ph filepath">/dev/hd0</span> (the first hard disk in
+the system).
+On this disk, there might be a number of partitions, such as <span class="ph filepath">/dev/hd0t177</span>
+(the first QNX filesystem partition on that particular device).
+Finally, within that partition, there might be an arbitrary number of files, one of which
+might be <span class="ph filepath">/hd/spud.txt</span>.
+</p>
+
+
+<p class="p">
+
+The <var class="keyword varname">dev</var> (or <q class="q">device number</q>) member contains a number that's
+unique to the node that this resource manager is registered with.
+The <var class="keyword varname">rdev</var> member is the <var class="keyword varname">dev</var> number of the root device.
+Finally, the <var class="keyword varname">inode</var> is the file serial number.
+(Note that you can obtain major and minor device numbers by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/rsrcdbmgr_devno_attach.html"><span class="keyword apiname">rsrcdbmgr_devno_attach()</span></a>;
+see the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite> for more details.
+You are limited to 64 major devices and 1024 minor devices per major device.)
+
+</p>
+
+
+<p class="p">
+Let's relate that to our disk example.
+The following table shows some example numbers; after the table
+we'll take a look at where these numbers came from and how they're related.
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d55488e124">Device</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d55488e127"><var class="keyword varname">dev</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d55488e131"><var class="keyword varname">inode</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d55488e135"><var class="keyword varname">rdev</var></th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e124 "><span class="ph filepath">/dev/hd0</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e127 ">6</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e131 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e135 ">1</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e124 "><span class="ph filepath">/dev/hd0t177</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e127 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e131 ">12</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e135 ">77</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e124 "><span class="ph filepath">/hd/spud.txt</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e127 ">77</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e131 ">47343</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d55488e135 ">N/A</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+For the raw block device, <span class="ph filepath">/dev/hd0</span>, the process manager assigned
+both the <var class="keyword varname">dev</var> and <var class="keyword varname">inode</var> values (the 6 and the 2 in the
+table above).
+The resource manager picked a unique <var class="keyword varname">rdev</var> value (of 1) for the device
+when it started.
+</p>
+
+
+<p class="p">
+For the partition, <span class="ph filepath">/dev/hd0t177</span>, the <var class="keyword varname">dev</var> value came from
+the raw block device's <var class="keyword varname">rdev</var> number (the 1).
+The inode was selected by the resource manager as a unique number (within the <var class="keyword varname">rdev</var>).
+This is where the 12 came from.
+Finally, the <var class="keyword varname">rdev</var> number was selected by the resource manager as well—in
+this case, the writer of the resource manager selected 77 because it corresponded
+to the partition type.
+</p>
+
+
+<p class="p">
+Finally, for the file, <span class="ph filepath">/hd/spud.txt</span>, the <var class="keyword varname">dev</var> value (77) came
+from the partition's <var class="keyword varname">rdev</var> value.
+The <var class="keyword varname">inode</var> was selected by the resource manager (in the case of a file, the
+number is selected to correspond to some internal representation of the file—it
+doesn't matter what it is so long as it's not zero, and it's unique within the
+<var class="keyword varname">rdev</var>).
+This is where the 47343 came from.
+For a file, the <var class="keyword varname">rdev</var> field is not meaningful.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_iofunc_mount.html" title="The mount structure contains information that's common across multiple attributes structures.">The iofunc_mount_t mount structure</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

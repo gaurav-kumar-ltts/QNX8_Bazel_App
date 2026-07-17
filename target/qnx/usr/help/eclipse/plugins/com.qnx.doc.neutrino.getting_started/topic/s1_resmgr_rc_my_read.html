@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="my_read()" />
+<meta name="abstract" content="In the my_read() function, to decide what kind of processing we needed to do, we looked at the attribute structure's mode member. If the S_ISDIR() macro says that it's a directory, we call my_read_dir(); if the S_ISREG() macro says that it's a file, we call my_read_file(). (For details about these macros, see the entry for stat() in the QNX OS C Library Reference.) Note that if we can't tell what it is, we return EBADF; this indicates to the client that something bad happened." />
+<meta name="description" content="In the my_read() function, to decide what kind of processing we needed to do, we looked at the attribute structure's mode member. If the S_ISDIR() macro says that it's a directory, we call my_read_dir(); if the S_ISREG() macro says that it's a file, we call my_read_file(). (For details about these macros, see the entry for stat() in the QNX OS C Library Reference.) Note that if we can't tell what it is, we return EBADF; this indicates to the client that something bad happened." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_complex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rc_my_read" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>my_read()</title>
+</head>
+<body id="rc_my_read">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">my_read()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In the <span class="keyword apiname">my_read()</span> function, to decide what kind of processing we needed
+to do, we looked at the attribute structure's <var class="keyword varname">mode</var> member.
+If the <span class="keyword apiname">S_ISDIR()</span> macro says that it's a directory, we call
+<span class="keyword apiname">my_read_dir()</span>; if the
+<span class="keyword apiname">S_ISREG()</span> macro says that it's a file, we call
+<span class="keyword apiname">my_read_file()</span>.
+(For details about these macros, see the entry for <span class="keyword apiname">stat()</span>
+in the <span class="keyword">QNX OS</span> <em class="ph i">C Library Reference</em>.)
+Note that if we can't tell what it is, we return <span class="keyword const">EBADF</span>; this
+indicates to the client that something bad happened.
+</p>
+
+
+<p class="p">
+The code here doesn't know anything about our special devices, nor does it care;
+it simply makes a decision based on standard, well-known data.
+</p>
+
+<pre class="pre codeblock">static int
+my_read (resmgr_context_t *ctp, io_read_t *msg,
+         iofunc_ocb_t *ocb)
+{
+    int     sts;
+
+    // use the helper function to decide if valid
+    if ((sts = iofunc_read_verify (ctp, msg, ocb, NULL)) != EOK) {
+        return (sts);
+    }
+
+    // decide if we should perform the "file" or "dir" read
+    if (S_ISDIR (ocb -&gt; attr -&gt; mode)) {
+        return (my_read_dir (ctp, msg, ocb));
+    } else if (S_ISREG (ocb -&gt; attr -&gt; mode)) {
+        return (my_read_file (ctp, msg, ocb));
+    } else {
+        return (EBADF);
+    }
+}
+</pre>
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_complex.html" title="In this example, we're going to create a resource manager called /dev/atoz that will be a directory resource manager. It's going to manifest the “files” /dev/atoz/a through to dev/atoz/z, with a cat of any of the files returning the uppercase letter corresponding to the filename.">Example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,124 @@
+#!/bin/bash
+# Script to create the image. This is an image that can be written to an SD card
+# and on boot will replace existing partitions. The new boot partition matches
+# the boot partition of this image. The new system and data partitions are
+# contained as minimum size partition files in the system partition of this
+# installer image and put into place on first boot.
+
+. ${TOOL_DIR}/functions
+
+partitions=${OPT_COPY}
+if [ "$partitions" = all ]; then
+	partitions=bsd
+fi
+
+# Work out the sizes of the boot and system partitions
+IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+BOOT_SECTORS=$((${PART_SIZES[0]} * 2048))
+SYS_SECTORS=$((${PART_SIZES[1]} * 2048))
+
+if [[ ! $partitions = *b* ]]; then
+    echo A system image must include the boot partition
+    exit 1
+fi
+if [[ $partitions = *d* ]]; then
+    if [[ $partitions != *s* ]]; then
+		echo To update the data partition you must also update the system partition
+		exit 1
+    fi
+fi
+
+rm -f output/installer.part
+rm -f output/build/installer.layout
+
+image_name=output/system-image-${PART_SIZES[0]}-${PART_SIZES[1]}
+if [ ${#PART_SIZES[@]} -gt 2 ]; then
+image_name=${image_name}-${PART_SIZES[2]}
+fi
+image_name=${image_name}-B
+
+if [[ $partitions = *s* ]]; then
+	image_name=${image_name}S
+
+	preprocess ${TOOL_DIR}/inputs/installer_part.build output/build/installer_part.build
+
+	cat >>output/build/installer_part.build <<EOF
+system.part=output/system.part
+EOF
+	if [ "$OPT_QTD" = yes ]; then
+		SYS_TYPE=185
+		SYS_GUID=qtd
+	elif [ "$OPT_QCFS" != no ]; then
+		SYS_TYPE=181
+		SYS_GUID=qcfs
+	elif [ "$OPT_QTSAFEFS" != no ]; then
+		SYS_TYPE=186
+		SYS_GUID=qtsafe
+	else
+		SYS_TYPE=178
+		SYS_GUID=qnx6
+	fi
+	# Remember the settings for next time in case we're not updating the
+	# system partition. These things must match what's there, not any current
+	# configuration
+	rm -f local/misc_files/part.info
+	echo SYS_TYPE=$SYS_TYPE >>local/misc_files/part.info
+	echo SYS_GUID=$SYS_GUID >>local/misc_files/part.info
+
+	# If the system is using qtd, then work out the offset near the end of the
+	# system partition to write the qtd metadata.
+	if [ "${SYS_GUID}" = qtd ]; then
+		QTD_SECTORS=`file_size output/system-qtd.part 512`
+		QTD_OFFSET=$((${SYS_SECTORS} - ${QTD_SECTORS}))
+		cat >>output/build/installer_part.build <<EOF
+system-qtd.part=output/system-qtd.part
+EOF
+	else
+		unset QTD_OFFSET
+	fi
+
+	if [[ $partitions = *d* ]]; then
+		image_name=${image_name}D
+		cat >>output/build/installer_part.build <<EOF
+data.part=output/data.part
+EOF
+	fi
+
+	# Collect the information needed to construct a new boot sector for the disk.
+	cp local/misc_files/part.info output/build/part.info
+	echo QTD_OFFSET=${QTD_OFFSET} >>output/build/part.info
+
+	mkqnx6fsimg output/build/installer_part.build output/installer.part
+fi
+
+# Work out the sectors used for all the partitions we're going to put into the
+# image file. BOOT_SECTORS is likely the same as before since we have the boot
+# fs fill the whole parition, but maybe we won't always.
+BOOT_SECTORS=`file_size output/boot.part 512`
+if [ -e output/installer.part ]; then
+	SYS_SECTORS=`file_size output/installer.part 512`
+else
+	SYS_SECTORS=0
+fi
+PART_SECTORS=$(($BOOT_SECTORS + $SYS_SECTORS))
+DISK_SECTORS=$(($PART_SECTORS+4))
+
+cat >output/build/installer.layout <<EOF
+[sector_size=512 cylinders=${DISK_SECTORS} sectors_per_track=1 heads=1 start_at_cylinder=4]
+[partition=1 boot=true type=12 num_sectors=${BOOT_SECTORS}]  "output/boot.part"
+EOF
+
+if [ ${SYS_SECTORS} -gt 0 ]; then
+	cat >>output/build/installer.layout <<EOF
+[partition=2 boot=false type=178 num_sectors=${SYS_SECTORS}] "output/installer.part"
+EOF
+fi
+
+image_name=${image_name}.img
+
+rm -f output/system-image*.img
+if ! diskimage -p -s 163840 -c output/build/installer.layout -o ${image_name} >/dev/null; then
+	echo Failed to build image file
+	exit 1
+fi
+echo Created image ${image_name} >>output/endnotes

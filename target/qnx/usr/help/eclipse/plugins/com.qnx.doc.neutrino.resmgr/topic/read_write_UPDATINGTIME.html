@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Updating the time for reads and writes" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="UPDATINGTIME" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Updating the time for reads and writes</title>
+</head>
+<body id="UPDATINGTIME">
+
+<h1 class="title topictitle1" id="ariaid-title1">Updating the time for reads and writes</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+In the read sample above we did:
+
+
+<pre class="pre codeblock">if (msg-&gt;i.nbytes &gt; 0)
+    ocb-&gt;attr-&gt;flags |= IOFUNC_ATTR_ATIME;
+</pre>
+</div>
+
+
+<p class="p">
+According to POSIX, if the read succeeds and the reader had
+asked for more than zero bytes, then the access time must
+be marked for update. But POSIX doesn't say that it must be
+updated right away. If you're doing many reads, you may not
+want to read the time from the kernel for every read. In the
+code above, we mark the time only as needing to be updated.
+When the next <span class="keyword const">_IO_STAT</span> or
+<span class="keyword const">_IO_CLOSE_OCB</span> message is processed, the
+resource manager library will see that the time needs to be
+updated and will get it from the kernel then. This of course
+has the disadvantage that the time is not the time of the read.
+
+
+</p>
+
+
+
+<div class="p">
+Similarly for the write sample above, we did:
+
+
+
+
+<pre class="pre codeblock">if (msg-&gt;i.nbytes &gt; 0)
+    ocb-&gt;attr-&gt;flags |= IOFUNC_ATTR_MTIME | IOFUNC_ATTR_CTIME;
+</pre>
+
+so the same thing will happen.
+</div>
+
+
+<div class="p">
+
+If you <em class="ph i">do</em> want to have the times represent the read or write
+times, then after setting the flags you need only call the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_time_update.html"><span class="keyword apiname">iofunc_time_update()</span></a>
+helper function. So the read lines become: 
+
+<pre class="pre codeblock">if (msg-&gt;i.nbytes &gt; 0) {
+    ocb-&gt;attr-&gt;flags |= IOFUNC_ATTR_ATIME;
+    iofunc_time_update(ocb-&gt;attr);
+}
+</pre>
+
+and the write lines become:
+
+<pre class="pre codeblock">if (msg-&gt;i.nbytes &gt; 0) {
+    ocb-&gt;attr-&gt;flags |= IOFUNC_ATTR_MTIME | IOFUNC_ATTR_CTIME;
+    iofunc_time_update(ocb-&gt;attr);
+}
+</pre>
+</div>
+
+
+<p class="p">
+You should call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_time_update.html"><span class="keyword apiname">iofunc_time_update()</span></a>
+before you flush out any cached attributes.
+As a result of changing the time fields, the attribute structure will have
+the <span class="keyword const">IOFUNC_ATTR_DIRTY_TIME</span> bit set in the flags field,
+indicating that this field of the attribute must be updated when the attribute is flushed from the cache.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write.html" title="A resource manager must define routines or handlers to process requests by the client to receive data (read) or send data to the underlying device (write). Here, we give detailed examples of such handlers.">Handling Read and Write Messages</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="mmap()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc_Shared_memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_independent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/ftruncate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mprotect.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msync.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap_flags.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mmap" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>mmap()</title>
+</head>
+<body id="mmap">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">mmap()</span></h1>
+
+
+<div class="body conbody">
+<p class="p">
+
+
+Once you have a file descriptor to a shared memory object, you use the
+<span class="keyword apiname">mmap()</span> function to map the object, or
+part of it, into your process's address space.
+</p>
+
+
+<p class="p">
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a> function is the cornerstone of memory
+management within <span class="keyword">QNX OS</span> and deserves a detailed
+discussion of its capabilities.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can also use <span class="keyword apiname">mmap()</span> to map files and typed memory objects
+into your process's address space.
+</div>
+
+
+<div class="p">
+The <span class="keyword apiname">mmap()</span> function is defined as follows:
+
+<pre class="pre codeblock">void * mmap( void *<var class="keyword varname">where_i_want_it</var>,
+             size_t <var class="keyword varname">length</var>,
+             int <var class="keyword varname">memory_protections</var>,
+             int <var class="keyword varname">mapping_flags</var>,
+             int <var class="keyword varname">fd</var>,
+             off_t <var class="keyword varname">offset_within_shared_memory</var> );
+</pre>
+</div>
+
+
+<p class="p">
+In simple terms this says: <q class="q">Map in <var class="keyword varname">length</var>
+bytes of shared memory at
+<var class="keyword varname">offset_within_shared_memory</var> in the shared memory
+object associated with <var class="keyword varname">fd</var>.</q>
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">mmap()</span> function will try to place the memory
+at the address <var class="keyword varname">where_i_want_it</var> in your address
+space. The memory will be given the protections specified by
+<var class="keyword varname">memory_protections</var> and the mapping will be done
+according to the <var class="keyword varname">mapping_flags</var>.
+</p>
+
+
+<p class="p">
+The three arguments <var class="keyword varname">fd</var>,
+<var class="keyword varname">offset_within_shared_memory</var>, and
+<var class="keyword varname">length</var> define a portion of a particular shared
+object to be mapped in. It's common to map in an entire
+shared object, in which case the offset will be zero and the
+length will be the size of the shared object in bytes. On an
+Intel processor, the length will be a multiple of the page
+size, which is 4096 bytes.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Mapping memory with <span class="keyword apiname">mmap()</span>.</span>
+  
+  <br /><img class="image" src="../images/mmap.svg" width="432" alt="How arguments to mmap() refer to a mapped region" /><br />
+</div>
+
+
+<p class="p">
+The return value of <span class="keyword apiname">mmap()</span> will be the address in
+your process's address space where the object was mapped.
+The argument <var class="keyword varname">where_i_want_it</var> is used as a
+hint by the system to where you want the object placed.
+If possible, the object will be placed at the address
+requested. Most applications specify an address of zero,
+which gives the system free rein to place the object where
+it wishes.
+</p>
+
+
+<div class="p">
+The following protection types may be specified for
+<var class="keyword varname">memory_protections</var>:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d30802e184">Manifest</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d30802e187">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e184 "><span class="keyword const">PROT_EXEC</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e187 ">Memory may be executed.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e184 "><span class="keyword const">PROT_NOCACHE</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e187 ">Memory should not be cached.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e184 "><span class="keyword const">PROT_NONE</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e187 ">No access allowed.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e184 "><span class="keyword const">PROT_READ</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e187 ">Memory may be read.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e184 "><span class="keyword const">PROT_WRITE</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e187 ">Memory may be written.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+You should use the <span class="keyword const">PROT_NOCACHE</span> manifest when
+you're using a shared memory region to gain access to dual-ported
+memory that may be modified by hardware (e.g., a video frame
+buffer or a memory-mapped network or communications board).
+Without this manifest, the processor may return
+<q class="q">stale</q> data from a previously cached read.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+On ARM targets, <span class="keyword const">PROT_NOCACHE</span> causes RAM to be mapped as normal
+noncached, but non-RAM to be mapped as strongly ordered device memory.
+For finer control, see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html"><span class="keyword apiname">shm_ctl_special()</span></a>.
+</div>
+
+
+<div class="p">
+The <var class="keyword varname">mapping_flags</var> determine how the memory is mapped.
+These flags are broken down into two parts—the first part is
+a type and must be specified as one of the following:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d30802e311">Map type</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d30802e314">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e311 "><span class="keyword const">MAP_SHARED</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e314 ">The mapping may be shared by many processes;
+    changes are propagated back to the underlying object.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e311 "><span class="keyword const">MAP_PRIVATE</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d30802e314 ">The mapping is private to the calling process;
+    changes <em class="ph i">aren't</em> propagated back to the underlying object.
+    The <span class="keyword apiname">mmap()</span> function
+    allocates system RAM and makes a copy of the object.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+The <span class="keyword const">MAP_SHARED</span> type is the one to use for
+setting up shared memory between processes;
+<span class="keyword const">MAP_PRIVATE</span> has more specialized uses.
+</p>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+Don't have a shared, writable mapping to a file that you're simultaneously accessing via
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>.
+The interaction between the two methods isn't well defined and may give unexpected results.
+</div>
+
+
+<div class="p">
+You can OR a number of flags into the above type to further
+define the mapping. These are described in detail in the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+entry in the <cite class="cite">C Library Reference</cite>. A few of the more
+interesting flags are:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">MAP_ANON</span></dt>
+
+<dd class="dd">Map anonymous memory that isn't associated with any file descriptor;
+  you must set the <var class="keyword varname">fd</var> parameter to <span class="keyword const">NOFD</span>.
+  The <span class="keyword apiname">mmap()</span> function allocates the memory and fills it with zeros.
+  
+  
+  
+  
+
+  <p class="p">
+  You commonly use <span class="keyword const">MAP_ANON</span> with <span class="keyword const">MAP_SHARED</span>
+  to create a shared memory area for forked applications.
+  You can use <span class="keyword const">MAP_ANON</span> as the basis for a
+  page-level memory allocator.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">MAP_FIXED</span></dt>
+
+<dd class="dd">Map the object to the address specified by
+  <var class="keyword varname">where_i_want_it</var>. If a shared memory region
+  contains pointers within it, then you may need to
+  force the region at the same address in all processes that
+  map it. This can be avoided by using offsets within the
+  region in place of direct pointers.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">MAP_PHYS</span></dt>
+
+<dd class="dd">This flag indicates that you wish to deal with physical
+  memory. The <var class="keyword varname">fd</var> parameter should be set to
+  <span class="keyword const">NOFD</span>. When used without <span class="keyword const">MAP_ANON</span>,
+  the <var class="keyword varname">offset_within_shared_memory</var> specifies the
+  exact physical address to map (e.g., for video frame buffers).
+  
+
+  <p class="p">
+  If used with <span class="keyword const">MAP_ANON</span>, then
+  physically contiguous memory is allocated (e.g., for a DMA buffer).
+  You typically use this combination with <span class="keyword const">MAP_SHARED</span>.
+  </p>
+
+
+  
+ 
+</dd>
+
+
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+Using the mapping flags described above, a process can
+easily share memory between processes:
+
+<pre class="pre codeblock">/* Map in a shared memory region */
+fd = shm_open("datapoints", O_RDWR);
+addr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+</pre>
+</div>
+
+
+<div class="p">
+Or, it allocate a DMA buffer for a bus-mastering PCI network card:
+
+<pre class="pre codeblock">/* Allocate a physically contiguous buffer */
+addr = mmap(0, 262144, PROT_READ | PROT_WRITE | PROT_NOCACHE,
+            MAP_SHARED | MAP_PHYS | MAP_ANON, NOFD, 0);
+</pre>
+</div>
+
+
+<p class="p">
+You can unmap all or part of a shared memory object from
+your address space using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html"><span class="keyword apiname">munmap()</span></a>.
+This primitive isn't restricted to unmapping shared memory—it can
+be used to unmap any region of memory within your process.
+When used in conjunction with the <span class="keyword const">MAP_ANON</span> flag to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>,
+you can easily implement a private page-level allocator/deallocator.
+</p>
+
+
+<p class="p">
+You can change the protections on a mapped region of memory
+using <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mprotect.html"><span class="keyword apiname">mprotect()</span></a>.
+Like <span class="keyword apiname">munmap()</span>,
+<span class="keyword apiname">mprotect()</span> isn't restricted to shared memory
+regions—it can change the protection on any region
+of memory within your process.
+
+
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc_Shared_memory.html" title="Shared memory offers the highest bandwidth IPC available.">Shared memory</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_independent.html">Threads in independent situations (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html">close()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/ftruncate.html">ftruncate()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mprotect.html">mprotect()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msync.html">msync()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap_flags.html">munmap_flags()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html">shm_ctl(), shm_ctl_special()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html">shm_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_unlink.html">shm_unlink()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html">procnto</a></li></ul></div>
+</div></body>
+</html>

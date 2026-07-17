@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ThreadDestroy(), ThreadDestroy_r()" />
+<meta name="abstract" content="Destroy a thread immediately" />
+<meta name="description" content="Destroy a thread immediately" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/threadcancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="threaddestroy" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ThreadDestroy(), ThreadDestroy_r()</title>
+</head>
+<body id="threaddestroy">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ThreadDestroy()</span>, <span class="keyword apiname">ThreadDestroy_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Destroy a thread immediately</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int ThreadDestroy( int <var class="keyword varname">tid</var>,
+                   int <var class="keyword varname">priority</var>,
+                   void* <var class="keyword varname">status</var> );
+
+int ThreadDestroy_r( int <var class="keyword varname">tid</var>,
+                     int <var class="keyword varname">priority</var>,
+                     void* <var class="keyword varname">status</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">tid</var></dt>
+
+<dd class="dd">The ID of the thread that you want to destroy, as returned by
+  <a class="xref" href="threadcreate.html" title="Create a thread"><span class="keyword apiname">ThreadCreate()</span></a>,
+  or 0 to destroy the current thread, or -1 to destroy all threads in
+  the current process.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">priority</var></dt>
+
+<dd class="dd">The priority at which you want to destroy multiple threads, or -1
+  to use the priority of the current thread.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">status</var></dt>
+
+<dd class="dd">The value to make available to a thread that joins a nondetached thread that's destroyed.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+These kernel calls terminate the thread specified by <var class="keyword varname">tid</var>.
+If <var class="keyword varname">tid</var> is 0, the calling thread is assumed.
+If <var class="keyword varname">tid</var> is -1, all of the threads in the
+process are destroyed. When multiple threads are destroyed, the
+destruction is scheduled one thread at a time at the priority specified
+by the <var class="keyword varname">priority</var> argument. If <var class="keyword varname">priority</var> is -1, then
+the priority of the calling thread is used.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">ThreadDestroy()</span> and <span class="keyword apiname">ThreadDestroy_r()</span>
+functions are identical, except in the way they indicate errors. 
+See the <a class="xref" href="#threaddestroy__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Instead of using these kernel calls directly, consider calling
+<a class="xref" href="../p/pthread_exit.html" title="Terminate a thread"><span class="keyword apiname">pthread_exit()</span></a>.
+The behavior of POSIX calls following a call to <span class="keyword apiname">ThreadDestroy()</span> or
+<span class="keyword apiname">ThreadDestroy_r()</span> is undefined.
+</div>
+
+
+<p class="p">
+If a terminated thread isn't detached, it makes the value specified
+by the <var class="keyword varname">status</var> argument available to any successful join on
+it (through <a class="xref" href="../p/pthread_join.html" title="Join thread"><span class="keyword apiname">pthread_join()</span></a>).
+Until another thread retrieves this value, the thread ID
+<var class="keyword varname">tid</var> isn't reused, and a small kernel resource (a thread
+object) is held in the system. If the thread is detached, then
+<var class="keyword varname">status</var> is ignored, and all thread resources are immediately
+released.
+</p>
+
+
+<p class="p">Any event that you registered for the thread with the <a class="xref" href="threadctl.html#threadctl___NTO_TCTL_ADD_EXIT_EVENT"><span class="keyword const">_NTO_TCTL_ADD_EXIT_EVENT</span></a>
+        <span class="keyword apiname">ThreadCtl()</span> command is delivered when the thread is terminated. </p>
+
+
+<p class="p">
+When the last thread in a process is destroyed, the process terminates
+and all thread resources are released, even for threads that haven't been detached or joined.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+On return from <span class="keyword apiname">ThreadDestroy()</span> or <span class="keyword apiname">ThreadDestroy_r()</span>,
+the target thread is marked for death, but if it isn't possible to kill it
+immediately, it may not be terminated until it attempts to run.
+</div>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+If these calls return, they don't block.
+</p>
+
+
+</div>
+
+
+
+<div class="section" id="threaddestroy__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+If the calling thread is destroyed, <span class="keyword apiname">ThreadDestroy()</span> and
+<span class="keyword apiname">ThreadDestroy_r()</span> don't return. 
+</p>
+
+
+<p class="p">
+The only difference between these functions is the way they indicate errors:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword apiname">ThreadDestroy()</span></dt>
+
+<dd class="dd">If this function returns and an error occurs, -1 is returned and
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>
+  is set. Any other value returned indicates success.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">ThreadDestroy_r()</span></dt>
+
+<dd class="dd"><span class="keyword const">EOK</span> is returned on success. This function does <strong class="ph b">NOT</strong> set <var class="keyword varname">errno</var>.
+    If this function returns and an error occurs, any value in the Errors section may be returned.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">The thread indicated by <var class="keyword varname">tid</var> doesn't exist.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d580324e376">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d580324e378"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e376 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e378 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e376 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e378 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e376 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d580324e378 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html">Process termination (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/pthread_exit.html" title="Terminate a thread">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/threadcancel.html" title="Cancel a thread">ThreadCancel(), ThreadCancel_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/threadcreate.html" title="Create a thread">ThreadCreate(), ThreadCreate_r()</a></li></ul></div>
+</div></body>
+</html>

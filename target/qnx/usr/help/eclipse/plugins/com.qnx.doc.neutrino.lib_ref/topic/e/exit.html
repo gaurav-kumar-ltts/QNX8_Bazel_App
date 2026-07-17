@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="exit()" />
+<meta name="abstract" content="Exit the calling program" />
+<meta name="description" content="Exit the calling program" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-e.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/abort.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/at_quick_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/atexit.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/e/_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/main.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/q/quick_exit.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="exit" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>exit()</title>
+</head>
+<body id="exit">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">exit()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Exit the calling program</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+
+void exit( int <var class="keyword varname">status</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">status</var></dt>
+
+<dd class="dd">The exit status to use for the program. The value may be zero,
+  <span class="keyword const">EXIT_SUCCESS</span>, <span class="keyword const">EXIT_FAILURE</span> or any other value. Note that only the least
+  significant bits (i.e., <var class="keyword varname">status</var> &amp; 0377) may be available to a
+  waiting parent process. 
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+<p class="p">Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+The <span class="keyword apiname">exit()</span> function causes the calling program to exit normally.
+When a program exits normally:
+</p>
+
+
+<ol class="ol">
+<li class="li">All functions registered with the 
+  <a class="xref" href="../a/atexit.html" title="Register functions to be called during normal program termination"><span class="keyword apiname">atexit()</span></a>
+  function are called.
+</li>
+
+
+<li class="li">All open file streams (those opened by 
+  <a class="xref" href="../f/fopen.html" title="Open a file stream"><span class="keyword apiname">fopen()</span></a>,
+  <a class="xref" href="../f/fdopen.html" title="Associate a stream with a file descriptor"><span class="keyword apiname">fdopen()</span></a>, 
+  <a class="xref" href="../f/freopen.html" title="Reopen a stream"><span class="keyword apiname">freopen()</span></a>, or
+  <a class="xref" href="../p/popen.html" title="Execute a command, creating a pipe to it"><span class="keyword apiname">popen()</span></a>)
+  are flushed and closed.
+</li>
+
+
+<li class="li">All temporary files created by
+  <a class="xref" href="../t/tmpfile.html" title="Create a temporary file"><span class="keyword apiname">tmpfile()</span></a>
+  are removed.
+</li>
+
+
+<li class="li">The return <var class="keyword varname">status</var> is made available to the parent
+  process; <var class="keyword varname">status</var> is typically set to
+  <span class="keyword const">EXIT_SUCCESS</span> to indicate successful termination
+  and set to <span class="keyword const">EXIT_FAILURE</span> or some other value to
+  indicate an error.
+</li>
+
+</ol>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">exit()</span> function doesn't return.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main( int argc, char *argv[] )
+{
+    FILE *fp;
+
+    if( argc &lt;= 1 ) {
+        fprintf( stderr, "Missing argument\n" );
+        exit( EXIT_FAILURE );
+    }
+
+    fp = fopen( argv[1], "r" );
+    if( fp == NULL ) {
+        fprintf( stderr, "Unable to open '%s'\n", argv[1] );
+        exit( EXIT_FAILURE );
+    }
+    fclose( fp );
+    exit( EXIT_SUCCESS );
+    
+    /*
+     You'll never get here; this prevents compiler
+     warnings about "function has no return value".
+    */
+    return EXIT_SUCCESS;
+}
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">ANSI</a>,
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d916145e252">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d916145e254"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e252 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e254 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e252 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e254 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e252 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d916145e254 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-e.html">E</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/process_PROCTERM.html">Process termination (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/a/abort.html" title="Raise the SIGABRT signal to terminate program execution">abort()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/at_quick_exit.html" title="Register functions to be called during program termination via quick_exit()">at_quick_exit()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/atexit.html" title="Register functions to be called during normal program termination">atexit()</a></li>
+<li class="linklist"><a class="link" href="../../topic/e/_exit.html" title="Terminate the program">_exit()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/main.html" title="Program entry function">main()</a></li>
+<li class="linklist"><a class="link" href="../../topic/q/quick_exit.html" title="Exit the calling program without completely cleaning up resources">quick_exit()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The _IO_OPEN message for filesystems" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="IO_msg" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The _IO_OPEN message for filesystems</title>
+</head>
+<body id="IO_msg">
+
+<h1 class="title topictitle1" id="ariaid-title1">The <span class="keyword const">_IO_OPEN</span> message for filesystems</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+Once we've specified a mountpoint, it's then up to
+the resource manager to determine a suitable response to an open request.
+Let's assume that we've defined a mountpoint of <span class="ph filepath">/sample_fsys</span>
+for our resource manager:
+
+
+<pre class="pre codeblock">pathID = resmgr_attach(
+             dpp,
+             &amp;resmgr_attr,
+             "/sample_fsys",    /* mountpoint */
+            _FTYPE_ANY,
+             _RESMGR_FLAG_DIR,   /* it's a directory */
+             &amp;connect_funcs,
+             &amp;io_funcs,
+             &amp;attr);
+</pre>
+</div>
+
+
+<div class="p">
+Now when the client performs a call like this:
+
+<pre class="pre codeblock">fopen ("/sample_fsys/spud", "r");
+</pre>
+
+we receive an <span class="keyword const">_IO_CONNECT</span> message, and our
+<var class="keyword varname">io_open</var> handler will be called.
+Since we haven't yet looked at the <span class="keyword const">_IO_CONNECT</span> message in
+depth, let's take a look now:
+
+
+
+<pre class="pre codeblock">struct _io_connect {
+    unsigned short  type;
+    unsigned short  subtype;     /* _IO_CONNECT_*              */
+    unsigned long   file_type;   /* _FTYPE_* in sys/ftype.h    */
+    unsigned short  reply_max;
+    unsigned short  entry_max;
+    unsigned long   key;
+    unsigned long   handle;
+    unsigned long   ioflag;      /* O_* in fcntl.h, _IO_FLAG_* */
+    unsigned long   mode;        /* S_IF* in sys/stat.h        */
+    unsigned short  sflag;       /* SH_* in share.h            */
+    unsigned short  access;      /* S_I in sys/stat.h          */
+    unsigned short  zero;
+    unsigned short  path_len;
+    unsigned char   eflag;       /* _IO_CONNECT_EFLAG_*        */
+    unsigned char   extra_type;  /* _IO_EXTRA_*                */
+    unsigned short  extra_len;
+    unsigned char   path[1];     /* path_len, null, extra_len  */
+};
+</pre>
+</div>
+
+
+<p class="p">
+Looking at the relevant fields, we see <var class="keyword varname">ioflag</var>,
+<var class="keyword varname">mode</var>, <var class="keyword varname">sflag</var>, and <var class="keyword varname">access</var>,
+which tell us how the resource was opened.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">path_len</var> parameter tells us how many bytes
+the pathname takes; the actual pathname appears in the
+<var class="keyword varname">path</var> parameter.
+Note that the pathname that appears is <em class="ph i">not</em>
+<span class="ph filepath">/sample_fsys/spud</span>, as you might expect, but instead is just
+<span class="ph filepath">spud</span>—the message contains only the pathname relative
+to the resource manager's mountpoint.
+This simplifies coding because you don't have to skip past the mountpoint
+name each time, the code doesn't have to know what the mountpoint is,
+and the messages will be a little bit shorter.
+</p>
+
+
+<p class="p">
+Note also that the pathname will <em class="ph i">never</em> have
+relative (<span class="ph filepath">.</span> and <span class="ph filepath">..</span>) path
+components, nor redundant slashes (e.g., <span class="ph filepath">spud//stuff</span>)
+in it—these are all resolved and removed by the time the message
+is sent to the resource manager.
+</p>
+
+
+<div class="p">
+When writing filesystem resource managers, we encounter
+additional complexity when dealing with the pathnames:
+<ul class="ul">
+  <li class="li">For verification of access, we need to break apart the passed pathname and check each component.
+    You can use <span class="keyword apiname">strtok()</span> and friends to break apart the string, and then there's
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_check_access.html"><span class="keyword apiname">iofunc_check_access()</span></a>,
+    a convenient iofunc-layer call that performs the access verification of pathname components leading up to the target.
+    (See the <cite class="cite">C Library Reference</cite> page for the
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open.html"><span class="keyword apiname">iofunc_open()</span></a> for information detailing the steps needed for this level of checking.)
+    
+    
+  </li>
+
+  <li class="li">We must determine the appropriate attribute structure to bind to the client's <span class="keyword apiname">open()</span> request based on
+    the pathname, and bind it to the OCB with <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open_default.html"><span class="keyword apiname">iofunc_open_default()</span></a>
+    or <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_open_bind.html"><span class="keyword apiname">resmgr_open_bind()</span></a>.
+    Generally this will be a different attribute structure than the one passed to the <var class="keyword varname">io_open</var> handler,
+    unless the path is empty (i.e., <span class="ph codeph">path[0] == '\0'</span>).
+  </li>
+
+</ul>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems.html" title="Some resource managers need to implement filesystems by responding to access requests for any pathname within a directory structure.">Filesystem Resource Managers</a></div>
+</div>
+</div></body>
+</html>

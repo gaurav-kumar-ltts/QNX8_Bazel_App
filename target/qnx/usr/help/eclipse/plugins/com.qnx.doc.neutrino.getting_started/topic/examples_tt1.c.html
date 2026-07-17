@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="tt1.c" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_timer_Thread_Join.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tt1.c" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>tt1.c</title>
+</head>
+<body id="tt1.c">
+
+   
+<h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">tt1.c</span></h1>
+
+
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">/*
+ * tt1.c
+*/
+
+#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;inttypes.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+
+#define SEC_NSEC 1000000000LL // 1 billion nanoseconds in a second
+
+void *
+long_thread (void *notused)
+{
+    printf ("This thread runs for more than 10 seconds\n");
+    sleep (20);
+}
+
+int
+main (void) // ignore arguments
+{
+    uint64_t        timeout;
+    struct sigevent event;
+    int             rval;
+    pthread_t       thread_id;
+
+    // set up the event -- this can be done once
+    
+    // This or event.sigev_notify = SIGEV_UNBLOCK:
+    SIGEV_UNBLOCK_INIT (&amp;event);
+
+    // create a thread
+    pthread_create (&amp;thread_id, NULL, long_thread, NULL);
+
+    // set up for 10 second timeout
+    timeout = 10LL * SEC_NSEC;
+
+    TimerTimeout (CLOCK_MONOTONIC, _NTO_TIMEOUT_JOIN, &amp;event, &amp;timeout, NULL);
+
+    rval = pthread_join (thread_id, NULL);
+    if (rval == ETIMEDOUT) {
+        printf ("Thread %d is still running after 10 seconds!\n",
+                thread_id);
+    }
+
+    sleep (5);
+    
+   
+    TimerTimeout (CLOCK_MONOTONIC, _NTO_TIMEOUT_JOIN, &amp;event, &amp;timeout, NULL);
+    rval = pthread_join (thread_id, NULL);
+    if (rval == ETIMEDOUT) {
+        printf ("Thread %d is still running after 25 seconds (bad)!\n",
+                thread_id);
+    } else {
+        printf ("Thread %d finished (expected!)\n", thread_id);
+    }
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html" title="This appendix contains the complete versions of some of the sample programs discussed in this book.">Sample Programs</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/s1_timer_Thread_Join.html" title="The simplest case to consider is a kernel timeout used with the pthread_join() call.">Kernel timeouts with pthread_join()</a></li></ul></div>
+</div></body>
+</html>

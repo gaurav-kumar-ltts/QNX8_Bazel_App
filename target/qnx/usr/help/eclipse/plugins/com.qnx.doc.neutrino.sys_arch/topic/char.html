@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Character I/O" />
+<meta name="abstract" content="A key requirement of any realtime operating system is high-performance character I/O." />
+<meta name="description" content="A key requirement of any realtime operating system is high-performance character I/O." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_io-char_communication.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_Device_control.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_INPUTMODES.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_CONSOLE.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_SER.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/char_PTY.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-con.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-ser8250.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serpci.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serusb.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="char" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Character I/O</title>
+</head>
+<body id="char">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Character I/O</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+A key requirement of any realtime operating system is high-performance character I/O.
+</p>
+
+
+<p class="p">
+
+
+Character devices can be
+described as devices to which I/O consists of a sequence of
+bytes transferred serially, as opposed to block-oriented
+devices (e.g., disk drives).
+</p>
+
+
+<p class="p">
+
+As in the POSIX and UNIX tradition, these character devices
+are located in the OS pathname space under the
+<span class="ph filepath">/dev</span> directory. For example, a serial port to
+which a modem or terminal could be connected might appear in
+the system as: <span class="ph filepath">/dev/ser1</span>
+</p>
+
+
+<p class="p">
+Typical character devices found on PC hardware include:
+</p>
+
+
+<ul class="ul">
+<li class="li">serial ports</li>
+
+<li class="li">parallel ports</li>
+
+<li class="li">text-mode consoles</li>
+
+<li class="li">pseudo terminals (ptys)</li>
+
+</ul>
+
+
+<p class="p">
+Programs access character devices using the standard
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>,
+and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>
+API functions. Additional functions
+are available for manipulating other aspects of the
+character device, such as baud rate, parity, flow control, etc.
+</p>
+
+
+<p class="p">
+Since it's common to run multiple character devices, they
+have been designed as a family of drivers and a library
+called <span class="keyword cmdname">io-char</span> to maximize code reuse.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The <span class="keyword cmdname">io-char</span> library is used by multiple drivers.</span>
+
+<br /><img class="image" src="../images/chario.svg" width="480" alt="io-char" /><br />
+</div>
+
+
+<p class="p">
+The <span class="keyword cmdname">io-char</span> module contains all the
+code to support POSIX semantics on the device. It also
+contains a significant amount of code to implement character
+I/O features beyond POSIX but desirable in a realtime
+system. Since this code is in the common library, all
+drivers inherit these capabilities.
+</p>
+
+
+<p class="p">
+The driver is the executing process that calls into the
+library. In operation, the driver starts first and
+invokes <span class="keyword cmdname">io-char</span>. Drivers are just
+like other <span class="keyword">QNX OS</span> processes and can run at different
+priorities according to the nature of the hardware being
+controlled and the client's requesting service.
+</p>
+
+
+<p class="p">
+Once a single character device is running, the memory cost
+of adding more devices is minimal, since only the code
+to implement the new driver structure would be new.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/char_io-char_communication.html">Driver/io-char communication</a></strong><br />
+The <span class="keyword cmdname">io-char</span> library manages the flow of data       between an application and the device driver. Data flows       between <span class="keyword cmdname">io-char</span> and the driver through a set       of memory queues associated with each character device.</li>
+<li class="link ulchildlink"><strong><a href="../topic/char_Device_control.html">Device control</a></strong><br />
+ Low-level device control is implemented using the <span class="keyword apiname">devctl()</span> call. </li>
+<li class="link ulchildlink"><strong><a href="../topic/char_INPUTMODES.html">Input modes</a></strong><br />
+ Each device can be in a <em class="ph i">raw</em> or <em class="ph i">edited</em> input mode. </li>
+<li class="link ulchildlink"><strong><a href="../topic/char_CONSOLE.html">Console devices</a></strong><br />
+ System consoles (with VGA-compatible graphics chips in <em class="ph i">text</em> mode) are managed by the <span class="keyword cmdname">devc-con</span> or <span class="keyword cmdname">devc-con-hid</span> driver. The video display card/screen and the system keyboard are collectively referred to as the <em class="ph i">physical console</em>. </li>
+<li class="link ulchildlink"><strong><a href="../topic/char_SER.html">Serial devices</a></strong><br />
+ Serial communication channels are managed by the <span class="keyword cmdname">devc-ser*</span> family of driver processes. These drivers can manage more than one physical channel and provide character devices with names such as <span class="ph filepath">/dev/ser1</span>, <span class="ph filepath">/dev/ser2</span>, etc. </li>
+<li class="link ulchildlink"><strong><a href="../topic/char_PTY.html">Pseudo terminals (ptys)</a></strong><br />
+ Pseudo terminals are managed by the <span class="keyword cmdname">devc-pty</span> driver. </li>
+</ul>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-con.html">devc-con, devc-con-hid</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html">devc-pty</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-ser8250.html">devc-ser8250</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serpci.html">devc-serpci</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serusb.html">devc-serusb</a></li></ul></div>
+</div></body>
+</html>

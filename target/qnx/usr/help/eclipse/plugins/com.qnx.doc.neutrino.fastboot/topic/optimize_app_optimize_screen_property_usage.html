@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Optimize the use of calls to APIs" />
+<meta name="abstract" content="Device (other than display) drivers are started when they are first needed by a call to an API." />
+<meta name="description" content="Device (other than display) drivers are started when they are first needed by a call to an API." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_optimizing-startup_optimize_screen_app.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="app_optimize_screen_property_usage" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Optimize the use of calls to APIs</title>
+</head>
+<body id="app_optimize_screen_property_usage">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Optimize the use of calls to APIs</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">Device (other than display) drivers are started when they are first needed by a call to an API.</p>
+
+        <p class="p">If a driver isn't yet loaded at the time that it's needed by a function call, <span class="keyword">Screen</span>
+            loads and starts the required driver. Therefore, you might experience pausing or stutter during the time that
+            it takes for the driver to start. To improve the time it takes for your application to start, avoid using in your splash
+            screen application function calls that trigger <span class="keyword">Screen</span> to start device drivers.
+            For example, avoid making hardware rendering calls because they cause OpenGL ES drivers to start,
+            which are typically slow.
+        </p>
+
+        <p class="p"><span class="keyword">Screen</span> starts only the drivers that are required by a function call. For example,
+            if you make a call that requires only 2D hardware (blitter), then only that device driver is started.
+            However, if you make a call that requires both 2D and 3D hardware rendering, then both the 2D and
+            3D hardware drivers are started, which can significantly increase the time it takes for your content to
+            show on the display.
+        </p>
+
+        <p class="p"> See the table below for the drivers that <span class="keyword">Screen</span> starts, based on the APIs
+            that are used:
+        </p>
+
+        
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                    <tr class="row">
+                        
+                        
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d5657e69"> Device Driver</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d5657e72"> APIs that trigger Screen to start a driver </th>
+
+                    </tr>
+
+                </thead>
+<tbody class="tbody">
+                    <tr class="row">
+                        
+                        
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e69 ">2D hardware (blitter)</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e72 ">Screen Blit. See note below.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        
+                        
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e69 ">
+                            <p class="p">OpenGL ES</p>
+
+                        </td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e72 ">
+                            <p class="p">OpenGL ES 1.X</p>
+
+                            <p class="p">OpenGL ES 2.X</p>
+
+                            <p class="p">OpenGL ES 3.X</p>
+
+                            <p class="p">OpenVG</p>
+
+                            <p class="p">OpenCL</p>
+
+                            <p class="p">EGL</p>
+
+                            <p class="p">Vulkan</p>
+
+                        </td>
+
+                    </tr>
+
+                    <tr class="row">
+                        
+                        
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e69 ">2D hardware (blitter)</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e72 ">Screen Blit. See note below.</td>
+
+                    </tr>
+
+                    
+                    <tr class="row">
+                        
+                        
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e69 ">Display</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d5657e72 ">
+                            Not applicable
+                            <p class="p">(<span class="keyword">Screen</span> loads display drivers always when it starts)</p>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+</table>
+</div>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            Calling <span class="keyword apiname">screen_flush_blits()</span> or <span class="keyword apiname">screen_post_window()</span> triggers
+            <span class="keyword">Screen</span> to start the Blit driver only if <span class="keyword apiname">screen_blit()</span>
+            or <span class="keyword apiname">screen_fill()</span> was previously called.
+        </div>
+
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_optimizing-startup_optimize_screen_app.html" title="To display your content as quickly as possible, you can optimize your splash screen application, which is the program that shows the content on the display.">Optimize the splash screen application</a></div>
+</div>
+</div></body>
+</html>

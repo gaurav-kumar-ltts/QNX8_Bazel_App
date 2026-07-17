@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="kdserver" />
+<meta name="abstract" content="QVM guest dump/kernel dump server" />
+<meta name="description" content="QVM guest dump/kernel dump server" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-k.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/g/gdb.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="kdserver" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>kdserver</title>
+</head>
+<body id="kdserver">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">kdserver</span></h1>
+
+	
+	
+	<div class="body refbody"><p class="shortdesc"><em class="ph i">QVM guest dump/kernel dump server</em></p>
+
+
+		<div class="section">
+			
+			
+			
+			
+			
+		</div>
+
+		
+		<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+			
+			<pre class="pre codeblock">kdserver [-v] [<var class="keyword varname">kdumper_file</var>]
+</pre>
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+			
+			<p class="p">
+				<span class="keyword">QNX OS</span>
+			</p>
+
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Option:</h2>
+			
+			<dl class="dl">
+				
+
+
+				
+					<dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+					<dd class="dd">Be verbose.</dd>
+
+				
+
+
+
+			</dl>
+
+		</div>
+
+
+
+		<div class="section"><h2 class="title sectiontitle">Description:</h2>
+			
+			
+			<p class="p">The <span class="keyword cmdname">kdserver</span> utility can run on your development host system. You
+				can use it with GDB to parse and examine a core dump file.</p>
+
+			<p class="p">In a QNX hypervisor system, if you specify the <span class="keyword option">dump</span> option in a VM's
+				configuration (<span class="ph filepath">*.qvmconf</span> file), you can send a SIGUSR2 signal
+				to the <span class="keyword cmdname">qvm</span> process instance and have it produce a dump file for
+				the guest (<span class="ph filepath">*.gcore</span>) hosted in that <span class="keyword cmdname">qvm</span>
+				process instance (see the QNX Hypervisor user documentation).</p>
+
+			<p class="p">You can then copy the file to your development host system, and use GDB along with
+					<span class="keyword cmdname">kdserver</span> to examine the ELF64 dump file for your guest:</p>
+
+			<ol class="ol">
+				<li class="li"><div class="p">On your development host, start GDB:
+					<pre class="pre codeblock">nto<var class="keyword varname">arch</var>-gdb <var class="keyword varname">symfile</var></pre>
+					where <var class="keyword varname">arch</var> is the architecture, either
+							<span class="keyword cmdname">ntoaarch64-gdb</span> for AArch64, or
+							<span class="keyword cmdname">ntox86_64-gdb</span> for x86-64, and
+					<var class="keyword varname">symfile</var> is <span class="keyword cmdname">procnto-*</span> for <span class="keyword">QNX OS</span> or
+					<span class="keyword cmdname">vmlinux-*</span> or <span class="keyword cmdname">vmlinuz-*</span> for Linux or
+						Android.</div>
+
+					<div class="p">For example, the following command starts GDB on an x86-64 Linux system:
+						<pre class="pre codeblock">$ ntox86_64-gdb vmlinuz-3.13.0-77-generic
+GNU gdb (qnx800-gdb-14.2-release-14-g37860f) 14.2
+[...]
+This GDB was configured as "--host=x86_64-pc-linux-gnu --target=x86_64-pc-nto-qnx8.0.0".
+[...]
+BFD: .../tmp/qvm_linux_guest/linux-3.14.54/vmlinuz-3.13.0-77-generic: \
+ warning: ignoring section flag IMAGE_SCN_MEM_NOT_PAGED in section .bss
+Reading symbols from vmlinux-3.13.0-77-generic...(no debugging symbols found)...done.
+</pre> Note the name of the binary, <span class="keyword cmdname">vmlinuz-*</span> (not
+							<span class="keyword cmdname">vmlinux-*</span>); the 'z' denotes a compressed Linux
+						kernel, which <span class="keyword cmdname">gdb</span> uncompresses.</div>
+
+				</li>
+
+				<li class="li">At the GDB prompt, point <span class="keyword cmdname">kdserver</span> to your guest dump file:
+<pre class="pre codeblock">gdb&gt;
+target remote | kdserver <var class="keyword varname">dumpfile</var></pre>
+					where <var class="keyword varname">dumpfile</var> is the path on your development host to the
+					guest dump file you want to examine.</li>
+
+			</ol>
+
+			<p class="p">For more information about using GDB with <span class="keyword">QNX OS</span>, 
+				see the entry for <a class="xref" href="../g/gdb.html" title="Debugger (GNU)"><span class="keyword cmdname">gdb</span></a>.
+				For more information about GDB, see <a class="xref" href="https://www.gnu.org/software/gdb/documentation/" target="_blank"><span class="ph filepath">https://www.gnu.org/software/gdb/documentation/</span></a>.</p>
+
+		</div>
+
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-k.html">K</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/g/gdb.html" title="Debugger (GNU)">gdb</a></li></ul></div>
+</div></body>
+</html>

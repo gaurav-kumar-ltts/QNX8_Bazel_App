@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Layers in a resource manager" />
+<meta name="DC.subject" content="layers in a resource manager, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="layers in a resource manager, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="RESMGR_layers" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Layers in a resource manager</title>
+</head>
+<body id="RESMGR_layers">
+
+<h1 class="title topictitle1" id="ariaid-title1">Layers in a resource manager</h1>
+
+
+
+
+<div class="body conbody">
+
+<p class="p">
+A resource manager is composed of some of the following layers:
+</p>
+
+
+<ul class="ul">
+<li class="li">thread pool layer (the top layer)</li>
+
+<li class="li">dispatch layer</li>
+
+<li class="li">resmgr layer</li>
+
+<li class="li">iofunc layer (the bottom layer)</li>
+
+</ul>
+
+
+<p class="p">
+Let's look at these from the bottom up.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">The iofunc layer</h2>
+
+
+<p class="p">
+This layer consists of a set of functions that take care of most
+of the POSIX filesystem details for you—they provide a POSIX personality.
+If you're writing a device resource manager, 
+you'll want to use this layer so that you don't have to worry too much 
+about the details involved in presenting a POSIX filesystem to the world.
+</p>
+
+
+<p class="p">
+This layer consists of default handlers that the resource manager library uses
+if you don't provide a handler. 
+For example, if you don't provide an <var class="keyword varname">io_open</var> handler, 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_open_default.html"><span class="keyword apiname">iofunc_open_default()</span></a> 
+is called.
+</p>
+
+
+<p class="p">
+The iofunc layer also contains helper functions that the default handlers call.
+If you override the default handlers with your own, you can still call these helper functions.
+For example, if you provide your own <var class="keyword varname">io_read</var> handler, you should call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_verify.html"><span class="keyword apiname">iofunc_read_verify()</span></a> 
+at the start of it to make sure that the client has access to the resource.
+
+</p>
+
+
+<p class="p">
+The names of the functions and structures for this layer have the form <span class="keyword apiname">iofunc_*</span>.
+The header file is <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>.
+For more information, see the <span class="keyword">QNX OS</span>
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/lib-i.html"><em class="ph i">C Library Reference</em></a>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">The resmgr layer</h2>
+
+
+<p class="p">
+This layer manages most of the resource manager library details. It:
+</p>
+
+
+<ul class="ul">
+<li class="li">examines incoming messages</li>
+
+<li class="li">calls the appropriate handler to process a message</li>
+
+</ul>
+
+
+<p class="p">
+The names of the functions and structures for this layer have the form <span class="keyword apiname">resmgr_*</span>.
+The header file is <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>.
+For more information, see the <span class="keyword">QNX OS</span>
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/lib-r.html"><em class="ph i">C Library Reference</em></a>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Be sure to <span class="keyword cmdname">#include</span> <span class="ph filepath">&lt;sys/iofunc.h&gt;</span> before
+<span class="ph filepath">&lt;sys/resmgr.h&gt;</span>, or else the data structures won't be defined properly.
+</div>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>You can use the resmgr layer to handle <span class="keyword const">_IO_*</span> messages.</span>
+
+<br /><img class="image" src="../images/resmgr_layer.svg" width="624" alt="Resource manager layer" /><br />
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">The dispatch layer</h2>
+
+
+<p class="p">
+This layer acts as a single blocking point for many different types of things.
+With this layer, you can handle:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">_IO_*</span> messages</dt>
+
+<dd class="dd">It uses the resmgr layer for this.</dd>
+
+
+
+
+<dt class="dt dlterm">Select</dt>
+
+<dd class="dd">Processes that do TCP/IP often call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/poll.html"><span class="keyword apiname">poll()</span></a>
+  (historically this was
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select.html"><span class="keyword apiname">select()</span></a>,
+  and our support in the resource manager framework is named for this, but it's actually built on top of
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html"><span class="keyword apiname">ionotify()</span></a>
+  here)
+  to block while waiting for packets to arrive, or for there to be room for writing more data.
+  With the dispatch layer, you register a handler function that's called instead.
+  The functions for this are the <span class="keyword apiname">select_*()</span> functions.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Pulses</dt>
+
+<dd class="dd">As with the other layers, you register a handler function that's called when a specific pulse arrives.
+  The functions for this are the <span class="keyword apiname">pulse_*()</span> functions.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Other messages</dt>
+
+<dd class="dd">You can give the dispatch layer a range of message types that you make up, and a handler.
+  So if a message arrives and the first few bytes of the message contain a type in the given range,
+  the dispatch layer calls your handler.
+  The functions for this are the <span class="keyword apiname">message_*()</span> functions.
+</dd>
+
+
+
+</dl>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>You can use the dispatch layer to handle <span class="keyword const">_IO_*</span> messages, select, pulses,
+and other messages.</span>
+
+<br /><img class="image" src="../images/dispatch_layer.svg" width="624" alt="Dispatch layer" /><br />
+</div>
+
+
+<p class="p">
+Here's how messages are handled via the dispatch layer (or more precisely, through
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_handler.html"><span class="keyword apiname">dispatch_handler()</span></a>):
+</p>
+
+
+<ul class="ul">
+<li class="li">
+A search is made, based on the message type or pulse code, for a matching function that was attached using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/message_attach.html"><span class="keyword apiname">message_attach()</span></a> or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pulse_attach.html"><span class="keyword apiname">pulse_attach()</span></a>.
+If a match is found, the attached function is called.
+</li>
+
+
+<li class="li">
+If the message type is in the range handled by the resource manager (I/O messages) 
+and pathnames were attached using 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>,
+the resource manager subsystem is called and handles the resource manager message.
+</li>
+
+
+<li class="li">
+If a pulse is received, it may be dispatched to the resource manager subsystem
+if it's one of the codes handled by a resource manager (UNBLOCK and DISCONNECT pulses). If you called
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select_attach.html"><span class="keyword apiname">select_attach()</span></a>
+and the pulse matches the one it used, then the select subsystem is called and dispatches that event.
+</li>
+
+
+<li class="li">
+If a message is received and no matching handler is found for that message type, but a default handler was registered,
+call the default handler.
+</li>
+
+
+<li class="li">If a message with an unmatched message type is received, and no default handler was registered, then call
+<span class="keyword apiname">MsgError</span>(<span class="keyword const">ENOSYS</span>) to unblock the sender with an error.
+
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">The thread pool layer</h2>
+
+
+<p class="p">
+
+
+This layer allows you to have a single- or multithreaded resource manager.
+This means that one thread can be handling a 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>
+while another thread handles a 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>.
+</p>
+
+
+<p class="p">
+You provide the blocking function for the threads to use
+as well as the handler function that's to be called when the blocking function returns.
+Most often, you give it the dispatch layer's functions.
+However, you can also give it the resmgr layer's functions or your own.
+</p>
+
+
+<p class="p">
+You can use this layer independently of a resource manager, as a general-purpose dynamic thread pool implementation.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton.html" title="Let's start with the overall structure of a resource manager. First we'll look at what happens under the covers on both the client side and the server side. After that, we'll go into the layers in a resource manager and then look at some examples.">The Bones of a Resource Manager</a></div>
+</div>
+</div></body>
+</html>

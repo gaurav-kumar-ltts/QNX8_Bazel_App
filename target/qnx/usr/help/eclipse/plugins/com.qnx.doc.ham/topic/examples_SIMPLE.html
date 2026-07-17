@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Simple restart" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="SIMPLE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Simple restart</title>
+</head>
+<body id="SIMPLE">
+
+<h1 class="title topictitle1" id="ariaid-title1">Simple restart</h1>
+
+
+<div class="body conbody">
+
+<p class="p">The most basic form of recovery is the simple death-restart
+mechanism. Since the  <span class="keyword">QNX OS</span>
+provides virtually all
+non-kernel functionality via user-installable programs, and
+since it offers complete memory protection, not only for
+user applications, but also for OS components (device
+drivers, filesystems, etc.), a resource manager or other
+server program can be easily <em class="ph i">decoupled from the OS</em>.
+
+
+
+</p>
+
+<p class="p">This decoupling lets you safely stop, start, and upgrade
+resource managers or other key programs
+<em class="ph i">dynamically</em>, without compromising the
+availability of the rest of the system.
+
+</p>
+
+<p class="p">Consider the following code, where we restart the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a>
+daemon:
+
+
+
+</p>
+
+<pre class="pre codeblock">/* simple_restart.c */
+
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;sys/netmgr.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;ha/ham.h&gt;
+
+int main(int argc, char *argv[])
+{
+    int status;
+    char *mqueuepath;
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+    int mqueuepid;
+    if (argc &gt; 1)
+        mqueuepath = strdup(argv[1]);    
+    else 
+        mqueuepath = strdup("/sbin/mqueue");
+    if (argc &gt; 2)
+        mqueuepid = atoi(argv[2]);
+    else
+        mqueuepid = -1;
+    ham_connect(0);
+    ehdl = ham_attach("mqueue", 0, mqueuepid, mqueuepath, 0);
+    if (ehdl != NULL)
+    {
+      chdl = ham_condition(ehdl,CONDDEATH, "death", HREARMAFTERRESTART);
+      if (chdl != NULL) {
+        ahdl = ham_action_restart(chdl, "restart", mqueuepath, 
+                              HREARMAFTERRESTART);
+        if (ahdl == NULL)    
+            printf("add action failed\n");
+      }
+      else
+          printf("add condition failed\n");
+    }
+    else
+        printf("add entity failed\n");
+    ham_disconnect(0);
+    exit(0);
+}
+</pre>
+
+<p class="p">The above example attaches the <span class="keyword cmdname">mqueue</span> process to
+a HAM, and then establishes a condition <em class="ph i">death</em> and
+an action <em class="ph i">restart</em> under it.
+
+</p>
+
+
+<p class="p">When <span class="keyword cmdname">mqueue</span> terminates, the HAM will automatically
+restart it by running the program specified by
+<span class="ph codeph">mqueuepath</span>. If <span class="keyword cmdname">mqueue</span> were already
+running on the system, we can pass the <var class="keyword varname">pid</var> of the
+existing <span class="keyword cmdname">mqueue</span> into <span class="ph codeph">mqueuepid</span> and it
+will be attached to directly. Otherwise, the HAM will start
+and begin to monitor <span class="keyword cmdname">mqueue</span>.
+
+</p>
+
+<p class="p">You could use the same code to monitor, say,
+<span class="keyword cmdname">slogger2</span> (by specifying
+<span class="ph filepath">/usr/sbin/slogger2</span>), etc. Just remember
+to specify the <em class="ph i">full path</em> of the executable with all
+its required command-line parameters.
+
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

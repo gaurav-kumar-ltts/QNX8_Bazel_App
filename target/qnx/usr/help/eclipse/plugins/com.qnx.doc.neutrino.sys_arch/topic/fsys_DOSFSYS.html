@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="DOS filesystem" />
+<meta name="abstract" content="The DOS filesystem, fs-dos.so, provides transparent access to DOS disks, so you can treat DOS filesystems as though they were POSIX filesystems. This transparency allows processes to operate on DOS files without any special knowledge or work on their part." />
+<meta name="description" content="The DOS filesystem, fs-dos.so, provides transparent access to DOS disks, so you can treat DOS filesystems as though they were POSIX filesystems. This transparency allows processes to operate on DOS files without any special knowledge or work on their part." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DOSFSYS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>DOS filesystem</title>
+</head>
+<body id="DOSFSYS">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">DOS filesystem</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The DOS filesystem, <span class="ph filepath">fs-dos.so</span>, provides transparent access
+to DOS disks, so you can treat DOS filesystems as though they were POSIX
+filesystems. This transparency allows processes to operate on DOS files
+without any special knowledge or work on their part.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+The structure of the DOS filesystem on disk is old and
+inefficient, and lacks many desirable features. Its only
+major virtue is its portability to DOS and Windows
+environments. You should choose this filesystem only if you
+need to transport DOS files to other machines that require
+it. Consider using the Power-Safe filesystem alone if DOS
+file portability isn't an issue or in conjunction with the
+DOS filesystem if it is.
+</p>
+
+
+<p class="p">
+If there's no DOS equivalent to a POSIX feature,
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html"><span class="ph filepath">fs-dos.so</span></a>,
+with either return an error or a
+reasonable default. For example, an attempt to create a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/link.html"><span class="keyword apiname">link()</span></a>
+will result in the appropriate
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/errno.html"><var class="keyword varname">errno</var></a>
+being returned. On the other hand, if
+there's an attempt to read the POSIX times on a file,
+<span class="ph filepath">fs-dos.so</span> will treat any of the <em class="ph i">unsupported</em>
+times the same as the last write time.
+
+</p>
+
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">DOS version support</dt>
+
+<dd class="dd">The <span class="ph filepath">fs-dos.so</span> program supports
+  hard disk partitions from DOS version 2.1 to Windows 98 with long filenames.
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">DOS text files</dt>
+
+<dd class="dd">DOS terminates each line in a text file with two characters
+  (CR/LF), while POSIX (and most other) systems terminate each
+  line with a single character (LF).
+  Note that <span class="ph filepath">fs-dos.so</span> makes no attempt to translate text files
+  being read.
+  Most utilities and programs aren't affected by this difference.
+
+  <p class="p">
+  
+  Note also that some very old DOS programs may use a
+  <span class="keyword keychord"><span class="keyword key">Ctrl</span><span class="keyword key">Z</span></span> (<span class="ph codeph">^Z</span>) as a file
+  terminator.
+  This character is also passed through without modification.
+  </p>
+
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">QNX-to-DOS filename mapping</dt>
+
+<dd class="dd">In DOS, a filename can't contain any of the following characters:
+
+<pre class="pre">
+/ \ [ ] : * | + = ; , ?
+</pre>
+
+
+  <p class="p">
+  An attempt to create a file that contains one of these
+  invalid characters will return an error. DOS (8.3 format)
+  also expects all alphabetical characters to be uppercase, so
+  <span class="ph filepath">fs-dos.so</span> maps these characters to uppercase when
+  creating a filename on disk.
+  But it maps a filename to lowercase by default when returning a filename
+  to a <span class="keyword">QNX OS</span> application, so that <span class="keyword">QNX OS</span> users and programs
+  can always see and type lowercase
+  (via the <span class="keyword option">sfn=</span><var class="keyword varname">sfn_mode</var> option).
+  </p>
+
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">DOS volume labels</dt>
+
+<dd class="dd">DOS uses the concept of a volume label, which is an actual
+  directory entry in the root of the DOS filesystem.
+  To distinguish between the volume label and an actual DOS directory,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html"><span class="ph filepath">fs-dos.so</span></a>
+  reports the volume label according to the way you specify its
+  <span class="keyword option">vollabel</span> option.
+  You can choose to:
+
+  <ul class="ul">
+  <li class="li">Ignore the volume label.</li>
+
+  <li class="li">Display the volume label as a name-special file.</li>
+
+  <li class="li">Display the volume label as a name-special file with an equal sign
+    (<span class="ph codeph">=</span>) as the first character of the volume name (the default).</li>
+
+  </ul>
+
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">Handling filenames</dt>
+
+<dd class="dd">You can specify how you want <span class="ph filepath">fs-dos.so</span> to handle
+  long filenames (via the <span class="keyword option">lfn=</span><var class="keyword varname">lfn_mode</var> option):
+
+  <ul class="ul">
+  <li class="li">Ignore them—display/create only 8.3 filenames.</li>
+
+  <li class="li">Show them—if filenames are longer than 8.3 or if mixed case is used.</li>
+
+  <li class="li">Always create both short and long filenames.</li>
+
+  </ul>
+
+
+  <p class="p">
+  If you use the <span class="keyword option">ignore</span> option, you can specify
+  whether or not to silently truncate filename characters beyond the 8.3 limit.
+  </p>
+
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">International filenames</dt>
+
+<dd class="dd">The DOS filesystem supports DOS <q class="q">codepages</q>
+  (international character sets) for locale filenames.
+  Short 8.3 names are stored using a particular character set 
+  (typically the most common extended characters for a locale
+  are encoded in the 8th-bit character range).
+  All common American, Western, and Eastern European codepages
+  (437, 850, 852, 866, 1250, 1251, 1252) are supported.
+  If you produce software that must access a variety of DOS/Windows 
+  hard disks, or operate in non-US-English countries, this
+  feature offers important portability—filenames will
+  be created with both a Unicode and locale name and are
+  accessible via either name.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The DOS filesystem supports international text in filenames only.
+  No attempt is made to be aware of data contents, with
+  the sole exception of Windows <q class="q">shortcut</q>
+  (<span class="ph filepath">.LNK</span>) files, which will be parsed and
+  translated into symbolic links if you've specified that
+  option (<span class="keyword option">lnk=</span><var class="keyword varname">lnk_mode</var>).
+  </div>
+
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">DOS-QNX permission mapping</dt>
+
+<dd class="dd">DOS doesn't support all the permission bits specified by POSIX.
+  It has a READ_ONLY bit in place of separate READ and
+  WRITE bits; it doesn't have an EXECUTE bit.
+  When a DOS file is created, the DOS READ_ONLY bit is set if all
+  POSIX WRITE bits are off.
+  When a DOS file is accessed, the POSIX READ bit is always assumed
+  to be set for user, group, and other.
+  Since you can't execute a file that doesn't have EXECUTE
+  permission, <span class="ph filepath">fs-dos.so</span> has an option
+  (<span class="keyword option">exe=</span><var class="keyword varname">exec_mode</var>) that lets you specify
+  how to handle the POSIX EXECUTE bit for executables.
+
+</dd>
+
+
+
+
+
+<dt class="dt dlterm">File ownership</dt>
+
+<dd class="dd">Although the DOS file structure doesn't support user IDs and
+  group IDs, <span class="ph filepath">fs-dos.so</span> (by default) doesn't return an
+  error code if an attempt is made to change them.
+  An error isn't returned because a number of utilities attempt to do
+  this and failure would result in unexpected errors.
+  The approach taken is <q class="q">you can change anything to anything
+  since it isn't written to disk anyway.</q>
+
+  <p class="p">
+  The <span class="keyword option">posix=</span> options let you set stricter POSIX
+  checks and enable POSIX emulation.
+  For example, in POSIX mode, an error of <span class="keyword const">EINVAL</span> is flagged for
+  attempts to do any of the following:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li">Set the user ID or group ID to something other than the
+    default (<span class="ph filepath">root</span>).
+  </li>
+
+
+  <li class="li">Remove an <span class="ph codeph">r</span> (read) permission.</li>
+
+
+  <li class="li">Set an <span class="ph codeph">s</span> (set ID on execution) permission.</li>
+
+
+  </ul>
+
+
+  <p class="p">
+  If you set the <span class="keyword option">posix</span> option to <span class="ph codeph">emulate</span> (the default)
+  or <span class="ph codeph">strict</span>, you get the following benefits:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li">The <span class="ph filepath">.</span> and <span class="ph filepath">..</span> directory entries are
+    created in the <span class="ph filepath">root</span> directory.
+  </li>
+
+
+  <li class="li">The directory size is calculated.</li>
+
+
+  <li class="li">The number of links in a directory is calculated, based on its subdirectories.</li>
+
+
+  </ul>
+
+
+</dd>
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys.html" title="The QNX OS provides a rich variety of filesystems. Like most service-providing processes in the OS, these filesystems execute outside the kernel; applications use them by communicating via messages generated by the shared-library implementation of the POSIX API.">Filesystems</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html">Filesystem limits (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html">fs-qtd.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li></ul></div>
+</div></body>
+</html>

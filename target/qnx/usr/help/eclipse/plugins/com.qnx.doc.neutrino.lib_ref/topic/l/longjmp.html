@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="longjmp()" />
+<meta name="abstract" content="Restore the environment saved by setjmp()" />
+<meta name="description" content="Restore the environment saved by setjmp()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-l.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/setjmp.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/siglongjmp.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigsetjmp.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="longjmp" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>longjmp()</title>
+</head>
+<body id="longjmp">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">longjmp()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Restore the environment saved by <span class="keyword apiname">setjmp()</span></em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;setjmp.h&gt;
+
+void longjmp( jmp_buf <var class="keyword varname">env</var>, 
+              int <var class="keyword varname">return_value</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">env</var></dt>
+
+<dd class="dd">The environment saved by a previous call to
+  <a class="xref" href="../s/setjmp.html" title="Save the calling environment for longjmp()"><span class="keyword apiname">setjmp()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">return_value</var></dt>
+
+<dd class="dd">The value that you want <span class="keyword apiname">setjmp()</span> to return.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+
+The <span class="keyword apiname">longjmp()</span> function restores the environment saved in
+<var class="keyword varname">env</var> by a previous call to the
+<a class="xref" href="../s/setjmp.html" title="Save the calling environment for longjmp()"><span class="keyword apiname">setjmp()</span></a> function.
+</p>
+
+
+<p class="p">
+In <span class="keyword">QNX OS</span>,
+the <span class="keyword apiname">setjmp()</span> function does not save the thread's signal mask
+and <span class="keyword apiname">longjmp()</span> does not restore it. If you need to save
+and restore the thread's signal mask, use <span class="keyword apiname">sigsetjmp()</span> and
+<span class="keyword apiname">siglongjmp()</span> instead.
+</p>
+
+
+<div class="note warning"><span class="warningtitle">Warning:</span> 
+<em class="ph i">Don't</em> use <span class="keyword apiname">longjmp()</span> or
+<a class="xref" href="../s/siglongjmp.html" title="Restore the environment saved by sigsetjmp(), including the signal mask"><span class="keyword apiname">siglongjmp()</span></a>
+to restore an environment saved by a call to
+<a class="xref" href="../s/setjmp.html" title="Save the calling environment for longjmp()"><span class="keyword apiname">setjmp()</span></a> or
+<a class="xref" href="../s/sigsetjmp.html" title="Save the environment, including the signal mask"><span class="keyword apiname">sigsetjmp()</span></a> in another
+thread.  If you're lucky, your application will crash; if not, it'll look as if
+it works for a while, until random scribbling on the stack causes it to crash.
+</div>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+<ul class="ul">
+  <li class="li">
+    
+    Using <span class="keyword apiname">longjmp()</span> to jump out of a signal handler can cause
+    unpredictable behavior, unless the signal was generated by
+    the <a class="xref" href="../r/raise.html" title="Generate a signal"><span class="keyword apiname">raise()</span></a> function.
+  </li>
+
+  <li class="li">In addition to the situation explained in the note above,
+    the following condition also results in undefined behavior:
+    <ul class="ul">
+        <li class="li">The <span class="keyword dtype">jmp_buf</span> object represents an execution context
+            that no longer exists (i.e., the block scope containing the
+            <span class="keyword apiname">setjmp()</span> call that populated the object has ended).</li>
+
+    </ul>
+</li>
+
+    <li class="li"><span class="keyword">QNX OS</span> attempts to detect the cases listed below,
+      and when it does, the OS outputs a diagnostic message and terminates the program
+      abnormally via a <span class="keyword const">SIGABRT</span> signal:
+      <ul class="ul">
+          <li class="li">The <span class="keyword dtype">jmp_buf</span> object was not populated by a call to
+            <span class="keyword apiname">setjmp()</span> or <span class="keyword apiname">sigsetjmp()</span>.</li>
+
+          <li class="li">The object was populated via <span class="keyword apiname">setjmp()</span> or
+            <span class="keyword apiname">sigsetjmp()</span> but subsequently corrupted.</li>
+
+      </ul>
+</li>
+
+  </ul>
+
+</div>
+
+
+<div class="p" id="longjmp__unspecified">
+In the restored environment, all components (data types, status flags, and open files)
+have state and values, except for data objects with automatic storage duration.
+For these objects, their values are unspecified if all of the following conditions hold:
+<ul class="ul">
+  <li class="li">They are local to the function containing the corresponding <span class="keyword apiname">setjmp()</span>
+    invocation.</li>
+
+  <li class="li">They do not have a volatile-qualified type.</li>
+
+  <li class="li">They are changed between the <span class="keyword apiname">setjmp()</span> invocation and
+    <span class="keyword apiname">longjmp()</span> call.</li>
+
+</ul>
+
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+A call to <span class="keyword apiname">longjmp()</span> does not return.
+After this function restores the environment, program
+execution continues as if the corresponding call to <span class="keyword apiname">setjmp()</span>
+had just returned the value specified by <var class="keyword varname">return_value</var>.
+If <var class="keyword varname">return_value</var> is 0, the value returned is 1.
+</p>
+
+</div>
+
+
+
+<div class="section" id="longjmp__examples"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<div class="p">
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;setjmp.h&gt;
+
+jmp_buf env;
+
+void rtn( void )
+{
+    printf( "about to longjmp()\n" );
+    longjmp( env, 14 );
+}
+
+int main( void )
+{
+    switch( setjmp( env ) ) {
+    case 0:
+        printf( "after setjmp()\n" );
+        rtn();
+        printf( "back from rtn() (UNEXPECTED!)\n" );
+        break;
+    case 14:
+        printf( "back from longjmp()\n" );
+        break;
+    default:
+        printf( "setjmp() returned something UNEXPECTED!\n" );
+        break;
+    }
+
+    return EXIT_SUCCESS;
+}
+</pre>
+
+produces the following output:
+
+<pre class="pre codeblock">after setjmp()
+about to longjmp()
+back from longjmp()
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">ANSI, POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d762186e384">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d762186e386"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e384 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e386 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e384 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e386 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e384 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d762186e386 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+A strictly-conforming POSIX application can't assume that
+the <span class="keyword apiname">longjmp()</span> function is signal-safe on other platforms.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-l.html">L</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/s/setjmp.html" title="Save the calling environment for longjmp()">setjmp()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/siglongjmp.html" title="Restore the environment saved by sigsetjmp(), including the signal mask">siglongjmp()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigsetjmp.html" title="Save the environment, including the signal mask">sigsetjmp()</a></li></ul></div>
+</div></body>
+</html>

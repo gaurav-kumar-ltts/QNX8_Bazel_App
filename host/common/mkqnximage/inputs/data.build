@@ -1,0 +1,96 @@
+#include "inputs/definitions.inc"
+#include "inputs/uids.inc"
+[num_inodes=*__DATA_INODES__]
+[num_sectors=*__DATA_SIZE__]
+#if defined(__DATA_MAX_SECTORS__)
+[max_sectors=__DATA_MAX_SECTORS__]
+#endif /* __DATA_MAX_SECTORS__ */
+[search=__MKFS_PATH__]
+__DEFAULT_PERMISSIONS__
+
+[prefix=__DATA_PREFIX__]
+
+[+dupignore]
+[+optional]
+
+#if defined(__OPT_PART_SIZES__) && ! defined(OPT_PART_SIZES_full)
+needs_expansion = {
+}
+#endif
+
+
+#############################################
+### Directories
+#############################################
+
+[uid=0 gid=0 dperms=755 type=dir] /
+[uid=0 gid=0 dperms=755 type=dir] var
+[uid=0 gid=0 dperms=755 type=dir] var/etc
+[uid=__RANDOM_ID__ gid=__RANDOM_ID__ type=dir dperms=700] var/random
+[uid=__DUMPER_ID__ gid=__DUMPER_ID__ type=dir dperms=700] var/dumper
+[uid=0 gid=0 dperms=a=rwxt type=dir] var/tmp
+[uid=0 gid=0] var/tmp/keep_files = {
+Delete to have /tmp cleaned on boot
+}
+[uid=__DHCPCD_ID__ gid=__DHCPCD_ID__ type=dir dperms=755] var/dhcpcd
+[uid=__DHCPCD_ID__ gid=__DHCPCD_ID__ type=dir dperms=755] var/run/dhcpcd
+[type=link] var/db=dhcpcd
+[type=link] var/etc/resolv.conf=/data/var/dhcpcd/resolv.conf
+[type=link] var/etc/profile=/system/etc/profile
+[perms=444] var/etc/build.date = output/build/build.date
+
+
+#############################################
+### Users
+#############################################
+
+[uid=0 gid=0 dperms=755 type=dir] home
+
+[gid=0 uid=0 perms=644] var/etc/passwd = output/build/passwd
+[gid=0 uid=0 perms=600 acl=u:__SSHD_ID__:r] var/etc/shadow = output/build/shadow
+
+[gid=0 uid=0 perms=644] var/etc/group = output/build/group
+
+[type=dir gid=0 uid=0 perms=755] var/etc/default
+
+[gid=0 uid=0 perms=644] var/etc/default/passwd = {
+BASEDIR=/data/home
+UIDRANGE=1000
+GIDRANGE=1000
+}
+
+#############################################
+### sshd
+#############################################
+[gid=0 uid=0 dperms=755 type=dir] var/chroot/sshd
+[gid=__SSHD_ID__ uid=__SSHD_ID__ dperms=700 type=dir] var/ssh
+
+# Restrict permissions in home directories
+[uid=0 gid=0 perms=600 dperms=700]
+[type=dir acl=u:__SSHD_ID__:x] home/root
+[type=dir acl=u:__SSHD_ID__:x] home/root/.ssh
+home/root/.ssh/environment = {
+TERM=qansi
+PATH=__IFS_PATH__:/system/bin
+}
+__DEFAULT_PERMISSIONS__
+
+#############################################
+### Miscellaneous
+#############################################
+
+[type=dir uid=0 gid=0 dperms=755] var/etc/settings
+[uid=0 gid=0 perms=644] var/etc/settings/network = {
+HOSTNAME=__OPT_HOSTNAME__
+IP_ADDR=__OPT_IP__
+TIME_SERVERS=__OPT_TIME_SERVERS__
+}
+var/etc/hosts=etc/hosts
+var/etc/protocols=etc/protocols
+var/etc/services=etc/services
+
+#############################################
+### Customization
+#############################################
+
+#include "output/inc/_data_files.inc"

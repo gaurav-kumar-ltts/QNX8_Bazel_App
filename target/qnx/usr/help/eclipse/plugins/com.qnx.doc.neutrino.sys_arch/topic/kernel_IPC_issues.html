@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="IPC issues" />
+<meta name="abstract" content="Since all the threads in a process have unhindered access to the shared data space, wouldn't this execution model “trivially” solve all of our IPC problems? Can't we just communicate the data through shared memory and dispense with any other execution models and IPC mechanisms?" />
+<meta name="description" content="Since all the threads in a process have unhindered access to the shared data space, wouldn't this execution model “trivially” solve all of our IPC problems? Can't we just communicate the data through shared memory and dispense with any other execution models and IPC mechanisms?" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="IPC_issues" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>IPC issues</title>
+</head>
+<body id="IPC_issues">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">IPC issues</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Since all the threads in a process have unhindered access to
+the shared data space, wouldn't this execution model
+<q class="q">trivially</q> solve all of our IPC problems? Can't
+we just communicate the data through shared memory and
+dispense with any other execution models and IPC mechanisms?
+</p>
+
+
+<p class="p">
+If only it were that simple!
+</p>
+
+
+<p class="p">
+One issue is that the access of individual threads to common
+data must be <em class="ph i">synchronized</em>. Having one thread read
+inconsistent data because another thread is part way through
+modifying it is a recipe for disaster. For example, if one
+thread is updating a linked list, no other threads can be
+allowed to traverse or modify the list until the first
+thread has finished. A code passage that must execute
+<q class="q">serially</q> (i.e., by only one thread at a time)
+in this manner is termed a <q class="q">critical section.</q>
+The program would fail (intermittently, depending on how
+frequently a <q class="q">collision</q> occurred) with
+irreparably damaged links unless some synchronization
+mechanism ensured serial access.
+
+
+</p>
+
+
+<p class="p">
+Mutexes, semaphores, and condvars are
+examples of synchronization tools that can be used to
+address this problem. These tools are described later in
+this chapter.
+
+
+
+</p>
+
+
+<p class="p">
+Although synchronization services can be used to allow
+threads to cooperate, shared memory per se can't address a
+number of IPC issues. For example, although threads can
+communicate through the common data space, this works only
+if all the threads communicating are within a single
+process. What if our application needs to communicate a
+query to a database server? We need to pass the details of
+our query to the database server, but the thread we need to
+communicate with lies <em class="ph i">within</em> a database server
+process and the address space of that server isn't
+addressable to us.
+</p>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SCHEDULING.html" title="When and how are scheduling decisions made?">Thread scheduling</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

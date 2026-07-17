@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Creating a new filesystem on your target" />
+<meta name="abstract" content="You can use QNX utilities to create a new filesystem on your target." />
+<meta name="description" content="You can use QNX utilities to create a new filesystem on your target." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="filesystem_create" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Creating a new filesystem on your target</title>
+</head>
+<body id="filesystem_create">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Creating a new filesystem on your target</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">You can use QNX utilities to create a new filesystem on your target.</p>
+
+		<div class="section"><h2 class="title sectiontitle">Generic instructions</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The instructions below are generic instructions for creating a filesystem on a target
+				system. The details will vary depending on the type of filesystem, and the board and
+				media on which you are creating the filesystem (e.g., a DOS filesystem on an x86
+				board with a SATA hard drive), but the tasks you need to complete and their sequence
+				are valid for all QNX supported boards.</p>
+
+			<p class="p">To create a new filesystem on your target, connect to the target, and on the target:</p>
+
+			<ol class="ol">
+				<li class="li">Load the appropriate device driver (e.g., <span class="keyword cmdname">devb-eide</span>).</li>
+
+				<li class="li">Identify the relevant device.</li>
+
+				<li class="li">Use <span class="keyword cmdname">fdisk</span> to initialize or edit the partition table to delete
+					unwanted partitions, and add the partition you want to use for your new filesystem
+					(see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fdisk.html"><span class="keyword cmdname">fdisk</span></a> in the
+						<cite class="cite">Utilities Reference</cite>).</li>
+
+				<li class="li">Use <span class="keyword cmdname">mk</span><var class="keyword varname">filesystem_type</var><span class="keyword cmdname">fs</span>
+					(e.g., <span class="keyword cmdname">mkdosfs</span>, <span class="keyword cmdname">mkqnx6fs</span>) to create the
+					filesystem in the appropriate partition.</li>
+
+				<li class="li">Use <span class="keyword cmdname">mount</span> to mount the partition that has your new filesystem
+					(see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a> in the
+						<cite class="cite">Utilities Reference</cite>).</li>
+
+			</ol>
+
+			<p class="p">You should now have a new filesystem mounted in the partition you created for it.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Example</h2>
+			
+			<p class="p">As an example, we'll to create a filesystem on an MMC device on a (fictitious) DK Elsinore Ghost 8 board.
+				We assume that you are already connected to your board with a terminal emulation program such as
+				Hyperterminal or PuTTy (for more information, see the <cite class="cite">BSP User's Guide</cite> that accompanies the
+				BSP for your board).</p>
+
+			<p class="p">For this example, the generic instructions above become, connect to your target and:</p>
+
+			<ol class="ol">
+				<li class="li"><p class="p">Load the appropriate driver.</p>
+
+					<p class="p">We'll assume that the default buildfile starts the device driver
+						(<span class="keyword cmdname">devb-sdmmc-elsinore-g8</span>) so nothing more needs to be done.</p>
+</li>
+
+				<li class="li"><p class="p">Identify the relevant device.</p>
+
+					<p class="p">An <span class="keyword cmdname">ls</span> command in the target board's <span class="ph filepath">/dev</span> directory shows
+						two devices: <span class="ph filepath">/dev/hd0</span> and <span class="ph filepath">/dev/hd1</span>.</p>
+
+					<p class="p">Since the board has an SD card, you need to determine which device is the SD card, and which is
+						the MMC device. One (admittedly inelegant method) is to shut down the board and reboot without,
+						then with the SD card to see which which device corresponds to the SD card. The MMC device is,
+						course, the other device.</p>
+
+					<p class="p">We'll assume that <span class="ph filepath">/dev/hd0</span> is the MMC device.</p>
+</li>
+
+				<li class="li"><p class="p">Print the current partition table for the MMC device:</p>
+
+					<pre class="pre codeblock">fdisk /dev/hd0 show</pre></li>
+
+				<li class="li"><p class="p">We'll assume that there is already a FAT32 partition in slot <span class="ph codeph">1</span>,
+						which we want to remove:</p>
+
+					<pre class="pre codeblock">fdisk /dev/hd0 delete -s 1</pre></li>
+
+				<li class="li"><p class="p">Create the new partition:</p>
+
+					<pre class="pre codeblock">fdisk /dev/hd0 add -t 177</pre></li>
+
+				<li class="li"><p class="p">Refresh the partition list:</p>
+
+					<pre class="pre codeblock">mount -e /dev/hd0</pre>
+					<p class="p">which shows the new partition:</p>
+
+					<pre class="pre codeblock">/dev/hd0t177</pre></li>
+
+				<li class="li"><p class="p">Format the Power-Safe filesystem in the new partition (see
+						<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html"><span class="keyword cmdname">mkqnx6fs</span></a> in the <cite class="cite">Utilities Reference</cite>):</p>
+
+					<pre class="pre codeblock">mkqnx6fs /dev/hd0t177</pre></li>
+
+				<li class="li"><p class="p">Mount the filesystem in the root directory:</p>
+
+					<pre class="pre codeblock">mount /dev/hd0t177 /</pre></li>
+
+			</ol>
+
+			<div class="note"><span class="notetitle">Note:</span> You can use the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/c/chkqnx6fs.html"><span class="keyword cmdname">chkqnx6fs</span></a> utility to check your Power-Safe filesystem.</div>
+
+			<p class="p">For more information about Power-Safe filesystems, see
+				<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_QNX6_filesystem.html">Power-Safe filesystem</a></q> in the <cite class="cite">System Architecture</cite> guide, and
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="keyword cmdname">fs-qnx6.so</span></a> in the <cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

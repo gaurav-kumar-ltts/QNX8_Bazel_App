@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Optimize the splash screen application" />
+<meta name="abstract" content="To display your content as quickly as possible, you can optimize your splash screen application, which is the program that shows the content on the display." />
+<meta name="description" content="To display your content as quickly as possible, you can optimize your splash screen application, which is the program that shows the content on the display." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optmize_app_choose_render.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optimize_app_optimize_framebuffer_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optimize_app_optimize_screen_property_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optimize_app_optimize_windows_screen.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optimizing_screen_app_use_threads.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/optimize_app_statically_linked_libraries.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_optimizing-startup_optmize_screen_app" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Optimize the splash screen application</title>
+</head>
+<body id="cscreen_optimizing-startup_optmize_screen_app">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Optimize the splash screen application</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        To display your content as quickly as possible, you can optimize your <em class="ph i">splash screen application</em>,
+        which is the program that shows the content on the display.</p>
+
+        <p class="p">Based on your system requirements, the content you
+            show can be a graphic (e.g., your company's logo) or even video (e.g., a live feed from a camera). If you
+            implement your application to use more features and capabilities for rendering your content, the more demands
+            you may put on <span class="keyword">Screen</span> and the system resources. <span class="keyword">Screen</span>
+            on its own is loaded quickly, but an implementation can use features that cause <span class="keyword">Screen</span>
+            to start drivers or create a framebuffer, which increases the time to show the content on the display.</p>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            Optimization techniques that are described in this chapter aren't applicable to systems that
+            don't support graphics and displays.
+        </div>
+
+        <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Optimize the splash screen application.</span>
+            
+            <br /><img class="image" src="../images/bootup_timeline_screen_areafour.svg" width="624" /><br />
+        </div>
+
+        <div class="p"> Here are some techniques to consider when you implement your splash screen application:
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Optimize content</dt>
+
+                    <dd class="dd">There are several ways to optimize the content you show on the display. There are always trade-offs between the
+                        compression used for the image, the file size of the image, the quality of the image, and the CPU time needed to
+                        process the image. Here are some techniques you can use: <ul class="ul">
+                            <li class="li">If possible, include the image as part of the splash screen application binary so that it's directly
+                                read into memory. Reading an image from file instead of memory is an additional operation you can avoid to
+                                save time. Reading an image from memory also means that you don't have to include
+                                <span class="ph filepath">libimg.so</span> in the primary IFS to read an image. Instead, you need to statically link
+                                only the codec in your binary to decode the image.</li>
+
+                            <li class="li">Use RLE compression for image files that have multiple repeating areas in them. RLE-compressed files use
+                                less CPU, but sometimes have larger files.</li>
+
+                            <li class="li">If your content must be read from a file, ensure that the file size is optimized. The larger the file,
+                                the more likely it can increase the size of your primary IFS.</li>
+
+                            <li class="li">Another consideration is when you show an image or video, the codecs must be included in the primary IFS.
+                                Choose an image format that uses a smaller codec. Ultimately, a larger primary IFS increases the time it
+                                takes for your system to be loaded. For more information about optimizing the primary IFS, see <q class="q"><a class="xref" href="cscreen_optimizing-startup_configure_ifs.html" title="To start up as soon as possible, we recommend that you include only the necessary files (libraries, configuration files, device drivers, binaries, etc.) in the primary IFS.">Configure a primary and a secondary IFS on the System</a></q> in this chapter.</li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Prevent <span class="keyword">Screen</span> from starting additional drivers</dt>
+
+                    <dd class="dd">Depending on what your splash screen applications does, it may cause <span class="keyword">Screen</span>
+                        to start device drivers, which can increase the time it takes to show content on the display. 
+                        Here are some techniques to prevent device drivers from starting: <ul class="ul">
+                            <li class="li">
+                                Use <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_rendering-software.html">software rendering</a>
+                                for your application. In other words, avoid the use of hardware rendering, such as
+                                OpenGL ES, which requires that <span class="keyword">Screen</span> start additional
+                                drivers. For more information about the types of rendering you can use, see
+                                <a class="xref" href="optmize_app_choose_render.html" title="The way you choose to render the content to a display can affect how quickly the content is rendered–the reason being that some types of rendering must load more resources and start additional device drivers.">Choose how to render to a display</a>, below, and the
+                                <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_rendering.html">
+                                    <q class="q">Rendering</q></a> chapter in the <cite class="cite">Screen Developer's Guide</cite>.
+                            </li>
+
+                            <li class="li">
+                                You use <span class="keyword const">SCREEN_PROPERTY_USAGE</span> in your splash screen application to specify
+                                 the intended use of the buffers, however, the device driver is started by
+                                 <span class="keyword">Screen</span> only when a function that requires it is called. For
+                                 that reason, to improve the time it takes for content to show on the display, we
+                                 suggest that you avoid or delay function calls later in your application until content
+                                 is show on the display. 
+                                 <p class="p">
+                                     For more information about the settings that cause additional drivers to start, see 
+                                     <q class="q"><a class="xref" href="optimize_app_optimize_screen_property_usage.html" title="Device (other than display) drivers are started when they are first needed by a call to an API.">Optimize the use of calls to APIs</a></q> in this chapter.
+                                 </p>
+
+                            </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Prevent the creation of framebuffers</dt>
+
+                    <dd class="dd"> In general, avoid creating framebuffers:
+                        <ul class="ul">
+                            <li class="li">
+                                Optimize the usage of windows in your application to use as few <span class="keyword">Screen</span>
+                                features as possible. For more information, see 
+                                <q class="q"><a class="xref" href="optimize_app_optimize_windows_screen.html" title="We recommend that you use a single, static window buffer (SCREEN_PROPERTY_STATIC) whenever possible, and that you try to load the image directly into the window buffer.">Optimize the usage of windows from Screen</a></q> in this chapter.
+                            </li>
+
+                            <li class="li">
+                                Use images that are the same size as the display to avoid scaling, and use window buffers
+                                sizes that match the resolution of the display. For more information, see the
+                                <q class="q"><a class="xref" href="optimize_app_optimize_framebuffer_usage.html" title="Using framebuffers for composition significantly increases the time required to render an image on a display.">Avoid using a framebuffer</a></q> in this chapter.
+                            </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Application implementation</dt>
+
+                    <dd class="dd"> Here are some general techniques to help your application run more quickly:
+                        <ul class="ul">
+                            <li class="li">
+                                Use a single thread in your splash screen application to show the content. Use multiple
+                                threads when you have to start additional device drivers and when you have a multicore
+                                system, which permits you to perform operations in parallel. For example, you could
+                                decode an image and render the image in parallel. For more information about using
+                                multiple threads, see the <a class="xref" href="optimizing_screen_app_use_threads.html" title="You may choose (or need) to use a mix of rendering options for your application.">Use multiple threads</a> section
+                                later in this chapter. For more information about developing multicore systems, see the
+                                <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/multicore.html">Multicore Processing</a></q>
+                                chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+                            </li>
+
+                            <li class="li">
+                                If your application uses specific libraries or files for processing or showing an image,
+                                use statically linked libraries when possible. For example, you can statically link the
+                                libraries required to decode your image; that way, you don't need to include it in the
+                                primary IFS. For more information, see the <a class="xref" href="optimize_app_statically_linked_libraries.html" title="Shared libraries take time to load. When an application is linked to a shared object, the process loader first checks whether that shared object is already loaded.">Use statically linked libraries</a>
+                                section later in this guide.
+                            </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+        <p class="p">
+            It's important to remember that the techniques that you use often have trade-offs in terms of time savings
+            or impacts to your overall system. It's your responsibility to characterize your system and determine the best
+            techniques for optimizing it. For example, you can use PNG images for your splash screen, but the trade-off is
+            that you must load a codec. If you decide to use RLE compression for your images, you might save on CPU
+            processing time at the expense of increasing the primary IFS size.
+        </p>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/optmize_app_choose_render.html">Choose how to render to a display</a></strong><br />
+The way you choose to render the content to a display can affect how quickly the content is rendered–the reason being that some types of rendering must load more resources and start additional device drivers.</li>
+<li class="link ulchildlink"><strong><a href="../topic/optimize_app_optimize_framebuffer_usage.html">Avoid using a framebuffer</a></strong><br />
+Using framebuffers for composition significantly increases the time required to render an image on a display.</li>
+<li class="link ulchildlink"><strong><a href="../topic/optimize_app_optimize_screen_property_usage.html">Optimize the use of calls to APIs</a></strong><br />
+Device (other than display) drivers are started when they are first needed by a call to an API.</li>
+<li class="link ulchildlink"><strong><a href="../topic/optimize_app_optimize_windows_screen.html">Optimize the usage of windows from Screen</a></strong><br />
+We recommend that you use a single, static window buffer (<span class="keyword const">SCREEN_PROPERTY_STATIC</span>) whenever possible,         and that you try to load the image directly into the window buffer.</li>
+<li class="link ulchildlink"><strong><a href="../topic/optimizing_screen_app_use_threads.html">Use multiple threads</a></strong><br />
+ You may choose (or need) to use a mix of rendering options for your application.</li>
+<li class="link ulchildlink"><strong><a href="../topic/optimize_app_statically_linked_libraries.html">Use statically linked libraries</a></strong><br />
+Shared libraries take time to load. When an application is linked to a shared object, the process loader first checks whether that shared object is already loaded.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

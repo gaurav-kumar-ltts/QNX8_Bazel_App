@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel callout categories" />
+<meta name="abstract" content="The startup library provides kernel callouts that look after different categories of tasks. You can use these callouts as models when you write your own." />
+<meta name="description" content="The startup library provides kernel callouts that look after different categories of tasks. You can use these callouts as models when you write your own." />
+<meta name="DC.subject" content="kernel callouts, functions, categories of functions, interrupt, types, interrupts, kernel callouts, startup, library, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="kernel callouts, functions, categories of functions, interrupt, types, interrupts, kernel callouts, startup, library, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_cats" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Kernel callout categories</title>
+</head>
+<body id="callout_cats">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Kernel callout categories</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The startup library provides kernel callouts that look after different categories of
+		tasks. You can use these callouts as models when you write your own.</p>
+
+		<div class="section"><h2 class="title sectiontitle">Source code</h2>
+			
+			<div class="p">The source code for kernel callouts is found in the BSP source code directories,
+				originally installed in
+				<span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib/</span>.
+				This directory and its subdirectories include generic code as well as
+				processor-specific kernel callouts. Before you begin writing a kernel callout,
+				check these directories to see if a callout is already available:
+			<ul class="ul">
+				<li class="li">for your device or board (no need to write a kernel callout)</li>
+
+				<li class="li">for a device similar to your device or board (you need to modify the similar kernel
+					callout)</li>
+
+			</ul>
+</div>
+
+			<p class="p">In the CPU-dependent level of the source file tree, look for files with
+				names that match the pattern: <span class="ph filepath">callout_*.[sS]</span>. These files are the
+				callouts provided by the startup library. Whether a file ends in <span class="ph filepath">.s</span>
+				or <span class="ph filepath">.S</span> depends on whether it's sent through the C preprocessor
+				before being handed off to an assembler. For simplicity, we'll simply refer to both
+				types as <span class="ph filepath">.s</span> files.</p>
+
+			<div class="p">The filenames break down further as follows:
+				<span class="ph filepath">callout_<var class="keyword varname">category</var>_<var class="keyword varname">device</var>.s</span>,
+				where <var class="keyword varname">category</var> is one of:
+				<ul class="ul">
+					<li class="li"><span class="ph codeph">debug</span> (kernel debug)</li>
+
+					<li class="li"><span class="ph codeph">interrupt</span> (interrupt controller)</li>
+
+					<li class="li"><span class="ph codeph">timer</span> (timer and clock)</li>
+
+					<li class="li"><span class="ph codeph">reboot</span> (system reboot)</li>
+
+					<li class="li"><span class="ph codeph">power</span> (power management; not currently supported)</li>
+
+					<li class="li"><span class="ph codeph">cache</span> (cache control)</li>
+
+				</ul>
+
+				and where <var class="keyword varname">device</var> identifies the unique hardware the callouts were
+				written for.</div>
+
+			<p class="p">Typically, the kernel uses all or none of the callouts in a particular
+				source file. 
+				For more information, see <q class="q"><a class="xref" href="callout_write.html" title="If your hardware platform isn't supported by the kernel callouts in the startup library, or by any of the available board-specific kernel callouts, you will need to write your own callout.">Writing a kernel callout</a></q>
+				in this chapter.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Macros for kernel callouts</h2>
+			
+			
+			
+			
+			
+			<p class="p">All kernel callouts use macros found in <span class="ph filepath">callout.ah</span> to define their
+				start and end. For example, the following excerpt describes the
+				<span class="keyword apiname">interrupt_id_405()</span> kernel callout:</p>
+
+			<pre class="pre codeblock">CALLOUT_START interrupt_id_405, 0, 0 
+	li %r14,-1     
+	mfdcr %r5,PPC405_DCR_UIC0_MSR 
+	...
+	andc %r4,%r4,%r5 
+	mtdcr PPC405_DCR_UIC0_ER,%r4 
+	1: 
+CALLOUT_END interrupt_id_405 
+</pre>
+			<div class="p">The <span class="keyword const">CALLOUT_START</span> parameters specify the following information:
+				<ul class="ul">
+					<li class="li">The name of the kernel callout (for example,
+						<span class="keyword apiname">interrupt_id_405</span>)</li>
+
+					<li class="li">The address of a variable that specifies the amount of static read/write
+						storage the callout requires, or 0, if no storage is required</li>
+
+					<li class="li">The name of a patch routine that modifies the callout code after the startup code
+						copies it to kernel memory, or 0, if the callout requires no patch routine</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p"><span class="keyword const">CALLOUT_END</span> specifies the <span class="keyword const">CALLOUT_START</span> to match
+				(for example, <span class="keyword apiname">interrupt_id_405</span>).</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="callout_macros.html" title="The build process recognizes that the code between CALLOUT_START and CALLOUT_END is a kernel callout that needs to be saved to a safe place in memory.">Kernel callout start and end macros</a></q> and
+				<q class="q"><a class="xref" href="callout_patch.html" title="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code.">Patching the kernel callout code</a></q> in this chapter.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Patch routines</h2>
+			
+			
+			
+			<p class="p">Kernel callout code references addresses using routines that edit code after it has
+				been copied into system memory. When a callout uses one of these routines, it
+				is specified using the <span class="keyword const">CALLOUT_START</span> constant. If the callout
+				code only needs to access CPU registers, a patch routine is not required.</p>
+
+			<div class="p">For example, in the following excerpt from a <span class="keyword apiname">display_char()</span> kernel
+				callout, the <span class="keyword const">CALLOUT_START</span> macro's third argument invokes the routine
+				<span class="keyword apiname">patch_debug()</span>. This routine replaces the
+				<span class="ph codeph">0x1234</span> and <span class="ph codeph">0x5678</span> memory locations with the
+				base address of the serial controller register:
+			<pre class="pre codeblock">CALLOUT_START display_char_5200, 0, patch_debug
+lis   %r6,0x1234
+ori   %r6,%r6,0x5678</pre></div>
+
+			<p class="p">For further discussion of when these routines are necessary, see <q class="q"><a class="xref" href="callout_patch.html" title="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code.">Patching the kernel callout code</a></q> in this chapter.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

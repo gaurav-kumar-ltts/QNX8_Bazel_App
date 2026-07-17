@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="timestamp" />
+<meta name="abstract" content="Write a timestamp to indicate when an event or action occurred" />
+<meta name="description" content="Write a timestamp to indicate when an event or action occurred" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.fastboot/topic/fb_timestamp.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/time.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timestamp" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>timestamp</title>
+</head>
+<body id="timestamp">
+
+    <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">timestamp</span></h1>
+
+    
+    
+    <div class="body refbody"><p class="shortdesc"><em class="ph i">Write a timestamp to indicate when an event or action occurred</em></p>
+
+        <div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+            
+            <pre class="pre codeblock">timestamp [[-f] <var class="keyword varname">path_file</var> [-s] <var class="keyword varname">string_name</var>] </pre>
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+            <p class="p"><span class="keyword">QNX OS</span></p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Options:</h2> 
+            
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">string_name</var></dt>
+
+                    <dd class="dd">The string to identify the timestamp. The string you use
+                        is up to you. If the string includes spaces, you must surround
+                        it with double quotes(<tt class="ph tt">""</tt>).</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword option">-f</span> <var class="keyword varname">path_file</var></dt>
+
+                    <dd class="dd">Write to the specified path and filename. For example,
+                        <span class="ph filepath">/dev/shmem/mytimestamp.log</span>.
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">-s</var></dt>
+
+                    <dd class="dd"> Write the timestamps and strings to standard output.</dd>
+
+                
+            </dl>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Description:</h2>
+            
+            
+            
+            <p class="p">This utility allows you to indicate the number of clock cycles since the
+                board was reset and associate a string with it. The string typically represents an event or action on the system,
+                such as when a driver or program is started.
+                Typically, you use this utility to perform measurements, which are useful
+                to optimize boot times and to identify the time it takes for components
+                to boot.</p>
+
+            <div class="p">
+                If no options are provided, the results are written to
+                <span class="ph filepath">/dev/shmem/timestamp.log</span> on the target.
+               <div class="note"><span class="notetitle">Note:</span>  You can't simultaneously write to a file and to standard output
+                when you use this utility.</div>
+
+            </div>
+
+
+            <h3 class="title sectiontitle">Variation in timers</h3>
+            
+            <div class="p">Timestamp values are provided using 
+                     a call to the <span class="keyword apiname">ClockCycles()</span>
+                     kernel function. This function provides the
+                     <span class="keyword cmdname">timestamp</span> utility with the number of
+                     clock cycles since the board was reset.
+                     
+                     <div class="note"><span class="notetitle">Note:</span> These measurements aren't entirely accurate because
+                         they're taken close to—but not simultaneously
+                         with— the string that you want logged. The 
+                         <span class="keyword cmdname">timestamp</span> utility is a process
+                         that's run in the background at a normal priority,
+                         as closely as possible to the event or action being measured.
+                     </div>
+
+            </div>
+
+            <p class="p">
+                On some boards, the time reported by the <span class="keyword cmdname">timestamp</span>
+                utility correlates very closely with the time elapsed since power 
+                was actually applied to the board (i.e., a board
+                reset was done either in software or by pressing the reset button). This
+                is the most desirable implementation. In some cases, however,
+                the time reported by the <span class="keyword cmdname">timestamp</span>
+                utility could represent the time since the IPL started, or 
+                even the time since the startup driver started. This
+                situation results in measurements that are much smaller than would
+                be observed using a stopwatch from power on. These measurements are
+                obviously less accurate, but can still be useful in comparing
+                one software build to another.
+            </p>
+
+            <p class="p">
+                The particular measurements you get depend on whether:</p>
+
+            <ul class="ul">
+                <li class="li">the board provides a counter in the hardware that starts
+                    as close as possible to power-on reset (PoR). 
+                    If the board doesn't provide a hardware counter, you can
+                    use the counter provided in the kernel, but it won't start
+                    counting until the kernel takes control, which is well after PoR.
+                </li>
+
+                <li class="li">the IPL/startup driver can (or actually does) initialize
+                    this hardware counter to zero.
+                </li>
+
+                <li class="li">the startup driver performs a <q class="q">cold</q> or <q class="q">warm</q> 
+                    reset on shutdown (software reset). A cold reset generally
+                    initializes the hardware more thoroughly than a warm reset,
+                    so a cold reset would be more 
+                    likely to set the hardware counter to 0.</li>
+
+            </ul>
+
+        <h3 class="title sectiontitle">Contents of the <span class="ph filepath">timestamp.log</span></h3>
+            <p class="p">
+               The <span class="ph filepath">/dev/shmem/timestamp.log</span> file looks like this—the strings you see are
+               application specific, which means there may be system-defined ones:</p>
+
+            <pre class="pre">TIMESTAMP: (IFS SCRIPT START) at 0.484901 seconds
+TIMESTAMP: (LaunchingAPP) at 0.629556 seconds
+TIMESTAMP: (DoneLoadingScreen) at 0.661630 seconds
+TIMESTAMP: (DoneLoadingAPP) at 1.837985 seconds</pre>
+
+            
+            
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Example:</h2>
+            
+            <div class="p">
+               To write the time to a custom file: 
+                <pre class="pre codeblock">if /proc/boot/waitfor /dev/screen 10; then
+    /proc/boot/timestamp -f /dev/shmem/mytimestamp.log "STARTING SCREEN" &amp;</pre>
+            </div>
+
+            <div class="p">
+               To write the time to standard output:
+                <pre class="pre codeblock">if /proc/boot/waitfor /dev/screen 10; then
+    /proc/boot/timestamp -s "STARTING SCREEN" &amp;</pre>
+            </div>
+
+        </div>
+
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.fastboot/topic/fb_timestamp.html">Using timestamp to measure startup times</a></li></ul></div>
+
+<div class="linklist relinfo relref"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/t/time.html" title="Report execution time of a command (POSIX, toybox)">time</a></li></ul></div>
+</div></body>
+</html>

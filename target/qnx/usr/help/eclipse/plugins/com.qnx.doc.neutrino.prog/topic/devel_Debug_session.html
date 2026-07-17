@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A simple debug session" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qconn.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Debug_session" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A simple debug session</title>
+</head>
+<body id="Debug_session">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A simple debug session</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+In this example, we'll be debugging our <q class="q">Hello, world!</q> program via a TCP/IP link.
+We go through the following steps:
+<ul class="ul">
+<li class="li">configuring the target</li>
+
+<li class="li">compiling for debugging</li>
+
+<li class="li">starting the debug session</li>
+
+<li class="li">using basic debugging commands</li>
+
+</ul>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Configure the target</h2>
+
+
+<div class="p">
+Let's assume an x86_64 target using a basic TCP/IP configuration.
+The following lines (from the buildfile you'd use to create the OS image) show what's needed to host
+the sample session:
+
+<pre class="pre codeblock">io-sock -m phy -m usb -d axge
+if_up -p axge0
+ifconfig axge0 192.0.2.172/24
+devc-pty &amp;
+[+session] pdebug 8000 &amp;
+</pre>
+</div>
+
+
+<p class="p">
+The above specifies that the host IP address is 10.0.1.172.
+The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html"><span class="keyword cmdname">pdebug</span></a>
+agent is configured to use port 8000.
+</p>
+
+
+<p class="p">
+You could instead run
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qconn.html"><span class="keyword cmdname">qconn</span></a>
+on the target, and the behavior would be similar:
+<span class="keyword cmdname">qconn</span> listens on the same port and starts <span class="keyword cmdname">pdebug</span> if a
+<span class="keyword cmdname">target qnx</span> <var class="keyword varname">ip</var>:<var class="keyword varname">port</var> connection comes in,
+and then the communication would be the same as with <span class="keyword cmdname">pdebug</span> alone.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Compile for debugging</h2>
+
+
+<div class="p">
+We'll be using the x86_64 compiler.
+Note the <span class="keyword option">-g</span> option, which makes the compiler include debugging information:
+
+<pre class="pre codeblock">$ qcc -V gcc_ntox86_64 -g -o hello hello.c  
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Start the debug session</h2>
+
+
+<div class="p">
+For this simple example, the source can be found in our
+working directory.
+First, let's start the session; to reduce document clutter, we'll run the debugger in quiet mode:
+
+<pre class="pre codeblock">ntox86_64-gdb -quiet
+</pre>
+</div>
+
+
+<div class="p">
+The <span class="keyword cmdname">gdb</span> debugger provides its
+own shell; by default its prompt is <span class="ph codeph">(gdb)</span>.
+Specify the target IP address and the port used by pdebug:
+
+<pre class="pre codeblock">(gdb) target qnx 10.0.1.172:8000
+Remote debugging using 10.0.1.172:8000
+MsgNak received - resending
+Remote target is little-endian
+</pre>
+</div>
+
+
+<div class="p"> Upload the debug executable to the target. Note that the file has to be in the target system's
+pathname space, so we can get the executable via a network filesystem, <span class="keyword cmdname">sftp</span>, or,
+if no filesystem is present, via the upload command: 
+
+<pre class="pre codeblock">(gdb) upload hello /tmp/hello
+</pre>
+</div>
+
+
+<div class="p">
+Load symbolic debug information from the current working directory
+(here, <span class="ph filepath">hello</span> must reside on the host system):
+
+<pre class="pre codeblock">(gdb) file hello
+Reading symbols from hello...done.
+</pre>
+</div>
+
+
+<p class="p">
+You don't need to use the <span class="keyword cmdname">file</span> command if you specify the executable name when you
+start <span class="keyword cmdname">gdb</span> (e.g., <span class="keyword cmdname">ntox86_64-gdb -quiet hello</span>).
+</p>
+
+
+<div class="p">
+Start the program:
+
+<pre class="pre codeblock">(gdb) run hello
+Starting program:  /tmp/hello
+Trying to find symbol file for ldqnx-64.so.2
+</pre>
+</div>
+
+
+<div class="p">
+Set a breakpoint on <span class="keyword apiname">main()</span>:
+
+<pre class="pre codeblock">(gdb) break main
+Breakpoint 1 at 0x80483ae: file hello.c, line 8.
+</pre>
+</div>
+
+
+<div class="p">
+Allow the program to continue to the breakpoint found at <span class="keyword apiname">main()</span>:
+
+<pre class="pre codeblock">(gdb) c
+Continuing.
+Breakpoint 1, main () at hello.c:8
+8       gettimeofday (&amp;when, NULL);
+</pre>
+</div>
+
+
+<p class="p">
+Continue to debug the program as necessary.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Basic debugger commands</h2>
+
+
+<div class="p">
+While you're in a debug session, you can use any of the following commands as the next action:
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword cmdname">next</span></dt>
+
+<dd class="dd">Continue to the next source line in the current (innermost) stack frame.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">list</span></dt>
+
+<dd class="dd">List the specified function or line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">break</span></dt>
+
+<dd class="dd">Set a breakpoint on the specified function or line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">help</span></dt>
+
+<dd class="dd">Get the help main menu.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">help data</span></dt>
+
+<dd class="dd">Get the help data menu.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">help inspect</span> </dt>
+
+<dd class="dd">Get help for the <span class="keyword cmdname">inspect</span> command.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">inspect</span> <var class="keyword varname">y</var></dt>
+
+<dd class="dd">Inspect the contents of variable <var class="keyword varname">y</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">set y=3</span></dt>
+
+<dd class="dd">Assign a value to variable <var class="keyword varname">y</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">bt</span></dt>
+
+<dd class="dd">Get a backtrace.</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+For more information about these commands and their arguments, see
+<a class="xref" href="https://www.gnu.org/software/gdb/documentation/" target="_blank"><span class="ph filepath">https://www.gnu.org/software/gdb/documentation/</span></a>,
+or use the <span class="keyword cmdname">help</span> <var class="keyword varname">cmd</var> command
+in <span class="keyword cmdname">gdb</span>.
+</p>
+
+
+<div class="p">
+Let's see how to use some of these basic commands.
+First, here's the <span class="keyword cmdname">list</span> command:
+
+<pre class="pre codeblock">(gdb) list
+3
+4   main () {
+5       struct timeval when;
+6       int x,y,z;
+7
+8       gettimeofday (&amp;when, NULL);
+9       printf ("Hi ya!\n");
+10
+11      x=3;
+12      y=2;
+</pre>
+</div>
+
+
+<div class="p">
+Press <span class="keyword key">Enter</span> to repeat the last command:
+
+<pre class="pre codeblock">(gdb) &lt;enter&gt;
+13      z=3*2;
+14
+15      exit (0);
+16  }
+</pre>
+</div>
+
+
+<div class="p">
+Break on line 11:
+
+<pre class="pre codeblock">(gdb) break 11
+Breakpoint 2 at 0x80483c7: file hello.c, line 11.
+</pre>
+</div>
+
+
+<div class="p">
+Continue until the first breakpoint:
+
+<pre class="pre codeblock">(gdb) continue
+Continuing.
+Hi ya!
+Breakpoint 2, main () at hello.c:11
+11      x=3;
+</pre>
+</div>
+
+
+<p class="p">
+Notice that the above command went past the <span class="keyword apiname">printf()</span> statement at line 9, so
+the output from the call is displayed.
+</p>
+
+
+<div class="p">
+Inspect variable <var class="keyword varname">y</var>, using the short form of the <span class="keyword cmdname">inspect</span> command:
+
+<pre class="pre codeblock">(gdb) inspect y
+$1 = -1338755812
+</pre>
+</div>
+
+
+<div class="p">
+Get some help on the <span class="keyword cmdname">step</span> and <span class="keyword cmdname">next</span> commands:
+
+<pre class="pre codeblock">(gdb) help s
+Step program until it reaches a different source line.
+Usage: step [N]
+Argument N means step N times (or till program stops for another reason).
+(gdb) help n
+Step program, proceeding through subroutine calls.
+Usage: next [N]
+Unlike "step", if the current source line calls a subroutine,
+this command does not enter the subroutine, but instead steps over
+the call, in effect treating it as a single source line.
+</pre>
+</div>
+
+
+<div class="p">
+Go to the next line of execution:
+
+<pre class="pre codeblock">(gdb) next
+12      y=2;
+(gdb) next
+13      z=3*2;
+(gdb) inspect z
+$2 = 1
+(gdb) next
+15      exit (0);
+(gdb) inspect z
+$3 = 6
+</pre>
+</div>
+
+
+<div class="p">
+Continue program execution:
+
+<pre class="pre codeblock">(gdb) continue
+Continuing.
+
+Program exited normally.
+</pre>
+</div>
+
+
+<div class="p">
+Quit the debugger session:
+
+<pre class="pre codeblock">(gdb) quit
+The program is running. Exit anyway? (y or n) y
+</pre>
+</div>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel.html" title="Let's start by looking at some things you should consider when you start to write a program for the QNX OS.">Compiling and Debugging</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html">devc-pty</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html">gdb</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html">pdebug</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qconn.html">qconn</a></li></ul></div>
+</div></body>
+</html>

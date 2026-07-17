@@ -1,0 +1,97 @@
+#!/bin/bash
+# Script to facilitate the building, running and reporting coverage of unittests with a QNX
+# target. Script is designed to for targets built with mkqnximage though the target requirements
+# are minimal.
+#
+# Requires that three environment variables are set:
+#
+# UNITTEST_ARCH - Set to the architecture to be built, x86_64, aarch64
+# UNITTEST_TARGET - hostname or ip address of target
+# UNITTEST_PREFIX - The path that is mounted on your target as /fs/qnx.  This can be read-only.
+#
+# The tests are not copied to the target, instead a symbolic link is created at /data/unittest
+# that links to the unit test directory on the host through the /fs/qnx mount point.
+#
+# Invocation:
+#    unittest_nto
+#        Build but do not run tests
+#
+#    unittest_nto clean
+#        Clean unit test directory
+#
+#    unittest_nto run [test-name]
+#        Run unit tests. By default all tests are run though this can be limited to a single test by
+#        specifying its name.
+#
+#    unittest_nto report [test-name]
+#        Run test(s), fetch coverage files from target and generate coverage report (in lcov_report).
+#
+#    unittest_nto cover [test-name]
+#        Run test(s), fetch coverage files from target and use lcov to generate a tracefile, coverage.info.
+#
+#    unittest_nto debug test-name
+#        Debug a test on the target.  GDB commands can be put in a file called gdbinit to be executed
+#        on startup. If this file does not exist, one is created and populated with a GDB 'run' command.
+
+errors=0
+
+if [ -z "$UNITTEST_TARGET" ]; then
+    echo Need to define UNITTEST_TARGET as hostname or ip address of QNX target
+    errors=1
+fi
+if [ -z "$UNITTEST_ARCH" ]; then
+   echo UNITTEST_ARCH must be set to the architecture to build tests for x86_64 or aarch64
+   errors=1
+fi
+if [ -z "$UNITTEST_PREFIX" ]; then
+    echo UNITTEST_PREFIX must be set to a directory that is mounted on the target as /fs/qnx
+    errors=1
+fi
+if [ "$errors" = 1 ]; then
+    exit 1
+fi
+
+OP=$1
+TEST=$2
+
+
+if [ "$OP" = clean ]; then
+   make OS=nto ARCH=$UNITTEST_ARCH clean
+else
+    if ! make OS=nto ARCH=$UNITTEST_ARCH CC_TEST_OPTS=-fprofile-dir=/data/coverage; then
+        exit
+    fi
+
+    if [ "$OP" = run -o  "$OP" = report -o "$OP" = cover ]; then
+        localpath=`pwd`/nto-$UNITTEST_ARCH
+        localpath=`echo $localpath | sed s!$UNITTEST_PREFIX!//fs/qnx!`
+        if ssh root@$UNITTEST_TARGET "ln -sf $localpath /data/unittest; rununittests -a $UNITTEST_ARCH $TEST"; then
+            if [ "$OP" != run ]; then
+                scp -q root@$UNITTEST_TARGET:'/data/coverage/*gcda' .
+                if [ "$OP" = report ]; then
+                    make OS=nto ARCH=$UNITTEST_ARCH report 2>&1 | grep -v ':version.*prefer'
+                elif [ "$OP" = cover ]; then
+                    lcov --rc lcov_branch_coverage=1 --capture --directory . --output-file coverage.info
+                fi
+            fi
+        fi
+    elif [ "$OP" = debug ]; then
+        if [ -n "$2" ]; then
+            GDB_ARCH=$UNITTEST_ARCH
+            cat >.gdbrc <<EOF
+target qnx $UNITTEST_TARGET:8000
+file nto-$UNITTEST_ARCH/$2
+upload nto-$UNITTEST_ARCH/$2 /tmp/$2
+EOF
+            if [ ! -e gdbinit ]; then
+                echo "run" >gdbinit
+            fi
+            cat gdbinit >>.gdbrc
+            nto$GDB_ARCH-gdb -x .gdbrc
+            ssh root@$UNITTEST_TARGET "rm -f /tmp/$2"
+            rm -f .gdbrc
+        else
+            echo Need to specify a test to debug
+        fi
+    fi
+fi

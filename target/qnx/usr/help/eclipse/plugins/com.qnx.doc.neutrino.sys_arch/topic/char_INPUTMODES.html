@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Input modes" />
+<meta name="abstract" content="Each device can be in a raw or edited input mode." />
+<meta name="description" content="Each device can be in a raw or edited input mode." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/char.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-con.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-ser8250.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serpci.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serusb.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="INPUTMODES" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Input modes</title>
+</head>
+<body id="INPUTMODES">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Input modes</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Each device can be in a <em class="ph i">raw</em> or <em class="ph i">edited</em> input mode.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Raw input mode</h2>
+   
+   
+   
+   <p class="p">In raw mode, <span class="keyword cmdname">io-char</span> performs no editing on
+      received characters. This reduces the processing done on
+      each character to a minimum and provides the highest
+      performance interface for reading data.</p>
+
+   <p class="p">Fullscreen programs and serial communications programs are
+      examples of applications that use a character device in raw mode.</p>
+
+   <p class="p">In raw mode, the hardware-handling code receives each character into the raw input
+      buffer. When an application requests data from the device, it can specify under what
+      conditions an input request is to be satisfied. Until the conditions are satisfied, the
+      driver won't process the incoming data (beyond storing it), and the driver won't return
+      any data to the application. The normal case of a simple read by an application would
+      block until at least one character was available.</p>
+
+   <div class="p">The following diagram shows the full set of available conditions:
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Conditions for satisfying an input request.</span>
+         
+         <br /><img class="image" src="../images/condread.svg" width="528" alt="io-char conditions" /><br />
+      </div>
+
+   </div>
+
+   <p class="p">In the case where multiple conditions are specified, the
+      read will be satisfied when any one of them is satisfied.
+      </p>
+
+
+   <dl class="dl">
+   
+   <dt class="dt dlterm"><var class="keyword varname">MIN</var></dt>
+
+   <dd class="dd">The qualifier <var class="keyword varname">MIN</var> is useful when an application
+     has knowledge of the number of characters it expects to receive.
+     
+   
+     <p class="p">
+        Any protocol that knows the character count for a frame of
+        data can use <var class="keyword varname">MIN</var> to wait for the entire frame to
+        arrive. This significantly reduces IPC and process
+        scheduling. <var class="keyword varname">MIN</var> is often used in conjunction with
+        <var class="keyword varname">TIME</var> or <var class="keyword varname">TIMEOUT</var>. <var class="keyword varname">MIN</var> is
+        part of the POSIX standard.
+     </p>
+
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><var class="keyword varname">TIME</var></dt>
+
+   <dd class="dd">The qualifier <var class="keyword varname">TIME</var> is useful when an application
+     is receiving streaming data and wishes to be notified when
+     the data stops or pauses. The pause time is specified in
+     1/10ths of a second. <var class="keyword varname">TIME</var> is part of the POSIX standard.
+     
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><var class="keyword varname">TIMEOUT</var></dt>
+
+   <dd class="dd">The qualifier <var class="keyword varname">TIMEOUT</var> is useful when an application has
+     knowledge of how long it should wait for data before timing out.
+     The timeout is specified in 1/10ths of a second.
+     
+   
+     <p class="p">
+        Any protocol that knows the character count for a frame of
+        data it expects to receive can use <var class="keyword varname">TIMEOUT</var>.
+        This in combination with the baud rate allows a reasonable guess
+        to be made when data should be available. It acts as a
+        deadman timer to detect dropped characters. It can also be
+        used in interactive programs with user input to time out a
+        read if no response is available within a given time.
+     </p>
+
+   
+     <p class="p">
+        <var class="keyword varname">TIMEOUT</var> is a <span class="keyword">QNX OS</span> extension and is not part of the POSIX standard.
+     </p>
+
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><var class="keyword varname">FORWARD</var></dt>
+
+   <dd class="dd">The qualifier <var class="keyword varname">FORWARD</var> is useful when a protocol
+     is delimited by a special framing character. For example,
+     the PPP protocol used for TCP/IP over a serial
+     link starts and ends its packets with a framing character.
+     When used in conjunction with <var class="keyword varname">TIMEOUT</var>, the
+     <var class="keyword varname">FORWARD</var> character can greatly improve the
+     efficiency of a protocol implementation. The protocol
+     process will receive complete frames, rather than character
+     by character. In the case of a dropped framing character,
+     <var class="keyword varname">TIMEOUT</var> or <var class="keyword varname">TIME</var> can be used to quickly recover.
+     
+   
+     <p class="p">
+        This minimizes the amount of IPC work for the OS and
+        results in a much lower processor utilization for a given
+        TCP/IP data rate. It's interesting to note that PPP doesn't
+        contain a character count for its frames. Without the
+        data-forwarding character, an implementation might be forced
+        to read the data one character at a time.
+     </p>
+
+   
+     <p class="p">
+        <var class="keyword varname">FORWARD</var> is a <span class="keyword">QNX OS</span> extension and is not part of the POSIX standard.
+     </p>
+
+   
+     <p class="p">
+        The ability to <q class="q">push</q> the processing for
+        application notification into the service-providing
+        components of the OS reduces the frequency with which
+        user-level processing must occur. This minimizes the IPC
+        work to be done in the system and frees CPU cycles for
+        application processing. In addition, if the application
+        implementing the protocol is executing on a different
+        network node than the communications port, the number of
+        network transactions is also minimized.
+     </p>
+
+   
+     <p class="p">
+        For intelligent, multiport serial cards, the data-forwarding
+        character recognition can also be implemented within the
+        intelligent serial card itself, thereby significantly
+        reducing the number of times the card must interrupt the
+        host processor for interrupt servicing.
+     </p>
+
+   </dd>
+
+   
+   
+   </dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Edited input mode</h2>
+
+
+
+
+
+
+<p class="p">
+In edited mode, <span class="keyword cmdname">io-char</span> performs line-editing
+operations on each received character. Only when a line is
+<q class="q">completely entered</q>—typically when a carriage
+return (CR) is received—will the line of data be made
+available to application processes. This mode of operation
+is often referred to as <em class="ph i">canonical</em> or sometimes
+<q class="q">cooked</q> mode.
+</p>
+
+
+<p class="p">
+Most non-full-screen applications run in edited mode, because
+this allows them to deal with the data a line at a time
+rather than have to examine each character received,
+scanning for an end-of-line character.
+In this mode, the raw input buffer receives each character
+through the hardware handling code. Unlike raw mode where
+the driver only processes data when the input request satisfies the
+conditions, the driver processes each byte as
+it arrives.
+</p>
+
+
+<p class="p">
+When the driver runs, code in <span class="keyword cmdname">io-char</span> will
+examine the character and apply it to the canonical buffer
+in which it's building a line. When a line is complete and
+an application requests input, the line will be transferred
+from the canonical buffer to the application—the
+transfer is direct from the canonical buffer to the
+application buffer without any intervening copies.
+</p>
+
+
+<p class="p">
+The editing code correctly handles multiple pending input
+lines in the canonical buffer and allows partial lines to be
+read. This can happen, for example, if an application asked
+only for 1 character when a 10-character line was available.
+In this case, the next read will continue where the last one
+left off.
+</p>
+
+
+<div class="p">
+
+The <span class="keyword cmdname">io-char</span> module provides a rich set of
+editing capabilities, including full support for moving over
+the line with cursor keys and for changing, inserting, or
+deleting characters. Here are some of the more common capabilities:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword key">LEFT</span></dt>
+
+<dd class="dd">Move the cursor one character to the left.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">RIGHT</span></dt>
+
+<dd class="dd">Move the cursor one character to the right.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">HOME</span></dt>
+
+<dd class="dd">Move the cursor to the beginning of the line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">END</span></dt>
+
+<dd class="dd">Move the cursor to the end of the line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">ERASE</span></dt>
+
+<dd class="dd">Erase the character to the left of the cursor.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">DEL</span></dt>
+
+<dd class="dd">Erase the character at the current cursor position.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">KILL</span></dt>
+
+<dd class="dd">Erase the entire input line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">UP</span></dt>
+
+<dd class="dd">Erase the current line and recall a previous line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">DOWN</span></dt>
+
+<dd class="dd">Erase the current line and recall the next line.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword key">INS</span></dt>
+
+<dd class="dd">Toggle between insert mode and typeover mode (every new
+  line starts in insert mode).
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+Line-editing characters vary from terminal to terminal.
+The console always starts out with a full set of editing keys defined.
+</p>
+
+
+<div class="p">
+
+If a terminal is connected via a serial channel, you
+need to define the editing characters that apply to that
+particular terminal. To do this, you can use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/stty.html"><span class="keyword cmdname">stty</span></a>
+utility. For example, if you have an ANSI
+terminal connected to a serial port (called
+<span class="ph filepath">/dev/ser1</span>), you would use the following
+command to extract the appropriate editing keys from the
+<span class="ph filepath">terminfo</span> database and apply them to
+<span class="ph filepath">/dev/ser1</span>:
+
+<pre class="pre codeblock">stty term=ansi &lt;/dev/ser1
+</pre>
+</div>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/char.html" title="A key requirement of any realtime operating system is high-performance character I/O.">Character I/O</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-con.html">devc-con, devc-con-hid</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html">devc-pty</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-ser8250.html">devc-ser8250</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serpci.html">devc-serpci</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-serusb.html">devc-serusb</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Booting" />
+<meta name="abstract" content="The current boot support is for x86 PC partition-table-based (the same base system as current booting) with a BIOS that supports INT13X (LBA)." />
+<meta name="description" content="The current boot support is for x86 PC partition-table-based (the same base system as current booting) with a BIOS that supports INT13X (LBA)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="QNX6_fs_booting" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Booting</title>
+</head>
+<body id="QNX6_fs_booting">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Booting</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The current boot support is for x86 PC partition-table-based (the same base
+system as current booting) with a BIOS that supports INT13X (LBA).
+</p>
+
+
+<p class="p">
+
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html"><span class="keyword cmdname">mkqnx6fs</span></a> utility creates a <span class="ph filepath">.boot</span>
+directory in the root of the new filesystem.
+This is always present, and always has an inode of 2 (the root directory itself is inode 1).
+The <span class="keyword cmdname">mkqnx6fs</span> utility also installs a new secondary bootloader
+in the first 8 KB of the partition (and patches it with the location and offset of the filesystem).
+</p>
+
+
+<p class="p">
+The <span class="ph filepath">fs-qnx6.so</span> filesystem protects this directory at runtime;
+in particular it can't be removed or renamed, nor can it exceed 4096 bytes (128 entries).
+Files placed into the <span class="ph filepath">.boot</span> directory are assumed to be boot images created
+with <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>.
+The name of the file should describe the boot image.
+</p>
+
+
+<p class="p">
+The directory can contain up to 126 entries. 
+You can create other types of objects in this directory (e.g., directories
+or symbolic links) but the bootloader ignores them.
+The bootloader also ignores certain-sized regular files (e.g., 0 or
+larger than 2 GB), as well as those with names longer than 27 characters.
+</p>
+
+
+
+
+<p class="p">
+The filesystem implicitly suspends snapshots when a boot image is open
+for writing; this guarantees that the bootloader will never see a
+partially-written image.
+You typically build the images elsewhere and then copy them into the
+directory, and so they are open for only a brief time; however, this scheme
+also works if you send the output from <span class="keyword cmdname">mkifs</span> directly to the
+final boot file.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+To prevent this from being used as a DOS attack, the default permissions
+for the boot directory are <tt class="ph tt">root:root rwx------</tt>.
+You can change the permissions with
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chmod.html"><span class="keyword cmdname">chmod</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chown.html"><span class="keyword cmdname">chown</span></a>,
+but beware that if you allow everyone to write in this directory, then
+<em class="ph i">anyone</em> can install custom boot images or delete existing ones.
+</div>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems_QNX6_filesystem.html" title="The Power-Safe filesystem, supported by the fs-qnx6.so shared object, is a reliable disk filesystem that can withstand power failures without losing or corrupting data.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

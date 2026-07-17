@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Building the hwinfo section" />
+<meta name="abstract" content="Use the hwi_alloc_tag() and hwi_alloc_item() functions to add tags and items to the hwinfo section of the system page." />
+<meta name="description" content="Use the hwi_alloc_tag() and hwi_alloc_item() functions to add tags and items to the hwinfo section of the system page." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Building_hwinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Building the hwinfo section</title>
+</head>
+<body id="Building_hwinfo">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Building the <var class="keyword varname">hwinfo</var> section</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Use the <span class="keyword apiname">hwi_alloc_tag()</span> and <span class="keyword apiname">hwi_alloc_item()</span>
+		functions to add tags and items to the <var class="keyword varname">hwinfo</var> section of the system
+		page.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			<p class="p">To build an item:</p>
+
+			<ol class="ol">
+				<li class="li">Call <a class="xref" href="../startup_lib/hwi_alloc_item.html" title="Add an item structure to the system page hwinfo section."><span class="keyword apiname">hwi_alloc_item()</span></a>
+					to build a top-level item (an item in which the <var class="keyword varname">owner</var> field
+					will be set to <span class="keyword const">HWI_NULL_OFF</span>).</li>
+
+				<li class="li">Use <a class="xref" href="../startup_lib/hwi_alloc_tag.html" title="Add a tag structure to the system page hwinfo section."><span class="keyword apiname">hwi_alloc_tag()</span></a>
+					to add whatever other tag structures you want in the item.</li>
+
+				<li class="li">Call <span class="keyword apiname">hwi_alloc_item()</span> again to start a new item. This item
+					can be either another top-level item or a child of the first item you created.</li>
+
+			</ol>
+
+			<p class="p">You can build the items in any order you wish, provided that the parent is built
+				before the child. </p>
+
+			<p class="p">When building a child item, if you remembered its owner only in a variable, or you
+				know only its item name, you can find the correct value of the
+					<var class="keyword varname">owner</var> argument by calling the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_find_item.html"><span class="keyword apiname">hwi_find_item()</span></a> function.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Default items and tags</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">Before <span class="keyword apiname">main()</span> is invoked in the startup program, the library adds some
+				initial entries to serve as a basis for later items.</p>
+
+			<p class="p"><span class="keyword apiname">HWI_TAG_INFO()</span> is a macro defined in the
+				<span class="ph filepath">startup.h</span> header and expands out to the three
+				<var class="keyword varname">name</var>, <var class="keyword varname">size</var>, <var class="keyword varname">align</var>
+				parameters for <span class="keyword apiname">hwi_alloc_tag()</span> and
+				<span class="keyword apiname">hwi_alloc_item()</span> based on some clever macro names.</p>
+
+<pre class="pre codeblock">void hwi_default() {
+    hwi_tag     *tag;
+    hwi_tag     *tag;
+
+    hwi_alloc_item(HWI_TAG_INFO(group), HWI_ITEM_ROOT_AS, HWI_NULL_OFF);
+    tag = hwi_alloc_item(HWI_TAG_INFO(group), HWI_ITEM_ROOT_HW, 
+                         HWI_NULL_OFF);
+
+    hwi_alloc_item(HWI_TAG_INFO(bus), HWI_ITEM_BUS_UNKNOWN,
+                   hwi_tag2off(tag));
+
+    loc = hwi_find_item(HWI_NULL_OFF, HWI_ITEM_ROOT_AS, NULL);
+
+    tag = hwi_alloc_item(HWI_TAG_INFO(addrspace),
+                         HWI_ITEM_AS_MEMORY, loc);
+    tag-&gt;addrspace.base = 0;
+    tag-&gt;addrspace.len  = (uint64_t)1 &lt;&lt; 32;
+    #ifndef __X86__
+       loc = hwi_tag2off(tag);
+    #endif
+    tag = hwi_alloc_item(HWI_TAG_INFO(addrspace), HWI_ITEM_AS_IO, loc);
+    tag-&gt;addrspace.base = 0;
+    #ifdef __X86__
+        tag-&gt;addrspace.len  = (uint64_t)1 &lt;&lt; 16;
+    #else
+        tag-&gt;addrspace.len  = (uint64_t)1 &lt;&lt; 32;
+    #endif
+}
+</pre>
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Other useful <span class="keyword apiname">hwi_*()</span> functions</h2>
+			
+			<div class="p">The following functions are defined in the C library
+				(and hence, are explained in the 
+				<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/about.html"><em class="ph i">C Library Reference</em></a>),
+				because they are useful not just to startup code but also to code that
+				processes the <var class="keyword varname">hwinfo</var> section:
+		<dl class="dl">
+			
+				<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_tag2off.html"><span class="keyword apiname">hwi_tag2off()</span></a></dt>
+
+				<dd class="dd"><span class="ph codeph">unsigned hwi_tag2off(void *);</span>
+					<p class="p">Given a pointer to the start of a tag, return the offset, in bytes, from the
+						start of the <var class="keyword varname">hwinfo</var> section.
+						
+					</p>
+</dd>
+
+			
+			
+				<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_off2tag.html"><span class="keyword apiname">hwi_off2tag()</span></a></dt>
+
+				<dd class="dd"><span class="ph codeph">void *hwi_off2tag(unsigned);</span>
+					<p class="p">Given an offset, in bytes, from the start of the <var class="keyword varname">hwinfo</var>
+						section, return a pointer to the start of the tag.
+						
+					</p>
+</dd>
+
+			
+			
+				<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_find_tag.html"><span class="keyword apiname">hwi_find_tag()</span></a></dt>
+
+				<dd class="dd"><span class="ph codeph">unsigned hwi_find_tag(unsigned
+						</span><var class="keyword varname">start</var><span class="ph codeph">, int
+						</span><var class="keyword varname">curr_item</var><span class="ph codeph">, const char
+						*</span><var class="keyword varname">tagname</var>); <p class="p"> Find the tag named
+							<var class="keyword varname">tagname</var>. The <var class="keyword varname">start</var> parameter works
+						the same as in <span class="keyword apiname">hwi_find_item()</span>. 
+						The <var class="keyword varname">curr_item</var> parameter restricts the search to the 
+						current item. If this parameter is nonzero, the search stops at the end of
+						the item that <var class="keyword varname">start</var> points to.
+						If <var class="keyword varname">curr_item</var> is zero, the search continues
+						until the end of the section. If the tag isn't found, 
+						<span class="keyword const">HWI_NULL_OFF</span> is returned.
+						
+						
+					</p>
+</dd>
+
+			
+			
+				<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_next_item.html"><span class="keyword apiname">hwi_next_item()</span></a></dt>
+
+				<dd class="dd"><span class="ph codeph">unsigned hwi_next_item(unsigned </span><var class="keyword varname">off</var><span class="ph codeph">);</span>
+					<p class="p"> Get the offset of the next item after the given offset from the start of the
+							<var class="keyword varname">hwinfo</var> section.
+								
+					</p>
+</dd>
+
+			
+			
+				<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/h/hwi_next_tag.html"><span class="keyword apiname">hwi_next_tag()</span></a></dt>
+
+				<dd class="dd"><span class="ph codeph">unsigned hwi_next_tag(unsigned </span><var class="keyword varname">off</var><span class="ph codeph">,
+						int </span><var class="keyword varname">curr_item</var><span class="ph codeph">);</span>
+					<p class="p"> Get the offset of the next tag after the given offset from the start of the
+							<var class="keyword varname">hwinfo</var> section. As it is for
+							<span class="keyword apiname">hwi_find_tag()</span>, <var class="keyword varname">curr_item</var>
+						restricts the search to the current item.
+								
+					</p>
+</dd>
+
+			
+		</dl>
+</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

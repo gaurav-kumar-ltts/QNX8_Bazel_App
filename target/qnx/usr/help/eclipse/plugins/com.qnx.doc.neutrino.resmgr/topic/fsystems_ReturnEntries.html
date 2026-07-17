@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Returning directory entries from _IO_READ" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_Returning_stat.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ReturnEntries" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Returning directory entries from _IO_READ</title>
+</head>
+<body id="ReturnEntries">
+
+<h1 class="title topictitle1" id="ariaid-title1">Returning directory entries from <span class="keyword const">_IO_READ</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+When the <span class="keyword const">_IO_READ</span> handler is called, it may need
+to return data for either a file (if 
+<span class="ph codeph">S_ISDIR (ocb-&gt;attr-&gt;mode)</span> 
+is false) or a directory (if
+<span class="ph codeph">S_ISDIR (ocb-&gt;attr-&gt;mode)</span> 
+is true).
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>
+function sets <span class="keyword const">_IO_XTYPE_READDIR</span> in the <var class="keyword varname">xtype</var> member of the <span class="keyword const">_IO_READ</span> message.
+We've seen the algorithm for returning data, especially the
+method for matching the returned data's size to the smaller
+of the data available or the client's buffer size.
+
+</p>
+
+
+<p class="p"> A similar constraint is in effect for returning directory data to a client, except we have the
+            added issue of returning <em class="ph i">block-integral</em> data. What this means is that instead of
+            returning a stream of bytes, where we can arbitrarily package the data, we're actually
+            returning a number of <span class="keyword dtype">struct dirent</span> structures. (In other words, we can't
+            return 1.5 of those structures; we always have to return an integral number.) The
+            <span class="keyword dtype">dirent</span> structures must be properly aligned in the reply, and aligning on
+            8-byte boundaries ensures this will be the case. </p>
+
+
+<div class="p">
+A <span class="keyword dtype">struct dirent</span> looks like this:
+
+<pre class="pre codeblock">struct dirent {
+#if _FILE_OFFSET_BITS - 0 == 64
+    ino_t           d_ino;          /* File serial number. */
+    off_t           d_offset;
+#elif !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS == 32
+#if defined(__LITTLEENDIAN__)
+    ino_t           d_ino;          /* File serial number. */
+    ino_t           d_ino_hi;
+    off_t           d_offset;
+    off_t           d_offset_hi;
+#elif defined(__BIGENDIAN__)
+    ino_t           d_ino_hi;
+    ino_t           d_ino;          /* File serial number. */
+    off_t           d_offset_hi;
+    off_t           d_offset;
+#else
+ #error endian not configured for system
+#endif
+#else
+ #error _FILE_OFFSET_BITS value is unsupported
+#endif
+    int16_t             d_reclen;
+    int16_t             d_namelen;
+    char                d_name[1];
+};
+</pre>
+</div>
+
+
+<p class="p"> The <var class="keyword varname">d_ino</var> member contains a mountpoint-unique file serial number. This serial
+            number is often used in various disk-checking utilities for such operations as
+            determining infinite-loop directory links. (Note that the inode value should not be
+            zero, as this is commonly used to indicate that the inode represents an <em class="ph i">unused</em>
+            entry.) </p>
+
+
+<p class="p"> The <var class="keyword varname">d_offset</var> member generally represents the offset of the next entry within
+            the directory, although the exact meaning and implementation of <var class="keyword varname">d_offset</var>
+            is up to the resource manager. </p>
+
+
+<p class="p"> The <var class="keyword varname">d_reclen</var> member contains the size of this directory entry including the
+            variable length name member, any padding to maintain proper alignment of elements,
+            and any other associated information (such as an optional <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a> structure appended to the <span class="keyword dtype">struct
+            dirent</span> entry; see below). </p>
+
+
+<p class="p"> The <var class="keyword varname">d_namelen</var> parameter indicates the size of the <var class="keyword varname">d_name</var>
+            parameter, not including the <span class="ph codeph">\0</span> string terminator which must be
+            present, but isn't counted. This size is usually calculated with a call to <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/strlen.html"><span class="keyword apiname">strlen()</span></a> if not already stored. </p>
+
+
+<p class="p">  So in our <var class="keyword varname">io_read</var>
+            handler, we need to generate a number of <span class="keyword dtype">struct dirent</span> entries and return
+            them to the client. If we have a cache of directory entries that we maintain in our
+            resource manager, it's a simple matter to construct a set of <span class="keyword const">IOV</span>s to
+            point to those entries. But more often we don't have a cache, and we must manually
+            assemble the directory entries into a buffer and then return that to the client.
+             </p>
+
+
+<div class="p">To build a directory entry:
+<pre class="pre codeblock">#define ROUNDUP(s,n) (((n) &amp; ((s)-1)) ? ((n) | ((s)-1)) + 1 : (n))
+struct dirent *dir_p = (struct dirent *)ctp-&gt;msg; // use receive buffer as scratch buffer
+file_len = strlen(attr-&gt;my_name);
+dirent_len = offsetof(struct dirent, d_name) + file_len + 1 ; // minimum length
+dirent_len = ROUNDUP(8, dirent_len); // must pad to 8-byte alignment
+memset(dir_p, 0, dirent_len);
+dir_p-&gt;d_ino = attr-&gt;inode;
+dir_p-&gt;d_offset = ocb-&gt;offset;
+dir_p-&gt;d_reclen = dirent_len;
+dir_p-&gt;d_namelen = file_len;
+strcpy(d-&gt;d_name, attr-&gt;my_name);
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> If you cache <span class="keyword dtype">dirent</span> structures in your resource manager, you must also be
+            careful to provide adequate storage for the full name string associated with the
+            <span class="keyword dtype">struct dirent</span>.</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/fsystems_Returning_stat.html">Returning information associated with a directory structure</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems.html" title="Some resource managers need to implement filesystems by responding to access requests for any pathname within a directory structure.">Filesystem Resource Managers</a></div>
+</div>
+</div></body>
+</html>

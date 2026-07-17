@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Shared memory with message passing" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc_Shared_memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_independent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/ftruncate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mprotect.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msync.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap_flags.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Shared_memory_and_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Shared memory with message passing</title>
+</head>
+<body id="Shared_memory_and_messages">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Shared memory with message passing</h1>
+
+
+<div class="body conbody">
+
+<div class="p">Shared memory and message passing can be combined to provide IPC that offers:
+<ul class="ul">
+  <li class="li">very high performance (shared memory)</li>
+
+  <li class="li">synchronization (message passing)</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Using message passing, a client sends a request to a server
+and blocks. The server receives the messages in priority
+order from clients, processes them, and replies when it can
+satisfy a request. At this point, the client is unblocked and
+continues. The very act of sending messages provides natural
+synchronization between the client and the server. Rather
+than copy all the data through the message pass, the message
+can contain a reference to a shared-memory region, so the
+server could read or write the data directly. This is best
+explained with a simple example.
+</p>
+
+
+<p class="p">
+Let's assume a graphics server accepts draw image requests
+from clients and renders them into a frame buffer on a
+graphics card. Using message passing alone, the client would
+send a message containing the image data to the server.
+This would result in a copy of the image data from the client's
+address space to the server's address space. The server
+would then render the image and issue a short reply.
+</p>
+
+
+<p class="p">
+If the client didn't send the image data inline with the
+message, but instead sent a reference to a shared-memory
+region that contained the data, then the server could
+access the client's data <em class="ph i">directly</em>.
+</p>
+
+
+<p class="p">
+Since the client is blocked on the server as a result of
+sending it a message, the server knows that the data in
+shared memory is stable and will not change until the server
+replies. This combination of message passing and shared
+memory achieves natural synchronization and very high performance.
+</p>
+
+
+<p class="p">
+This model of operation can also be reversed—the
+server can generate data and give it to a client.
+For example, suppose a client sends a message to a server that
+will read video data directly from a DVD into a shared
+memory buffer provided by the client. The client will be
+blocked on the server while the shared memory is being changed.
+When the server replies and the client continues,
+the shared memory will be stable for the client to access.
+This type of design can be pipelined using more than one
+shared-memory region.
+</p>
+
+
+<p class="p">
+In practice, the message-passing primitives are more than
+fast enough for the majority of IPC needs. The added
+complexity of a combined approach need only be considered
+for special applications with very high bandwidth.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc_Shared_memory.html" title="Shared memory offers the highest bandwidth IPC available.">Shared memory</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_independent.html">Threads in independent situations (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html">close()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/ftruncate.html">ftruncate()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mprotect.html">mprotect()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msync.html">msync()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap_flags.html">munmap_flags()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html">shm_ctl(), shm_ctl_special()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html">shm_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_unlink.html">shm_unlink()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html">procnto</a></li></ul></div>
+</div></body>
+</html>

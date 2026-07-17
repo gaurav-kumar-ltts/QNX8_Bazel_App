@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Render Targets" />
+<meta name="abstract" content="A render target is a specially created surface into which your rendering can be directed." />
+<meta name="description" content="A render target is a specially created surface into which your rendering can be directed." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_rendering-targets" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Render Targets</title>
+</head>
+<body id="cscreen_rendering-targets">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Render Targets
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        A render target is a specially created surface into which your rendering can be directed.
+    </p>
+
+        <p class="p">
+            
+            It can be created for either your own use, or for consumption by someone other than the owner (e.g., another process).
+            If you're not rendering for your own consumption, you can set the permissions on a render target using the
+            <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property to grant or deny access to the render target you create.
+            See the <a class="xref" href="cscreen_permissions.html">Permissions and Privileges</a> chapter for more details. 
+        </p>
+
+        <p class="p"> Render targets can be used for rendering to and displaying content (on-screen), or  for
+            only rendering to (off-screen). They can have one or more  buffers. The <span class="keyword">Screen API</span> provides the following types of render targets: </p>
+
+        <table cellpadding="4" cellspacing="0" summary="" border="1" class="simpletable"><col style="width:33.33333333333333%" /><col style="width:33.33333333333333%" /><col style="width:33.33333333333333%" /><thead><tr class="sthead">
+                <th style="vertical-align:bottom;text-align:left;" id="d90202e71" class="stentry">Render target</th>
+
+                <th style="vertical-align:bottom;text-align:left;" id="d90202e74" class="stentry">Output destination</th>
+
+                <th style="vertical-align:bottom;text-align:left;" id="d90202e77" class="stentry">Buffers</th>
+
+            </tr>
+</thead><tbody><tr class="strow">
+                <td style="vertical-align:top;" headers="d90202e71" class="stentry">Window</td>
+
+                <td style="vertical-align:top;" headers="d90202e74" class="stentry">On-screen</td>
+
+                <td style="vertical-align:top;" headers="d90202e77" class="stentry">Multiple</td>
+
+            </tr>
+<tr class="strow">
+                <td style="vertical-align:top;" headers="d90202e71" class="stentry">Stream</td>
+
+                <td style="vertical-align:top;" headers="d90202e74" class="stentry">Off-screen</td>
+
+                <td style="vertical-align:top;" headers="d90202e77" class="stentry">Multiple</td>
+
+            </tr>
+<tr class="strow">
+                <td style="vertical-align:top;" headers="d90202e71" class="stentry">Pixmap</td>
+
+                <td style="vertical-align:top;" headers="d90202e74" class="stentry">Off-screen</td>
+
+                <td style="vertical-align:top;" headers="d90202e77" class="stentry">Single</td>
+
+            </tr>
+</tbody></table>
+
+        <div class="section"><h2 class="title sectiontitle">On-screen</h2>
+            
+            <p class="p">
+                On-screen render targets have content that's intended to be visible on a
+                display. Windows are the only on-screen render targets. Windows can be created only when
+                <span class="keyword">Screen</span> is running with at least one display configured
+                (in <span class="ph filepath">graphics.conf</span>).
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Off-screen</h2>
+            
+            <p class="p">
+                Pixmaps and streams are off-screen render targets. They can be created
+                when <span class="keyword">Screen</span> is running without any displays configured.
+            </p>
+
+            <p class="p">
+                It's possible to make the content of off-screen render targets visible. For example, you can render an
+                image to a pixmap that you're going to use with the eventual intention of making it displayed.
+                Or, you can render it to a stream to provide the image for someone else to consume. If you're using a
+                pixmap, you must copy the buffer, or a region of the buffer, to a window (e.g., by using
+                <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a>, OpenGL, <span class="keyword cmdname">memcpy</span>,
+                etc.). If you're using a stream, you can copy the buffer to a window, or share the buffers with a window using
+                <a class="xref" href="../screen_share_stream_buffers.html" title="Cause a window to display content produced by another stream"><span class="keyword apiname">screen_share_stream_buffers()</span></a>.
+                When a window shares buffers with a stream, the window is automatically updated on the display when the
+                stream posts. In this case, there's no need for the window to explicitly call
+                <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Single-buffered</h2>
+            
+            <p class="p">
+                You typically render once to a single-buffered render target, and then the rendered content is
+                used multiple times.
+            </p>
+
+            <p class="p">
+                
+                
+                Pixmaps are off-screen render targets that are restricted to one buffer. You must create this buffer with
+                <a class="xref" href="../screen_create_pixmap_buffer.html" title="Send a request to Screen to create a new buffer for a pixmap"><span class="keyword apiname">screen_create_pixmap_buffer()</span></a>
+                or attach it with
+                <a class="xref" href="../screen_attach_pixmap_buffer.html" title="Associate a buffer with a pixmap"><span class="keyword apiname">screen_attach_pixmap_buffer()</span></a>. 
+            </p>
+
+            <p class="p">
+                You can update the contents of the pixmap's buffer using <span class="keyword">Screen</span>'s
+                rendering APIs if you've set the usage flags appropriately before creating or attaching the pixmap buffer.
+            </p>
+
+            <p class="p">
+                Once the pixmap's buffer has been allocated, we don't recommend changing the buffer size
+                (<span class="keyword const">SCREEN_PROPERTY_BUFFER_SIZE</span>), usage (<span class="keyword const">SCREEN_PROPERTY_USAGE</span>), or
+                pixel format (<span class="keyword const">SCREEN_PROPERTY_FORMAT</span>).
+                Using <a class="xref" href="../screen_set_pixmap_property_iv.html" title="Set the value of the specified pixmap property of type integer"><span class="keyword apiname">screen_set_pixmap_property_iv()</span></a> 
+                to set these properties will result in an error. One exception is if you change the pixel
+                format to one whose depth is identical to the original format that was set. For example, changing
+                between RGBA8888 and RGBX8888 is acceptable. 
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Multi-buffered</h2>
+            
+            <p class="p">
+                You typically render multiple times to a multi-buffered render target. The content is
+                used (e.g., for displaying), then the target is rendered to again to generate updated content.
+                Windows and streams are render targets that can have multiple buffers associated with them.
+            </p>
+
+            <p class="p">
+                You must create window buffers with
+                <a class="xref" href="../screen_create_window_buffers.html" title="Allocate new buffers for a window"><span class="keyword apiname">screen_create_window_buffers()</span></a>
+                or attach them with
+                <a class="xref" href="../screen_attach_window_buffers.html" title="Associate buffers with a window"><span class="keyword apiname">screen_attach_window_buffers()</span></a>.
+                You must create stream buffers with
+                <a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a>
+                or attach them with
+                <a class="xref" href="../screen_attach_stream_buffers.html" title="Associate buffers with a stream"><span class="keyword apiname">screen_attach_stream_buffers()</span></a>.
+                Your application specifies the number of buffers to be created or attached through these APIs.
+            </p>
+
+            <p class="p"> Once your application completes rendering to your target, you can display the content if you're using
+                a window, or mark it ready for consumption if you're using a stream.  Use
+                <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> to display your
+                window content and <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a>
+                to mark the target ready for consumption.
+            </p>
+
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></div>
+</div>
+</div></body>
+</html>

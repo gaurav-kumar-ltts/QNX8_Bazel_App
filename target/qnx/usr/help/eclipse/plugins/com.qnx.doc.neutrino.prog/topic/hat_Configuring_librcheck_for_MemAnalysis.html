@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Configuring librcheck for Memory Analysis" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_DetectingAndReportingErrors.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="hat_Configuring_librcheck_for_MemAnalysis" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Configuring librcheck for Memory Analysis</title>
+</head>
+<body id="hat_Configuring_librcheck_for_MemAnalysis">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Configuring <span class="ph filepath">librcheck</span> for Memory Analysis</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"></p>
+
+        <p class="p">
+            
+            
+            To start a program that uses <span class="ph filepath">librcheck</span> and can send heap trace data to the Memory Analysis tool in
+            the <span class="keyword">QNX Momentics IDE</span>, you must preload the <span class="ph filepath">librcheck</span> library and set
+            environment variables to configure Memory Analysis options. Here, we give examples with minimal settings.
+        </p>
+
+        <ul class="ul">
+            <li class="li">
+                <div class="p">To start an application so the Memory Analysis tool can later be attached to the process 
+                    from the <span class="keyword">IDE</span>:
+<pre class="pre codeblock">LD_PRELOAD=librcheck.so MALLOC_CTHREAD=1 MALLOC_FILE=/tmp/trace.rmat ./my_app</pre></div>
+
+            </li>
+
+            <li class="li">
+                <div class="p">To start an application with allocations tracing so you can later do postmortem analysis:
+<pre class="pre codeblock">LD_PRELOAD=librcheck.so MALLOC_FILE=/tmp/trace.rmat MALLOC_START_TRACING=1 ./my_app</pre></div>
+
+            </li>
+
+            <li class="li">
+                <div class="p">To start an application with tracing initially disabled so you can use API controls to enable and disable tracing
+                    as the program runs:
+<pre class="pre codeblock">LD_PRELOAD=librcheck.so MALLOC_FILE=/tmp/trace.rmat MALLOC_START_TRACING=0 ./my_app</pre></div>
+
+            </li>
+
+            <li class="li">
+                <div class="p">To set the environment so all subsequent processes launched with Memory Analysis enabled have only memory errors logged:
+<pre class="pre codeblock">export LD_PRELOAD=librcheck.so 
+export MALLOC_FILE=/tmp/trace.rmat
+export MALLOC_TRUNCATE=1
+./my_app1
+./my_app2</pre></div>
+
+            </li>
+
+            <li class="li">
+                <div class="p">To display a list of the environment variables for <span class="ph filepath">librcheck</span>:
+                    <pre class="pre codeblock">LD_PRELOAD=librcheck.so MALLOC_HELP=1 ./my_app</pre></div>
+
+            </li>
+
+        </ul>
+
+        <div class="section" id="hat_Configuring_librcheck_for_MemAnalysis__envars"><h2 class="title sectiontitle"><span class="ph filepath">librcheck</span> environment variables</h2>
+            
+            
+            
+            
+            <div class="p">The <span class="ph filepath">librcheck</span> environment variables and their corresponding UI options in the
+              <span class="keyword">IDE</span> (if any) are:
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:20%" /><col style="width:18%" /><col style="width:35%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d70293e163">Environment variable</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d70293e166">Where to find in Memory Analysis UI</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d70293e169">What option to set</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d70293e172">Additional information</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">LD_PRELOAD</span>=<span class="ph filepath">librcheck.so</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Advanced Settings</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Runtime library</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">The library file is <span class="ph filepath">librcheck.so</span>.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_ACTION</span>=<var class="keyword varname">number</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Errors</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">When an error is detected</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Set the error-handling action: 0 to ignore, 1 to
+                                abort, 2 to exit, 3 to core, 4 to stop.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_CKACCESS</span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Errors</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Verify parameters in string and memory functions</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Turn boundary checking on or off for string and memory functions.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_CKALLOC</span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Errors</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Enable check on realloc()/free() argument</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Enable or disable the checking that the pointers passed to <span class="keyword apiname">realloc()</span> and
+                                <span class="keyword apiname">free()</span> point to memory that the allocator manages.
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_CTHREAD</span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Advanced Settings</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Create control thread</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Don't start a control thread (0), or do start the thread
+                                and allow the <span class="keyword">IDE</span> to send commands to the application
+                                through signals (1).</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_CTRL_FILE</span>=<var class="keyword varname">file</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Specify a file for the control command (to use with the control
+                                signal).</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_CTRL_SIG</span>=<var class="keyword varname">sigs</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Override the default signals; for example:
+<pre class="pre codeblock">"control:41,leaks:42,
+start:44,stop:43"
+</pre>
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_DUMP_LEAKS</span><span class="keyword envar"></span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Errors</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Perform leak check when process exits</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Enable or disable the dumping of leaks on exit.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_EVENTBTDEPTH</span><span class="keyword envar"></span>=<var class="keyword varname">number</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Limit back-trace depth to</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Set the depth of allocation backtraces to a specific number. The default is 5.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_EVENTFILE</span>=<var class="keyword varname">file</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Advanced Settings</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Target output file or device</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Redirect the event output to a file.</td>
+
+                        </tr>
+
+                        
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_FILE</span>=<var class="keyword varname">file</var></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Advanced Settings</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Target output file or device</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Redirect the event and trace output to a file.
+                                Use a hyphen (-) to redirect the output to standard output (the default).
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_HANDLE_SIGNALS</span><span class="keyword envar"></span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">N/A </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">N/A </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Whether to install handlers for the  
+                                SIGSEGV, SIGBUS, SIGILL, and SIGFPE signals.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_HELP</span>=1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">N/A </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">N/A </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Print a list of used environment variables.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_START_TRACING</span><span class="keyword envar"></span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Enable memory allocation or deallocation tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Whether to automatically start tracing memory when the program starts.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 ">
+                                <span class="keyword envar">MALLOC_TRACEBTDEPTH</span><span class="keyword envar"></span>=<var class="keyword varname">number</var>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Limit back-trace depth to</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Set the allocation backtraces depth to a specific number.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 ">
+                                <span class="keyword envar">MALLOC_TRACEMAX</span><span class="keyword envar"></span>=<var class="keyword varname">number</var>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Maximum allocation to trace</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Only trace allocations of &lt;= <var class="keyword varname">number</var> of bytes.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 ">
+                                <span class="keyword envar">MALLOC_TRACEMIN</span><span class="keyword envar"></span>=<var class="keyword varname">number</var>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Memory Tracing</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Minimum allocation to trace</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Only trace allocations of &gt;= <var class="keyword varname">number</var> of bytes.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 "><span class="keyword envar">MALLOC_TRUNCATE</span>=0|1</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">N/A</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">Whether to truncate the output files.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e163 ">
+                                <span class="keyword envar">MALLOC_VERBOSE</span>=0|1
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e166 ">
+                                <span class="ph uicontrol">Advanced Settings</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e169 ">
+                                <span class="ph uicontrol">Show debug output on console</span>
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d70293e172 ">A value of 1 makes the library send debug information to standard error.</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+</div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat_DetectingAndReportingErrors.html" title="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time.">Detecting and reporting errors</a></div>
+</div>
+</div></body>
+</html>

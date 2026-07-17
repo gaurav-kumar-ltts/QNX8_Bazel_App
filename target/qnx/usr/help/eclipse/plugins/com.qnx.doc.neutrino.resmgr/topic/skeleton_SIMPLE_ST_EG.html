@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Single-threaded device resource manager" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_SIMPLE_EGS.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_InitDispatchInterface.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_InitResMgrAttr.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_InitMsgFuncs.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_InitAttrStruct.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_RegisterName.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_AllocateContextStruct.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_StartMsgLoop.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="SIMPLE_ST_EG" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Single-threaded device resource manager</title>
+</head>
+<body id="SIMPLE_ST_EG">
+
+<h1 class="title topictitle1" id="ariaid-title1">Single-threaded device resource manager</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+Here's the complete code for a simple single-threaded device resource manager:
+
+<pre class="pre codeblock">#include &lt;errno.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+static resmgr_connect_funcs_t    connect_funcs;
+static resmgr_io_funcs_t         io_funcs;
+static iofunc_attr_t             attr;
+
+int main(int argc, char **argv)
+{
+    /* declare variables we'll be using */
+    resmgr_attr_t        resmgr_attr;
+    dispatch_t           *dpp;
+    dispatch_context_t   *ctp;
+    int                  id;
+
+    /* initialize dispatch interface */
+    dpp = dispatch_create_channel(-1, DISPATCH_FLAG_NOLOCK );
+    if (dpp == NULL) {
+        fprintf(stderr, "%s: Unable to allocate dispatch handle.\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    /* initialize resource manager attributes */
+    memset(&amp;resmgr_attr, 0, sizeof resmgr_attr);
+    resmgr_attr.nparts_max = 1;
+    resmgr_attr.msg_max_size = 2048;
+
+    /* initialize functions for handling messages */
+    iofunc_func_init(_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs, 
+                     _RESMGR_IO_NFUNCS, &amp;io_funcs);
+
+    /* initialize attribute structure used by the device */
+    iofunc_attr_init(&amp;attr, S_IFNAM | 0666, 0, 0);
+
+    /* attach our device name */
+    id = resmgr_attach(
+            dpp,            /* dispatch handle        */
+            &amp;resmgr_attr,   /* resource manager attrs */
+            "/dev/sample",  /* device name            */
+            _FTYPE_ANY,     /* open type              */
+            0,              /* flags                  */
+            &amp;connect_funcs, /* connect routines       */
+            &amp;io_funcs,      /* I/O routines           */
+            &amp;attr);         /* handle                 */
+
+    if(id == -1) {
+        fprintf(stderr, "%s: Unable to attach name.\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    /* allocate a context structure */
+    ctp = dispatch_context_alloc(dpp);
+
+    /* start the resource manager message loop */
+    while(1) {
+        if((ctp = dispatch_block(ctp)) == NULL) {
+            fprintf(stderr, "block error\n");
+            return EXIT_FAILURE;
+        }
+        dispatch_handler(ctp);
+    }
+    return EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Include <span class="ph filepath">&lt;sys/dispatch.h&gt;</span> <em class="ph i">after</em>
+<span class="ph filepath">&lt;sys/iofunc.h&gt;</span> to avoid warnings about redefining the members of some functions.
+</div>
+
+
+<p class="p">
+Let's examine the sample code step-by-step. 
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_InitDispatchInterface.html">Initialize the dispatch interface</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_InitResMgrAttr.html">Initialize the resource manager attributes</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_InitMsgFuncs.html">Initialize functions used to handle messages</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_InitAttrStruct.html">Initialize the attribute structure used by the device</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_RegisterName.html">Put a name into the namespace</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_AllocateContextStruct.html">Allocate the context structure</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/skeleton_StartMsgLoop.html">Start the resource manager message loop</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton_SIMPLE_EGS.html">Simple examples of device resource managers</a></div>
+</div>
+</div></body>
+</html>

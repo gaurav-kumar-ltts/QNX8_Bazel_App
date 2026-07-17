@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Joining" />
+<meta name="abstract" content="The simplest method of synchronization is to join the threads as they terminate. Joining really means waiting for termination." />
+<meta name="description" content="The simplest method of synchronization is to join the threads as they terminate. Joining really means waiting for termination." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_parallel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Joining_threads" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Joining</title>
+</head>
+<body id="Joining_threads">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Joining</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The simplest method of synchronization is to <em class="ph i">join</em> the threads as they terminate.
+Joining really means waiting for termination.
+</p>
+
+
+<div class="p">
+
+
+
+Joining is accomplished by one thread waiting for the termination of another thread.
+The waiting thread calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html"><span class="keyword apiname">pthread_join()</span></a>:
+
+
+
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_join (pthread_t <var class="keyword varname">thread</var>, void **<var class="keyword varname">value_ptr</var>);
+</pre>
+</div>
+
+
+<p class="p">
+To use <span class="keyword apiname">pthread_join()</span>, you pass it the thread ID of the thread
+that you wish to join, and an optional <var class="keyword varname">value_ptr</var>, which can be
+used to store the termination return value from the joined thread.
+(You can pass in a <span class="keyword const">NULL</span> if you aren't interested in this
+value—we're not, in this case.)
+</p>
+
+
+<div class="p">
+Where did the thread ID came from?
+We ignored it in the <span class="keyword apiname">pthread_create()</span>—we passed in a <span class="keyword const">NULL</span>
+for the first parameter.
+Let's now correct our code:
+
+
+
+<pre class="pre codeblock">int num_lines_per_cpu, num_cpus;
+
+int main (int argc, char **argv)
+{
+    int cpu;
+    pthread_t *thread_ids;
+
+    ...    // perform initializations
+    thread_ids = malloc (sizeof (pthread_t) * num_cpus);
+
+    num_lines_per_cpu = num_x_lines / num_cpus;
+
+    for (cpu = 0; cpu &lt; num_cpus; cpu++) {
+        pthread_create (&amp;thread_ids [cpu], NULL,
+                        do_one_batch, (void *) cpu);
+    }
+
+    // synchronize to termination of all threads
+    for (cpu = 0; cpu &lt; num_cpus; cpu++) {
+        pthread_join (thread_ids [cpu], NULL);
+    }
+
+    ...    // display results
+}
+</pre>
+</div>
+
+
+<p class="p">
+You'll notice that this time we passed the first argument to <span class="keyword apiname">pthread_create()</span>
+as a pointer to a <span class="keyword dtype">pthread_t</span>.
+This is where the thread ID of the newly created thread gets stored.
+After the first <span class="ph codeph">for</span> loop finishes, we have <var class="keyword varname">num_cpus</var>
+threads running, plus the thread that's running <span class="keyword apiname">main()</span>.
+We're not too concerned about the <span class="keyword apiname">main()</span> thread consuming all our
+CPU; it's going to spend its time waiting.
+
+</p>
+
+
+<p class="p">
+The waiting is accomplished by doing a <span class="keyword apiname">pthread_join()</span> to each of our
+threads in turn.
+First, we wait for <var class="keyword varname">thread_ids [0]</var> to finish.
+When it completes, the <span class="keyword apiname">pthread_join()</span> will unblock.
+The next iteration of the <span class="ph codeph">for</span> loop will cause us to wait for
+<var class="keyword varname">thread_ids [1]</var> to finish, and so on, for all <var class="keyword varname">num_cpus</var> threads.
+</p>
+
+
+<p class="p">
+A common question that arises at this point is, <q class="q">What if the threads
+finish in the reverse order?</q>
+In other words, what if there are 4 CPUs, and, for whatever reason, the
+thread running on the last CPU (CPU 3) finishes first, and then the
+thread running on CPU 2 finishes next, and so on?
+Well, the beauty of this scheme is that nothing bad happens.
+</p>
+
+
+<p class="p">
+The first thing that's going to happen is that the <span class="keyword apiname">pthread_join()</span>
+will block on <var class="keyword varname">thread_ids [0]</var>.
+Meanwhile, <var class="keyword varname">thread_ids [3]</var> finishes.
+This has absolutely no impact on the <span class="keyword apiname">main()</span> thread, which is still
+waiting for the first thread to finish.
+Then <var class="keyword varname">thread_ids [2]</var> finishes.
+Still no impact.
+And so on, until <em class="ph i">finally</em> <var class="keyword varname">thread_ids [0]</var> finishes, at
+which point, the <span class="keyword apiname">pthread_join()</span> unblocks, and we immediately
+proceed to the next iteration of the <span class="ph codeph">for</span> loop.
+The second iteration of the <span class="ph codeph">for</span> loop executes a <span class="keyword apiname">pthread_join()</span>
+on <var class="keyword varname">thread_ids [1]</var>, which will not block—it returns immediately.
+Why?
+Because the thread identified by <var class="keyword varname">thread_ids [1]</var> is <em class="ph i">already finished</em>.
+Therefore, our <span class="ph codeph">for</span> loop will <q class="q">whip</q> through the other threads, and then exit.
+At that point, we know that we've synched up with all the computational threads,
+so we can now display the results.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_parallel.html" title="Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: each raster line is independent of the others. This immediately causes the problem to stand out as a threadable program.">Threads in mathematical operations</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li></ul></div>
+</div></body>
+</html>

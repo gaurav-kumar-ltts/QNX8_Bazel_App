@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pthread_setschedprio()" />
+<meta name="abstract" content="Set a thread's priority" />
+<meta name="description" content="Set a thread's priority" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-p.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/overview_SCHEDS.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_getschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sched_setparam.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pthread_setschedprio" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>pthread_setschedprio()</title>
+</head>
+<body id="pthread_setschedprio">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pthread_setschedprio()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Set a thread's priority</em></p>
+
+
+<div class="section">
+
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_setschedprio( pthread_t <var class="keyword varname">thread</var>,
+                          int <var class="keyword varname">prio</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">thread</var></dt>
+
+<dd class="dd">The ID of the thread that you want to set the priority for.
+  You can get a thread ID by calling
+  <a class="xref" href="pthread_create.html" title="Create a thread"><span class="keyword apiname">pthread_create()</span></a>
+  or
+  <a class="xref" href="pthread_self.html" title="Get the calling thread's ID"><span class="keyword apiname">pthread_self()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">prio</var></dt>
+
+<dd class="dd">The new scheduling priority. <p class="p"> As an extension to POSIX, you can wrap the new priority in one
+              these macros to specify how to handle out-of-range priority requests: </p>
+
+            <ul class="ul">
+              <li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_ERROR(prio)</span> — indicate an error
+                    
+              </li>
+
+              <li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_SATURATE(prio)</span> — use the maximum allowed
+                priority (reach a <q class="q">maximum saturation point</q>)
+                    
+              </li>
+
+            </ul>
+
+            <p class="p"> If <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a> was started with a <span class="keyword option">-P</span> option
+              ending with <span class="keyword option">s</span> or <span class="keyword option">S</span>, out-of-range priority requests
+              by default <q class="q">saturate</q> at the maximum allowed value. </p>
+
+          </dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">pthread_setschedprio()</span> function sets the priority of
+thread <var class="keyword varname">thread</var> to <var class="keyword varname">prio</var>.
+</p>
+
+
+<p class="p">
+If the thread is running or runnable, the effect on its position in the
+ready queue depends on the direction of the modification:
+</p>
+
+
+<ul class="ul">
+<li class="li">If you raise the priority, the thread becomes the tail of the
+  ready queue for that priority.
+</li>
+
+
+<li class="li">If you don't change the priority, the thread doesn't change position
+  in the ready queue.
+</li>
+
+
+<li class="li">If you lower the priority, the thread becomes the head of the ready queue for that priority.</li>
+
+
+</ul>
+
+
+<p class="p">
+The <span class="keyword apiname">pthread_setschedprio()</span> function gives you a way
+to temporarily raise a thread's priority and lower it again,
+without yielding to other threads of the same priority.
+This is necessary if you have to implement your own strategies
+for bounding priority inversion, such as priority inheritance or
+priority ceilings.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In order to change its priority to a value above the maximum permitted for unprivileged processes,
+your process must have the <span class="keyword const">PROCMGR_AID_PRIORITY</span> ability enabled.
+For more information, see
+<a class="xref" href="procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EOK</span></dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The priority isn't valid for the scheduling policy of the specified thread.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOTSUP</span></dt>
+
+<dd class="dd">The specified priority isn't supported.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">Invalid thread ID <var class="keyword varname">thread</var>.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1 TPS</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d687442e346">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d687442e348"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e346 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e348 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e346 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e348 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e346 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d687442e348 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-p.html">P</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html">Thread scheduling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/overview_SCHEDS.html">Scheduling policies (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_getschedparam.html" title="Get a thread's scheduling parameters">pthread_getschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_setschedparam.html" title="Set thread scheduling parameters">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sched_setparam.html" title="Change the priority of a process">sched_setparam()</a></li></ul></div>
+</div></body>
+</html>

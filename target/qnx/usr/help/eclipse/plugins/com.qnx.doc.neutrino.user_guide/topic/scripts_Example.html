@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example of a Korn shell script" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="(Korn shell), ksh, example of a script, QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="(Korn shell), ksh, example of a script, QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/scripts.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/gawk.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/e/esh.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fesh.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/k/ksh.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/s/sed-target.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/s/sh.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Example of a Korn shell script</title>
+</head>
+<body id="Example">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Example of a Korn shell script</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+Let's look at a script that searches C source
+and header files in the current directory tree for a string passed on the
+command line.
+</p>
+
+
+<pre class="pre codeblock">#!/bin/sh
+#
+# tfind:
+# script to look for strings in various files and dump to less
+
+case $# in
+1)
+    find . -name '*.[ch]' | xargs grep $1 | less
+    exit 0   # good status
+esac
+
+echo "Use tfind stuff_to_find                               "
+echo "      where : stuff_to_find = search string           "
+echo "                                                      "
+echo "e.g., tfind console_state looks through all files in  "    
+echo "     the current directory and below and displays all "
+echo "     instances of console_state."
+exit 1    # bad status
+</pre>
+
+<div class="p">
+As described above, the first line identifies the program, <span class="ph filepath">/bin/sh</span>,
+to run to interpret the script. The next few lines are comments that describe what the
+script does. Then we see:
+
+<pre class="pre codeblock">case $# in
+1)
+  ...
+esac
+</pre>
+</div>
+
+
+<p class="p">
+
+The <span class="ph codeph">case ... in</span> is a shell builtin command, one of the
+branching structures provided by the Korn shell, and is equivalent to the C
+<span class="ph codeph">switch</span> statement.
+</p>
+
+
+<p class="p">
+
+
+The <span class="ph codeph">$#</span> is a shell variable. When you refer to a variable
+in a shell, put a <span class="ph codeph">$</span> before its name to tell the shell that it's a
+variable rather than a literal string. The shell variable, <span class="ph codeph">$#</span>, is a
+special variable that represents the number of command-line arguments to the script.
+</p>
+
+
+<p class="p">
+The <span class="ph codeph">1)</span> is a possible value for the case, the equivalent of the C
+<span class="ph codeph">case</span> statement. This code checks to see if you've passed exactly
+one parameter to the shell.
+</p>
+
+
+<p class="p">
+The <span class="ph codeph">esac</span> line completes and ends the <span class="ph codeph">case</span> statement.
+Both the <span class="ph codeph">if</span> and <span class="ph codeph">case</span> commands use the command's name
+reversed to represent the end of the branching structure.
+</p>
+
+
+<div class="p">
+Inside the case we find:
+
+<pre class="pre codeblock">find . -name '*.[ch]' | xargs grep $1 | less
+</pre>
+</div>
+
+
+<div class="p">
+This line does the bulk of the work, and breaks down into these pieces:
+
+<ul class="ul">
+<li class="li"><span class="ph codeph">find . -name '*.[ch]'</span></li>
+
+<li class="li"><span class="ph codeph">xargs grep $1</span></li>
+
+<li class="li"><span class="ph codeph">less</span></li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+
+which are joined by the <span class="ph codeph">|</span> or pipe character. A pipe is one
+of the most powerful things in the shell; it takes the output of the program on the
+left, and makes it the input of the program to its right. The pipe lets you build
+complex operations from simpler building blocks. For more information, see
+<q class="q"><a class="xref" href="cmdline_Redirection.html" title="You can override the behavior of commands that read from, or write to, stdin, stdout, and stderr.">Redirecting input and output</a></q>
+in the Using the Command Line chapter.
+</p>
+
+
+<p class="p">
+
+
+The first piece, <span class="ph codeph">find . -name '*.[ch]'</span>, uses another
+powerful and commonly used command. Most filesystems are recursive through a hierarchy
+of directories, and
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/find-target.html"><span class="keyword cmdname">find</span></a>
+is a utility that descends through the hierarchy of directories recursively. In
+this case, it searches for files that end in either <span class="ph filepath">.c</span> or
+<span class="ph filepath">.h</span>—that is, C source or header files—and prints
+out their names.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+
+
+The filename wildcards are wrapped in single quotes (<span class="ph codeph">'</span>)
+because they're special characters to the shell. Without the quotes, the shell would
+expand the wildcards in the current directory, but we want <span class="keyword cmdname">find</span> to
+evaluate them, so we prevent the shell from evaluating them by quoting them. For more
+information, see
+<q class="q"><a class="xref" href="cmdline_Quoting.html" title="Certain characters may have special meaning to the shell, depending on their context. If you want a command line to include any of the special characters that the shell processes, then you may have to quote these characters to force the shell to treat them as simple characters.">Quoting special characters</a></q>
+in Using the Command Line.
+</p>
+
+
+<div class="p">
+The next piece, <span class="ph codeph">xargs grep $1</span>, does a couple of things:
+
+<ul class="ul">
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/grep-target.html"><span class="keyword cmdname">grep</span></a>
+ is a file-contents search utility. It searches the files given on its
+ command line for the first argument. The <span class="ph codeph">$1</span> is another special
+ variable in the shell that represents the first argument we passed to the shell
+ script (i.e., the string we're looking for).
+ 
+ 
+ 
+</li>
+
+
+<li class="li">
+  <div class="p"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/x/xargs-target.html"><span class="keyword cmdname">xargs</span></a>
+  is a utility that takes its input and turns it into command-line parameters
+  for some other command that you give it. Here, it takes the list of files from
+  <span class="keyword cmdname">find</span> and makes them command-line arguments to
+  <span class="keyword cmdname">grep</span>. In this case, we're using <span class="keyword cmdname">xargs</span>
+  primarily for efficiency; we could do something similar with just
+  <span class="keyword cmdname">find</span>:
+  
+
+<pre class="pre codeblock">find . -name '*.[ch]' -exec grep $i {} | less
+</pre>
+
+  which loads and runs the <span class="keyword cmdname">grep</span> program for every file found.</div>
+
+  <div class="p">The command that we actually used:
+
+<pre class="pre codeblock">find . -name '*.[ch]' | xargs grep $1 | less
+</pre>
+
+  runs <span class="keyword cmdname">grep</span> only when <span class="keyword cmdname">xargs</span> has accumulated
+  enough files to fill a command line, generally resulting in far fewer
+  invocations of <span class="keyword cmdname">grep</span> and a more efficient script.
+  </div>
+
+
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+
+The final piece,
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/less.html"><span class="keyword cmdname">less</span></a>,
+is an output pager. The entire command may generate a lot of output that might
+scroll off the terminal, so <span class="keyword cmdname">less</span> presents this to you a page at a
+time, with the ability to move backwards and forwards through the data.
+</p>
+
+
+<div class="p">
+The <span class="ph codeph">case</span> statement also includes the following after the
+<span class="keyword cmdname">find</span> command:
+
+<pre class="pre codeblock">exit 0   # good status
+</pre>
+</div>
+
+
+<p class="p">
+
+
+This returns a value of 0 from this script. In shell programming, zero
+means true or success, and anything nonzero means false or failure. (This is the
+opposite of the meanings in the C language.)
+</p>
+
+
+<div class="p">
+The final block:
+
+<pre class="pre codeblock">echo "Use tfind stuff_to_find       "
+echo "      where : stuff_to_find = search string           "
+echo "      "
+echo "e.g., tfind console_state looks through all files in  "
+echo "     the current directory and below and displays all "
+echo "     instances of console_state."
+exit 1    # bad status
+</pre>
+
+is just a bit of help; if you pass incorrect arguments to the script, it prints a
+description of how to use it, and then returns a failure code.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/scripts.html" title="Shell scripting, at its most basic, is taking a series of commands you might type at a command line and putting them into a file, so you can reproduce them again at a later date, or run them repeatedly without having to type them over again.">Writing Shell Scripts</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/gawk.html">gawk</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/e/esh.html">esh</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fesh.html">fesh</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/k/ksh.html">ksh</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/s/sed-target.html">sed</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/s/sh.html">sh</a></li></ul></div>
+</div></body>
+</html>

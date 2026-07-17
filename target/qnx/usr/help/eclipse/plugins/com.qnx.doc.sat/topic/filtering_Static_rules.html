@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The static rules filter" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/filtering.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Static_rules" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The static rules filter</title>
+</head>
+<body id="Static_rules">
+
+<h1 class="title topictitle1" id="ariaid-title1">The static rules filter</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+You can use the static rules filter to track or filter events for all
+classes, certain events in a class, or even events related to specific process and thread IDs.
+You can select events in an additive or subtractive manner;
+you can start with no events and then add specific classes or events, or
+you can start with all events and then exclude specific ones.
+</p>
+
+
+<p class="p">
+The static rules filter is the best, most efficient method of data reduction.
+It generally frees up the processor while significantly reducing the data rate.
+This filter is also useful for gathering large amounts of data periodically,
+or after many hours of logging without generating gigabytes of data in the interim.
+</p>
+
+
+<p class="p">
+You set up this filter using various
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html"><span class="keyword apiname">TraceEvent()</span></a> commands.
+For information about the different classes, see
+<q class="q"><a class="xref" href="events_Classes.html">Classes and events</a></q>
+in the <q class="q">Events and the Kernel</q> chapter of this guide.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can set up process- and thread-specific tracing (using the <span class="keyword const">_NTO_TRACE_SET*</span> and
+<span class="keyword const">_NTO_TRACE_CLR*</span> commands described below) only for the following classes:
+
+<ul class="ul">
+<li class="li"><span class="keyword const">_NTO_TRACE_COMM</span></li>
+
+<li class="li"><span class="keyword const">_NTO_TRACE_KERCALL</span>, <span class="keyword const">_NTO_TRACE_KERCALLENTER</span>,
+  <span class="keyword const">_NTO_TRACE_KERCALLEXIT</span>
+</li>
+
+<li class="li"><span class="keyword const">_NTO_TRACE_SYSTEM</span></li>
+
+<li class="li"><span class="keyword const">_NTO_TRACE_THREAD</span></li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Here's a general outline for using the static rules filter:
+</p>
+
+
+<ol class="ol">
+<li class="li"><div class="p">Clear any existing filters.
+  The instrumented kernel retains its settings, so you should be careful
+  not to make any assumptions about the settings that are in effect when you set up your filters.
+  Start by removing the tracing for <em class="ph i">all</em> classes and events:
+  
+
+  <pre class="pre codeblock">TraceEvent(_NTO_TRACE_DELALLCLASSES);</pre>
+  </div>
+
+  <div class="p">
+  The <span class="keyword const">_NTO_TRACE_DELALLCLASSES</span> command doesn't suppress any process- and thread-specific tracing
+  that might have previously been set up.
+  You need to clear it separately, by using the following <span class="keyword apiname">TraceEvent()</span> commands:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e134">To clear:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e137">Call <span class="keyword apiname">TraceEvent()</span> with these arguments:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e134 ">Process-specific tracing of all events of a given class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e137 "><span class="ph codeph">_NTO_TRACE_CLRCLASSPID, <var class="keyword varname">class</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e134 ">Process- and thread-specific tracing of all events of a given class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e137 "><span class="ph codeph">_NTO_TRACE_CLRCLASSTID, <var class="keyword varname">class</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e134 ">Process-specific tracing of the given event in a given class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e137 "><span class="ph codeph">_NTO_TRACE_CLREVENTPID, <var class="keyword varname">class</var>, <var class="keyword varname">event</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e134 ">Process- and thread-specific tracing of a given event and class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e137 "><span class="ph codeph">_NTO_TRACE_CLREVENTTID, <var class="keyword varname">class</var>, <var class="keyword varname">event</var></span></td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+  </div>
+
+
+  <div class="p">
+  For example, you might want to start by turning off all filtering:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_DELALLCLASSES);
+TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_KERCALL);
+TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_KERCALL);
+TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_THREAD);
+TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_THREAD);
+TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_SYSTEM);
+TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_SYSTEM);
+TraceEvent(_NTO_TRACE_CLRCLASSPID, _NTO_TRACE_COMM);
+TraceEvent(_NTO_TRACE_CLRCLASSTID, _NTO_TRACE_COMM);
+</pre>
+  </div>
+
+</li>
+
+
+<li class="li"><div class="p">Set up the tracing of the event classes and types that you're interested in.
+  You can do this in an additive or subtractive manner;
+  you can start with no events, and then add specific classes or events, or
+  you can start with all events, and then exclude specific ones.
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e241">To:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e244">Call <span class="keyword apiname">TraceEvent()</span> with these arguments:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e241 ">Enable the tracing of <em class="ph i">all</em> classes and events
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e244 "><span class="ph codeph">_NTO_TRACE_ADDALLCLASSES</span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e241 ">Enable the tracing of all events in a specific class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e244 "><span class="ph codeph">_NTO_TRACE_ADDCLASS, <var class="keyword varname">class</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e241 ">Enable the tracing of a specific event in a specific class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e244 "><span class="ph codeph">_NTO_TRACE_ADDEVENT, <var class="keyword varname">class</var>, <var class="keyword varname">event</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e241 ">Disable the tracing of all events in a specific class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e244 "><span class="ph codeph">_NTO_TRACE_DELCLASS, <var class="keyword varname">class</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e241 ">Disable the tracing of a specific event in a specific class
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e244 "><span class="ph codeph">_NTO_TRACE_DELEVENT, <var class="keyword varname">class</var>, <var class="keyword varname">event</var></span></td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+  </div>
+
+</li>
+
+
+<li class="li"><div class="p">Optionally restrict the tracing to a specific process or thread:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e359">To trace:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d7559e362">Call <span class="keyword apiname">TraceEvent()</span> with these arguments:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e359 ">All events for the given class for the given process
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e362 "><span class="ph codeph">_NTO_TRACE_SETCLASSPID, <var class="keyword varname">class</var>, <var class="keyword varname">pid</var></span></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e359 ">All events for the given class for the given thread,
+      specified by <var class="keyword varname">pid</var> and <var class="keyword varname">tid</var>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e362 "><span class="ph codeph">_NTO_TRACE_SETCLASSTID, <var class="keyword varname">class</var>, <var class="keyword varname">pid</var>,
+      <var class="keyword varname">tid</var></span>
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e359 ">All events of the given type in the given class for the given process
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e362 "><span class="ph codeph">_NTO_TRACE_SETEVENTPID, <var class="keyword varname">class</var>, <var class="keyword varname">event</var>,
+       <var class="keyword varname">pid</var></span>
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e359 ">All events of the given type in the given class for the given thread,
+      specified by <var class="keyword varname">pid</var> and <var class="keyword varname">tid</var>
+      
+    </td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d7559e362 "><span class="ph codeph">_NTO_TRACE_SETEVENTTID, <var class="keyword varname">class</var>, <var class="keyword varname">event</var>,
+      <var class="keyword varname">pid</var>, <var class="keyword varname">tid</var></span>
+    </td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+  </div>
+
+
+  <p class="p">
+  You can set up class or event filtering for one process or thread at a time.
+  That is, if you make a second <span class="keyword apiname">TraceEvent()</span> call with the same <span class="keyword const">SETCLASS</span> or
+  <span class="keyword const">SETEVENT</span> control, then this changes the data generation source from the previously configured process or thread
+  to the newly specified one; it does not enable event generation for both.
+  </p>
+
+
+  <div class="p">
+  For example, the following sets up filtering for different classes for different processes:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_SETCLASSPID, <strong class="ph b">_NTO_TRACE_KERCALL</strong>, pid_1);
+TraceEvent(_NTO_TRACE_SETCLASSTID, <strong class="ph b">_NTO_TRACE_THREAD</strong>, pid_2, tid_1);
+</pre>
+  </div>
+
+
+  <div class="p">
+  But the second call in the following overrides the setting made in the first call:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_SETCLASSPID, <strong class="ph b">_NTO_TRACE_KERCALL</strong>, pid_1);
+TraceEvent(_NTO_TRACE_SETCLASSTID, <strong class="ph b">_NTO_TRACE_KERCALL</strong>, pid_2, tid_1);
+</pre>
+  </div>
+
+</li>
+
+
+</ol>
+
+
+<p class="p">
+For an example that uses the static filter, see the
+<a class="xref" href="tutorial-intro_FIVE_EVENTS.C.html"><span class="ph filepath">five_events.c</span></a> example in the
+<q class="q"><a class="xref" href="tutorial-intro.html">Tutorials</a></q> chapter.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/filtering.html">Filtering</a></div>
+</div>
+</div></body>
+</html>

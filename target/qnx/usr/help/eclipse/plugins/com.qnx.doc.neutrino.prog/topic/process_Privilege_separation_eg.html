@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="An example of privilege separation" />
+<meta name="abstract" content="Here's a basic example of privilege separation consisting of a low-privileged client and a high-privileged server. The example can easily be adapted to various design paradigms." />
+<meta name="description" content="Here's a basic example of privilege separation consisting of a low-privileged client and a high-privileged server. The example can easily be adapted to various design paradigms." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Privileges.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Privilege_separation_eg" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>An example of privilege separation</title>
+</head>
+<body id="process_Privilege_separation_eg">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">An example of privilege separation</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Here's a basic example of privilege separation consisting of a low-privileged
+client and a high-privileged server.
+The example can easily be adapted to various design paradigms.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+Note the use of
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>
+followed by
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html"><span class="keyword apiname">execve()</span></a>,
+which causes the more privileged process to have
+its own unique address space and stack cookies.
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/procmgr.h&gt;
+#include &lt;secpol/secpol.h&gt;
+ 
+/* Example credential values */
+#define SERVER_UID 88
+#define SERVER_GID 88
+#define CLIENT_UID 99
+#define CLIENT_GID 99
+ 
+static char *set_ids_arg = NULL;
+ 
+void run_server(int chid, pid_t child)
+{
+    rcvid_t rcvid;
+    char msg[10];
+    struct _msg_info info;
+    struct _client_info* cinfo;
+ 
+    /* Retain sample capabilities, and deny and lock all the rest */
+    procmgr_ability(0,
+      PROCMGR_ADN_NONROOT|PROCMGR_AOP_ALLOW|PROCMGR_AID_PATHSPACE,
+      PROCMGR_ADN_NONROOT|PROCMGR_AOP_ALLOW|PROCMGR_AID_SETUID,
+      PROCMGR_ADN_NONROOT|PROCMGR_AOP_DENY|PROCMGR_AOP_LOCK|PROCMGR_AID_EOL
+     );
+ 
+    /* drop privileges */
+    if (set_ids_arg) {
+        if( set_ids_from_arg(set_ids_arg) != 0 ) {
+            fprintf(stderr, "set_ids_from_arg failed: errno=%d\n", errno);
+            exit(EXIT_FAILURE);
+        }
+    }
+    else {
+         /* The server side verifies that the process connecting
+            to the channel is indeed its child by comparing the incoming
+            process ID to the known child ID. */
+
+        if ( setregid(SERVER_GID, SERVER_GID) != 0 ) {
+            fprintf(stderr, "setregid failed: errno=%d\n", errno);
+            exit(EXIT_FAILURE);
+        }
+        if ( setreuid(SERVER_UID, SERVER_UID) != 0 ) {
+            fprintf(stderr, "setreuid failed: errno=%d\n", errno);
+            exit(EXIT_FAILURE);
+        }
+    }
+ 
+    for ( ; ; ) {
+        rcvid = MsgReceive(chid, &amp;msg, sizeof(msg), &amp;info);
+        if (rcvid == -1) {
+            perror("MsgReceive");
+            /* handle errors */
+        }
+        else if (rcvid == 0) {
+            /* handle pulses */
+        }
+        if (ConnectClientInfoExt(info.scoid, &amp;cinfo,
+            _NTO_CLIENTINFO_GETGROUPS) == -1) {
+            perror("ConnectClientInfo()");
+            exit(EXIT_FAILURE);
+        }
+        if (cinfo-&gt;cred.euid == CLIENT_UID &amp;&amp;
+            cinfo-&gt;cred.egid == CLIENT_GID &amp;&amp;
+            info.pid == child) {
+            printf("PID %d: Message from legitimate child\n", getpid());
+            /* handle legitimate child request */
+            MsgReply(rcvid, 0x1337, NULL, 0);
+        }
+        free(cinfo);
+    }
+ 
+    exit(EXIT_SUCCESS);
+}
+ 
+void run_client(int chid)
+{
+    long    err;
+    int     connd;
+    char    send_msg[10];
+    char    reply_msg[10];
+ 
+    /* drop privileges. no capabilities retained */
+    setregid(CLIENT_GID, CLIENT_GID);
+    setreuid(CLIENT_UID, CLIENT_UID);
+ 
+    connd = ConnectAttach(0, getppid(), chid, _NTO_SIDE_CHANNEL,
+                          _NTO_COF_CLOEXEC);
+    if (connd == -1) {
+        perror("connd");
+        exit(EXIT_FAILURE);
+    }
+ 
+    for ( ; ; ) {
+        /* typical functionality with large attack surface here */
+        memset(send_msg, 0x41, sizeof(send_msg));
+        memset(reply_msg, 0x41, sizeof(reply_msg));
+        err = MsgSend(connd, send_msg, sizeof(send_msg), reply_msg,
+                      sizeof(reply_msg));
+        if (err == -1) {
+            perror("MsgSend");
+            exit(EXIT_FAILURE);
+        }
+        printf("PID %d: Got message response!\n", getpid());
+    }
+ 
+    exit(EXIT_SUCCESS);
+}
+ 
+int main(int argc, char **argv)
+{
+    int     c;
+    int     chid;
+    int     connd;
+    int     is_client;
+    pid_t   pid;
+ 
+    is_client = 0;
+    while ((c = getopt(argc, argv, "c:")) != -1) {
+        switch(c) {
+            /* only used during re-execution */
+            case 'c':
+                chid = atoi(optarg);
+                is_client = 1;
+                break;
+ 
+            /* add a -U case */
+            case 'U':
+                set_ids_arg = optarg;
+                break;
+ 
+            default:
+                //usage();
+                exit(EXIT_FAILURE);
+                break;
+        }
+    }
+ 
+    if (is_client) {
+        run_client(chid);
+        return 1; // Unreachable code: run_client() calls exit()
+    }
+ 
+    /* Create channel */
+    chid = ChannelCreate(_NTO_CHF_DISCONNECT);
+    if (chid == -1) {
+        perror("ChannelCreate");
+        exit(EXIT_FAILURE);
+    }
+ 
+    pid = fork(); // alternatively use spawn()
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    /* parent */
+    if (pid) {
+
+       /* Note that the channel identifier is provided to the
+          client process, using the command line, so it knows
+          where to connect. */
+
+        run_server(chid, pid);
+    }
+    /* child */
+    else {
+        unsigned int i;
+        char buf[32];   // enough to hold channel id digits
+        char ** new_args;
+        new_args = malloc((argc+2) * sizeof(char *));
+        if (new_args == NULL) {
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
+        for (i = 0; i &lt; argc; i++) {
+            new_args[i] = argv[i];
+        }
+        new_args[i++] = "-c";
+        memset(buf, 0, sizeof(buf));
+        if (snprintf(buf, sizeof(buf), "%d", chid) == -1) {
+            perror("snprintf");
+            exit(EXIT_FAILURE);
+        }
+        new_args[i++] = buf;
+        new_args[i] = NULL;
+        execve(new_args[0], new_args, NULL);
+    }
+ 
+    return 0;
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Privileges.html" title="In systems where security is important, applications should run with the fewest privileges possible. This practice helps reduce the impact of possible compromises and can also help lower the privilege escalation attack surface of the device.">Process privileges</a></div>
+</div>
+</div></body>
+</html>

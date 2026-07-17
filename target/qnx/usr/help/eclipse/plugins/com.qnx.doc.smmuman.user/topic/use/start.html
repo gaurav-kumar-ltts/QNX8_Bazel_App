@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Starting and stopping smmuman" />
+<meta name="abstract" content="Typically, you start the smmuman service in your system startup script." />
+<meta name="description" content="Typically, you start the smmuman service in your system startup script." />
+<meta name="DC.subject" content="SMMUMAN, starting, starting, smmuman, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="SMMUMAN, starting, starting, smmuman, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="start" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Starting and stopping smmuman</title>
+</head>
+<body id="start">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Starting and stopping <span class="keyword cmdname">smmuman</span></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Typically, you start the <span class="keyword cmdname">smmuman</span> service in your system startup
+		script.</p>
+
+		<div class="section">
+			<div class="p">When the <span class="keyword cmdname">smmuman</span> service is included in the bootable OS image, the
+				service can be launched as part of the system startup procedure. For example, the following
+				snippets are for a buildfile that includes <span class="keyword cmdname">smmuman</span> in a build for
+				a hypervisor host on a fictional x86 board (<q class="q">myx86</q>), and starts the service:
+<pre class="pre codeblock">#Bootstrap file
+[image=0x2000000]
+[virtual=x86_64,kpi +compress] boot = {
+startup-intel-MX86 -D8250_mmio.0xFC000000^2.115200 -Q enable -v 
+[+keeplinked] \
+    PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/sbin:/opt/bin:/proc/boot \
+    LD_LIBRARY_PATH=/lib:/usr/lib:/lib/dll:/lib/dll/pci:/proc/boot procnto-smp-instr
+}
+
+[+script] startup-script = {
+    display_msg Welcome to the QNX OS on my x86_64 board.
+
+... 
+
+#Concatenate above, the BSP build file of your choosing
+[+script] myx86-startup-script = {
+    ...
+    <strong class="ph b">#Start smmuman and point it to the configuration file.
+    smmuman @/etc/myx86.smmu</strong>
+}
+
+#My board binaries
+[perms=0444] /root/envset.sh {
+export PCI_HW_MODULE=/lib/dll/pci/pci_hw-Intel_x86_MX86.so
+}
+...
+
+<strong class="ph b">#Include smmuman configuration file in build.
+/etc/myx86.smmu = ${MY_TARGET}/etc/myx86.smmu</strong>
+...
+
+<strong class="ph b">#Include smmuman in build.
+/bin/smmuman = smmuman
+/lib/dll/smmu-vtd.so = smmu-vtd.so</strong>
+</pre></div>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">You should start the <span class="keyword cmdname">smmuman</span> service before you
+				start any DMA-enabled drivers.</div>
+
+		</div>
+
+		<div class="section" id="start__where"><h2 class="title sectiontitle">Determining where the <span class="keyword cmdname">smmuman</span> service is running</h2>
+			
+			<p class="p">A <span class="keyword cmdname">smmuman</span> service may run at the hypervisor host layer or as part of
+				a guest in a hypervisor VM. If it runs at the host layer, the service may need to load
+				a support library. If it is running in a guest in a VM, it needs the
+				<span class="keyword option">vdev-smmu</span> virtual device.</p>
+
+			<div class="p">When the <span class="keyword cmdname">smmuman</span> service processes its configuration information,
+				it looks for the <span class="keyword option">vdev-smmu</span> virtual device:
+				<ul class="ul">
+					<li class="li">If it finds this device, the service knows that it is running in a guest in a VM
+						and proceeds with its startup.</li>
+
+					<li class="li">If it doesn’t find this device, the service assumes that it is running in the
+						host, and attempts to load the <span class="ph filepath">smmu-*.so</span> support library
+						specified by the <span class="keyword option">smmu</span> option in its configuration before
+						proceeding with its startup.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">If the <span class="keyword cmdname">smmuman</span> service doesn't find the <span class="keyword option">vdev-smmu</span>
+				virtual device and is unable to load the specified support library or none is
+				specified, the service reports that the required hardware isn't present and moves to
+				its DSS (see <q class="q"><a class="xref" href="../arch/arch.html#arch__dss">Design Safe State (DSS)</a></q>
+				in the <q class="q"><a class="xref" href="../arch/arch.html" title="This chapter presents the architecture of the SMMUMAN, and its responsibilities and behavior.">SMMUMAN Architecture</a></q> chapter).</p>
+
+		</div>
+
+		<div class="section" id="start__safety"><h2 class="title sectiontitle">Startup in a QNX hypervisor guest</h2>
+			
+			<div class="note"><span class="notetitle">Note:</span> In this document, we use <q class="q">QNX hypervisor</q> (with a small h) to refer to either the
+				non-safety product <span class="keyword">QNX Hypervisor</span> or the safety-certified product
+				<span class="keyword">QNX Hypervisor for Safety</span>. When necessary, we refer to a specific hypervisor
+				product using its exact name with the appropriate capitalization (with a large h).</div>
+
+			<div class="p">To use the <span class="keyword cmdname">smmuman</span> service in a QNX guest running in a QNX
+				hypervisor VM, start it as you would the <span class="keyword cmdname">smmuman</span> service for a
+				system running directly on hardware (see above). When the
+				<span class="keyword cmdname">smmuman</span> service is implemented in a QNX guest,
+				it proceeds with startup as described above, with the following differences:
+				<ol class="ol">
+					<li class="li"><p class="p">The <span class="keyword cmdname">smmuman</span> service doesn’t load a support library, but
+							communicates directly with the IOMMU/SMMU virtual device
+							(<span class="keyword cmdname">vdev-smmu</span>).</p>
+
+						<p class="p">If it doesn’t find a <span class="keyword cmdname">vdev-smmu</span> in its hosting VM
+							(<span class="keyword cmdname">qvm</span> process instance), the
+							<span class="keyword cmdname">smmuman</span> service in the guest reports that the
+							required hardware isn't present and moves to its DSS.</p>
+
+					</li>
+
+					<li class="li">When it parses its configuration information, the <span class="keyword cmdname">smmuman</span>
+						service ignores any <span class="keyword option">reserved</span>, <span class="keyword option">smmu</span>,
+						<span class="keyword option">unit</span>, or <span class="keyword option">use</span> options it finds in its
+						configuration, because these options are relevant only to the corresponding
+						<span class="keyword cmdname">smmuman</span> service running in the hypervisor host.
+					</li>
+
+					<li class="li"><div class="p">The <span class="keyword cmdname">smmuman</span> service queries the
+							<span class="keyword cmdname">vdev-smmu</span> device, which confirms that a
+							<span class="keyword cmdname">smmuman</span> service is running in the hypervisor host
+							and that the hosting VM is attached as a client of the host-level
+							<span class="keyword cmdname">smmuman</span> service. The device also provides the
+							safety-certification status of all the components on which the guest's
+							<span class="keyword cmdname">smmuman</span> service relies:
+						<ul class="ul">
+							<li class="li">the host-level microkernel and process manager
+								(<span class="keyword cmdname">procnto*</span>)</li>
+
+							<li class="li">the host-level SMMUMAN components (<span class="keyword cmdname">smmuman</span>,
+								<span class="ph filepath">libsmmu.a</span>, and the
+								<span class="ph filepath">smmu-*.so</span> support library)</li>
+
+							<li class="li">the QNX hypervisor components (<span class="keyword cmdname">qvm</span> and the
+								<span class="ph filepath">vdev-*.so</span> virtual devices)
+								<div class="note"><span class="notetitle">Note:</span> 
+									The <span class="ph filepath">vdev-smmu.so</span> virtual device shared object is a
+									QNX hypervisor component. For more information about this device and how
+									to use it, see the <cite class="cite">QNX Hypervisor User's Guide</cite>.</div>
+
+							</li>
+
+						</ul>
+</div>
+
+					</li>
+
+				</ol>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="start__cert"><h2 class="title sectiontitle">Component safety-certification status</h2>
+			
+			
+			<p class="p">By default, if the <span class="keyword cmdname">smmuman</span> service running in the guest is the
+				safety variant
+				(<span class="keyword cmdname">smmuman-safety</span>), all the SMMUMAN and all the QNX hypervisor
+				components must be safety-certified variants. If the required components are not,
+				the <span class="keyword cmdname">smmuman</span> service in the guest moves to its DSS.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> The behavior described above is the <em class="ph i">default</em> behavior for
+				<span class="keyword cmdname">smmuman-safety</span>. This behavior may be modified with the
+				<span class="keyword option">safety</span> option (see <a class="xref" href="options.html#options__safety"><span class="keyword option">safety</span></a> in <q class="q"><a class="xref" href="options.html" title="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both.">Global options</a></q>).</div>
+
+		</div>
+
+		<div class="section" id="start__stop"><h2 class="title sectiontitle">Stopping the <span class="keyword cmdname">smmuman</span> service</h2>
+			
+			
+			
+			
+			<div class="note warning"><span class="warningtitle">Warning:</span> <p class="p">You should never stop the <span class="keyword cmdname">smmuman</span> service
+				after it has started. If you have implemented SMMUMAN in your system, the integrity
+				of your system depends on the <span class="keyword cmdname">smmuman</span> service running continuously.
+				</p>
+
+				<p class="p">If for whatever reason the <span class="keyword cmdname">smmuman</span> service moves to its DSS
+					(see <q class="q"><a class="xref" href="../arch/arch.html#arch__dss">Design Safe State (DSS)</a></q>), your system
+					should move to its DSS.</p>
+
+			</div>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Starting io-sock and Driver Management" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="start_io-sock" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Starting io-sock and Driver Management</title>
+</head>
+<body id="start_io-sock">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Starting <span class="keyword cmdname">io-sock</span> and Driver Management</h1>
+
+    
+    
+    
+    <div class="body conbody">
+        <div class="section">
+        <p class="p">You can start <span class="keyword cmdname">io-sock</span> with or without a driver. For example:</p>
+
+        <pre class="pre codeblock">io-sock</pre>
+        <p class="p">The <span class="keyword cmdname">io-sock</span> command creates the following resources by default:</p>
+
+        <pre class="pre codeblock">/dev/socket 
+/dev/io-sock
+/dev/pf
+/dev/bpf</pre>
+        <p class="p">You can also load one or more drivers when you start <span class="keyword cmdname">io-sock</span>. Because
+                all <span class="keyword cmdname">io-sock</span> drivers default to Plug and Play, you can load them
+                without having interfaces present. For example, the following command loads the driver
+                for PCI bus devices (<span class="ph filepath">mods-pci.so</span>) and one for an Intel PRO/1000
+                Gigabit Ethernet adapter (<span class="ph filepath">devs-em.so</span>)
+                (<span class="ph filepath">devs-em.so</span> requires <span class="ph filepath">mods-pci.so</span>):</p>
+
+            <pre class="pre codeblock">io-sock -m mods-pci.so -d devs-em.so</pre>
+            <p class="p">(A description of the driver resources that this command creates is provided below,
+                with the command for loading a driver later.)</p>
+
+        <p class="p">For x86_64 targets, which are usually not resource limited, you can choose to start all
+                drivers (including the general drivers for Ethernet PHY, PCI bus, and USB bus devices)
+                when you start <span class="keyword cmdname">io-sock</span>. For example, when you use the
+                following command, <span class="keyword cmdname">io-sock</span> discovers all the interfaces it
+                supports with the currently loaded drivers and creates them (you can specify a
+                driver without the <span class="ph filepath">mods-*</span> or <span class="ph filepath">devs-*</span>
+                prefix and <span class="ph filepath">.so</span> extension).</p>
+
+            <pre class="pre codeblock">io-sock -m fdt -m phy -m phy_fdt -d ffec -m pci -d em -d igc -d ix -d re -d rt \
+    -m usb -d axe -d axge -d cdce -d smsc</pre>
+        </div>
+
+       <div class="section"><h2 class="title sectiontitle">Loading a driver after starting <span class="keyword cmdname">io-sock</span></h2>
+            
+            <p class="p">You can start <span class="keyword cmdname">io-sock</span> and load a driver later. For example, the
+                following command starts the Intel E1000 Ethernet device driver
+                    (<span class="ph filepath">devs-em.so</span>) with <span class="keyword cmdname">io-sock</span> already
+                running. (If the driver for PCI bus devices is not already running, start it as well.): </p>
+
+           <pre class="pre codeblock">mount -T io-sock pci
+mount -T io-sock em</pre>
+            <p class="p">This example assumes that the search path for the drivers is in
+                    <span class="keyword const">LD_LIBRARY_PATH</span>. The search path for the driver is the
+                    <span class="keyword const">LD_LIBRARY_PATH</span> that <span class="keyword cmdname">io-sock</span> has in its
+                environment (i.e., what it was when <span class="keyword cmdname">io-sock</span> started, not the
+                environment of <span class="keyword cmdname">mount</span>).</p>
+
+           <p class="p">If you do not specify the <span class="ph filepath">mods-*</span> or <span class="ph filepath">devs-*</span>
+               prefix, <span class="keyword cmdname">io-sock</span> searches for a matching <span class="ph filepath">devs-*</span>
+               driver first, then a <span class="ph filepath">mods-*</span> one.</p>
+
+            <p class="p">You can also provide the path explicitly. For example:</p>
+
+            <div class="p">
+                <pre class="pre codeblock">mount -T io-sock /lib/dll/devs-em.so</pre>
+            </div>
+
+            <p class="p">This command creates the following resources: </p>
+
+            <pre class="pre codeblock">/dev/io-sock/devs-em.so
+/dev/io-sock/devs-em.so/em0
+/dev/io-sock/devs-em.so/em1
+...
+/dev/io-sock/devs-em.so/em<var class="keyword varname">n</var></pre>
+            <p class="p">where <var class="keyword varname">n</var> is the number of devices found.</p>
+
+            <p class="p">The filenames under the driver directory (in this example,
+                        <span class="ph filepath">/dev/io-sock/devs-em.so/em<var class="keyword varname">n</var></span>) are
+                device names, not interface names. In some cases, the directory names and the names
+                that <span class="keyword cmdname">ifconfig</span> displays may not match the driver name.</p>
+
+           <p class="p">Use <span class="keyword cmdname">cat</span> to see the corresponding <span class="keyword cmdname">ifconfig</span>
+              interface for a device. For example:</p>
+
+
+           <pre class="pre codeblock"># cat /dev/io-sock/devs-em.so/em*
+device=em0,interface=em0,options=""
+device=em1,interface=em1,options=""</pre>
+           <p class="p">To unmount, you remove all the devices that the mount process created first. For
+                example:</p>
+
+
+                <pre class="pre codeblock">umount /dev/io-sock/devs-em.so/em0
+umount /dev/io-sock/devs-em.so/em1
+umount /dev/io-sock/devs-em.so/em<var class="keyword varname">n</var>
+...
+umount /dev/io-sock/devs-em.so </pre>
+       </div>
+
+       <div class="section" id="start_io-sock__create_alternative"><h2 class="title sectiontitle">Creating and starting an alternative stack</h2>
+            
+            <p class="p">The <span class="keyword cmdname">io-sock</span> networking stack allows you to create multiple
+                instances of the stack (e.g., to provide one stack for external users and one for
+                internal use).</p>
+
+            <p class="p">To create an alternative <span class="keyword cmdname">io-sock</span> stack, use
+                    <span class="keyword option">prefix=</span><var class="keyword varname">path</var>, which specifies a path to
+                prepend to the default stack location (e.g., <span class="ph filepath">/dev/socket</span>). For
+                example: </p>
+
+           <pre class="pre codeblock">io-sock -o prefix=/alt -m phy -m pci</pre>
+            <p class="p">This <span class="keyword cmdname">io-sock</span> command creates the following resources:</p>
+
+            <pre class="pre codeblock">/alt/dev/socket
+/alt/dev/io-sock
+/alt/dev/pf
+/alt/dev/bpf</pre>
+            <p class="p">To mount the alternative stack, match the prefix string. For example:</p>
+
+            <pre class="pre codeblock">mount -T io-sock -o prefix=/alt devs-em.so</pre>
+            <p class="p">This command creates the following resources:</p>
+
+            <pre class="pre codeblock">/alt/dev/io-sock/devs-em.so
+/alt/dev/io-sock/devs-em.so/em0
+/alt/dev/io-sock/devs-em.so/em1
+...
+/alt/dev/io-sock/devs-em.so/em<var class="keyword varname">n</var></pre>
+            <p class="p">where <var class="keyword varname">n</var> is the number of interfaces found. </p>
+
+            <p class="p">Include the prefix when you umount. For example:</p>
+
+
+                <pre class="pre codeblock">umount /alt/dev/io-sock/devs-em.so/em0
+umount /alt/dev/io-sock/devs-em.so/em1
+umount /alt/dev/io-sock/devs-em.so/em<var class="keyword varname">n</var>
+...
+umount /alt/dev/io-sock/devs-em.so </pre>
+<div class="p">Applications use one of the following methods to select the alternative stack:<ul class="ul" id="start_io-sock__ul_s4t_yff_z1c">
+                    <li class="li">Specify the appropriate <span class="keyword envar">SOCK</span> environment variable. For
+                        example: <ul class="ul">
+                            <li class="li">
+                                <pre class="pre codeblock">SOCK=/alt ifconfig</pre>
+                            </li>
+
+                            <li class="li">
+                                <pre class="pre codeblock">SOCK=/alt netstat -in</pre>
+                            </li>
+
+                            <li class="li">
+                                <pre class="pre codeblock">SOCK=/alt sysctl -a</pre>
+                            </li>
+
+                            <li class="li">
+                                <pre class="pre codeblock">SOCK=/alt pfctl -f /etc/pf_alt.conf</pre>
+                            </li>
+
+                        </ul>
+</li>
+
+                    <li class="li">For each thread that uses the alternative stack, use
+                            <span class="keyword apiname">setsockprefix()</span> to add the appropriate prefix to the
+                        networking stack path (e.g., add the prefix <span class="ph codeph">alt</span> to the
+                        default path of <span class="ph filepath">/dev/socket</span>). For more information, go
+                        to the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/setsockprefix.html"><span class="keyword apiname">setsockprefix()</span></a> entry in the <span class="keyword">QNX OS</span>
+                        <cite class="cite">C Library Reference</cite>.</li>
+
+                </ul>
+If you don't specify <span class="keyword envar">SOCK</span> or a prefix, the original instance of
+                the stack is used.</div>
+
+
+        </div>
+
+        <div class="section" id="start_io-sock__multiple_stacks"><h2 class="title sectiontitle">Running multiple stacks with network interface
+                controllers of the same type</h2><p class="p">In <span class="keyword cmdname">io-sock</span>, Plug and Play
+                is enabled by default. With Plug and Play, an interface is automatically attached
+                after it is inserted into the bus, provided there is a driver loaded that supports
+                the interface. </p>
+<p class="p">In some cases, to run multiple instances of the stack with
+                multiple NICs of the same type, Plug and Play should be disabled. You can then
+                identify each interface (e.g., using the <tt class="ph tt">Bus:Device:Function</tt> numbers) and
+                specify the stack it should attach to. </p>
+<p class="p">Depending on the type of device and
+                how it is used, it may or may not be essential to disable Plug and
+                Play.</p>
+<strong class="ph b">PCI</strong>: Stacks connect to PCI devices via the PCI server. After it is
+            created, the connection is exclusive, and the devices are rarely inserted and removed.
+            With Plug and Play enabled, you can start the first stack with both NICs and
+                <span class="keyword cmdname">umount</span> one NIC before you start the second stack. That NIC can
+            then be attached when starting the second stack. However, if a new device is inserted,
+            the two stacks race to connect to it. You must disable Plug and Play if you want to
+            control which stack connects to the device. <p class="p"><strong class="ph b">USB</strong>: USB devices are also
+                connected to a stack exclusively and you can use the <span class="keyword cmdname">umount</span>
+                method described for multiple PCI NICs with USB NICs. However, because USB devices
+                are inserted and removed more often, the race to connect also happens more often.
+                You must disable Plug and Play if you want to avoid it. </p>
+<p class="p"><strong class="ph b">OFW (Open Firmware
+                    Bus</strong>): OFW devices are not connected exclusively. Plug and Play must be
+                disabled to work with NICs of the same type with two or more stacks. If Plug and
+                Play is not disabled, the stacks overwrite each other’s values. This overwriting
+                could cause the <span class="keyword cmdname">io-sock</span> instances to crash.</p>
+
+<h3 class="title sectiontitle">Disabling
+                    Plug and Play</h3>
+<p class="p">To disable Plug and Play, use the <span class="keyword cmdname">sysctl</span> tunable that corresponds to the device
+   interface type. You set the tunable either in the configuration file that is applied when you start
+   <span class="keyword cmdname">io-sock</span> (specified by the <span class="keyword option">config</span> option), or using
+   <span class="keyword cmdname">sysctl</span>. For example, to disable Plug and Play for PCI devices: </p>
+
+<pre class="pre codeblock">sysctl qnx.pnp.pci=0 </pre>
+<p class="p">For more information, see the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/sysctl.html"><span class="keyword cmdname">sysctl</span></a>
+entry in the <cite class="cite">Utilities Reference</cite>.
+</p>
+<h3 class="title sectiontitle">Attaching devices to specific
+                stacks</h3><p class="p">After creating an alternative stack (see <q class="q"><a class="xref" href="#start_io-sock__create_alternative">Creating and starting an
+                        alternative stack</a></q>), you need to: </p>
+<ul class="ul" id="start_io-sock__ul_fj4_pjx_3qb">
+                <li class="li"> mount the correct drivers (if they have not already been loaded) </li>
+
+                <li class="li"> indicate prefix of the desired stack, or no prefix to use the default stack </li>
+
+                <li class="li"> use the <span class="keyword option">qnxdev</span> option to identify the device to attach </li>
+
+            </ul>
+<pre class="pre codeblock">mount -T io-sock -o prefix=/alt  qnxdev=pci0:0:25:0 devs-em.so</pre><p class="p">In
+                this example, the driver is <tt class="ph tt">devs-em.so</tt>, stack prefix is <tt class="ph tt">/alt</tt> , and
+                <span class="keyword option">qnxdev</span> string is <tt class="ph tt">pci0:0:25:0</tt>. The driver for PCI bus devices
+                was started earlier, with <span class="keyword cmdname">io-sock</span>.</p>
+<h3 class="title sectiontitle">Determining
+                the <span class="keyword option">qnxdev</span> string</h3><p class="p"> If <span class="keyword cmdname">io-sock</span> is
+                running, you can use <span class="keyword cmdname">devinfo</span> to find the <span class="keyword option">qnxdev</span>
+                string for your device (see <q class="q"><a class="xref" href="#start_io-sock__dev_info">Displaying
+                        device information</a></q>). </p>
+<p class="p"> If <span class="keyword cmdname">io-sock</span> is not
+                running, you can use server-specific tools to construct the <span class="keyword option">qnxdev</span>
+                string. </p>
+<div class="p"><strong class="ph b">PCI</strong>: You can construct the <span class="keyword option">qnxdev</span> string
+                using <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pci-tool.html"><span class="keyword cmdname">pci-tool</span></a>. From the <span class="keyword cmdname">pci-tool</span>
+                output, you can find the <tt class="ph tt">Bus:Device:Function</tt> numbers for the PCI device.
+                For example, this is some sample output of <span class="keyword cmdname">pci-tool</span> with the
+                    <span class="keyword option">-v</span> option:
+                <pre class="pre codeblock"><strong class="ph b">B00</strong>:<strong class="ph b">D05</strong>:<strong class="ph b">F00</strong> @ idx 0
+        vid/did: 8086/7190
+                Intel Corporation, 82443BX/ZX 440BX/ZX AGPset Host Bridge
+        class/subclass/reg: 06/00/00
+                Host-to-PCI Bridge Device</pre>
+                In this example, the <span class="keyword option">qnxdev</span> string is <tt class="ph tt">qnxdev=pci0:0:5:0</tt>.
+                The <tt class="ph tt">pci0</tt> represents the first instance of the PCI server (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pci-server.html"><span class="keyword cmdname">pci-server</span></a>). </div>
+<div class="p"><strong class="ph b">USB</strong>: You can construct
+                the <span class="keyword option">qnxdev</span> string using <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/u/usb.html"><span class="keyword cmdname">usb</span></a>. From the <span class="keyword cmdname">usb</span> output, you
+                can find the USB hub index, device address, and interface index for the USB device.
+                For example, this is some sample output of <span class="keyword cmdname">usb
+                -vv</span>:<pre class="pre codeblock"><strong class="ph b">USB 0</strong> (XHCI) v1.11, v1.01 DDK, v2.00 HCD, DLL: Active    <strong class="ph b">***This is the USB hub index ***</strong>
+<strong class="ph b">Device Address             : 1</strong>
+Upstream Host Controller   : 0
+Upstream Device Address    : 0
+Upstream Port              : 4
+Upstream Port Speed        : Full
+Vendor                     : 0x0557
+Product                    : 0x7000
+Device Release             : r1.00
+USB Spec Release           : v1.10
+Serial Number              : N/A
+Class                      : 0x09 (Hub)
+Subclass                   : 0x00
+Protocol                   : 0x00
+Max PacketSize0            : 8
+Languages                  : No string descriptors
+Hub Number Ports           : 4
+Hub Characteristics        : 0x0009 (Individual power, Individual over-current)
+Hub Power On-&gt;Good         : 100 ms
+Hub Power Requirements     : 100 mA
+Configurations             : 1
+  Configuration            : 1
+    Attributes             : 0xe0 (Self-powered, Remote-wakeup)
+    Max Power              : 100 mA
+    Interfaces             : 1
+      <strong class="ph b">Interface            : 0 / 0</strong>
+        Class              : 0x09 (Hub)
+        Subclass           : 0x00
+        Protocol           : 0x00            </pre>
+                In this example, the <span class="keyword option">qnxdev</span> string is <tt class="ph tt">qnxdev=iousb0:0:1:0</tt>.
+                The <tt class="ph tt">iousb0</tt> represents the first instance of the USB server (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/io-usb-otg.html"><span class="keyword cmdname">io-usb-otg</span></a>). </div>
+<p class="p"><strong class="ph b">OFW</strong>: To construct the
+                    <span class="keyword option">qnxdev</span> string, you need to specify the bus location and
+                hardware address of the OFW device. You can get this information from the
+                device tree blob (DTB).
+                For example, this is some sample DTS
+            output:</p>
+<pre class="pre codeblock">/dts-v1/;
+
+/ {
+    interrupt-parent = &lt;0x8001&gt;;
+        #size-cells = &lt;0x02&gt;;
+        #address-cells = &lt;0x02&gt;;     
+        compatible = "example,dummy";     
+    
+    some_bus {          
+        compatible = "simple-bus";         
+        #address-cells = &lt;0x02&gt;;          
+        #size-cells = &lt;0x02&gt;;    
+        
+        ethernet@1c130400 {              
+            interrupts = &lt;0x00 0x2a 0x01&gt;;              
+            <strong class="ph b">reg = &lt;0x00 0x1c130400 0x00 0x200&gt;; </strong>            
+            compatible = "net,target";          
+        };      
+    };      
+    
+    another_bus {          
+        compatible = "simple-bus";     
+        #address-cells = &lt;0x02&gt;;          
+        #size-cells = &lt;0x02&gt;;          
+        
+        ethernet@1c130000 {             
+            interrupts = &lt;0x00 0x28 0x01&gt;;             
+            <strong class="ph b">reg = &lt;0x00 0x1c130000 0x00 0x200&gt;; </strong>           
+            compatible = "net,target";         
+        };      
+    };     
+    
+    intc@8000000 {          
+        phandle = &lt;0x8001&gt;;          
+        reg = &lt;0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000&gt;;          
+        compatible = "arm,cortex-a15-gic";          
+        ranges;          
+        #size-cells = &lt;0x02&gt;;          
+        #address-cells = &lt;0x02&gt;;         
+        interrupt-controller;         
+        #interrupt-cells = &lt;0x03&gt;;          
+        
+        v2m@8020000 {
+            phandle = &lt;0x8002&gt;;
+            reg = &lt;0x00 0x8020000 0x00 0x1000&gt;;
+            msi-controller;
+            compatible = "arm,gic-v2m-frame";
+        };
+     };
+  };  </pre>
+            In this example, the <span class="keyword option">qnxdev</span> string could be <tt class="ph tt">ofwbus0:0x1c130400</tt>
+            or <tt class="ph tt">ofwbus1:0x1c130000</tt>. </div>
+
+       <div class="section"><h2 class="title sectiontitle">Displaying driver information </h2>
+        <p class="p">Use <span class="keyword cmdname">ls</span> to display which drivers are loaded. For example: </p>
+
+        <pre class="pre codeblock">ls /dev/io-sock/
+devs-axe.so        devs-cdce.so       devs-re.so
+devs-axge.so       devs-em.so         mods-pci.so
+mods-phy.so        mods-usb.so</pre>
+            <p class="p">Alternatively, use <span class="keyword cmdname">find</span>. For example:</p>
+
+        <pre class="pre codeblock">find /dev/io-sock/
+/dev/io-sock/
+/dev/io-sock/devs-cdce.so
+/dev/io-sock/devs-axge.so
+/dev/io-sock/devs-axe.so
+/dev/io-sock/devs-re.so
+/dev/io-sock/devs-em.so
+/dev/io-sock/devs-em.so/em1
+/dev/io-sock/devs-em.so/em0
+/dev/io-sock/mods-pci.so
+/dev/io-sock/mods-phy.so
+/dev/io-sock/mods-usb.so</pre>
+
+
+       </div>
+
+        <div class="section" id="start_io-sock__dev_info"><h2 class="title sectiontitle">Displaying device information </h2>
+       
+        <p class="p">Use <span class="keyword cmdname">cat</span> to retrieve information about the devices in the driver
+                directories. For example: </p>
+
+        <pre class="pre codeblock">cat /dev/io-sock/devs-em.so/em0
+device=em0,interface=em0,options="" </pre>
+            <p class="p">Alternatively, you can display information for the entire directory. For example:</p>
+
+        <pre class="pre codeblock">cat /dev/io-sock/*/*
+device=em0,interface=em0,options=""
+device=em1,interface=em1,options=""
+device=axe0,interface=axe0,options="" </pre>
+            <p class="p">You can use <span class="keyword cmdname">devinfo</span> to display more detailed information about
+                devices, which is useful for attaching specific interfaces when Plug and Play is
+                disabled. For example: </p>
+
+        <pre class="pre codeblock">devinfo -v  
+nexus0 
+   pci0 
+     unknown pnpinfo vendor=0x8086 device=0x153a subvendor=0x17aa subdevice=0x3097 revid=0x04 class=0x020000 at pci0:0:25:0 
+     unknown pnpinfo vendor=0x8086 device=0x15d1 subvendor=0x8086 subdevice=0x0002 revid=0x01 class=0x020000 at pci0:1:0:0 
+     unknown pnpinfo vendor=0x10ec device=0x8168 subvendor=0x10ec subdevice=0x0123 revid=0x06 class=0x020000 at pci0:3:0:0 
+     unknown pnpinfo vendor=0x168c device=0x0013 subvendor=0x1186 subdevice=0x3a13 revid=0x01 class=0x020000 at pci0:5:0:0 
+     em0 pnpinfo vendor=0x8086 device=0x105e subvendor=0x103c subdevice=0x7044 revid=0x06 class=0x020000 at pci0:6:0:0 
+     em1 pnpinfo vendor=0x8086 device=0x105e subvendor=0x103c subdevice=0x7044 revid=0x06 class=0x020000 at pci0:6:0:1 
+   iousb0 
+     uhub0 at iousb0 (default path) 
+       unknown pnpinfo vendor=0x0557 product=0x7000 class=0x09 subclass=0x00 at iousb0:0:1:0 
+       unknown pnpinfo vendor=0x046d product=0xc31c class=0x00 subclass=0x00 at iousb0:0:2:0 
+       unknown pnpinfo vendor=0x046d product=0xc31c class=0x00 subclass=0x00 at iousb0:0:2:1 
+     uhub1 at iousb0 (default path) 
+       unknown pnpinfo vendor=0x8087 product=0x8008 class=0x09 subclass=0x00 at iousb0:1:1:0 
+     uhub2 at iousb0 (default path) 
+       unknown pnpinfo vendor=0x8087 product=0x8000 class=0x09 subclass=0x00 at iousb0:2:1:0</pre>
+           <p class="p">Additional interface information is available using <span class="keyword cmdname">ifconfig</span>. For
+                example:</p>
+
+       <pre class="pre codeblock">ifconfig 
+enc0: flags=0&lt;&gt; metric 0 mtu 1536 
+     groups: enc 
+     nd6 options=21&lt;PERFORMNUD,AUTO_LINKLOCAL&gt; 
+lo0: flags=8049&lt;UP,LOOPBACK,RUNNING,MULTICAST&gt; metric 0 mtu 16384 
+     options=680003&lt;RXCSUM,TXCSUM,LINKSTATE,RXCSUM_IPV6,TXCSUM_IPV6&gt; 
+     inet 127.0.0.1 netmask 0xff000000 
+     inet6 ::1 prefixlen 128 
+     inet6 fe80::1%lo0 prefixlen 64 scopeid 0x2 
+     groups: lo 
+     nd6 options=21&lt;PERFORMNUD,AUTO_LINKLOCAL&gt; 
+pfsync0: flags=0&lt;&gt; metric 0 mtu 1500 
+     syncpeer: 0.0.0.0 maxupd: 128 defer: off 
+     groups: pfsync 
+pflog0: flags=0&lt;&gt; metric 0 mtu 33144 
+     groups: pflog 
+em0: flags=8802&lt;BROADCAST,SIMPLEX,MULTICAST&gt; metric 0 mtu 1500 
+     options=81049b&lt;RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,VLAN_HWCSUM,LRO,VLAN_HWFILTER&gt; 
+     ether 00:26:55:db:1b:0e 
+     media: Ethernet autoselect 
+     status: no carrier 
+     nd6 options=21&lt;PERFORMNUD,AUTO_LINKLOCAL&gt; 
+em1: flags=8802&lt;BROADCAST,SIMPLEX,MULTICAST&gt; metric 0 mtu 1500 
+     options=81049b&lt;RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,VLAN_HWCSUM,LRO,VLAN_HWFILTER&gt; 
+     ether 00:26:55:db:1b:0f 
+     media: Ethernet autoselect 
+     status: no carrier 
+     nd6 options=21&lt;PERFORMNUD,AUTO_LINKLOCAL&gt;</pre>
+       </div>
+
+
+
+    </div>
+
+</body>
+</html>

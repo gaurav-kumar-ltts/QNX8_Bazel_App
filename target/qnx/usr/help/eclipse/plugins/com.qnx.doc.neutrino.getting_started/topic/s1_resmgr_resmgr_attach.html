@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The secpol_resmgr_attach() and resmgr_attach() functions and their parameters" />
+<meta name="abstract" content="As you saw in the /dev/null example above, the first thing you'll want to do is register your chosen “mountpoint” with the process manager. This is done via secpol_resmgr_attach() or resmgr_attach()." />
+<meta name="description" content="As you saw in the /dev/null example above, the first thing you'll want to do is register your chosen “mountpoint” with the process manager. This is done via secpol_resmgr_attach() or resmgr_attach()." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_structure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="resmgr_attach" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The secpol_resmgr_attach() and resmgr_attach() functions and their parameters</title>
+</head>
+<body id="resmgr_attach">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The <span class="keyword apiname">secpol_resmgr_attach()</span> and <span class="keyword apiname">resmgr_attach()</span>
+    functions and their parameters</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> As you saw in the <span class="ph filepath">/dev/null</span> example above, the first thing you'll
+    want to do is register your chosen <q class="q">mountpoint</q> with the process manager. This is done via
+      <span class="keyword apiname">secpol_resmgr_attach()</span> or <span class="keyword apiname">resmgr_attach()</span>. </p>
+
+
+<div class="p">
+      
+      
+      
+      
+      
+       The
+        <span class="keyword apiname">secpol_resmgr_attach()</span> function has the following prototype:
+      <pre class="pre codeblock">int secpol_resmgr_attach (secpol_file_t *<var class="keyword varname">handle</var>,
+                          void *<var class="keyword varname">dpp</var>,
+                          resmgr_attr_t *<var class="keyword varname">resmgr_attr</var>,
+                          const char *<var class="keyword varname">path</var>,
+                          enum _file_type <var class="keyword varname">file_type</var>,
+                          unsigned <var class="keyword varname">flags</var>,
+                          const resmgr_connect_funcs_t *<var class="keyword varname">connect_funcs</var>,
+                          const resmgr_io_funcs_t *<var class="keyword varname">io_funcs</var>,
+                          iofunc_attr_t *<var class="keyword varname">iofunc_attr</var>,
+                          bool *<var class="keyword varname">perms_set</var>);</pre>
+    </div>
+
+
+    <p class="p">The prototype for <span class="keyword apiname">resmgr_attach()</span> functions is the same, except it does
+      not have the <span class="keyword dtype">secpol_file_t</span> <var class="keyword varname">handle</var> or
+        <var class="keyword varname">perms_set</var> parameters.</p>
+
+    <p class="p">Let's examine these arguments, in order, and see what they're used for. </p>
+
+
+<dl class="dl">
+
+        <dt class="dt dlterm"><var class="keyword varname">handle</var></dt>
+
+        <dd class="dd">
+          <p class="p">Handle to the security policy file. Usually NULL, which specifies that the default
+            security policy file is used (either the system default or one set using
+              <span class="keyword apiname">secpol_open()</span>). </p>
+
+        </dd>
+
+
+  
+  <dt class="dt dlterm"><var class="keyword varname">dpp</var></dt>
+
+<dd class="dd">The dispatch handle.
+  This lets the dispatch interface manage the message receive
+  for your resource manager.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">resmgr_attr</var></dt>
+
+<dd class="dd">Controls the resource manager characteristics, as discussed above.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">path</var></dt>
+
+<dd class="dd">The mountpoint that you're registering.
+  If you're registering a discrete mountpoint (such as would be the
+  case, for example, with <span class="ph filepath">/dev/null</span>, or <span class="ph filepath">/dev/ser1</span>),
+  then this mountpoint must be matched <em class="ph i">exactly</em> by the client, with
+  no further pathname components past the mountpoint.
+  If you're registering a directory mountpoint (such as would be the
+  case, for example, with a network filesystem mounted as
+  <span class="ph filepath">/nfs</span>), then the match must be exact as well, with the
+  added feature that pathnames past the mountpoint are allowed; they get
+  passed to the connect functions stripped of the mountpoint. For example,
+  the pathname <span class="ph filepath">/nfs/etc/passwd</span> would match the network filesystem
+  resource manager, and it would get <span class="ph filepath">etc/passwd</span> as the
+  rest of the pathname.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">file_type</var></dt>
+
+<dd class="dd">The class of resource manager.  See below.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Additional flags to control the behavior of your resource manager.
+  These flags are defined below.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">connect_funcs</var> and <var class="keyword varname">io_funcs</var></dt>
+
+<dd class="dd">These are simply the list of connect functions and I/O functions that
+  you wish to bind to the mountpoint.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">iofunc_attr</var></dt>
+
+<dd class="dd">This is an <q class="q">extendable</q> data structure (<em class="ph i">aka</em>
+          <q class="q">attributes structure</q>) that identifies the resource being mounted. For example, for
+          a serial port, you'd extend the standard POSIX-layer attributes structure by adding
+          information about the base address of the serial port, the baud rate, etc.</dd>
+
+
+      
+        <dt class="dt dlterm"><var class="keyword varname">perms_set</var></dt>
+
+        <dd class="dd">
+          <p class="p">If non-NULL, set to <span class="ph codeph">true</span> if permissions were altered; otherwise, set
+            to <span class="ph codeph">false</span>. </p>
+
+        </dd>
+
+      
+
+</dl>
+
+
+<p class="p">
+The <var class="keyword varname">flags</var> member can contain any of the following flags (or the constant <span class="keyword const">0</span> if
+none are specified):
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_BEFORE</span> or <span class="keyword const">_RESMGR_FLAG_AFTER</span></dt>
+
+<dd class="dd">These flags indicate that your resource manager
+  wishes to be placed before or after (respectively) other resource
+  managers with the same mountpoint.
+  These two flags would be useful with unioned (overlaid) filesystems.
+  We'll discuss the interactions of these flags shortly.
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_DIR</span></dt>
+
+<dd class="dd">This flag indicates that your resource manager is
+  taking over the specified mountpoint <em class="ph i">and below</em>—it's
+  effectively a filesystem style of resource manager, as opposed to a
+  discretely manifested (device) resource manager.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_OPAQUE</span></dt>
+
+<dd class="dd">If set, prevents resolving to any other manager below your mountpoint
+  <em class="ph i">except</em> for the path manager.  This effectively eliminates
+  unioning on a path.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_FTYPEONLY</span></dt>
+
+<dd class="dd">This ensures that only requests that have the same <span class="keyword const">_FTYPE_*</span>
+  as the <var class="keyword varname">file_type</var> passed to <span class="keyword apiname">resmgr_attach()</span> are matched.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_FTYPEALL</span></dt>
+
+<dd class="dd">This flag is used when a resource manager wants to catch <em class="ph i">all</em>
+  client requests, even those with a different <span class="keyword const">_FTYPE_*</span>
+  specification than the one passed to <span class="keyword apiname">resmgr_attach()</span> in
+  the <var class="keyword varname">file_type</var> argument.  This can only be used in conjunction
+  with a registration file type of <span class="keyword const">_FTYPE_ALL</span>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_RESMGR_FLAG_SELF</span></dt>
+
+<dd class="dd">Allow this resource manager to talk to itself.
+  This really is a <q class="q">Don't try this at home, kids</q> kind of flag, because
+  allowing a resource manager to talk to itself can break the send-hierarchy and
+  lead to deadlock (as was discussed in the Message Passing chapter).
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p"> You can call <span class="keyword apiname">secpol_resmgr_attach()</span> or <span class="keyword apiname">resmgr_attach()</span>
+      multiple times to mount different mountpoints. You can also call them <em class="ph i">from within the
+        connect or I/O functions</em>—this is kind of a neat feature that allows you to
+        <q class="q">create</q> devices on the fly. </p>
+
+
+<div class="note"><span class="notetitle">Note:</span>  When it calls <span class="keyword apiname">secpol_resmgr_attach()</span> or
+      <span class="keyword apiname">resmgr_attach()</span>, your resource manager needs the
+        <span class="keyword const">PROCMGR_AID_PATHSPACE</span> ability, to add a name to the pathname space.
+          
+      <p class="p"> For more information, go to the entry <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a> in the <span class="keyword">QNX OS</span>
+        <cite class="cite">C Library Reference</cite>. </p>
+
+    </div>
+
+
+<p class="p">
+When you've decided on the mountpoint, and want to create it, you'll need to
+tell the process manager if this resource manager can handle requests from just
+anyone, or if it's limited to handling requests only from clients who identify
+their connect messages with special tags.
+For example, consider the POSIX message queue
+(<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a>)
+driver.
+It's not going to allow (and certainly wouldn't know what to do with) <q class="q">regular</q>
+<span class="keyword apiname">open()</span> messages from any old client.
+It will allow messages only from clients that use the POSIX
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mq_open.html"><span class="keyword apiname">mq_open()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mq_receive.html"><span class="keyword apiname">mq_receive()</span></a>,
+and so on, function calls.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+To prevent the process manager from even allowing regular requests to arrive
+at the <span class="keyword cmdname">mqueue</span> resource manager, <span class="keyword cmdname">mqueue</span> 
+specified <span class="keyword const">_FTYPE_MQUEUE</span> as the <var class="keyword varname">file_type</var> parameter.
+This means that when a client requests a name resolution from the process manager,
+the process manager won't even bother considering the resource manager during the search unless
+the client has specified that it wants to talk to a resource manager
+that has identified itself as <span class="keyword const">_FTYPE_MQUEUE</span>.
+
+
+
+
+</p>
+
+
+<p class="p">
+Unless you're doing something very special, you'll use a <var class="keyword varname">file_type</var>
+of <span class="keyword const">_FTYPE_ANY</span>, which means that your resource manager
+is prepared to handle requests from anyone.
+For the full list of <span class="keyword const">_FTYPE_*</span> manifest constants, take a look
+in <span class="ph filepath">&lt;sys/ftype.h&gt;</span>.
+
+
+</p>
+
+
+<p class="p">
+With respect to the <q class="q">before</q> and <q class="q">after</q> flags, things
+get a little bit more interesting.
+You can specify only one of these flags or the constant <span class="keyword const">0</span>.
+</p>
+
+
+<p class="p">
+Let's see how this works.
+Suppose a number of resource managers have started, in the order given in the table.
+We also see the flags they passed for the <var class="keyword varname">flags</var> member.
+Observe the positions they're given:
+
+
+
+
+
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d32027e779">Resmgr</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d32027e782">Flag</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d32027e785">Order</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 "><span class="keyword const">_RESMGR_FLAG_BEFORE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 "><span class="keyword const">_RESMGR_FLAG_AFTER</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1, 2</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1, 3, 2</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 "><span class="keyword const">_RESMGR_FLAG_BEFORE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1, 4, 3, 2</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">5</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 "><span class="keyword const">_RESMGR_FLAG_AFTER</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1, 4, 3, 5, 2</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e779 ">6</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e782 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d32027e785 ">1, 4, 6, 3, 5, 2</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+As you can see, the first resource manager to actually specify a flag always
+ends up in that position.
+(From the table, resource manager number 1 was the first to specify the <q class="q">before</q>
+flag; no matter who registers, resource manager 1 is always first in the list.
+Likewise, resource manager 2 was the first to specify the <q class="q">after</q>
+flag; again, no matter who else registers, it's always last.)
+If no flag is specified, it effectively acts as a <q class="q">middle</q> flag.
+When resource manager 3 started with a flag of zero, it got put into the middle.
+As with the <q class="q">before</q> and <q class="q">after</q> flags,
+there's a preferential ordering given to all the <q class="q">middle</q>
+resource managers, whereby newer ones are placed in front of other, existing <q class="q">middle</q> ones.
+</p>
+
+
+<p class="p">
+However, in reality, there are very few cases where you'd actually mount more
+than one, and even fewer cases where you'd mount more than two resource managers
+at the same mountpoint.
+Here's a design tip: expose the ability to set the
+flags at the command line of the resource manager so that the end-user of
+your resource manager is able to specify, for example, <span class="keyword option">-b</span>
+to use the <q class="q">before</q> flag, and <span class="keyword option">-a</span> to use the <q class="q">after</q>
+flag, with no command-line option specified to indicate that a zero should be
+passed as the flag.
+</p>
+
+
+<p class="p">
+Keep in mind that this discussion applies <em class="ph i">only</em> to resource managers
+mounted with the same mountpoint.
+Mounting <q class="q"><span class="ph filepath">/nfs</span></q> with a <q class="q">before</q>
+flag and <q class="q"><span class="ph filepath">/disk2</span></q> with an <q class="q">after</q>
+flag will have no effect on each other; only if you were to <em class="ph i">then</em>
+mount <em class="ph i">another</em> <q class="q"><span class="ph filepath">/nfs</span></q> or
+<q class="q"><span class="ph filepath">/disk2</span></q> would these flags (and rules)
+come into play.
+</p>
+
+
+<p class="p"> Finally, the <span class="keyword apiname">secpol_resmgr_attach()</span> and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a> functions return a small integer handle on
+      success or -1 on failure. This handle can then be used to detach the pathname from the process
+      manager's internal pathname tables. </p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_structure.html" title="Now that we've seen the data structures, we can discuss interactions between the parts that you'd supply to actually make your resource manager do something.">Resource manager structure</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

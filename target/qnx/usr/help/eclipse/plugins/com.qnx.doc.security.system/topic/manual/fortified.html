@@ -1,0 +1,1052 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Fortified System Functions" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="fortified" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Fortified System Functions</title>
+</head>
+<body id="fortified">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Fortified System Functions</h1>
+
+    
+    <div class="body conbody">
+        <p class="p"></p>
+
+        <p class="p"><span class="keyword">QNX OS</span> fortified system functions are designed to detect
+            out-of-bounds memory accesses by performing lightweight parameter validation at compile
+            time, runtime, or both. </p>
+
+        <p class="p">An out-of-bounds memory write vulnerability may allow an attacker to modify program
+            behavior or execute arbitrary instructions.</p>
+
+        <p class="p">The fortified system functions that <span class="keyword">QNX OS</span> provides are
+            designed to prevent the following scenarios:</p>
+
+        <ul class="ul" id="fortified__ul_thq_3kv_3jb">
+            <li class="li">A function writes data outside the bounds of a destination object whose length can
+                be determined at compile time.</li>
+
+            <li class="li">A function that accepts a variable number of arguments processes more arguments than
+                the number actually specified by the caller.</li>
+
+            <li class="li">A formatted I/O function writes data to one or more unintended destinations because
+                there is an <span class="ph codeph">n</span> conversion specifier (e.g., <span class="ph codeph">%n</span>) in
+                the format string.</li>
+
+        </ul>
+
+        <p class="p">Because these anomalies can corrupt the execution state of the program, it may not be
+            possible to successfully apply a mitigation if they are detected after the fact. For
+            this reason, the fortified system functions terminate the process rather than allow the
+            overflow or other anomaly to occur.</p>
+
+        <p class="p">When parameter validation fails at compile-time, the compiler emits a warning or error
+            message.</p>
+
+        <p class="p">When parameter validation fails at runtime, diagnostic information is output to the
+            controlling terminal and the process is terminated.</p>
+
+        <p class="p">A fortified system function is only able to catch a potential out-of-bounds memory write
+            when the compiler is able to determine the length of the destination object passed to
+            that function. When the compiler is unable to determine the length of the destination
+            object, the fortified system function behaves exactly as the regular version of that
+            system function would.</p>
+
+        <p class="p">However, unlike development tools that detect out-of-range memory accesses more
+            exhaustively (e.g., AddressSanitizer (ASan), Valgrind Memcheck), fortified system
+            functions add negligible performance overhead. For this reason, QNX recommends using
+            this feature on both development and production systems.</p>
+
+        <div class="section"><h2 class="title sectiontitle">Building components to use fortified system functions</h2>
+            
+            <p class="p">You must rebuild your executables and libraries to take advantage of <span class="keyword">QNX OS</span> fortified system functions.</p>
+
+            <p class="p">To enable or disable fortified system functions, define the
+                    <span class="keyword const">_FORTIFY_SOURCE</span> feature test macro with one of the following
+                values:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="ph codeph">0</span> or undefined</dt>
+
+                    <dd class="dd">Disables fortified system functions. </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="ph codeph">1</span></dt>
+
+                    <dd class="dd">Enables fortified system functions. Programs that call system functions as
+                        described in the <span class="keyword">QNX OS</span> documentation run
+                        normally.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="ph codeph">2</span></dt>
+
+                    <dd class="dd">Enables fortified system functions with more stringent parameter validation.
+                        Even if a program's use of system functions follows the <span class="keyword">QNX OS</span> documentation, it might fail (e.g., because it
+                        supports an unsafe feature).<p class="p">Using this value makes parameter validation
+                            more stringent for some functions, mostly the string-related ones. To
+                            determine if an overflow will occur, the bounds of individual structure
+                            members are evaluated, not just the bounds of the objects they are a
+                            component of.</p>
+<p class="p">For example, the compiler does not emit an error
+                            when the following code is compiled with a
+                                <span class="keyword const">_FORTIFY_SOURCE</span> setting of 1, but it does emit one
+                            when <span class="keyword const">_FORTIFY_SOURCE</span> is 2:
+                            </p>
+<pre class="pre codeblock">struct {
+    char key[8];
+    int  value;
+} key_value_pair;
+
+strcpy(key_value_pair.key, "too long");
+</pre><p class="p">This
+                            setting also disables the <span class="ph codeph">n</span> conversion specifier for
+                            formatted I/O functions (e.g., <span class="ph codeph">%n</span>).</p>
+
+                        </dd>
+
+                
+            </dl>
+
+            <p class="p">By default, binaries under <span class="ph filepath">target/qnx7/</span> are built with
+                    <span class="keyword const">_FORTIFY_SOURCE</span> enabled at level 2 (with a few exceptions due to
+                incompatibilities).</p>
+
+        
+        <p class="p">You can use the <span class="keyword cmdname">qchecksec</span> utility to determine both whether
+                    <tt class="ph tt">-D_FORTIFY_SOURCE=[1|2]</tt> was specified when the source was compiled. See
+                the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qchecksec.html"><span class="keyword cmdname">qchecksec</span></a> entry in the
+                    <cite class="cite">Utilities Reference</cite>.</p>
+</div>
+
+                    <div class="section"><h2 class="title sectiontitle">Required compiler options</h2><p class="p">When you rebuild your
+                executables and libraries to take advantage of <span class="keyword">QNX OS</span>
+                fortified system functions, make sure that you use compatible compiler optimization
+                settings. The default compiler optimization settings used by <span class="keyword">QNX OS</span> are compatible (see information on the
+                    <span class="keyword const">OPTIMIZE_TYPE</span> macro in the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/make_convent_qrules.mk.html">The <span class="ph filepath">qrules.mk</span> include
+                        file</a></q> section in the <cite class="cite">Programmer's Guide</cite>).</p>
+<div class="p">If
+                you explicitly specify settings, fortified system functions require either: <ul class="ul" id="fortified__ul_i42_pgv_klb">
+                    <li class="li">an optimization level of 1 or higher (<tt class="ph tt">-O1</tt>, <tt class="ph tt">-O2</tt>, etc.;
+                        because a setting of 1 might not detect as many buffer overflow anomalies,
+                        QNX recommends 2 or higher), or</li>
+
+                    <li class="li">optimization for code size (<tt class="ph tt">-Os</tt>).</li>
+
+                </ul>
+</div>
+<p class="p">The compiler emits a warning at compile time if the optimization
+                settings are incompatible with <span class="keyword const">_FORTIFY_SOURCE</span>.</p>
+The use of
+            fortified system functions is implicitly disabled when compiler optimization is
+            disabled. <div class="note"><span class="notetitle">Note:</span> Fortified system functions make explicit use of the compiler's built-in
+                implementations of certain <span class="ph filepath">libc</span> functions. The
+                    <tt class="ph tt">-fno-builtin</tt> and <tt class="ph tt">-fno-builtin-<var class="keyword varname">function</var></tt>
+                compiler options have no effect on this behavior. For this reason, the use of
+                fortified system functions may not be appropriate for source files or projects that
+                require the use of <tt class="ph tt">-fno-builtin</tt> or
+                        <tt class="ph tt">-fno-builtin-<var class="keyword varname">function</var></tt>. </div>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Enabling the use of fortified system functions for an entire project</h2>
+            
+            <p class="p">Enabling fortified system functions in makefiles via the <tt class="ph tt">CPPFLAGS</tt> variable
+                is a convenient way for a developer to selectively enable or disable the feature for
+                all modules. For example: </p>
+
+            <pre class="pre codeblock">CPPFLAGS += -D_FORTIFY_SOURCE=2</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Enabling the use of fortified system functions for specific source files</h2>
+            
+            <p class="p">Enabling fortified system functions in source code allows a developer to selectively
+                enable or disable the feature on a module-by-module basis. For example:</p>
+
+            <pre class="pre codeblock">#if defined(_FORTIFY_SOURCE) &amp;&amp; ( _FORTIFY_SOURCE &lt; 2 )
+#undef _FORTIFY_SOURCE
+#endif
+#ifndef _FORTIFY_SOURCE
+#define _FORTIFY_SOURCE  2
+#endif
+ 
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+ 
+int main(int argc, char **argv)
+{
+    /* ... */
+}
+</pre>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Enabling the use of fortified system functions via the command line</h2>
+            
+            <p class="p">A developer, tester, or system integrator can use the <span class="keyword envar">CPPOPTS</span>
+                environment variable to rebuild an existing application or library with a different
+                    <span class="keyword const">_FORTIFY_SOURCE</span> setting without having to modify any source files
+                or makefiles. For example:</p>
+
+            <pre class="pre codeblock">make clean &amp;&amp; CPPOPTS="-D_FORTIFY_SOURCE=2" make
+</pre>
+            <p class="p">In some cases, <span class="ph codeph">-U_FORTIFY_SOURCE</span> is required before
+                    <span class="ph codeph">-D_FORTIFY_SOURCE=2</span> to override a
+                    <span class="keyword const">_FORTIFY_SOURCE</span> setting that is specified in one or more
+                makefiles.</p>
+
+        </div>
+
+                <div class="section"><h2 class="title sectiontitle">Best practices</h2> The following best practices can help you
+            optimize the benefits of using fortified system functions. <h3 class="title sectiontitle">Use objects of
+                constant size</h3><div class="p">Fortified system functions can only perform checks for
+                out-of-bounds memory writes when the size of the destination object is known to be
+                constant at compile time. When practical:<ul class="ul" id="fortified__ul_ob2_g3y_2nb">
+                    <li class="li">Specify integer constant expressions rather than variables as size arguments
+                        to memory allocation functions like <span class="keyword apiname">malloc()</span>,
+                            <span class="keyword apiname">calloc()</span>, and <span class="keyword apiname">alloc()</span>.</li>
+
+                    <li class="li">Avoid variable-length arrays (VLAs).</li>
+
+                </ul>
+</div>
+<h3 class="title sectiontitle">Avoid using <var class="keyword varname">msg</var> + 1 to refer to the payload that
+                follows a message header</h3>Consider the following type for a message
+            header:<pre class="pre codeblock">struct msg_s {
+    uint16_t type;   /* Message type */
+    uint16_t length; /* Number of bytes of data that immediately follow */
+};</pre>If the pointer to an instance of that message header type is
+                <var class="keyword varname">msg</var>, it is convenient to use the idiom <tt class="ph tt"><var class="keyword varname">msg</var>
+                + 1</tt> to refer to the memory that immediately follows the header (the payload).
+            Unfortunately, because fortified system functions frequently can't distinguish this
+            well-intentioned pointer expression from an anomalous out-of-bounds array access, this
+            expression can lead to false-positive failures. Instead, you should use the <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/_PAYLOAD_OF.html"><span class="keyword apiname">_PAYLOAD_OF()</span></a> macro to get a pointer to the
+            memory that follows a specific header member. Don't use the
+                <span class="keyword apiname">_DEVCTL_DATA()</span> macro; this is deprecated. <p class="p">To avoid this
+                problem, whenever possible, define message types that represent a variable-length
+                payload using a flexible array member and use that member to refer to the payload.
+                For example, to modify the example message header type to use a flexible array
+                member:</p>
+<pre class="pre codeblock">struct msg_s {
+    uint16_t type;   /* Message type */
+    uint16_t length; /* Number of bytes of data that immediately follow */
+    char data[];     /* Payload */
+};</pre><p class="p">Use the new member to refer to the payload (e.g.,
+                    <var class="keyword varname">msg-&gt;data</var>) instead of the expression
+                        <tt class="ph tt"><var class="keyword varname">msg</var> + 1</tt>.</p>
+<h3 class="title sectiontitle">Downgrade individual source
+                files to <span class="keyword const">_FORTIFY_SOURCE</span> level 1 to work around false
+                positives</h3>If compiling your project with <span class="keyword const">_FORTIFY_SOURCE</span> level
+            2 results in compile-time or runtime failures that you've determined are false
+            positives, consider downgrading only the affected source files to
+                <span class="keyword const">_FORTIFY_SOURCE</span> level 1, rather than the entire project. To downgrade
+            individual source files, include the following preprocessor logic before all
+                <tt class="ph tt">#include</tt> directives in each
+            file:<pre class="pre codeblock">#if defined(_FORTIFY_SOURCE) &amp;&amp; ( _FORTIFY_SOURCE &gt; 1 )
+#undef _FORTIFY_SOURCE
+#define _FORTIFY_SOURCE 1
+#endif</pre></div>
+
+        <div class="section"><h2 class="title sectiontitle">Diagnostic messages</h2>Warning or error messages that the compiler emits
+            as part of the fortified system functions feature have the prefix
+                <tt class="ph tt">_FORTIFY_SOURCE:</tt>.<p class="p">In some cases, some additional interpretation is
+                required to find the source of an error generated by fortified system
+                functions.</p>
+<p class="p">When fortified system functions are enabled and client source code
+                makes a call to a fortified system function, the system instead calls a function
+                that has the same signature as the original, fortified function (i.e., same return
+                value, same number of parameters, and same parameter types). This inline wrapper
+                function performs additional validation of the function's parameters and its
+                location is used by any errors it generates. However, the actual source of the error
+                is in the client code that called the original system function.</p>
+<p class="p">For example,
+                the source file <span class="ph filepath">/home/jdoe/foo/bar.c</span> contains the following
+                code:</p>
+<div class="p">
+                <pre class="pre codeblock">#include &lt;limits.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+int main(int argc, char **argv)
+{
+    char buf[16] = "";
+
+    if ( argc &gt; 1 ) {
+        strlcpy(buf, argv[1], PATH_MAX);
+    }
+
+    printf("buf == '%s'\n", buf);
+
+    return 0;
+}
+</pre>
+            </div>
+<p class="p">This code generates the following error, which indicates that the source of the
+                error is the call to
+                <span class="keyword apiname">strlcpy()</span>:</p>
+<pre class="pre codeblock">In file included from /home/jdoe/qnx/sdp/target/qnx7/usr/include/string.h:176,
+                 from /home/jdoe/foo/bar.c:3:
+In function 'strlcpy',
+    inlined from 'main' at /home/jdoe/foo/bar.c:10:9:
+/home/jdoe/qnx/sdp/target/qnx7/usr/include/string_chk.h:308:13: error: call to
+ '__fortify_fail_overflow_dst_diag_strlcpy' declared with attribute error:
+ _FORTIFY_SOURCE: argument 3 of 'strlcpy' is greater than the length of the
+ object referenced by argument 1
+             __fortify_fail_overflow_dst_diag_strlcpy();
+             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</pre><p class="p">When the fortified system functions feature terminates a process at
+                runtime, it outputs a diagnostic message to the process's controlling terminal. This
+                diagnostic message includes a brief description of the anomaly (e.g., buffer
+                overflow) and states that the process has been terminated. </p>
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d9299e451">Description in message</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d9299e454">Description of anomaly</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e451 "><tt class="ph tt">destination buffer overflow</tt></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e454 ">Data to write would overflow the destination object.<p class="p">OR</p>
+An
+                                index or size argument specifies a location that's outside the
+                                boundaries of a destination object.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e451 "><tt class="ph tt">function called with insufficient arguments</tt></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e454 ">A function was called with fewer arguments than is expected given
+                                the value or values of one or more non-optional arguments.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e451 "><tt class="ph tt">function called with too many arguments</tt></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e454 ">A function was called with a greater number of arguments than is
+                                ever considered valid for that function.</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e451 "><tt class="ph tt">format string contains 'n' conversion specifier</tt></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e454 ">A function that performs formatted output (e.g., <span class="keyword apiname">printf()</span>) was
+                                called with a format string containing the n conversion specifier
+                                (e.g., <span class="ph codeph">%n</span>).</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Limiting the severity of compile-time diagnostic messages to warnings</h2>
+            
+            <p class="p">To reduce the effort required to enable the <span class="keyword const">_FORTIFY_SOURCE</span> feature on
+                an existing project, define the <span class="keyword const">_FORTIFY_SOURCE_WARNINGS_ONLY</span> feature
+                test macro with a value of <span class="ph codeph">1</span>. When operating in this mode and
+                parameter validation fails for a call to a fortified system function, the compiler
+                emits a warning instead of an error. When the resulting binary is executed, the
+                process terminates at that same fortified system function call. This behavior allows
+                you to get a complete list of the issues to fix without having to rebuild your
+                project multiple times.</p>
+
+            <p class="p">You can use the same methods you use to define <span class="keyword const">_FORTIFY_SOURCE</span> to
+                define <span class="keyword const">_FORTIFY_SOURCE_WARNINGS_ONLY</span> (i.e., source code, makefiles,
+                command line).</p>
+
+            <p class="p">When you enable the <span class="keyword const">_FORTIFY_SOURCE_WARNINGS_ONLY</span> feature, make sure
+                you specify the <span class="keyword option">-Wsystem-headers</span> compiler option. Otherwise, the
+                compiler may mask some of the warnings that are emitted as errors when
+                    <span class="keyword const">_FORTIFY_SOURCE_WARNINGS_ONLY</span> is not enabled.</p>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle"> Customizing runtime behavior</h2>
+            
+            <p class="p">Runtime diagnostic messages outputted by fortified functions in response to a failed parameter 
+                validation can be output to standard error by setting the <span class="keyword envar">LIBC_FATAL_STDERR</span> to a non-empty 
+                value. By default, the messages will be written to <span class="ph filepath">/dev/tty</span>. Refer to 
+                <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/envars.html">
+                Commonly Used Environmental Variables</a> for more information.</p>
+
+            <p class="p">To customize the behavior of fortified functions after outputting a diagnostic message, use
+                <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/signal.html">
+                <span class="keyword apiname">signal()</span></a> to register a <span class="keyword const">SIGABRT</span> signal handler.</p>
+
+            <div class="note"><span class="notetitle">Note:</span> This will affect all instances where a <span class="keyword const">SIGABRT</span> signal is raised, including those unrelated to 
+                fortified functions</div>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Debugging with fortified system functions</h2>
+            
+            <p class="p">If you look at disassembled binaries for systems where fortified system functions are
+                enabled (e.g., as part of your debugging process), you may see instances where a
+                variant of a system function is called where your source code calls a system
+                function. These variants perform parameter validation at runtime and terminate the
+                process when validation fails. When you enable the use of fortified system
+                functions, the compiler replaces some or all of the calls to the following system
+                functions with calls to the corresponding variant:</p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:33.33333333333333%" /><col style="width:66.66666666666666%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d9299e611">Function</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d9299e614">Variant</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">asprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__asprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">c16rtomb</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__c16rtomb_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">c32rtomb</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__c32rtomb_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">dprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__dprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">fprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__fprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">fwprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__fwprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">gets</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__gets_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">getwd</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__getwd_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">printf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__printf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">readblock</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__readblock_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">readdir64_r</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__readdir64_r_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">readdir_r</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__readdir_r_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">realpath</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__realpath_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">searchenv</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__searchenv_chk</span></td>
+
+                        </tr>
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">snprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__snprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">sprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__sprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">stpcpy</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__stpcpy_chk</span>, <span class="keyword apiname">__strcpy_chk</span>,
+                                    <span class="keyword apiname">__memcpy_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">strcat</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__strcat_chk</span>, <span class="keyword apiname">__strcpy_chk</span>,
+                                    <span class="keyword apiname">__memcpy_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">strncat</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__strncat_chk</span>,
+                                <span class="keyword apiname">__strcat_chk</span>, <span class="keyword apiname">__strcpy_chk</span>,
+                                    <span class="keyword apiname">__memcpy_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">swprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__swprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">SyncCtl</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__SyncCtl_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">SyncCtl_r</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__SyncCtl_r_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">syslog</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__syslog_chk</span></td>
+
+                        </tr>
+
+                       <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">ThreadCtl</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__ThreadCtl_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">ThreadCtlExt</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__ThreadCtlExt_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">ThreadCtlExt_r</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__ThreadCtlExt_r_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">ThreadCtl_r</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__ThreadCtl_r_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vasprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vasprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vdprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vdprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vfprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vfprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vfwprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vfwprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vsnprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vsnprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">vsprintf</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vsprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 "><span class="keyword apiname">vswprintf</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vswprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 "><span class="keyword apiname">vsyslog</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vsyslog_chk</span></td>
+
+                        </tr>
+
+                       <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 "><span class="keyword apiname">vwprintf</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__vwprintf_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 "><span class="keyword apiname">wcrtomb</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wcrtomb_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">wcscat</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wcscat_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">wcscpy</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wcscpy_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">wcsncat</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wcsncat_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 ">
+                                <p class="lines"><span class="keyword apiname">wctomb</span></p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wctomb_chk</span></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e611 "><span class="keyword apiname">wprintf</span></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d9299e614 "><span class="keyword apiname">__wprint_chk</span></td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Supported fortified system functions</h2>
+            
+            <p class="p"><span class="keyword">QNX OS</span> supports the following fortified system
+                functions:</p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="void" border="0" rules="none"><colgroup><col style="width:150pt" /><col style="width:150pt" /><col style="width:150pt" /></colgroup><tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry nocellnorowborder" style="vertical-align:top;">
+                                <p class="lines"><span class="keyword apiname">accept()</span><br />
+<span class="keyword apiname">accept4()</span><br />
+<span class="keyword apiname">asprintf()</span><br />
+<span class="keyword apiname">c16rtomb()</span><br />
+<span class="keyword apiname">c32rtomb()</span><br />
+<span class="keyword apiname">confstr()</span><br />
+<span class="keyword apiname">ConnectClientInfo()</span><br />
+<span class="keyword apiname">ConnectClientInfo_r()</span><br />
+<span class="keyword apiname">ConnectClientInfoAble()</span><br />
+<span class="keyword apiname">devctl()</span><br />
+<span class="keyword apiname">devctlv()</span><br />
+<span class="keyword apiname">dprintf()</span><br />
+<span class="keyword apiname">FD_CLR()</span><br />
+<span class="keyword apiname">FD_SET()</span><br />
+<span class="keyword apiname">fgets()</span><br />
+<span class="keyword apiname">fgetws()</span><br />
+<span class="keyword apiname">fprintf()</span><br />
+<span class="keyword apiname">fread()</span><br />
+<span class="keyword apiname">fwprintf()</span><br />
+<span class="keyword apiname">getcwd()</span><br />
+<span class="keyword apiname">getdelim()</span><br />
+<span class="keyword apiname">getdomainname()</span><br />
+<span class="keyword apiname">getgrouplist()</span><br />
+<span class="keyword apiname">getgroups()</span><br />
+<span class="keyword apiname">gethostname()</span><br />
+<span class="keyword apiname">getline()</span><br />
+<span class="keyword apiname">getlogin_r()</span><br />
+<span class="keyword apiname">getpeername()</span><br />
+<span class="keyword apiname">gets()</span><br />
+<span class="keyword apiname">getsockname()</span><br />
+<span class="keyword apiname">getsockopt()</span><br />
+<span class="keyword apiname">getwd()</span><br />
+<span class="keyword apiname">ioctl()</span><br />
+<span class="keyword apiname">iofdinfo()</span><br />
+<span class="keyword apiname">iofunc_client_info_able()</span><br />
+<span class="keyword apiname">lio_listio()</span><br />
+<span class="keyword apiname">lio_listio64()</span><br />
+<span class="keyword apiname">mbsrtowcs()</span><br />
+<span class="keyword apiname">mbstowcs()</span><br />
+<span class="keyword apiname">memccpy()</span><br />
+<span class="keyword apiname">memcpy()</span><br />
+<span class="keyword apiname">memcpyv()</span><br />
+<span class="keyword apiname">memmove()</span><br />
+<span class="keyword apiname">memset()</span><br />
+<span class="keyword apiname">memset_s()</span><br />
+<span class="keyword apiname">mq_clockreceive()</span><br />
+<span class="keyword apiname">mq_open()</span><br />
+<span class="keyword apiname">mq_receive()</span><br />
+<span class="keyword apiname">mq_timedreceive()</span><br />
+<span class="keyword apiname">mq_timedreceive_monotonic()</span><br />
+<span class="keyword apiname">MsgRead()</span><br />
+<span class="keyword apiname">MsgRead_r()</span><br />
+<span class="keyword apiname">MsgReadv()</span><br />
+<span class="keyword apiname">MsgReadv_r()</span><br />
+<span class="keyword apiname">MsgReceive()</span></p>
+
+</td>
+
+<td class="entry nocellnorowborder" style="vertical-align:top;">
+<p class="lines"><span class="keyword apiname">MsgReceive_r()</span><br />
+<span class="keyword apiname">MsgReceivePulse()</span><br />
+<span class="keyword apiname">MsgReceivePulse_r()</span><br />
+<span class="keyword apiname">MsgReceivev()</span><br />
+<span class="keyword apiname">MsgReceivev_r()</span><br />
+<span class="keyword apiname">MsgSend()</span><br />
+<span class="keyword apiname">MsgSend_r()</span><br />
+<span class="keyword apiname">MsgSendnc()</span><br />
+<span class="keyword apiname">MsgSendnc_r()</span><br />
+<span class="keyword apiname">MsgSendsv()</span><br />
+<span class="keyword apiname">MsgSendsv_r()</span><br />
+<span class="keyword apiname">MsgSendsvnc()</span><br />
+<span class="keyword apiname">MsgSendsvnc_r()</span><br />
+<span class="keyword apiname">MsgSendv()</span><br />
+<span class="keyword apiname">MsgSendv_r()</span><br />
+<span class="keyword apiname">MsgSendvnc()</span><br />
+<span class="keyword apiname">MsgSendvnc_r()</span><br />
+<span class="keyword apiname">MsgSendvs()</span><br />
+<span class="keyword apiname">MsgSendvs_r()</span><br />
+<span class="keyword apiname">MsgSendvsnc()</span><br />
+<span class="keyword apiname">MsgSendvsnc_r()</span><br />
+<span class="keyword apiname">open()</span><br />
+<span class="keyword apiname">open64()</span><br />
+<span class="keyword apiname">openat()</span><br />
+<span class="keyword apiname">pathfind_r()</span><br />
+<span class="keyword apiname">poll()</span><br />
+<span class="keyword apiname">posix_devctl()</span><br />
+<span class="keyword apiname">pread()</span><br />
+<span class="keyword apiname">pread64()</span><br />
+<span class="keyword apiname">printf()</span><br />
+<span class="keyword apiname">pselect()</span><br />
+<span class="keyword apiname">ptsname_r()</span><br />
+<span class="keyword apiname">read()</span><br />
+<span class="keyword apiname">readdir_r()</span><br />
+<span class="keyword apiname">_readdir_r()</span><br />
+<span class="keyword apiname">readdir64_r()</span><br />
+<span class="keyword apiname">_readdir64_r()</span><br />
+<span class="keyword apiname">readblock()</span><br />
+<span class="keyword apiname">readcond()</span><br />
+<span class="keyword apiname">readlink()</span><br />
+<span class="keyword apiname">readlinkat()</span><br />
+<span class="keyword apiname">readv()</span><br />
+<span class="keyword apiname">realpath()</span><br />
+<span class="keyword apiname">recv()</span><br />
+<span class="keyword apiname">recvfrom()</span><br />
+<span class="keyword apiname">recvmmsg()</span><br />
+<span class="keyword apiname">recvmsg()</span><br />
+<span class="keyword apiname">resmgr_msgget()</span><br />
+<span class="keyword apiname">resmgr_msggetv()</span><br />
+<span class="keyword apiname">resmgr_msgread()</span><br />
+<span class="keyword apiname">resmgr_msgreadv()</span><br />
+<span class="keyword apiname">resmgr_pathname()</span><br />
+<span class="keyword apiname">SchedCtl()</span><br />
+<span class="keyword apiname">SchedCtl_r()</span><br />
+<span class="keyword apiname">select()</span></p>
+
+</td>
+
+<td class="entry nocellnorowborder" style="vertical-align:top;">
+<p class="lines"><span class="keyword apiname">searchenv()</span><br />
+<span class="keyword apiname">sem_open()</span><br />
+<span class="keyword apiname">sendmmsg()</span><br />
+<span class="keyword apiname">SETIOV()</span><br />
+<span class="keyword apiname">snprintf()</span><br />
+<span class="keyword apiname">sopen()</span><br />
+<span class="keyword apiname">sprintf()</span><br />
+<span class="keyword apiname">stpcpy()</span><br />
+<span class="keyword apiname">stpncpy()</span><br />
+<span class="keyword apiname">straddstr()</span><br />
+<span class="keyword apiname">strcat()</span><br />
+<span class="keyword apiname">strcpy()</span><br />
+<span class="keyword apiname">strftime()</span><br />
+<span class="keyword apiname">strlcat()</span><br />
+<span class="keyword apiname">strlcpy()</span><br />
+<span class="keyword apiname">strncat()</span><br />
+<span class="keyword apiname">strncpy()</span><br />
+<span class="keyword apiname">strxfrm()</span><br />
+<span class="keyword apiname">swab()</span><br />
+<span class="keyword apiname">swprintf()</span><br />
+<span class="keyword apiname">SyncCtl()</span><br />
+<span class="keyword apiname">SyncCtl_r()</span><br />
+<span class="keyword apiname">syslog()</span><br />
+<span class="keyword apiname">ThreadCtl()</span><br />
+<span class="keyword apiname">ThreadCtl_r()</span><br />
+<span class="keyword apiname">ThreadCtlExt()</span><br />
+<span class="keyword apiname">ThreadCtlExt_r()</span><br />
+<span class="keyword apiname">TraceEvent()</span><br />
+<span class="keyword apiname">ttyname_r()</span><br />
+<span class="keyword apiname">vsyslog()</span><br />
+<span class="keyword apiname">vasprintf()</span><br />
+<span class="keyword apiname">vdprintf()</span><br />
+<span class="keyword apiname">vfprintf()</span><br />
+<span class="keyword apiname">vfwprintf()</span><br />
+<span class="keyword apiname">vprintf()</span><br />
+<span class="keyword apiname">vsnprintf()</span><br />
+<span class="keyword apiname">vsprintf()</span><br />
+<span class="keyword apiname">vswprintf()</span><br />
+<span class="keyword apiname">vsyslog()</span><br />
+<span class="keyword apiname">vwprintf()</span><br />
+<span class="keyword apiname">wcrtomb()</span><br />
+<span class="keyword apiname">wcsftime()</span><br />
+<span class="keyword apiname">wcscat()</span><br />
+<span class="keyword apiname">wcscpy()</span><br />
+<span class="keyword apiname">wcsncat()</span><br />
+<span class="keyword apiname">wcsncpy()</span><br />
+<span class="keyword apiname">wcsrtombs()</span><br />
+<span class="keyword apiname">wcstombs()</span><br />
+<span class="keyword apiname">wcsxfrm()</span><br />
+<span class="keyword apiname">wctomb()</span><br />
+<span class="keyword apiname">wmemcpy()</span><br />
+<span class="keyword apiname">wmemmove()</span><br />
+<span class="keyword apiname">wmemset()</span><br />
+<span class="keyword apiname">wprintf()</span></p>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+        
+    </div>
+
+</body>
+</html>

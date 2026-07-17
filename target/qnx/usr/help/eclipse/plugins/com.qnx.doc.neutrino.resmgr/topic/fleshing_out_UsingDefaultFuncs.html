@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using the default functions" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out_Adding_functionality.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="UsingDefaultFuncs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using the default functions</title>
+</head>
+<body id="UsingDefaultFuncs">
+
+<h1 class="title topictitle1" id="ariaid-title1">Using the default functions</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Since the default functions (e.g.,
+<span class="keyword apiname">iofunc_open_default()</span>) can be installed in the
+jump table directly, there's no reason you couldn't embed
+them within your own functions.
+
+</p>
+
+
+<div class="p">
+
+Here's an example of how you would do that with your own
+<var class="keyword varname">io_open</var> handler:
+
+<pre class="pre codeblock">int main (int argc, char **argv)
+{
+    …
+    /* install all of the default functions */
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs,
+                      _RESMGR_IO_NFUNCS, &amp;io_funcs);
+
+    /* take over the open function */
+    connect_funcs.open = io_open;
+    …
+}
+
+int io_open (resmgr_context_t *ctp, io_open_t *msg, 
+             RESMGR_HANDLE_T *handle, void *extra)
+{
+    return (iofunc_open_default (ctp, msg, handle, extra));
+}
+</pre>
+</div>
+
+
+<div class="p">
+Obviously, this is just an incremental step that lets you
+gain control in your <var class="keyword varname">io_open</var> handler when the message
+arrives from the client. You may wish to do something before
+or after the default function does its thing:
+
+
+<pre class="pre codeblock">/* example of doing something before */
+
+extern int accepting_opens_now;
+
+int io_open (resmgr_context_t *ctp, io_open_t *msg,
+             RESMGR_HANDLE_T *handle, void *extra)
+{
+    if (!accepting_opens_now) {
+        return (EBUSY);
+    }
+
+    /* 
+     *  at this point, we're okay to let the open happen,
+     *  so let the default function do the "work".
+     */
+
+    return (iofunc_open_default (ctp, msg, handle, extra));
+}
+</pre>
+</div>
+
+
+<div class="p">
+Or:
+
+<pre class="pre codeblock">/* example of doing something after */
+
+int io_open (resmgr_context_t *ctp, io_open_t *msg,
+             RESMGR_HANDLE_T *handle, void *extra)
+{
+    int     sts;
+    /* 
+     * have the default function do the checking 
+     * and the work for us
+     */
+
+    sts = iofunc_open_default (ctp, msg, handle, extra);
+
+    /* 
+     *  if the default function says it's okay to let the open
+     *  happen, we want to log the request
+     */
+
+    if (sts == EOK) {
+        log_open_request (ctp, msg);
+    }
+    return (sts);
+}
+</pre>
+</div>
+
+
+<p class="p">
+It goes without saying that you can do something before
+<em class="ph i">and</em> after the standard default POSIX handler.
+</p>
+
+
+<p class="p">
+The principal advantage of this approach is that you can add
+to the functionality of the standard default POSIX handlers with very little effort.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out_Adding_functionality.html">Ways of adding functionality to the resource manager</a></div>
+</div>
+</div></body>
+</html>

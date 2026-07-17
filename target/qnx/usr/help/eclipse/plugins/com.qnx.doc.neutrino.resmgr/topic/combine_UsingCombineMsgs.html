@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Where combine messages are used" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/combine.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="UsingCombineMsgs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Where combine messages are used</title>
+</head>
+<body id="UsingCombineMsgs">
+
+<h1 class="title topictitle1" id="ariaid-title1">Where combine messages are used</h1>
+
+
+<div class="body conbody">
+
+<p class="p">Let's see how combine messages are used.</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Atomic operations</h2>
+
+
+<div class="p">
+ 
+Consider a case where two threads are executing the
+following code, trying to read from the same file descriptor:
+
+<pre class="pre codeblock">Atomic a_thread ()
+{
+    char buf [BUFSIZ];
+
+    lseek (fd, position, SEEK_SET);
+    read (fd, buf, BUFSIZ);
+    …
+}
+</pre>
+</div>
+
+
+<p class="p">The first thread performs the <span class="keyword apiname">lseek()</span> and then gets preempted by the second
+        thread. When the first thread resumes executing, its offset into the file will be at the end
+        of where the second thread read from, <em class="ph i">not</em> the position that it had
+          <span class="keyword apiname">lseek()</span>'d to. </p>
+
+
+<p class="p">This can be solved in one of three ways:</p>
+
+
+<ul class="ul">
+<li class="li">The two threads can use a <em class="ph i">mutex</em> to ensure that only one thread at a time is using the
+          file descriptor.</li>
+
+
+<li class="li">Each thread can open the file itself, thus generating a unique file descriptor that won't be
+          affected by any other threads.</li>
+
+
+<li class="li">The threads can use the <span class="keyword apiname">readblock()</span> function, which performs an atomic
+            <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">read()</span>.
+              </li>
+
+
+</ul>
+
+
+<p class="p">Let's look at these three methods.</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Using a mutex</dt>
+
+<dd class="dd">In the first approach, if the two threads use a mutex between themselves, the following issue
+            arises: every <span class="keyword apiname">read()</span>, <span class="keyword apiname">lseek()</span>, and
+              <span class="keyword apiname">write()</span> operation <em class="ph i">must</em> use the mutex.
+              
+            
+            
+            <p class="p">If this practice isn't enforced,
+              then you still have the exact same problem. For example, suppose one thread that's
+              obeying the convention locks the mutex and does the <span class="keyword apiname">lseek()</span>,
+              thinking that it's protected. However, another thread (that's not obeying the
+              convention) can preempt it and move the offset to somewhere else. When the first
+              thread resumes, we again encounter the problem where the offset is at a different
+              (unexpected) location. Generally, using a mutex will be successful only in very
+              tightly managed projects, where a code review will <em class="ph i">ensure</em> that each and every
+              thread's file functions obey the convention.
+                </p>
+</dd>
+
+
+
+
+<dt class="dt dlterm">Per-thread files</dt>
+
+<dd class="dd">The second approach—of using different file descriptors—is a good general-purpose
+            solution, <em class="ph i">unless</em> you explicitly wanted the file descriptor to be shared.</dd>
+
+
+
+
+<dt class="dt dlterm">The <span class="keyword apiname">readblock()</span> function</dt>
+
+<dd class="dd">In order for the <span class="keyword apiname">readblock()</span> function to be able to effect an atomic
+            seek/read operation, it must ensure that the requests it sends to the resource manager
+            will all be processed at the same time. This is done by combining the
+              <span class="keyword const">_IO_LSEEK</span> and <span class="keyword const">_IO_READ</span> messages into one message. Thus,
+            when the base layer performs the <span class="keyword apiname">MsgReceive()</span>, it will receive the
+            entire <span class="keyword apiname">readblock()</span> request in one atomic message.
+                
+            
+            </dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Bandwidth considerations</h2>
+
+
+<p class="p">Another place where combine messages are useful is in the <span class="keyword apiname">stat()</span> function,
+        which can be implemented by calling <span class="keyword apiname">open()</span>, <span class="keyword apiname">fstat()</span>,
+        and <span class="keyword apiname">close()</span> in sequence. 
+        
+        
+        </p>
+
+
+<p class="p">Rather than generate three separate messages (one for each of the functions), the C library
+        combines them into one contiguous message. This boosts performance and simplifies the
+        resource manager, because it's not forced to have a connect function to handle
+          <span class="keyword apiname">stat()</span>. </p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/combine.html" title="To conserve bandwidth and to support atomic operations, combine messages are supported. A combine message is constructed by the client's C library and consists of multiple I/O and/or connect messages packaged together into one.">Combine Messages</a></div>
+</div>
+</div></body>
+</html>

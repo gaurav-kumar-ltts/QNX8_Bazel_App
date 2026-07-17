@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Calibrating touch" />
+<meta name="abstract" content="You can calibrate your screen using a few different methods." />
+<meta name="description" content="You can calibrate your screen using a few different methods." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mtouch_calibration" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Calibrating touch</title>
+</head>
+<body id="mtouch_calibration">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Calibrating touch</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">You can calibrate your screen using a few different methods.</p>
+
+        <p class="p">Setting the <tt class="ph tt">mode</tt> parameter in your scaling configuration file determines the type of configuration.
+            Depending on your touch display, you need to set the <tt class="ph tt">mode</tt> parameter to either <tt class="ph tt">direct</tt> or <tt class="ph tt">scaled</tt>.
+            Your scaling configuration file is the <span class="ph filepath">scaling.conf</span> 
+            file located at <span class="ph filepath">/etc/system/config</span>, see <a class="xref" href="mtouch_scaling_config.html" title="The scaling configuration file is a free-form ASCII text file that's used by the mtouch service.">Scaling configuration file</a>
+            for more information.
+        </p>
+
+        <div class="p">
+            Below are the different methods to calibrate your touch display:
+            <ol class="ol">
+                <li class="li"><tt class="ph tt">manual</tt>: Use the <tt class="ph tt">calib</tt> as a mode in the scaling configuration file. For more
+                information, see 
+                    <q class="q"><a class="xref" href="mtouch_scaling_config.html#mtouch_scaling_config__caliboption">calib</a></q> option.</li>
+
+                
+                <li class="li"><tt class="ph tt">direct mapping</tt>: This method is used for resistive touch displays. For more information,
+                    see <q class="q"><a class="xref" href="mtouch_calibration.html#mtouch_calibration__directcalibrated">
+                        Direct mapping</a>.</q>
+                </li>
+
+                <li class="li"><tt class="ph tt">scaled</tt>: This method is used for capacitive touch displays. For more information, see
+                                     <q class="q"><a class="xref" href="mtouch_calibration.html#mtouch_calibration__scaledcalibration">
+                                         Scaled calibration</a>.</q>
+                </li>
+
+            
+            </ol>
+
+            
+        </div>
+
+       
+        <div class="section" id="mtouch_calibration__directcalibrated"><h2 class="title sectiontitle">Direct mapping</h2>
+            
+            <p class="p">
+               This calibration method is useful for resistive touch displays or displays that can
+               scale values on the hardware (e.g., Atmel controller). 
+            </p>
+   
+            <div class="p">To use this method, do the following:
+                <ol class="ol">
+                    <li class="li">Set the <tt class="ph tt">mode</tt> parameter to <tt class="ph tt">direct</tt> in
+                        the scaling configuration file.
+                    </li>
+
+                    <li class="li">
+                        After the touch driver and <span class="keyword">Screen</span>
+                        service successfully run, start the
+                        <span class="keyword cmdname">calib-touch</span> utility. After
+                        <span class="keyword">Screen</span> completes
+                        running, a calibration file is created and loaded into
+                        <span class="keyword">Screen</span>'s translation matrix. For more information about the 
+                        <span class="keyword cmdname">calib-touch</span> utility, see 
+                        <a class="xref" href="calib-touch.html" title="Calibrate a touchscreen"><tt class="ph tt">calib-touch</tt></a> section
+                        in this guide.
+                    </li>
+
+                </ol>
+
+            
+            </div>
+
+        </div>
+
+        <div class="section" id="mtouch_calibration__scaledcalibration"><h2 class="title sectiontitle">Scaled calibration</h2>
+            
+            <p class="p">
+                This calibration method works with capacitive
+                touch displays. Once they are mounted, the values are
+                static and don't skew over time.
+            </p>
+
+            <p class="p">
+                Scaling mode maps the touch area to the display resolution. To use this method,
+                you need to find the display resolution and the matrix size of your touch display.
+            </p>
+
+            
+            <dl class="dl">
+                
+                    
+                    
+                 <dt class="dt dlterm">Display resolution</dt>
+
+                 <dd class="dd">
+                 <p class="p">
+                 First, set the scaling <tt class="ph tt">mode</tt> to <tt class="ph tt">scale</tt> and include your display's resolution. The resolution is obtained from the 
+                 <span class="ph filepath">graphics.conf</span> and needs to be set in the scaling configuration file. For example, your 
+                 <span class="ph filepath">graphics.conf</span> may look like this:
+                 </p>
+    
+       <pre class="pre codeblock">begin display 1
+  cursor=on
+  video-mode = 800 x 480 @ 60          
+  formats = rgb565 rgba8888 rgb888 yuy2
+end display       
+     </pre>
+                        
+                   <p class="p">
+                   In this example, the resolution is 800x480. Update the scaling mode in the <span class="ph filepath">scaling.conf</span> file and set it to 
+                   <tt class="ph tt">scale</tt>:
+                   </p>
+
+     <pre class="pre codeblock">800x480:mode=scale                 
+     </pre>
+                </dd>
+
+                
+                
+                
+                <dt class="dt dlterm">Touch display matrix size</dt>
+
+                <dd class="dd">
+                <p class="p">
+                Next, set the width and height properties to the maximum X and Y values of your touch area. 
+                Place these values in your <span class="ph filepath">touch.conf</span> file located at <span class="ph filepath">/etc/system/config</span>.
+                Your configuration may look like this:
+                </p>
+
+
+           <pre class="pre codeblock">begin mtouch
+  driver = hid
+  options = width=4095,height=4095,<var class="keyword varname">your_other_options</var>
+end mtouch
+            </pre> 
+                    
+             <div class="cautiontitle">CAUTION:</div><div class="note caution">
+             <p class="p">
+             The width and height options do not refer to your display resolution. They refer to the maximum X and Y values from your
+             touch area. How to find these values is described below. 
+             </p>
+  
+             </div>
+     
+                        
+               </dd>
+
+               
+                
+               
+               <dt class="dt dlterm">How to find the touch display matrix size</dt>
+
+               <dd class="dd">
+               <p class="p"><u class="ph u">USB/HID based touch controllers:</u></p>
+
+               <p class="p">
+               Use the output from <span class="keyword cmdname">hidview -R</span> to search for the <samp class="ph systemoutput sysout">Usage(X/Y)</samp> and
+               the associated <samp class="ph systemoutput sysout">Logical Max(value)</samp>. On some systems, the <samp class="ph systemoutput sysout">Logical Max(value)</samp>
+               is referred to as the <samp class="ph systemoutput sysout">Physical Max(value)</samp>. In the following output example, 
+               both the X and Y values are 4095:
+               </p>
+
+        <pre class="pre codeblock">...                
+Logical Max(4095)
+Report Size(16)
+Report Count(1)
+PUSH
+Unit Exponent(14)
+Unit(51)
+Usage(X)
+...
+Logical Max(4095)
+Usage(Y)
+...
+       </pre>
+              <p class="p">
+              <u class="ph u">Other Controllers:</u> 
+              </p>
+
+              <p class="p">
+              Please refer to your controller documentation. 
+              </p>
+
+             </dd>
+
+            
+                
+           
+           <dt class="dt dlterm">Finding the maximum values directly from the touch display</dt>
+
+           <dd class="dd">
+           <p class="p">
+           Finding the maximum values using the touch display is imprecise. If you are unable to find the maximum X and Y
+           using the above instructions, do the following: 
+           </p>
+
+           <ol class="ol">
+           <li class="li">
+            Set the scaling <tt class="ph tt">mode</tt> in <span class="ph filepath">scaling.conf</span> to <tt class="ph tt">direct</tt>:
+       <pre class="pre codeblock">800x480:mode=direct                     
+       </pre>  
+           </li>
+
+           <li class="li">
+           Start your touch display driver:
+      <pre class="pre codeblock">mtouch &amp;                      
+      </pre> 
+           </li>
+
+           <li class="li">
+           Run the <span class="keyword cmdname">screeninfo</span> utility:
+     <pre class="pre codeblock">screeninfo -w -input /dev/screen/input                        
+     </pre>
+           </li>
+
+           <li class="li">
+           Touch the four corners of your screen and note the output from <span class="keyword cmdname">screeninfo</span>. One of the values should be a 
+           reasonable approximation to your maximum X,Y values. Since this method is imprecise, you can round up. For example, if you 
+           obtained a value of 4034 for X, the maximum X is most likely 4095.      
+           </li>
+
+           <li class="li">
+           Set the width and height properties to the maximum X and Y values in the <span class="ph filepath">touch.conf</span> file:
+    <pre class="pre codeblock"> begin mtouch
+  driver = hid
+  options = width=4095,height=4095,<var class="keyword varname">your_other_options</var>
+end mtouch                    
+   </pre> 
+          </li>
+
+          <li class="li">   
+           Change the scaling <tt class="ph tt">mode</tt> in <span class="ph filepath">scaling.conf</span> back to <tt class="ph tt">scale</tt>:
+   <pre class="pre codeblock">800x480:mode=scale                     
+   </pre>   
+         </li>
+
+         </ol>
+
+         </dd>
+
+         
+         </dl>
+    
+         <p class="p">
+            It's important to mention that this method doesn't correct
+            misaligned touch displays, but if the origin isn't in the upper-left
+            corner of the display, you can use the   <tt class="ph tt">invert_x</tt> and
+            <tt class="ph tt">invert_y</tt> options to reverse the directions of the
+            coordinates. For more information, see
+            <q class="q"><a class="xref" href="mtouch.html#mtouch_config__hidexamples">
+            Settings for various HID displays</a></q>
+            in the <span class="keyword cmdname">mtouch</span> section of this guide.
+         </p>
+    
+     </div>
+
+
+        
+
+    </div>
+
+</body>
+</html>

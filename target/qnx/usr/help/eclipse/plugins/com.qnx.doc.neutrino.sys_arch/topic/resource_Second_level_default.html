@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Second-level default message handling" />
+<meta name="abstract" content="Since a large number of the messages received by a resource manager deal with a common set of attributes, the OS provides another level of default handling." />
+<meta name="description" content="Since a large number of the messages received by a resource manager deal with a common set of attributes, the OS provides another level of default handling." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/resource_Resmgr_library.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Second_level_default" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Second-level default message handling</title>
+</head>
+<body id="Second_level_default">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Second-level default message handling</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Since a large number of the messages received by a
+resource manager deal with a common set of attributes,
+the OS provides another level of default handling.
+</p>
+
+
+<p class="p">
+
+
+This second level, called the <span class="keyword apiname">iofunc_*()</span> shared
+library, allows a resource manager to handle functions like
+<span class="keyword apiname">stat()</span>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chmod.html"><span class="keyword apiname">chmod()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chown.html"><span class="keyword apiname">chown()</span></a>,
+and
+<span class="keyword apiname">lseek()</span> <em class="ph i">automatically</em>, without the
+programmer having to write additional code. As an added
+benefit, these <span class="keyword apiname">iofunc_*()</span> default handlers
+implement the POSIX semantics for the messages, again
+offloading work from the programmer.
+</p>
+
+
+<div class="p">
+Three main structures need to be considered:
+
+<ul class="ul">
+<li class="li">context structure</li>
+
+<li class="li">attributes structure</li>
+
+<li class="li">mount structure</li>
+
+</ul>
+
+</div>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A resource manager is responsible for three data structures.</span>
+  
+  <br /><img class="image" src="../images/3struct.svg" width="384" alt="Three data structures of a resource manager" /><br />
+</div>
+
+
+<p class="p">
+The first data structure, the context, has already been
+discussed (see the section on
+<q class="q"><a class="xref" href="resource_MESTYPES.html">Message types</a></q>).
+It holds data used on a per-open basis, such
+as the current position into a file (the <span class="keyword apiname">lseek()</span> offset).
+
+
+
+
+</p>
+
+
+<p class="p">
+Since a resource manager may be responsible for more than
+one resource (e.g., <span class="keyword cmdname">devc-ser*</span> may be responsible for
+<span class="ph filepath">/dev/ser1</span>, <span class="ph filepath">/dev/ser2</span>,
+<span class="ph filepath">/dev/ser3</span>, etc.), the <em class="ph i">attributes</em>
+structure holds data on a per-resource basis. The attributes
+structure contains such items as the user and group ID of
+the owner of the resource, the last modification time, etc.
+</p>
+
+
+<p class="p">
+For filesystem (block I/O device) managers, one more structure is used. This is
+the <em class="ph i">mount</em> structure, which contains data items
+that are global to the entire mount device.
+</p>
+
+
+<div class="p">
+When a number of client programs have opened various devices
+on a particular resource, the data structures may look like this:
+
+
+
+  <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Multiple clients opening various devices.</span>
+    
+    <br /><img class="image" src="../images/clidevs.svg" width="624" alt="Context blocks, attributes structures, and a mount structure" /><br />
+  </div>
+
+</div>
+
+
+
+
+<p class="p">
+The <span class="keyword apiname">iofunc_*()</span> default functions operate on the assumption
+that the programmer has used the default definitions for
+the context block and the attributes structures.
+This is a safe assumption for two reasons:
+</p>
+
+
+<ol class="ol">
+<li class="li">The default context and attribute structures
+  contain sufficient information for most applications.
+</li>
+
+
+<li class="li">If the default structures don't hold enough
+information, they can be encapsulated within the
+structures that you've defined.</li>
+
+
+</ol>
+
+
+<div class="p">
+By definition, the default structures must be the first
+members of their respective superstructures, allowing clean
+and simple access to the requisite base members by the
+<span class="keyword apiname">iofunc_*()</span> default functions:
+
+  <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>Encapsulating the default data structures used by resource managers.</span>
+    
+    <br /><img class="image" src="../images/defaults.svg" width="384" alt="Encapsulated and encapsulating structures" /><br />
+  </div>
+
+</div>
+
+
+
+
+<p class="p">
+The library contains <span class="keyword apiname">iofunc_*()</span> default handlers
+for these client functions:
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chmod.html"><span class="keyword apiname">chmod()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chown.html"><span class="keyword apiname">chown()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fpathconf.html"><span class="keyword apiname">fpathconf()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fseek.html"><span class="keyword apiname">fseek()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fstat.html"><span class="keyword apiname">fstat()</span></a></li>
+
+
+<li class="li"><span class="keyword apiname">lock()</span></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lseek.html"><span class="keyword apiname">lseek()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pathconf.html"><span class="keyword apiname">pathconf()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/u/utime.html"><span class="keyword apiname">utime()</span></a>
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/resource_Resmgr_library.html" title="In a custom embedded system, part of the design effort may be spent writing a resource manager, because there may not be an off-the-shelf driver available for the custom hardware component in the system.">The resource manager shared library</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html">Resource Managers (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

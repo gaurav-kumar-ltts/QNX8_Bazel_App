@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Message copying" />
+<meta name="abstract" content="Since our messaging services copy a message directly from the address space of one thread to another without intermediate buffering, the message-delivery performance approaches the memory bandwidth of the underlying hardware." />
+<meta name="description" content="Since our messaging services copy a message directly from the address space of one thread to another without intermediate buffering, the message-delivery performance approaches the memory bandwidth of the underlying hardware." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_msg_Multipart_messages.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/g/getiovbase.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/g/getiovlen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/setiov.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Message_copying" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Message copying</title>
+</head>
+<body id="Message_copying">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Message copying</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Since our messaging services copy a message directly
+from the address space of one thread to another without intermediate
+buffering, the message-delivery performance approaches the memory bandwidth
+of the underlying hardware.
+</p>
+
+
+<p class="p">
+
+The kernel attaches no special meaning to the
+content of a message—the data in a message has meaning only as mutually
+defined by the sender and receiver. However, <q class="q">well-defined</q>
+message types are also provided so that user-written processes or threads
+can augment or substitute for system-supplied services.
+</p>
+
+
+<p class="p">
+The messaging primitives support multipart transfers,
+so that a message delivered from the address space of one
+thread to another needn't pre-exist in a single, contiguous
+buffer. Instead, both the sending and receiving threads can
+specify a vector table that indicates where the sending and
+receiving message fragments reside in memory. Note that the
+size of the various parts can be different for the sender
+and receiver.
+</p>
+
+
+<div class="p">
+Multipart transfers allow messages that have a header block
+separate from the data block to be sent without
+performance-consuming copying of the data to create a
+contiguous message. In addition, if the underlying data
+structure is a ring buffer, specifying a three-part message
+will allow a header and two disjoint ranges within the ring
+buffer to be sent as a single atomic message. A hardware
+equivalent of this concept would be that of a scatter/gather
+DMA facility.
+
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A multipart transfer.</span>
+  
+  <br /><img class="image" src="../images/messcopy.svg" width="384" alt="QNX OS message-pass vector" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Each IOV can have a maximum of 524288 parts. 
+The sum of the sizes of the parts must not exceed <span class="keyword const">SSIZE_MAX</span>.
+</p>
+
+
+<p class="p">
+The multipart transfers are also used extensively by
+filesystems. On a read, the data is copied directly from the
+filesystem cache into the application using a message with
+<var class="keyword varname">n</var> parts for the data.
+Each part points into the cache; this compensates for the fact that
+cache blocks aren't contiguous in memory.
+
+</p>
+
+
+<div class="p">
+For example, with a cache block size of 512 bytes, a read of
+1454 bytes can be satisfied with a five-part message:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Scatter/gather of a read of 1454 bytes.</span>
+  
+  <br /><img class="image" src="../images/scatter.svg" width="480" alt="5-part IOV" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Since message data is explicitly copied between address
+spaces (rather than by doing page table manipulations),
+messages can be easily allocated on the stack instead of
+from a special pool of page-aligned memory for MMU
+<q class="q">page flipping.</q> As a result, many of the
+library routines that implement the API between client and
+server processes can be trivially expressed, without
+elaborate IPC-specific memory allocation calls.
+
+</p>
+
+
+<div class="p">
+For example, the code used by a client thread to request
+that the filesystem manager execute <span class="keyword cmdname">lseek</span> on its
+behalf is implemented as follows:
+
+<pre class="pre codeblock">#include &lt;unistd.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/iomsg.h&gt;
+
+off64_t lseek64(int fd, off64_t offset, int whence) {
+    io_lseek_t msg;
+    off64_t off;
+
+    msg.i.type = _IO_LSEEK;
+    msg.i.combine_len = sizeof msg.i;
+    msg.i.offset = offset;
+    msg.i.whence = whence;
+    msg.i.zero = 0;
+    if(MsgSend(fd, &amp;msg.i, sizeof msg.i, &amp;off, sizeof off) == -1) {
+        return -1;
+    }
+    return off;
+}
+
+off_t lseek(int fd, off_t offset, int whence) {
+    return lseek64(fd, offset, whence);
+}
+</pre>
+</div>
+
+
+<p class="p">
+This code essentially builds a message structure on the
+stack, populates it with various constants and passed
+parameters from the calling thread, and sends it to the
+filesystem manager associated with <var class="keyword varname">fd</var>.
+The reply indicates the success or failure of the operation.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Since many messages passed are small, copying such messages twice though an intermediate
+buffer is faster than manipulating  page tables to do a direct
+process-to-process copy, so the kernel does this as an optimization for short messages.
+
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc.html" title="Interprocess Communication (IPC) plays a fundamental role in the transformation of the microkernel from an embedded realtime kernel into a full-scale POSIX operating system. As various service-providing processes are added to the microkernel, IPC is the “glue” that connects those components into a cohesive whole.">Interprocess Communication (IPC)</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_msg_Multipart_messages.html">Message Passing (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/g/getiovbase.html">GETIOVBASE()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/g/getiovlen.html">GETIOVLEN()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/setiov.html">SETIOV()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The bootstrap file" />
+<meta name="abstract" content="The first section of the buildfile is the bootstrap file. This inline file specifies the processor architecture, the name of the startup program, the OS kernel, and some environment variables." />
+<meta name="description" content="The first section of the buildfile is the bootstrap file. This inline file specifies the processor architecture, the name of the startup program, the OS kernel, and some environment variables." />
+<meta name="DC.subject" content="files, .bootstrap, bootstrap file (, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="files, .bootstrap, bootstrap file (, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bootstrap" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>The bootstrap file</title>
+</head>
+<body id="bootstrap">
+
+	<h1 class="title topictitle1" id="ariaid-title1">The bootstrap file</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The first section of the buildfile is the bootstrap file. This inline file specifies
+		the processor architecture, the name of the startup program, the OS kernel, and some
+		environment variables.</p>
+
+		<div class="p">
+			
+			
+			
+			
+			The first section of the buildfile example presented above in <q class="q"><a class="xref" href="buildfile_structure.html" title="The buildfile for a bootable image includes three major sections: a bootstrap loader (which includes an operating system), a script, and included files such as executables and shared libraries.">Buildfile structure and contents</a></q> is:
+<pre class="pre codeblock">[image=0x80200000]
+[virtual=aarch64le,elf] .boot = {
+  startup-honeycomb_lx2 -W 
+  PATH=/proc/boot:/sbin:/bin:/usr/bin:/usr/sbin:/usr/libexec 
+  LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/lib/dll/pci 
+  procnto-smp-instr -v
+}
+</pre>
+		</div>
+
+		<div class="p">If we parse this section, we find the following:
+			<ul class="ul">
+				<li class="li">The <span class="ph codeph">image</span> attribute specifies the offset in memory where the
+					bootable image starts.</li>
+
+				<li class="li">The <span class="ph codeph">virtual</span> attribute specifies a virtual addressing model for the
+					image to be built. (QNX doesn't currently support a physical addressing model.)</li>
+
+				<li class="li"><span class="ph codeph">aarch64le</span> specifies that the target system CPU is a little-endian
+					AArch64 processor (see <q class="q"><a class="xref" href="#bootstrap__proc_arch">Specifying the board architecture</a></q> below).</li>
+
+				<li class="li"><span class="ph codeph">elf</span> specifies the IFS layout of Executable and Linkable Format (ELF).
+					The other common layout for ARM processors is <span class="ph codeph">bin</span> for binary.</li>
+
+				<li class="li"><span class="ph codeph">.boot</span> introduces an <a class="xref" href="buildfile_syntax.html#buildfile_syntax__inline">inline file</a>
+					(inside the brace brackets).</li>
+
+			</ul>
+
+		</div>
+
+		<div class="section" id="bootstrap__proc_arch"><h2 class="title sectiontitle">Specifying the board architecture</h2>
+			
+			<div class="p">
+				
+				When you build your OS image, you build it for a specific board architecture.
+				You can use the <span class="keyword envar">PROCESSOR</span> environment variable or the buildfile
+				<span class="keyword option">virtual</span> attribute to indicate this architecture to
+				<span class="keyword cmdname">mkifs</span>, which then uses this information to learn the path to the
+				components it needs to build your OS image.
+				<ul class="ul">
+					<li class="li">If you don’t set <span class="keyword envar">PROCESSOR</span> before you run
+						<span class="keyword cmdname">mkifs</span> and you don't set the <span class="keyword option">virtual</span>
+						attribute in your buildfile, <span class="keyword cmdname">mkifs</span> sets
+						<span class="keyword envar">PROCESSOR</span> to x86_64 and builds an image for an x86_64 board.</li>
+
+					<li class="li">If you set <span class="keyword envar">PROCESSOR</span> before you run <span class="keyword cmdname">mkifs</span>
+						but you don't set the <span class="keyword option">virtual</span> attribute in your buildfile,
+						<span class="keyword cmdname">mkifs</span> uses the value you specified for <span class="keyword envar">PROCESSOR</span>
+						and builds an image for that board architecture.</li>
+
+					<li class="li"><p class="p">Even if you set <span class="keyword envar">PROCESSOR</span>, if you set the <span class="keyword option">virtual</span>
+						attribute in your buildfile, <span class="keyword cmdname">mkifs</span> uses the value specified by the
+						<span class="keyword option">virtual</span> attribute: it updates <span class="keyword envar">PROCESSOR</span> and
+						builds an image for that board architecture.</p>
+
+						<p class="p">For example, if you set <span class="keyword envar">PROCESSOR</span> to <tt class="ph tt">x86_64</tt> and
+							the <span class="keyword option">virtual</span> attribute to <tt class="ph tt">aarch64le</tt>,
+							<span class="keyword cmdname">mkifs</span> updates <span class="keyword envar">PROCESSOR</span> to <tt class="ph tt">aarch64le</tt>
+							and builds an image for an ARM 64-bit, little-endian board.</p>
+</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">The settings that <span class="keyword cmdname">mkifs</span> uses to determine the board architecture
+				for an image it will build are as follows:
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:25%" /><col style="width:50%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d26870e275"><span class="keyword envar">PROCESSOR</span></th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d26870e279"><span class="keyword cmdname">virtual</span></th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d26870e283">Source of value <span class="keyword cmdname">mkifs</span> uses</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e275 ">Not set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e279 ">Not set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e283 ">x86_64 (default)</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e275 ">Set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e279 ">Not set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e283 "><span class="keyword envar">PROCESSOR</span></td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e275 ">Not set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e279 ">Set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e283 "><span class="ph codeph">virtual</span> (updates
+								<span class="keyword envar">PROCESSOR</span>)</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e275 ">Set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e279 ">Set</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d26870e283 "><span class="ph codeph">virtual</span> (updates
+								<span class="keyword envar">PROCESSOR</span>)</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Optional modules</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">
+				You can use the buildfile <span class="ph codeph">[module=...]</span> modifier to bind a module
+				into <span class="keyword cmdname">procnto</span> when you build the image.
+				In this release, no kernel modules are shipped so this modifier isn't needed.
+			</p>
+
+			
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Compressing the OS image</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">You can use the <span class="ph codeph">[+compress]</span> attribute to compress the entire image,
+				except the startup code and the startup header, which are needed to decompress the
+				image.</p>
+
+			<div class="p">To compress the OS image, simply add the attribute after the IFS layout
+				specification. For example:
+				<pre class="pre codeblock">[virtual=aarch64le,elf <strong class="ph b">+compress</strong>] .boot = {</pre></div>
+
+			<p class="p">The startup program will handle the decompression. Compressing the image can be
+				useful when optimizing the boot. It reduces the time needed to copy the image
+				but adds the time needed to decompress it. For more information, see the
+				<em class="ph i"><a class="xref" href="../../../com.qnx.doc.neutrino.fastboot/topic/fb_about.html">Boot Optimization Guide</a></em>.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">The initialization code and the next program</h2>
+			
+			
+			
+			<p class="p">The inline file in the bootstrap section of the buildfile specifies the
+				initialization code and the path for the next program to run after initialization
+				(usually the OS).</p>
+
+			<div class="p">The name for the inline boot file can be anything you choose, but QNX usually uses
+				either <span class="ph codeph">.boot</span> or <span class="ph codeph">.bootstrap</span>. In this example, the
+				<span class="ph codeph">.boot</span> inline file consists of the following:
+<pre class="pre codeblock">startup-honeycomb_lx2 -W 
+
+PATH=/proc/boot:/sbin:/bin:/usr/bin:/usr/sbin:/usr/libexec 
+LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll 
+procnto-smp-instr -v
+</pre></div>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm">Initialization code</dt>
+
+					<dd class="dd">The first line of the <span class="ph codeph">.boot</span> inline file (e.g.,
+						<span class="ph codeph">startup-honeycomb_lx2 -W</span>) specifies the file with the
+						initialization code for the board (<span class="ph codeph">startup-*</span>). This startup
+						code is board-specific, so it is usually supplied with the BSP, and the
+						hyphen in the file's name is usually followed by the name of the board on
+						which it runs.</dd>
+
+					<dd class="dd ddexpand">This code is the first code to run after the <a class="xref" href="../intro/intro_ipl.html" title="QNX provides Initial Program Loaders (IPLs) for supported board architectures and variants. These IPLs perform the fewest steps needed to initial the hardware, set up an environment in which the startup code can run, load the OS image, and transfer control to the startup code within the image.">Inital Program Loader (IPL)</a>,
+						U-Boot, or the bootloader (on disk-based x86 systems). It initializes the
+						hardware, system page, and kernel callouts, then loads the next program in
+						the IFS and transfers control to that program. This next program is usually
+						some version of the OS kernel and process manager <span class="keyword cmdname">procnto</span>.</dd>
+
+				
+				
+					<dt class="dt dlterm">Next program</dt>
+
+					<dd class="dd">The next lines of the <span class="ph codeph">.boot</span> inline file specify the paths
+						to the standard utilities and the standard libraries and provides these paths
+						to the program to which the startup code will transfer control. In this case, it's
+						<span class="keyword cmdname">procnto-smp-instr</span>, which is the <span class="keyword">QNX OS</span>
+						kernel and process manager for multi-core processing, with instrumentation.</dd>
+
+					<dd class="dd ddexpand">These lines also instruct <span class="keyword cmdname">procnto-smp-instr</span> to set the
+						<span class="keyword const">_CS_PATH</span> and <span class="keyword const">_CS_LIBPATH</span> configuration strings
+						(see <q class="q"><a class="xref" href="nto_buildfile_envars.html" title="Host-side environment variables can be accessed in a buildfile. All occurrences of ${NAME} will be replaced by the value of the environment variable with the given name. You can set additional variables in the buildfile to define the environment of the processes started on the target at boot time.">Environment variables</a></q>), and set the verbosity level.</dd>
+
+				
+			</dl>
+
+			<p class="p">See the <cite class="cite">Utilities Reference</cite> for more information about <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>, including
+				the options you can specify at startup.</p>
+
+		</div>
+
+		<div class="section" id="bootstrap__commandline"><h2 class="title sectiontitle">Passing in options at startup</h2>
+			
+			
+			<p class="p">Some bootloaders allow you to pass, into the system image, options presented as
+				command-line input. Most versions of startup that either use the Multiboot protocol or
+				accept a Flattened Device Tree (FDT) in their environment will take advantage of a
+				bootloader that uses these vehicles to pass command-line instructions to the system image.
+				When you pass in options, you don't need to rebuild your IFS if you change the options.
+				The startup reads the options in as though they were entered through the command line,
+				and processes them after the options in the IFS so they can override these other options.
+			</p>
+
+			<div class="p">To pass in options:
+				<ul class="ul">
+					<li class="li">Group them for each exectuable as though you were entering them through the
+						command line.</li>
+
+					<li class="li">Place the groups in the same order as the executables are listed in the inline
+						file.</li>
+
+					<li class="li">End each group with a two-hyphen termination marker: <span class="ph codeph">--</span></li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">For example, suppose your buildfile's inline bootstrap file lists
+				<span class="keyword cmdname">startup-*</span>, <span class="keyword cmdname">kdumper</span> and
+				<span class="keyword cmdname">procnto</span> as follows:
+<pre class="pre codeblock">[virtual=aarch64le,elf] .bootstrap = {
+    startup-armv8_fm -vvv
+    kdumper 
+    PATH=/proc/boot
+    [module=qvm] KWHO=host procnto -vvvv
+}
+</pre></div>
+
+			<div class="p">You could then specify options for these executables with a line in the FDT like this:
+<pre class="pre codeblock">-P 1 -- -B -I -- -v --</pre>
+				which specifies options for:
+				<ul class="ul">
+					<li class="li"><span class="keyword cmdname">startup-armv8_fm</span>: the <span class="keyword option">-P</span> sets the maximum
+						number of CPUs to 1 (one).</li>
+
+					<li class="li"><span class="keyword cmdname">kdumper</span>: the <span class="keyword option">-B</span> and <span class="keyword option">-I</span>
+						options instruct <span class="keyword cmdname">kdumper</span> to write the dump in the 64-bit ELF
+						format in all cases, and to dump all the IFS contents.</li>
+
+					<li class="li"><span class="keyword cmdname">procnto</span>: the <span class="keyword option">-v</span> option enables one level of
+						verbosity, meaning the kernel provides information that's useful for debugging.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">For more information about these options, see the relevant utilities in the
+				<span class="keyword">QNX OS</span> <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/about.html"><em class="ph i">Utilities
+					Reference</em></a>.</p>
+
+			<div class="p">If an executable requires no options, you still need to add the separator; for
+				example, if you change the above example to pass no options to
+				<span class="keyword cmdname">kdumper</span>, you would change the relevant line to:
+			<pre class="pre codeblock">-P 1 -- -- -v --</pre></div>
+
+			<p class="p">Notice that there is an option termination marker for each executable, even if there
+				are no options specifed for that executable.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p">The location where you can place the options to be read in is architecture-,
+					board-, and bootloader-specific, so check you board and bootloader documentation
+					for more information.</p>
+
+				<p class="p">Not all boards support this feature. For example, on some x86 boards,
+					the Multiboot boot loader is implemented in a manner that precludes passing in
+					command-line options.</p>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

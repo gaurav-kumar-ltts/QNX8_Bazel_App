@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="What Is a Resource Manager?" />
+<meta name="abstract" content="In general terms, a resource manager is a process that registers a pathname in the filesystem namespace. Other processes use that pathname to communicate with the resource manager." />
+<meta name="description" content="In general terms, a resource manager is a process that registers a pathname in the filesystem namespace. Other processes use that pathname to communicate with the resource manager." />
+<meta name="DC.subject" content="resource manager, defined, advantages, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="resource manager, defined, advantages, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_WhyWrite.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_RESMGRtypes.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_Native_IPC.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_Examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_No_resource_manager.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="overview" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>What Is a Resource Manager?</title>
+</head>
+<body id="overview">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">What Is a Resource Manager?</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In general terms, a <dfn class="term">resource manager</dfn> is a process that registers
+a pathname in the filesystem namespace.
+Other processes use that pathname to communicate with the resource manager.
+</p>
+
+
+<p class="p">
+To give the <span class="keyword">QNX OS</span> a great degree of flexibility,
+to minimize the runtime memory requirements of the final
+system, and to cope with the wide variety of devices that
+may be found in a custom embedded system, the OS allows
+user-written processes to act as resource
+managers that can be started and stopped dynamically.
+</p>
+
+
+<p class="p">
+Resource managers are typically responsible for presenting
+an interface to various types of devices. This may involve
+managing actual hardware devices (like serial ports,
+parallel ports, network cards, and disk drives) or virtual
+devices (like <span class="ph filepath">/dev/null</span>, a network
+filesystem, and pseudo-ttys).
+</p>
+
+
+<p class="p">
+
+In other operating systems, this functionality is
+traditionally associated with <em class="ph i">device drivers</em>. But
+unlike device drivers, resource managers don't
+require any special arrangements with the kernel. In fact, a
+resource manager runs as a process that's <em class="ph i">separate from the kernel</em>
+and looks just like any other user-level program.
+</p>
+
+
+<p class="p">
+
+The kernel
+(<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>)
+is itself a resource manager; it handles <span class="ph filepath">/dev/null</span>,
+<span class="ph filepath">/proc</span>, and several other resources in the same way any
+other process handles them.
+</p>
+
+
+<p class="p">
+A resource manager accepts messages from other programs and, optionally,
+communicates with hardware.
+It registers a pathname prefix in the pathname space (e.g., <span class="ph filepath">/dev/ser1</span>),
+and other processes can open that name using the standard C library
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>
+function, and then
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>
+from, and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>
+to, the resulting file descriptor.  
+When this happens, the resource manager receives an open request, followed by
+read and write requests.
+</p>
+
+
+<p class="p">
+A resource manager isn't restricted to handling just <span class="keyword apiname">open()</span>,
+<span class="keyword apiname">read()</span>, and <span class="keyword apiname">write()</span>
+calls; it can support any functions that are based on a file descriptor or file pointer, as well as other forms of IPC.
+</p>
+
+
+<p class="p">
+Adding resource managers in <span class="keyword">QNX OS</span> won't affect any other part of the OS—the
+drivers are developed and debugged like any other application. 
+And since the resource managers are in their own protected address space, 
+a bug in a device driver won't cause the entire OS to shut down.
+</p>
+
+
+<p class="p">
+If you've written device drivers in most UNIX variants, you're used to being
+restricted in what you can do within a device driver;
+but since a device driver in <span class="keyword">QNX OS</span> is just a regular process,
+you aren't restricted in what you can do.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+In order to register a prefix in the pathname space,
+a resource manager must have the <span class="keyword const">PROCMGR_AID_PATHSPACE</span> ability enabled.
+In order to create a public channel (i.e., <em class="ph i">without</em> <span class="keyword const">_NTO_CHF_PRIVATE</span> set),
+your process must have the <span class="keyword const">PROCMGR_AID_PUBLIC_CHANNEL</span> ability enabled.
+For more information, see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+</div>
+
+
+<div class="p">
+For example, a serial port may be managed by a resource manager called
+<span class="keyword cmdname">devc-ser8250</span>, 
+although the actual resource may be called <span class="ph filepath">/dev/ser1</span> in the pathname space. 
+When a process requests serial port services, 
+it does so by opening a serial port (in this case <span class="ph filepath">/dev/ser1</span>).
+
+<pre class="pre codeblock">fd = open("/dev/ser1", O_RDWR);
+for (packet = 0; packet &lt; npackets; packet++)
+{
+    write(fd, packets[packet], PACKET_SIZE);
+}
+close(fd);
+</pre>
+</div>
+
+
+<div class="p">
+Because resource managers execute as processes, their use isn't restricted to device drivers;
+any server can be written as a resource manager.
+For example, a server that's given DVD files to display in a GUI interface 
+wouldn't be classified as a driver, yet it could be written as a resource manager.  
+It can register the name <span class="ph filepath">/dev/dvd</span> and as a result, clients can do the following:
+
+<pre class="pre codeblock">fd = open("/dev/dvd", O_WRONLY);
+while (data = get_dvd_data(handle, &amp;nbytes))
+{
+    bytes_written = write(fd, data, nbytes);
+    if (bytes_written != nbytes)
+    {
+        perror ("Error writing the DVD data");
+    }
+}
+close(fd);
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/overview_WhyWrite.html">Why write a resource manager?</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/overview_RESMGRtypes.html">The types of resource managers</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/overview_Native_IPC.html">Communication via native IPC</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/overview_Examples.html">Examples of resource managers</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/overview_No_resource_manager.html">When not to use a resource manager</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

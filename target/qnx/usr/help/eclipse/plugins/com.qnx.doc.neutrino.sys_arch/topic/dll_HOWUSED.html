@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="How shared objects are used" />
+<meta name="abstract" content="To understand how a program makes use of shared objects, let's first see the format of an executable and then examine the steps that occur when the program starts." />
+<meta name="description" content="To understand how a program makes use of shared objects, let's first see the format of an executable and then examine the steps that occur when the program starts." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HOWUSED" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>How shared objects are used</title>
+</head>
+<body id="HOWUSED">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">How shared objects are used</h1>
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+To understand how a program makes use of shared objects,
+let's first see the format of an executable and then examine
+the steps that occur when the program starts.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">ELF format</dt>
+
+<dd class="dd">The <span class="keyword">QNX OS</span> uses the ELF (Executable and Linking Format) binary format.
+  ELF not only simplifies the task of making shared libraries, but
+  also enhances dynamic loading of modules at runtime.
+
+  <p class="p">
+  
+  
+  
+  
+  
+  In the following diagram, we show two views of an ELF file: 
+  the linking view and the execution view. The linking view, 
+  which is used when the program or library is linked, deals
+  with <em class="ph i">sections</em> within an object file. Sections
+  contain the bulk of the object file information: data,
+  instructions, relocation information, symbols, debugging
+  information, etc. The execution view, which is used when the
+  program runs, deals with <em class="ph i">segments</em>.
+  </p>
+
+
+  <p class="p">
+  At link time, the program or library is built by merging 
+  together sections with similar attributes into segments.
+  Typically, all the executable and read-only data sections
+  are combined into a single <span class="ph codeph">text</span> segment,
+  while the data and <q class="q">BSS</q>s are combined into the
+  <span class="ph codeph">data</span> segment. These segments are called
+  <em class="ph i">load segments</em>, because they need to be loaded in
+  memory at process creation. Other sections such as symbol
+  information and debugging sections are merged into other,
+  nonload segments.
+  </p>
+
+
+  <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Object file format: linking view and execution view.</span>
+    
+    <br /><img class="image" src="../images/objfile.svg" width="432" alt="Picture showing linking view and execution view" /><br />
+  </div>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">ELF without COFF</dt>
+
+<dd class="dd">Most implementations of ELF loaders are derived from
+  <em class="ph i">COFF</em> (Common Object File Format) loaders; they
+  use the linking view of the ELF objects at load time. This
+  is inefficient because the program loader must load the
+  executable using sections. A typical program could contain a
+  large number of sections, each of which would have to be
+  located in the program and loaded into memory separately.
+
+  <p class="p">
+  
+  <span class="keyword">QNX OS</span>, however, doesn't rely at all on the COFF technique
+  of loading sections. When developing our ELF implementation,
+  we worked directly from the ELF specification and kept efficiency
+  paramount. The ELF loader uses the <q class="q">execution
+  view</q> of the program. By doing so,
+  the loader's task is greatly simplified: all it has to
+  do is copy to memory the load segments (usually two) of the
+  program or library. As a result, process creation and
+  library loading operations are much faster.
+  </p>
+
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/dll.html" title="In a typical system, a number of programs will be running. Each program relies on a number of functions, some of which will be “standard” C library functions, like printf(), malloc(), write(), etc.">Dynamic Linking</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html">Using libraries (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html">dladdr()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html">dlclose()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html">dlerror()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html">dlsym()</a></li></ul></div>
+</div></body>
+</html>

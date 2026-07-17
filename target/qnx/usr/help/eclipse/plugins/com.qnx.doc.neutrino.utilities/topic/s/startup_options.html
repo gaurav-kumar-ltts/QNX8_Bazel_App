@@ -1,0 +1,922 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="startup-* options" />
+<meta name="abstract" content="Generic options for startup programs (QNX OS)" />
+<meta name="description" content="Generic options for startup programs (QNX OS)" />
+<meta name="DC.subject" content="options, startup-*, options, startup programs, QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="options, startup-*, options, startup programs, QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.building/topic/startup/startup_about.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.technotes/topic/reloadable_ifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procnto.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/startup-apic.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/startup-x86.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/c/clocktime.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/s/syspage_entry.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startup_options" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>startup-* options</title>
+</head>
+<body id="startup_options">
+
+
+<h1 class="title topictitle1 boost" id="ariaid-title1"><span class="keyword cmdname">startup-*</span> options</h1>
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Generic options for startup programs (<span class="keyword">QNX OS</span>)</em></p>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+All <span class="keyword">QNX OS</span> startup programs support the generic options described below.
+There are additional options for the following architectures:
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="startup_options.html#startup_options__AArch64">AArch64</a></li>
+
+<li class="li"><a class="xref" href="startup_options.html#startup_options__x86">x86_64</a></li>
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Individual startup programs can override these options and may support
+additional board-specific options.
+The order of precedence is as follows:
+
+<ol class="ol">
+<li class="li">board-specific options</li>
+
+<li class="li">architecture-specific options</li>
+
+<li class="li">generic options</li>
+
+</ol>
+
+</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Generic options</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-A</span></dt>
+
+<dd class="dd">Set the <span class="keyword const">SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT</span> bit on <span class="ph codeph">SYSPAGE_ENTRY(system_private)-&gt;private_flags</span>.
+  This bit (or flag) determines how an abnormal termination is handled by the default version of the reboot kernel callout.
+  If this flag is set, the callout proceeds to reboot the system.
+  <div class="p">The system can terminate abnormally for many reasons, including:
+  <ul class="ul">
+    <li class="li">the kernel detects internal inconsistencies</li>
+
+    <li class="li">the kernel runs out of memory doing work that is guaranteed to succeed</li>
+
+    <li class="li">a critical process terminates</li>
+
+  </ul>
+</div>
+
+  <p class="p">For more information about this kernel callout, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/callouts/callout_reset.html">System reboot</a></q>
+    in the <cite class="cite">Building Embedded Systems</cite> guide.</p>
+
+  <p class="p">If this flag isn't set, the default reboot callout doesn't reboot the system but instead halts execution,
+    allowing you to attach a debugger and investigate the processor state.
+    Also, this flag applies only to abnormal shutdowns. With normal shutdowns, which are those initiated by a call to
+    <span class="keyword apiname">sysmgr_reboot()</span>, <span class="keyword apiname">shutdown_system()</span>, or <span class="keyword apiname">shutdown_system_with_reason()</span>,
+    this flag isn't considered.</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-C</span></dt>
+
+<dd class="dd">Clear (i.e., zero) any memory allocated by the startup library.</dd>
+
+
+
+
+<dt class="dt dlterm" id="startup_options__c_opt"><span class="keyword option">-c</span></dt>
+
+<dd class="dd">Specify cluster definitions, where a cluster is a group of associated processors. A QNX system
+            reserves cluster names that begin with an underscore (_), including the following:<ul class="ul">
+              <li class="li"><span class="ph codeph">_all</span> — One cluster that represents all of the system's
+                processors.</li>
+
+              <li class="li"><span class="ph codeph">_cpu-<var class="keyword varname">num</var></span> — A set of clusters that
+                represents each of the system's individual processors, where <var class="keyword varname">num</var>
+                represents the processor number in the system.</li>
+
+            </ul>
+If you define additional clusters in the startup program, the cluster names mustn't
+            begin with an underscore but can otherwise be any unique alphanumeric string. You can
+            use this option to specify multiple cluster definitions by separating each cluster with
+            a comma (e.g., <span class="ph codeph">-c big:0xf0,little:0x0f</span>), or by specifying multiple
+              <span class="keyword option">-c</span> options (e.g., <span class="ph codeph">-c big:0xf0 -c little:0x0f</span>). You
+            can't associate a processor with more than eight clusters.</dd>
+
+<dd class="dd ddexpand">For more information on clusters, go to the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/multicore_processor_affinity.html">Processor affinity, clusters, runmasks, and inherit masks</a></q>
+            page in the <cite class="cite">Programmer's Guide</cite>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-D</span> <var class="keyword varname">channel</var>[.<var class="keyword varname">channel_opts</var>]</dt>
+
+<dd class="dd">Specify an output channel for debugging information.
+The format of this option and the default value vary from board to board.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-F</span> [~]<var class="keyword varname">value</var></dt>
+
+<dd class="dd">Control the <var class="keyword varname">flags</var> field in the <var class="keyword varname">cpuinfo</var> section of the system page:
+
+<ul class="ul">
+<li class="li"><var class="keyword varname">value</var> — OR the <var class="keyword varname">flags</var> field with
+<var class="keyword varname">value</var>
+</li>
+
+
+<li class="li"><var class="keyword varname">~value</var> — AND the <var class="keyword varname">flags</var> field with
+<var class="keyword varname">~value</var>
+</li>
+
+
+</ul>
+
+
+<p class="p">
+For more information about the <var class="keyword varname">flags</var>, see the
+<a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/syspage_about.html">System Page</a>
+chapter of <cite class="cite">Building Embedded Systems</cite>.
+</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-f</span> [<var class="keyword varname">cpu_freq</var>][,[<var class="keyword varname">cycles_freq</var>][,<var class="keyword varname">timer_freq</var>][,<var class="keyword varname">timer_prog_time</var>]]</dt>
+
+<dd class="dd">Specify CPU frequencies and if necessary, the timer programming time.
+All frequencies can be followed by <span class="ph codeph">H</span> for hertz, <span class="ph codeph">K</span> for kilohertz,
+or <span class="ph codeph">M</span> for megahertz (these suffixes aren't case-sensitive).
+If no suffix is given, the library assumes megahertz if the number is less than 1000; otherwise it assumes hertz.
+
+<p class="p">
+If they're specified, <var class="keyword varname">cpu_freq</var>, <var class="keyword varname">cycles_freq</var>, and
+<var class="keyword varname">timer_freq</var> are used to set the corresponding variables in the startup code:
+</p>
+
+
+<ul class="ul">
+  <li class="li"><var class="keyword varname">cpu_freq</var> — the CPU clock frequency. It's also used
+    to set the speed field in the <var class="keyword varname">cpuinfo</var> section of the system page.
+  </li>
+
+
+  <li class="li"><var class="keyword varname">cycles_freq</var> — the frequency at which the value returned by
+    <span class="keyword apiname">ClockCycles()</span> increments. It's also used to set the
+    <var class="keyword varname">cycles_per_sec</var> field in the <var class="keyword varname">qtime</var> section of the system page.
+  </li>
+
+
+  <li class="li"><var class="keyword varname">timer_freq</var> — the frequency at which the timer chip
+    input runs. It's also used to set the <var class="keyword varname">timer_rate</var> and
+    <var class="keyword varname">timer_scale</var> values of the <var class="keyword varname">qtime</var> section of the system page.
+  </li>
+
+
+  <li class="li"><var class="keyword varname">timer_prog_time</var> —
+    the time required to write to the hardware timer that's used to drive the system clock.
+    This is only needed on systems where time can disappear during QNX early bootup (e.g., running on a hypervisor and the thread
+    simulating the CPU is taken away, but the <span class="keyword apiname">ClockCycles()</span> clock keeps ticking), and the window of opportunity for
+    the problem to occur is small.
+    <p class="p">To prevent the problem, you can characterize the time it takes to write to the hardware timer (i.e., the time for
+     one call to the <span class="keyword apiname">timer_load()</span> callout).
+     The value is in nanoseconds; for example, use <span class="ph codeph">-f 0,0,0,5000</span> for 5000 ns.</p>
+
+    <p class="p">Passing in 0 or leaving the field empty causes <span class="keyword cmdname">procnto</span> to sample the time,
+      and is the current mode of operation.</p>
+
+   </li>
+
+</ul>
+
+
+<p class="p">
+  If a variable is zero when it comes time to set the field(s)
+  on the system page, the library code attempts to deduce the proper
+  value by using one of the other frequency variables. Which one it uses
+  depends on the particular CPU and hardware.
+</p>
+
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-I</span> <var class="keyword varname">flag</var></dt>
+
+<dd class="dd">Enable kernel restoration as part of IFS restoration.
+  The <var class="keyword varname">flag</var> is 0 to disable checksum verification, or 1 to enable it.
+  
+  
+
+  <p class="p">
+  If checksum verification is enabled and fails, the entire image is reloaded.
+  </p>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  Even if the IFS checksum verification is disabled, a checksum is still performed
+  on the IFS Restoration internal data structure (approximately 32 bytes) to ensure at least some data integrity.
+  </div>
+
+
+  <p class="p">
+  For more information, see
+  <a class="xref" href="../../../com.qnx.doc.neutrino.technotes/topic/reloadable_ifs.html"><em class="ph i">Reloadable Image Filesystems</em></a>
+  in the <span class="keyword">QNX OS</span> technotes.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-i</span> <var class="keyword varname">ifs2_size</var>[<span class="keyword option">,</span><var class="keyword varname">flags</var>][<span class="keyword option">,</span><var class="keyword varname">paddr_src</var>][<span class="keyword option">,</span><var class="keyword varname">paddr_dst</var>]</dt>
+
+<dd class="dd">Enable secondary IFS restoration.
+
+  <p class="p">
+  The arguments are:
+  </p>
+
+
+  <dl class="dl">
+  
+  <dt class="dt dlterm"><var class="keyword varname">ifs2_size</var></dt>
+
+  <dd class="dd">The size of the secondary IFS (note: this can be larger than the actual size).</dd>
+
+  
+
+  
+  <dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+  <dd class="dd">
+
+    <ul class="ul">
+    <li class="li">Not specified — load the secondary IFS but don't try to restore on wake-up</li>
+
+    <li class="li"><span class="ph codeph">R</span> — load the secondary IFS and restore</li>
+
+    <li class="li"><span class="ph codeph">K</span> or <span class="ph codeph">RK</span> — load the secondary IFS and restore with a checksum</li>
+
+    </ul>
+
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><var class="keyword varname">paddr_src</var></dt>
+
+  <dd class="dd">
+
+    <ul class="ul">
+      <li class="li">Not specified — the secondary IFS is located in flash after the primary IFS</li>
+
+    <li class="li">Specified — the secondary IFS is located at the physical address specified</li>
+
+    </ul>
+
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><var class="keyword varname">paddr_dst</var></dt>
+
+  <dd class="dd">
+
+    <ul class="ul">
+    <li class="li">Not specified — the secondary IFS will be copied to a default location in RAM</li>
+
+    <li class="li">Specified — the secondary IFS will be copied to the physical address specified
+      (choose an address in a <q class="q">safe</q> place, such as at the end of
+      RAM away from where the primary image is copied)
+    </li>
+
+    </ul>
+
+  </dd>
+
+  
+
+  </dl>
+
+
+  <p class="p">
+  If the checksum is enabled and fails, the entire secondary IFS is reloaded.
+  </p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Even if the secondary IFS checksum is disabled, a checksum is still
+performed on the IFS Restoration internal data structure (approximately
+16 bytes) to ensure at least some data integrity.
+</div>
+
+
+  <p class="p">
+  For more information, see
+  <a class="xref" href="../../../com.qnx.doc.neutrino.technotes/topic/reloadable_ifs.html"><em class="ph i">Reloadable Image Filesystems</em></a>
+in the <span class="keyword">QNX OS</span> technotes.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-j</span> <var class="keyword varname">addr</var></dt>
+
+<dd class="dd">For use with JTAG/hardware debuggers.
+  
+  
+  
+
+  <p class="p">
+  Reserve 4 bytes of RAM at the <em class="ph i">physical</em> address
+  specified by <var class="keyword varname">addr</var>, and copy the <em class="ph i">physical</em> address
+  of the location of the system page to <var class="keyword varname">addr</var>
+  in RAM so that it can be retrieved by a hardware debugger.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-K</span> <var class="keyword varname">channel</var>[.<var class="keyword varname">channel_opts</var>]</dt>
+
+<dd class="dd">Specify an output channel for kernel debugger information.
+  The format of this option and the default value vary from board to board.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-N</span> <var class="keyword varname">hostname</var></dt>
+
+<dd class="dd">Specify the node name.  The default is the local host.</dd>
+
+
+
+
+<dt class="dt dlterm" id="startup_options__P_opt"><span class="keyword option">-P</span> <var class="keyword varname">max_CPUs</var></dt>
+
+<dd class="dd">Specify the maximum number of processors to activate in a multicore system. This is useful for
+            testing how well your application runs on a system with fewer CPUs.
+                
+          </dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">-Q</span>
+    <var class="keyword varname">options</var></dt>
+
+  <dd class="dd">For QNX hypervisor systems, specify whether access to hypervisor features is enabled.
+    Optionally, for AArch64 platforms, also specify the exception level (EL) at which the host
+    runs. <p class="p">The following <var class="keyword varname">options</var> values are valid for AArch64 platforms:
+      </p>
+<ul class="ul" id="startup_options__ul_ns1_wch_41c">
+      <li class="li"><span class="keyword option">disable</span> — disable hypervisor features (the default). </li>
+
+      <li class="li"><span class="keyword option">enable</span> — enable hypervisor features. Selects the best
+        virtualization technique that the hardware supports. Specifically, EL2-Host is
+        preferred over EL1-Host.</li>
+
+      <li class="li"><span class="keyword option">enable,el2-host</span> — enable hypervisor features and force
+        Virtualization Host Extensions (VHE) support.
+        If the hardware does not support EL2-Host virtualization, startup is aborted.</li>
+
+      <li class="li"><span class="keyword option">enable,el1-host</span> — enable hypervisor features and run host at
+        EL1.</li>
+
+    </ul>
+ The following <var class="keyword varname">options</var> values are valid for x86_64 platforms: <ul class="ul" id="startup_options__ul_os1_wch_41c">
+      <li class="li"><span class="keyword option">disable</span> — disable hypervisor features (the default). </li>
+
+      <li class="li"><span class="keyword option">enable</span> — enable hypervisor features. </li>
+
+    </ul>
+ For more information, go to the user's guide for your QNX hypervisor. </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-R</span> <var class="keyword varname">size</var>[,<var class="keyword varname">align</var>[,<var class="keyword varname">name</var>[,<var class="keyword varname">use_low_memory</var>]]]</dt>
+
+<dd class="dd">Remove <var class="keyword varname">size</var> memory from system use, optionally specifying the alignment and
+  the name of the reserved area.
+  This is useful for testing in a restricted-memory environment.
+  The size and alignment are in bytes, unless followed by one of
+  <tt class="ph tt">K</tt> (kilobytes), <tt class="ph tt">M</tt> (megabytes), or <tt class="ph tt">G</tt> (gigabytes).
+  You can specify more than one instance of the <span class="keyword option">-R</span> option.
+  
+
+  <p class="p">
+  If you specify the <var class="keyword varname">align</var> argument, the reserved area is aligned on the boundary it specifies.
+  The default is 0, meaning no alignment.
+  </p>
+
+
+  <p class="p">
+  If you specify the <var class="keyword varname">name</var> argument, the reserved RAM area is available through the POSIX
+  typed memory interface under <span class="ph filepath">/memory/ram/</span><var class="keyword varname">name</var>.
+  If you don't specify the <var class="keyword varname">name</var> argument, the area is available under
+  <span class="ph filepath">/memory/ram/reserved</span>.
+  </p>
+
+
+  <p class="p">
+  The optional <var class="keyword varname">use_low_memory</var> argument is an unsigned integer.
+  If it's zero (the default), startup gets memory from the top of memory, which doesn't work for drivers with
+  32-bit DMA address restrictions if the target has RAM available above 4 GB.
+  If <var class="keyword varname">use_low_memory</var> is nonzero, startup tries to allocate from the lower end of memory,
+  in the hope that there's enough <tt class="ph tt">below4G</tt> memory to work with 32-bit DMA restrictions.
+  If <tt class="ph tt">below4G</tt> is already full, the driver can still get an address that's above 4 GB.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-r</span> <var class="keyword varname">addr</var>,<var class="keyword varname">size</var>[,<var class="keyword varname">flag</var>]</dt>
+
+<dd class="dd">Remove <var class="keyword varname">size</var> memory from system use starting at <var class="keyword varname">addr</var>.
+              <p class="p">The <var class="keyword varname">flag</var> is an optional argument used to specify if the memory
+              should be cleared:</p>
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                  <tr class="row">
+                    <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e849">Flag:</th>
+
+                    <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e852">Memory:</th>
+
+                  </tr>
+
+                </thead>
+<tbody class="tbody">
+                  <tr class="row">
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e849 ">None</td>
+
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e852 ">Clears to 0</td>
+
+                  </tr>
+
+                  <tr class="row">
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e849 ">0</td>
+
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e852 ">Clears to 0</td>
+
+                  </tr>
+
+                  <tr class="row">
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e849 ">1</td>
+
+                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e852 ">Does not clear</td>
+
+                  </tr>
+
+                </tbody>
+</table>
+</div>
+<div class="note warning"><span class="warningtitle">Warning:</span> During the boot process, the value of <span class="keyword option">-r</span> is ignored when
+              the IFS is loaded and decompressed. Therefore, when you use <span class="keyword option">-r</span> to reserve a specific
+              address range, make sure that neither the IFS load address nor the decompressed IFS
+              size overlap with the reserved range.</div>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-S</span> [<tt class="ph tt">~</tt>]<var class="keyword varname">section</var></dt>
+
+<dd class="dd">Turn on (or, if you use <tt class="ph tt">~</tt><var class="keyword varname">section</var>, off) output
+  of the specified <var class="keyword varname">syspage</var> section's information.
+  Use this to restrict the amount of <var class="keyword varname">syspage</var> information.
+  For more information, see the description of
+  <a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/startup_lib/print_syspage.html"><span class="keyword apiname">print_syspage()</span></a>
+  in the Startup Library chapter of <cite class="cite">Building Embedded Systems</cite>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-T</span></dt>
+
+<dd class="dd">Prevent the startup program from setting the
+  <span class="ph codeph">SYSPAGE_ENTRY(qtime)-&gt;boot_time</span> field.
+  If this field is 0 the first time you call
+  <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/clocktime.html"><span class="keyword apiname">ClockTime()</span></a>
+  to change the time of day, the kernel sets it to the appropriate value.
+  This is useful if the RTC hardware isn't in UTC.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v[v]...</span></dt>
+
+<dd class="dd">Be verbose.  More <tt class="ph tt">v</tt> characters cause even more verbosity.</dd>
+
+
+
+
+<dt class="dt dlterm">-Z</dt>
+
+<dd class="dd">Enable tickless operation.
+  In this mode, when the system is idle, the clock tick is <q class="q">turned off</q> until just after
+  the next active timer is to fire.
+  
+  
+
+  <p class="p">
+  If you specify this option, the <span class="keyword const">QTIME_FLAG_TICKLESS</span> flag is set in the
+  <a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/qtime.html"><var class="keyword varname">qtime</var></a>
+  member of the system page (see the System Page chapter of <cite class="cite">Building Embedded Systems</cite>).
+  
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Options for 64-bit ARM (AArch64) startups</h2>
+
+
+<p class="p">
+
+The following options are supported in the startup programs for 64-bit ARM (AArch64) targets:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-E</span>
+            <var class="keyword varname">option</var>, <span class="keyword option">-E</span> ~<var class="keyword varname">option</var></dt>
+
+<dd class="dd">Apply (<span class="keyword option">-E</span>
+        <var class="keyword varname">option</var>) or don't apply (<span class="keyword option">-E</span>
+          ~<var class="keyword varname">option</var>) the following: <ul class="ul">
+          <li class="li"><tt class="ph tt">meltdown</tt> — The workaround for the meltdown exploit (CVE-2017-5754)
+           erratum; see <a class="xref" href="https://meltdownattack.com/" target="_blank"><span class="ph filepath">https://meltdownattack.com/</span></a>. By default, this
+                workaround isn't applied. 
+                
+              </li>
+
+              <li class="li"><tt class="ph tt">spectrev2</tt> — The workaround for the spectre variant 2 erratum; see
+                  <a class="xref" href="https://developer.arm.com/support/arm-security-updates/speculative-processor-vulnerability" target="_blank"><span class="ph filepath">https://developer.arm.com/support/arm-security-updates/speculative-processor-vulnerability</span></a>.
+                By default, this workaround isn't applied. 
+                
+              </li>
+
+              <li class="li"><tt class="ph tt">ssbs</tt> — Set the flag <span class="keyword const">AARCH64_CPU_SSBS</span> for each
+                  <var class="keyword varname">cpuinfo</var> entry in the system page. <p class="p">If this flag is set for
+                  CPU 0, the kernel checks each CPU to determine if it supports FEAT_SSBS
+                  (Speculative Store Bypass Safe (SSBS)). To determine whether a CPU supports SSBS,
+                  the kernel queries the CPU's ID_AA64PFR1_EL1 feature register (not its
+                    <var class="keyword varname">cpuinfo</var> entry). If the CPU supports SSBS, its PSTATE.SSBS bit
+                  is set.</p>
+<p class="p">A CPU's PSTATE.SSBS bit is not cleared if
+                    <span class="keyword const">AARCH64_CPU_SSBS</span> is not set for <var class="keyword varname">cpuinfo</var> for
+                  CPU 0. </p>
+<p class="p">For more information, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/cpuinfo.html"><var class="keyword varname">cpuinfo</var></a></q> in the <q class="q">System Page</q> chapter of
+                    <cite class="cite">Building Embedded Systems</cite>. 
+                  </p>
+
+              </li>
+
+            </ul>
+</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">-u</span> [ reg | arg ]</dt>
+
+  <dd class="dd">Add a flattened device tree (FDT) to the <var class="keyword varname">asinfo</var> (Address Space Information)
+            section of the system page. <p class="p">Specify <span class="keyword option">reg</span> or <span class="keyword option">arg</span>,
+              depending on how the FDT address is passed: </p>
+<ul class="ul" id="startup_options__ul_gjk_kjd_5yb">
+              <li class="li"><span class="keyword option">reg</span> — Populate <var class="keyword varname">asinfo</var> using an FDT blob.
+                The address of the FDT blob is in the x0 register.</li>
+
+              <li class="li"><span class="keyword option">arg</span> — The address of the FDT blob is passed by arguments in
+                memory. </li>
+
+            </ul>
+<div class="p">For more information, go to:<ul class="ul" id="startup_options__ul_ah2_nmx_tyb">
+                <li class="li">the documentation for your BSP</li>
+
+                <li class="li"><q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/asinfo.html"><var class="keyword varname">asinfo</var></a></q> in the <q class="q">System Page</q> chapter of
+                    <cite class="cite">Building Embedded Systems</cite></li>
+
+              </ul>
+</div>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-U</span></dt>
+
+<dd class="dd">Check each CPU to determine if it supports Pointer Authentication on instruction addresses using
+            key A. If it does, set the flag <span class="keyword const">AARCH64_CPU_PAUTH</span> for its
+              <var class="keyword varname">cpuinfo</var> entry in the system page.<p class="p">For more information, see
+                  <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/cpuinfo.html"><var class="keyword varname">cpuinfo</var></a></q> in the <q class="q">System Page</q> chapter of
+                <cite class="cite">Building Embedded Systems</cite>. </p>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-X</span><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Set system flags. The flag names must immediately follow the <span class="keyword option">-X</span>
+ (with no spaces). 
+  Currently, only one flag name is accepted:
+  
+  <ul class="ul">
+    <li class="li"><tt class="ph tt">cachesnooped</tt> — Enable cache snooping if the hardware supports it.
+      This option sets the <span class="keyword const">CACHE_FLAG_SNOOPED</span> flag in the CPU's
+      <a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/cacheattr.html"><var class="keyword varname">cacheattr</var></a> system page entry.</li>
+
+    
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Options for 64-bit x86 targets</h2>
+
+
+<p class="p">
+
+The following options are supported in the startup programs for 64-bit x86 targets:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-B</span></dt>
+
+<dd class="dd">By default, x86 startups use the Advanced Control and Power Interface (ACPI) 
+  table to determine information such as the number of logical CPUs on hyperthreaded systems.
+  Use this option to avoid checking for ACPI in the case of buggy BIOSs;
+  if ACPI isn't present or you specify <span class="keyword option">-B</span>, the startup uses
+  the Intel Multiprocessor Specification.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-E</span> <var class="keyword varname">erratum</var>, <span class="keyword option">-E</span> ~<var class="keyword varname">erratum</var></dt>
+
+<dd class="dd">Apply (<span class="keyword option">-E</span> <var class="keyword varname">erratum</var>) or don't apply
+  (<span class="keyword option">-E</span> ~<var class="keyword varname">erratum</var>) the workaround for the specified erratum:
+
+  <ul class="ul">
+  <li class="li"><tt class="ph tt">meltdown</tt> — Meltdown exploit (CVE-2017-5754); see
+    <a class="xref" href="https://meltdownattack.com/" target="_blank"><span class="ph filepath">https://meltdownattack.com/</span></a>.
+    By default, this workaround isn't applied.
+    
+    
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-z[z]</span></dt>
+
+<dd class="dd">Specify the source of the system clock.
+  By default, the startup program tries to initialize the clock from the sources in the following order, using
+  the first that's available:
+
+  <ol class="ol">
+  <li class="li">LAPIC (Local Advanced Programmable Interrupt Controller) timer on CPU 0
+    
+    
+  </li>
+
+
+  <li class="li">HPET (High Precision Event Timer)
+    
+    
+  </li>
+
+
+  <li class="li">8254 Programmable Interval Timer
+    
+  </li>
+
+
+  </ol>
+
+
+  <p class="p">
+  You can use the <span class="keyword option">-z[z]</span> option to affect the selection:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li"><span class="keyword option">-z</span> — skip the LAPIC and HPET, and use the 8254.</li>
+
+  <li class="li"><span class="keyword option">-zz</span>  — skip the LAPIC, and use the HPET if it's available, falling back
+    on the 8254 otherwise.
+  </li>
+
+  </ul>
+
+
+  <p class="p">
+  To determine which clock source was selected, do one of the following:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li">Specify the <span class="keyword option">-v</span> option for the startup program; the output indicates the clock source.</li>
+
+
+  <li class="li">Use
+    <a class="xref" href="../p/pidin.html" title="Display information about the processes in the system (QNX OS)"><span class="keyword cmdname">pidin</span></a>
+    to display the <var class="keyword varname">qtime</var> area of the system page.
+    The output might look like this:
+
+<pre class="pre codeblock"># pidin syspage=qtime
+Header size=0x00000108, Total Size=0x00000cc0, #Cpu=2, Type=256
+Section:qtime offset:0x00000258 size:0x00000060
+  boot:5b35f6a0 CPS:00000000a1ca3421 rate/scale:69841279/-15 intr:2
+  flags:00000002 load:14318 epoch:1970 rr_mul:0 adj count/inc:0/0
+  nsec:0000014dba1b3f2b stable:0000014dba1b3f2b inc:000f4233
+  nsec_tod_adj:153c9645d0da4000
+</pre>
+
+    <p class="p">
+    The clock period (rate * 10<sup class="ph sup">scale</sup>) indicates which clock is being used.
+    Typical numbers are as follows:
+    </p>
+
+
+    
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e1445">Clock source</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e1448">Rate</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e1451">Scale</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d129435e1454">Period (femtoseconds)</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1445 ">LAPIC</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1448 ">1</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1451 ">-8</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1454 ">10,000,000</td>
+
+    </tr>
+
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1445 ">HPET</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1448 ">69841279</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1451 ">-15</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1454 ">69,841,279</td>
+
+    </tr>
+
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1445 ">8259</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1448 ">838095345</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1451 ">-15</td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d129435e1454 ">838,095,345</td>
+
+    </tr>
+
+
+    </tbody>
+</table>
+</div>
+
+
+
+
+    <p class="p">
+    For more information about the contents of the system page, see the
+    <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/syspage_about.html">System Page</a></q>
+    chapter of <cite class="cite">Building Embedded Systems</cite>.
+    </p>
+
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.building/topic/startup/startup_about.html">Startup Programs (Building Embedded Systems)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.technotes/topic/reloadable_ifs.html">Reloadable Image Filesystems (Technotes)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/m/mkifs.html" title="Build an OS image filesystem (QNX)">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/procnto.html" title="Microkernel and process manager (QNX OS)">procnto*</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/startup-apic.html" title="Startup for Intel Advanced Programmable Interrupt Controller (APIC) systems (QNX OS)">startup-apic</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/startup-x86.html" title="Startup for x86 systems (QNX OS)">startup-x86</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/clocktime.html">ClockTime() (QNX OS C Library Reference)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/syspage_entry.html">SYSPAGE_ENTRY() (QNX OS C Library Reference)</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A library and an application" />
+<meta name="abstract" content="What if we want to distribute shared libraries (again for all the CPUs we can) and a development package as well?" />
+<meta name="description" content="What if we want to distribute shared libraries (again for all the CPUs we can) and a development package as well?" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_Examples.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/make.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Library_and_application" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A library and an application</title>
+</head>
+<body id="Library_and_application">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A library and an application</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+What if we want to distribute shared libraries (again for all the CPUs we can) and a
+development package as well?
+</p>
+
+
+<p class="p">
+Let's use the <span class="keyword cmdname">bzip2</span> distribution as our example.
+The <span class="keyword cmdname">bzip2</span> binary already comes
+with <span class="keyword">QNX OS</span>, but the library doesn't.
+You can download the source code from
+<a class="xref" href="http://www.bzip.org" target="_blank"><span class="ph filepath">http://www.bzip.org</span></a>.
+</p>
+
+
+<div class="p">
+This is a good example, because it contains both a library
+(<span class="ph filepath">libbz2</span>) and an application (<span class="keyword cmdname">bzip2</span>).
+Once we've downloaded it, we can extract and build it with:
+
+<pre class="pre codeblock">tar -zxvf bzip2-1.0.3.tar.gz
+cd bzip2-1.0.3
+make
+</pre>
+</div>
+
+
+<div class="p">
+We notice that a typical compile looks like:
+
+<pre class="pre codeblock">gcc -Wall -Winline -O2 -fomit-frame-pointer -fno-strength-reduce 
+    -D_FILE_OFFSET_BITS=64 -c decompress.c
+</pre>
+</div>
+
+
+<p class="p">
+Let's remember those options for later.
+</p>
+
+
+<p class="p">
+The problem with using the <span class="keyword">QNX OS</span> makefile system in this case, is
+that we want to make two projects: the <span class="ph filepath">libbz2</span> library and the
+<span class="keyword cmdname">bzip2</span> application.
+With the <span class="keyword">QNX OS</span> <span class="ph filepath">Makefile</span> system, we
+usually have a single project.
+</p>
+
+
+<div class="p">
+The best solution is to separate them into different directories.
+Instead of moving the source code around, we'll just create two
+subdirectories, one called <span class="ph filepath">lib</span>, and the other called
+<span class="ph filepath">app</span>, in which we'll create the appropriate
+<span class="ph filepath">Makefile</span> and <span class="ph filepath">common.mk</span> files:
+
+<pre class="pre codeblock">mkdir app
+cd app
+addvariant -i OS
+addvariant nto aarch64 o.le
+addvariant nto x86_64 o
+cd ..
+mkdir lib
+cd lib
+addvariant -i OS
+addvariant nto aarch64 so.le
+addvariant nto aarch64 a.le
+addvariant nto x86_64 so
+addvariant nto x86_64 a
+</pre>
+</div>
+
+
+<p class="p">
+If we try to build either of these projects now, not much happens.
+This is because we haven't told the <span class="ph filepath">Makefile</span> system where
+our source files are.
+</p>
+
+
+<div class="p">
+Let's start with the library.
+Its <span class="ph filepath">common.mk</span> file already contains the default lines:
+
+<pre class="pre codeblock">ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+
+include $(MKFILES_ROOT)/qtargets.mk
+</pre>
+</div>
+
+
+<div class="p">
+Let's add a few more lines just before the line that includes
+<span class="ph filepath">qtargets.mk</span>.
+First, we'll add the compile options it used originally:
+
+<pre class="pre codeblock">CCFLAGS+=-Wall -Winline -O2 -fomit-frame-pointer -fno-strength-reduce
+  -D_FILE_OFFSET_BITS=64
+</pre>
+</div>
+
+
+<p class="p">
+
+
+
+
+In QNX Neutrino 7.0 or earlier, flags defined in <var class="keyword varname">CCFLAGS</var> got passed to both the C compiler, <span class="keyword cmdname">qcc</span>,
+and the C++ compiler, <span class="keyword cmdname">q++</span>.
+In QNX Neutrino 7.1 or later, the <var class="keyword varname">CCFLAGS</var> settings are passed to the C compiler only;
+to pass flags to the C++ compiler, you must set them in <var class="keyword varname">CXXFLAGS</var> instead.
+</p>
+
+
+<div class="p">
+
+
+
+
+
+
+Next, let's tell it where to find the source files.
+The <var class="keyword varname">PRODUCT_ROOT</var> directory is the parent directory of the
+<var class="keyword varname">PROJECT_ROOT</var> directory, which is where our source code is located.
+Let's use that to specify where our source code is:
+
+<pre class="pre codeblock">EXTRA_SRCVPATH=$(PRODUCT_ROOT)
+</pre>
+</div>
+
+
+<div class="p">
+
+
+Since the parent directory also contains the source code for the
+<span class="keyword cmdname">bzip2</span> application, and we want only the object files for the
+<span class="ph filepath">libbz</span> library, let's weed out the object files we don't need:
+
+<pre class="pre codeblock">EXCLUDE_OBJS=bzip2recover.o bzip2.o dlltest.o spewG.o unzcrash.o
+</pre>
+</div>
+
+
+<div class="p">
+
+
+
+
+We should add some <var class="keyword varname">PINFO</var> definitions and specify where to
+install the files (<span class="ph filepath">usr/lib</span> in this case):
+
+<pre class="pre codeblock">define PINFO
+PINFO DESCRIPTION=bzip2 data compressions library
+endef
+INSTALLDIR=usr/lib
+</pre>
+</div>
+
+
+<div class="p">
+
+
+
+
+Finally, let's make sure the library has the correct name.
+By default, it uses the directory name of the <var class="keyword varname">PROJECT_ROOT</var> directory.
+Since we don't want to call our library <span class="ph codeph">lib</span>, let's change it:
+
+<pre class="pre codeblock">NAME=bz2
+</pre>
+</div>
+
+
+<p class="p">
+If we now run <span class="keyword cmdname">make</span> at the terminal, we can watch all of our
+libraries being built.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You may notice that there are <span class="ph filepath">libbz2S.a</span> libraries being
+built in the <span class="ph filepath">so</span> directories.
+
+You can use these libraries if you want to create other shared libraries that
+require code from this library.
+</div>
+
+
+<div class="p">
+What about our application, <span class="keyword cmdname">bzip2</span>?
+Let's change into the <span class="ph filepath">app</span> directory we built before
+and set up our <span class="ph filepath">common.mk</span> file.
+This time, though, we exclude everything but the <span class="ph filepath">bzip2.o</span>
+from our objects and add a new line:
+
+
+
+<pre class="pre codeblock">LIBS+=bz2
+</pre>
+</div>
+
+
+<div class="p">
+Here's our complete <span class="ph filepath">common.mk</span> file:
+
+<pre class="pre codeblock">ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+
+CCFLAGS+=-Wall -Winline -O2 -fomit-frame-pointer -fno-strength-reduce
+  -D_FILE_OFFSET_BITS=64
+EXTRA_SRCVPATH=$(PRODUCT_ROOT)
+EXCLUDE_OBJS= blocksort.o bzip2recover.o bzlib.o compress.o crctable.o
+   decompress.o dlltest.o huffman.o randtable.o spewG.o unzcrash.o
+LIBS+=bz2
+define PINFO
+PINFO DESCRIPTION=bzip2 file compressor/decompressor
+endef
+INSTALLDIR=usr/bin
+NAME=bzip2
+
+include $(MKFILES_ROOT)/qtargets.mk   
+</pre>
+</div>
+
+
+<div class="p">
+We can easily create our <span class="ph filepath">bzip2.use</span> file by getting help from
+our previously created <span class="keyword cmdname">bzip2</span> executable:
+
+<pre class="pre codeblock">../bzip2 --help 2&gt; bzip2.use
+</pre>
+</div>
+
+
+<div class="p">
+Now we can build our binaries, and make sure they exist:
+
+<pre class="pre codeblock">make
+ls -l nto/*/*/bzip2
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/make_convent_Examples.html" title="If you use our directory structure, you should use the addvariant command to create it. This section gives some examples of creating Makefiles for a single application, as well as for a library and an application.">Examples of creating Makefiles</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html">addvariant</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/make.html">make</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_chassis_slot_device()" />
+<meta name="abstract" content="Get the Bus/Device/Function of the device that resides in the specified chassis and slot" />
+<meta name="description" content="Get the Bus/Device/Function of the device that resides in the specified chassis and slot" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_chassis_slot_device" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_chassis_slot_device()</title>
+</head>
+<body id="pci_chassis_slot_device">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_chassis_slot_device()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get the Bus/Device/Function of the device that resides in the specified chassis and slot</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_bdf_t pci_chassis_slot_device( pci_cs_t <var class="keyword varname">cs</var>,
+                                   pci_err_t *<var class="keyword varname">err</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">cs</var></dt>
+
+<dd class="dd">A <span class="keyword dtype">pci_cs_t</span> that contains the chassis and slot number; see below.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">err</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a location where the function can store an error code.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+The <span class="keyword apiname">pci_chassis_slot_device()</span> function returns the BDF of the device that resides in the
+specified chassis and slot.
+The <span class="keyword dtype">pci_cs_t</span> data type is defined as a <span class="keyword dtype">uint16_t</span>;
+the encoding is as follows:
+</p>
+
+
+<pre class="pre">
+cccs ssss ssss ssss
+</pre>
+
+
+<p class="p">
+You can use the following macros to encode or decode a <span class="keyword dtype">pci_cs_t</span>:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">PCI_CHASSIS(_cs_)</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">PCI_SLOT(_cs_)</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">PCI_CS(_c_, _s_)</span>
+  
+</li>
+
+</ul>
+
+
+<p class="p">
+There's a maximum of 32 slots per chassis, as defined by the Slot Identification capability,
+but there are 13 bits for slot numbers to accommodate the size of the <q class="q">physical slot number</q> field
+in the slot capabilities register of PCIe root ports.
+The 16-bit data type for <span class="keyword dtype">pci_cs_t</span> permits up to 8 chassis (7 expansion chassis).
+</p>
+
+
+<p class="p">
+Slot numbers start at 1.
+</p>
+
+
+<p class="p">
+Even if there are no chassis-based bridges in the system, a chassis number of 0 exists.
+That is, a board with PCI devices on it (perhaps including slots) will logically reside in a chassis 0.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The BDF of the device, or <span class="keyword const">PCI_BDF_NONE</span>.
+If <span class="keyword const">PCI_BDF_NONE</span> is returned and <var class="keyword varname">err</var> isn't NULL, the object that 
+<var class="keyword varname">err</var> points to indicates why:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EINVAL</span></dt>
+
+<dd class="dd">The chassis and slot provided were invalid.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENODEV</span></dt>
+
+<dd class="dd">The slot is empty.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d9308e288">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d9308e290"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e288 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e290 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e288 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e290 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e288 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d9308e290 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">See also:</h2>
+
+
+<p class="p">
+<a class="xref" href="pci_chassis_slot_bridge.html" title="Get the Bus/Device/Function of the bridge that's connected to the specified chassis and slot"><span class="keyword apiname">pci_chassis_slot_bridge()</span></a>,
+<a class="xref" href="pci_device_chassis_slot.html" title="Get the chassis and slot for a device"><span class="keyword apiname">pci_device_chassis_slot()</span></a>
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>

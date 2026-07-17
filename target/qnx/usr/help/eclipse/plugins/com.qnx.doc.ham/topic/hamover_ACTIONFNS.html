@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Action functions" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_HAMAPI.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ACTIONFNS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Action functions</title>
+</head>
+<body id="ACTIONFNS">
+
+<h1 class="title topictitle1" id="ariaid-title1">Action functions</h1>
+
+
+<div class="body conbody">
+<pre class="pre codeblock">/* action operations             */
+ham_action_t *ham_action_restart(ham_condition_t *chdl, const char *aname,
+              const char *path, unsigned flags);
+ham_action_t *ham_action_execute(ham_condition_t *chdl, const char *aname,
+              const char *path, unsigned flags);
+ham_action_t *ham_action_waitfor(ham_condition_t *chdl, const char *aname,
+              const char *path, int delay, unsigned flags);
+ham_action_t *ham_action_notify_pulse(ham_condition_t *chdl, const char *aname,
+              int reserved, int topid, int chid, int pulsecode, int value,
+              unsigned flags);
+ham_action_t *ham_action_notify_signal(ham_condition_t *chdl, const char *aname,
+              int reserved, pid_t topid, int signum, int code, int value,
+              unsigned flags);
+ham_action_t *ham_action_heartbeat_healthy(ham_condition_t *chdl,
+              const char *aname, unsigned flags);
+ham_action_t *ham_action_log(ham_condition_t *chdl, const char *aname,
+              const char *msg, unsigned attachprefix, int verbosity,
+              unsigned flags);
+
+/* remove an action              */
+int ham_action_remove(ham_action_t *ahdl, unsigned flags);
+</pre>
+
+<p class="p">As mentioned earlier, a HAM currently supports several different types of <em class="ph i">action
+                                          functions</em>, but note that you can add your own action
+                                          functions to suit your particular HA application.</p>
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><a class="xref" href="hamapi/ham_action_restart.html" title="Add a restart action to a condition"><span class="keyword apiname">ham_action_restart()</span></a></dt>
+
+
+<dd class="dd">Provides a restart mechanism for the entity in the event that a <em class="ph i">death</em> condition has
+                                                  occurred. This implies that the entity in question
+                                                  has terminated; the <em class="ph i">restart</em> action will
+                                                  restart the entity and also keep track of the new
+                                                  <var class="keyword varname">pid</var> that the entity will now be
+                                                  associated with.<div class="note"><span class="notetitle">Note:</span> <em class="ph i">Restart</em> actions can
+                                                  be associated only with <em class="ph i">death</em> conditions.
+                                                  And across all conditions of type <em class="ph i">death</em>,
+                                                  there can be only a single <em class="ph i">restart</em> action
+                                                  at any time. This ensures that the entity is
+                                                  restarted only if it terminates, and only once.
+                                                  (Conditions of type <em class="ph i">death</em> include
+                                                  conditions of the types <span class="keyword const">CONDDEATH</span>
+                                                  and <span class="keyword const">CONDABNORMALDEATH</span>.</div>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="hamapi/ham_action_execute.html" title="Add an execute action to a condition"><span class="keyword apiname">ham_action_execute()</span></a></dt>
+
+
+<dd class="dd">Executes an arbitrary command in the event that the condition is true. This could be any
+                                                  executable command line. When the condition in
+                                                  question is true, the list of actions is traversed
+                                                  and executed in sequence.<p class="p">This executes a
+                                                  command line as specified in the parameters. The
+                                                  command line must contain the FULL path to the
+                                                  executable along with all parameters to be passed
+                                                  to it. The command line is in turn passed onto a
+                                                  <em class="ph i">spawn</em> command by a HAM to create a new
+                                                  process that will execute the
+                                                  command.</p>
+<p class="p">You'll find <em class="ph i">execute</em> actions
+                                                  useful when you need to set up a multistage
+                                                  recovery. For example, if
+                                                  <span class="keyword cmdname">fs-nfs3</span> dies and is restarted,
+                                                  the <span class="keyword apiname">ham_action_execute()</span>
+                                                  function lets you remount any directories that are
+                                                  required after <span class="keyword cmdname">fs-nfs3</span> is
+                                                  restarted.</p>
+<p class="p">You can have an <em class="ph i">execute</em>
+                                                  action take place immediately by setting the
+                                                  <span class="keyword const">HACTIONDONOW</span> flag. Again, this is
+                                                  useful in startup situations when an entity is
+                                                  created in many stages.</p>
+<p class="p">Note that
+                                                  <span class="keyword const">HACTIONDONOW</span> is ignored for
+                                                  <em class="ph i">waitfor</em> actions. So in order to insert
+                                                  delays into a sequence of actions flagged
+                                                  <span class="keyword const">HACTIONDONOW</span>, you'll need to insert
+                                                  the delays in the client program (between calls to
+                                                  <span class="keyword apiname">ham_action*()</span>).</p>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="hamapi/ham_action_waitfor.html" title="Add a waitfor action to a condition"><span class="keyword apiname">ham_action_waitfor()</span></a></dt>
+
+
+<dd class="dd">Given a sequence of actions in a condition that will execute in FIFO order, you can insert
+                                                  delays into the execution sequence by using
+                                                  <span class="keyword apiname">ham_action_waitfor()</span> (as long
+                                                  as the condition permits it — see the
+                                                  section <a class="xref" href="hamover_CONDFNS.html">Condition
+                                                  functions</a> in this chapter). The delay
+                                                  specified is in multiples of 100 msecs.<p class="p">The
+                                                  <span class="keyword apiname">ham_action_waitfor()</span> call takes
+                                                  as an argument a <var class="keyword varname">path</var>
+                                                  component, which can be used to wait for a
+                                                  specific name to appear in the name space. If
+                                                  <var class="keyword varname">path</var> is NULL, the waitfor is
+                                                  for exactly <var class="keyword varname">delay</var> msecs. But if
+                                                  <var class="keyword varname">path</var> is specified, the waitfor
+                                                  is for either <var class="keyword varname">delay</var> msecs or
+                                                  until <var class="keyword varname">path</var> appears in the
+                                                  namespace, whichever occurs earlier. Note that the
+                                                  delay when a pathname is specified is in integral
+                                                  multiples of 100 msecs.</p>
+<p class="p">If a pathname is
+                                                  specified, the delays will be the closest integral
+                                                  multiple of 100 msecs, rounding up. A delay of
+                                                  <span class="ph codeph">0</span> effectively disables the
+                                                  waitfor, making the <var class="keyword varname">pathname</var>
+                                                  specification redundant.</p>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="hamapi/ham_action_notify_pulse.html" title="Add a notify-pulse action to a condition"><span class="keyword apiname">ham_action_notify_pulse()</span></a>, <a class="xref" href="hamapi/ham_action_notify_signal.html" title="Add a notify-signal action to a condition"><span class="keyword apiname">ham_action_notify_signal()</span></a></dt>
+
+
+<dd class="dd">The <span class="keyword apiname">ham_action_notify_pulse()</span> function sends the appropriate pulse to the
+                                                  given
+                                                  <var class="keyword varname">pid</var>/<var class="keyword varname">chid</var>.<p class="p">The
+                                                  <span class="keyword apiname">ham_action_notify_signal()</span>
+                                                  sends an appropriate realtime signal with a value
+                                                  to the <var class="keyword varname">pid</var> that requests
+                                                  it.</p>
+<p class="p">Actions can persist across a restart if
+                                                  the entity is restarted. Similarly, conditions can
+                                                  also be set to persist (i.e., you can rearm them)
+                                                  after a restart of the entity. You can do this by
+                                                  ORing <span class="keyword const">HREARMAFTERRESTART</span> into the
+                                                  flags argument to either the
+                                                  <span class="keyword apiname">ham_condition()</span> call or to the
+                                                  appropriate action statement.</p>
+<p class="p">If a condition
+                                                  persists when an entity is restarted, each
+                                                  individual action is checked to see if it also
+                                                  persists. Actions that needn't be rearmed are
+                                                  performed once and removed. Any actions that fail
+                                                  are also removed, even if they're set to be
+                                                  rearmed.</p>
+<p class="p">If a condition isn't marked as
+                                                  <em class="ph i">rearmed</em>, then all actions under it are
+                                                  automatically removed, since the actions are
+                                                  associated only with the condition and can't be
+                                                  retained if the condition no longer
+                                                  exists.</p>
+<p class="p">The persistence of conditions and
+                                                  actions across a restart depends on the restart of
+                                                  the entity itself. So if the entity isn't
+                                                  restarted (i.e., there's no
+                                                  <span class="keyword const">ACTION_RESTART</span> or the
+                                                  <span class="keyword const">ACTION_RESTART</span> fails for some
+                                                  reason), then the entity is removed, along with
+                                                  all conditions and actions associated with the
+                                                  entity as well.</p>
+</dd>
+
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_HAMAPI.html">HAM API</a></div>
+</div>
+</div></body>
+</html>

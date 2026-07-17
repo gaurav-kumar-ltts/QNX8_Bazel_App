@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="User and group IDs" />
+<meta name="abstract" content="A process has different kinds of user and group IDs that can be modified to affect its privileges." />
+<meta name="description" content="A process has different kinds of user and group IDs that can be modified to affect its privileges." />
+<meta name="DC.subject" content=", setuid(), setgid(), seteuid(), setreuid(), setegid(), setregid(), setgroups(), setgroupspid(), getgroups(), ConnectClientInfo(), ConnectClientInfoExt(), ConnectClientInfoAble(), iofunc_client_info_ext(), processes, user ID, group ID, real, effective, saved, users, IDs, groups, POSIX_SPAWN_HOLD, PROCMGR_AID_SETUID, PROCMGR_AID_SETGID, PROCMGR_AID_SPAWN_SETUID, PROCMGR_AID_SPAWN_SETGID, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content=", setuid(), setgid(), seteuid(), setreuid(), setegid(), setregid(), setgroups(), setgroupspid(), getgroups(), ConnectClientInfo(), ConnectClientInfoExt(), ConnectClientInfoAble(), iofunc_client_info_ext(), processes, user ID, group ID, real, effective, saved, users, IDs, groups, POSIX_SPAWN_HOLD, PROCMGR_AID_SETUID, PROCMGR_AID_SETGID, PROCMGR_AID_SPAWN_SETUID, PROCMGR_AID_SPAWN_SETGID, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Privileges.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_user_group_IDs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>User and group IDs</title>
+</head>
+<body id="process_user_group_IDs">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">User and group IDs</h1>
+
+
+    
+
+    
+
+    <div class="body conbody"><p class="shortdesc">
+        A process has different kinds of user and group IDs that can be modified to affect its privileges.
+    </p>
+
+        <p class="p">The user and group IDs of a process are important attributes of the security of a system. When opening files and resource
+        manager paths, whether the process's user or group IDs match the file's owner or group determines if its access is
+        controlled by owner, group, or world permissions. When the process creates a file, its user and group ID are used to set
+        the ownership of the file.</p>
+
+
+        <p class="p">User IDs and group IDs are integers that may have any value other than <tt class="ph tt">-1</tt>. While negative IDs are technically valid,
+        using negative IDs is strongly discouraged and will likely cause problems. A user ID of <tt class="ph tt">0</tt> is special. A process with a user ID
+        of <tt class="ph tt">0</tt>, usually referred to as <span class="ph filepath">root</span>, typically has greater privileges and is considered a <q class="q">superuser.</q> User and group IDs
+        can be associated with names in <span class="ph filepath">/etc/passwd</span> and <span class="ph filepath">/etc/group</span> but they can also just be
+        numeric IDs with no name associated with them. You don't have to create a user or group to make use of a new user or group ID.</p>
+
+
+        <div class="section"><h2 class="title sectiontitle">Types of user and group IDs</h2>
+        
+        <p class="p">A process actually has three user IDs, three main group IDs, and zero or more supplementary group IDs. For the user and main group IDs,
+        there is a real, effective and saved-set ID:</p>
+
+
+        <dl class="dl">
+        <dt class="dt dlterm">real</dt>
+
+        <dd class="dd">This ID can be considered the user or group ID that owns the process. If a user was logged in running commands from a shell,
+        all processes resulting from that session would most likely have a real user ID matching the user ID of that user.
+        It can be obtained by calling <span class="keyword apiname">getuid()</span>/<span class="keyword apiname">getgid()</span> as appropriate.</dd>
+
+
+        <dt class="dt dlterm">effective</dt>
+
+        <dd class="dd">This is the ID that is used for security checks and for determining ownership of newly created files. While
+        normally the same as the real ID, when a setuid or setgid binary is executed this ID is set equal to the owning user ID or
+        group ID of the file (depending on whether the binary was setuid, setgid, or setuid and setgid). It can be obtained by calling
+        <span class="keyword apiname">geteuid()</span>/<span class="keyword apiname">getegid()</span> as appropriate.</dd>
+
+
+        <dt class="dt dlterm">saved-set</dt>
+
+        <dd class="dd">Normally equal to the real user or group ID. Like the effective ID, this ID is set equal to the owning user ID or group ID
+        of the file when a setuid or setgid binary is executed. This allows a process resulting from, for example, executing a setuid
+        binary to call <span class="keyword apiname">seteuid()</span> to temporarily have privileges and file ownership determined by the original user ID.</dd>
+
+        </dl>
+
+
+        <p class="p">In almost all cases, the three IDs are the same and you can ignore the distinction. However, when dealing with
+        setuid and setgid binaries, the three IDs are important. When a setuid or setgid binary is executed, the process
+        runs as the user ID, group ID, or user and group ID associated with the binary. This usually means it can perform
+        some actions it would otherwise not be able to do. Most commonly, setuid programs are owned by root, allowing
+        full root privileges. For example, the <span class="keyword cmdname">passwd</span> utility makes use of setuid to allow updates to
+        the normally heavily protected shadow file.</p>
+
+
+        <p class="p">The supplementary group IDs are zero or more group IDs that may be used to grant
+        additional privileges to a process. You can get and set supplementary group IDs using
+        <span class="keyword apiname">getgroups()</span> and <span class="keyword apiname">setgroups()</span>. For file or
+        resource manager access tests, a process is considered to be part of the file's group if
+        its effective group ID or any of its supplementary group IDs match the file's. Resource
+        managers might also perform other security checks based on a process's supplementary
+        groups.</p>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle"> Managing user and group IDs</h2>
+        
+        <p class="p">All credentials may be obtained by calling <span class="keyword apiname">ConnectClientInfo()</span>, <span class="keyword apiname">ConnectClientInfoExt()</span>,
+        or <span class="keyword apiname">ConnectClientInfoAble()</span>.</p>
+
+
+        <p class="p">Other than by executing a setuid or setgid binary, for a process to change its user or group ID or to create a process with
+        a particular user or group ID, that ID must match one of its real, effective or saved set IDs or the process must have the
+        appropriate ability.</p>
+
+
+        <p class="p">For a supplementary group to be added or removed from a process, the process performing the operation must have the <tt class="ph tt">SETGID</tt>
+        ability for the group ID being added or removed. Unlike the user and main group ID, supplementary group IDs may be set on
+        other processes but only in one particular situation: if a process spawns a child in the held state using the <tt class="ph tt">POSIX_SPAWN_HOLD</tt>
+        flag with <span class="keyword apiname">posix_spawnattr_setxflags()</span>, then that process can change its child's supplementary groups by calling
+        <span class="keyword apiname">setgroupspid()</span> until the point where it has permitted the child to start executing.</p>
+
+
+        <p class="p">To view the user and group IDs for a process, run <span class="keyword cmdname">pidin user</span>.</p>
+
+
+        <p class="p">The system assumes that unrelated processes run with different user IDs (and usually group IDs). It expects, for example, that
+        all resource managers are started or configured to switch to unique IDs. This maintains the maximum isolation of one process from
+        the next. In certain circumstances, a process might be permitted to perform some action or to perform it without
+        the need for an ability based on it sharing a common user ID with another process (e.g., <span class="keyword apiname">kill()</span>).</p>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Privileges.html" title="In systems where security is important, applications should run with the fewest privileges possible. This practice helps reduce the impact of possible compromises and can also help lower the privilege escalation attack surface of the device.">Process privileges</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="task" />
+<meta name="DC.title" content="Using screen_read_window()" />
+<meta name="abstract" content="The following procedure describes how to use Screen to capture a screenshot of a single window. You can store the resulting screenshot in either a pixmap or window buffer for further manipulation. This particular procedure describes capturing the screenshot in a pixmap buffer and then writing the screenshot to a bitmap." />
+<meta name="description" content="The following procedure describes how to use Screen to capture a screenshot of a single window. You can store the resulting screenshot in either a pixmap or window buffer for further manipulation. This particular procedure describes capturing the screenshot in a pixmap buffer and then writing the screenshot to a bitmap." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_screenshot.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="window_read_screenshot" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Using screen_read_window()</title>
+</head>
+<body id="window_read_screenshot">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Using <span class="keyword apiname">screen_read_window()</span></h1>
+
+    
+    
+    <div class="body taskbody"><p class="shortdesc">
+        The following procedure describes how to use
+        <span class="keyword">Screen</span> to capture a screenshot of a single
+        window. <span class="ph">
+            You can store the resulting screenshot in either a pixmap or window buffer for
+            further manipulation. This particular procedure describes capturing the screenshot in a pixmap buffer
+            and then writing the screenshot to a bitmap.
+        </span>
+    </p>
+
+        <div class="section">
+            <p class="p">This sample application uses the components of a grey hourglass,
+                a moving blue vertical bar, and a yellow background. It aims to
+                demonstrate how to capture a screenshot using the
+                <span class="keyword">Screen API</span>.
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Screenshot Application</span>
+                
+                <br /><img class="image" src="../../images/screen-opengl.svg" width="200" /><br />
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">You will learn to:</h2>
+            
+            <ul class="ul">
+                <li class="li">create a pixmap and buffer to store your screenshot</li>
+
+                <li class="li">retrieve appropriate pixmap properties to prepare for screenshot</li>
+
+                <li class="li">take your screenshot</li>
+
+                <li class="li">write your screenshot to a bitmap file</li>
+
+            </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Before you begin</h2>
+        
+            <p class="p">Before proceeding, you are expected to have already created a
+                <span class="keyword">Screen</span> context and the window that
+                will be the target of your screenshot.
+            </p>
+
+            <p class="p">
+                In the following procedure, the created context will be referred to as <var class="keyword varname">screenshot_ctx</var>.
+            </p>
+
+            <p class="p">The targeted window will be referred to as
+                <var class="keyword varname">screenshot_win</var>.
+            </p>
+
+        </div>
+
+        <div class="section context">
+            
+        </div>
+
+        <ol class="ol steps"><li class="li step stepexpand">
+                <span class="ph cmd">Create variables for the pixmap, the pixmap buffer, the pixmap buffer pointer, and the stride:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">screen_pixmap_t screen_pix;
+screen_buffer_t screenshot_buf;
+char *screenshot_ptr = NULL;
+int screenshot_stride = 0;
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Create other variables necessary to support the
+                    <span class="keyword">Screen API</span> calls and the writing
+                    of your screenshot to a bitmap.</span>
+                <div class="itemgroup stepxmp">
+                    <p class="p">In this procedure, you will declare several integer variables to help in setting the
+                        pixmap and its properties. You will also need variables associated with the writing
+                        of the screenshot to bitmap. For this example, a set path and filename are used. Ensure
+                        that you have appropriate permissions to access the directory path of the file.</p>
+
+<pre class="pre codeblock">char header[54];
+char *fname = "/accounts/1000/appdata/com.example.Tutorial_WindowApp."
+              "testDev_l_WindowApp85f8001_/data/hourglass_window_screenshot.bmp";
+int nbytes;
+int fd;
+int i;
+int usage, format;
+int size[2]; 
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Create the pixmap for the screenshot and set the usage flag and format properties:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">screen_create_pixmap(&amp;screen_pix, screenshot_ctx);
+
+usage = SCREEN_USAGE_READ | SCREEN_USAGE_NATIVE;
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_USAGE, &amp;usage);
+
+format = SCREEN_FORMAT_RGBA8888;
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_FORMAT, &amp;format);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">
+                    Set the buffer size of the pixmap for the screenshot; the pixmap buffer size doesn't
+                    have to necessarily match the size of the source.
+                </span>
+                <div class="itemgroup stepxmp">
+                    <p class="p"> Scaling will be applied to make the screenshot fit into the buffer provided.
+                    </p>
+
+<pre class="pre codeblock">size[0] = 200;
+size[1] = 200;
+screen_set_pixmap_property_iv(screen_pix, SCREEN_PROPERTY_BUFFER_SIZE, size);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Create the pixmap buffer for the screenshot and get the buffer handle, the pointer, and the stride.</span>
+                <div class="itemgroup stepxmp">
+                    <p class="p">Memory is allocated for your pixmap buffer; this is the buffer where the pixels
+                       from the source window will be copied to:
+                    </p>
+
+<pre class="pre codeblock">screen_create_pixmap_buffer(screen_pix);
+screen_get_pixmap_property_pv(screen_pix, SCREEN_PROPERTY_RENDER_BUFFERS,
+                              (void**)&amp;screenshot_buf);
+screen_get_buffer_property_pv(screenshot_buf, SCREEN_PROPERTY_POINTER,
+                              (void**)&amp;screenshot_ptr);
+screen_get_buffer_property_iv(screenshot_buf, SCREEN_PROPERTY_STRIDE,
+                              &amp;screenshot_stride);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Take the window screenshot:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">screen_read_window(screenshot_win, screenshot_buf, 0, NULL ,0);
+</pre>
+                    <p class="p">
+                        This function takes five arguments: the target of the screenshot, the pixmap buffer, the number of rectangles
+                        defining the area of capture, the array of integers representing rectangles of the area of capture, and the
+                        mutex flag. The arguments related to the area of capture are 0 and NULL because in this
+                        example you are capturing the target area in its entirety rather than a specific rectangular area. The
+                        last argument (which represents the mutex flag) should always be 0.
+
+                    </p>
+
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Create the bitmap file with appropriate permissions; prepare the header and write the buffer contents to
+                     the file. Afterwards, close the file:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">fd = creat(fname, S_IRUSR | S_IWUSR);
+
+nbytes = size[0] * size[1] * 4;
+write_bitmap_header(nbytes, fd, size);
+
+for (i = 0; i &lt; size[1]; i++) {
+  write(fd, screenshot_ptr + i * screenshot_stride, size[0] * 4);
+}
+
+close(fd);
+</pre>
+                    <p class="p"> The value of <var class="keyword varname">nbytes</var> represents the
+                        calculated size of the bitmap and is used in the header
+                        of the bitmap itself.</p>
+
+                </div>
+            </li>
+</ol>
+
+        <div class="section postreq">
+            <p class="p">Although any instances created are destroyed  when the
+                application exits, it is best practice to destroy any window,
+                pixmap, and context instances that you created but no longer
+                require.
+            </p>
+
+        </div>
+
+        <div class="section postreq">
+            <p class="p">In this example, you should destroy the pixmap that you created
+                to perform the screenshot. After the pixmap buffer has been
+                used to create the bitmap, the pixmap and its buffer are no
+                longer required. Therefore you should perform the appropriate
+                cleanup:</p>
+
+<pre class="pre codeblock">screen_destroy_pixmap(screen_pix);
+</pre>
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_screenshot.html" title="Screen screenshots are pixels read from a source and then copied into a buffer. You can then manipulate the buffer as required; it can be simply written to a file or used in other windows or displays.">Tutorial: Screenshots</a></div>
+</div>
+</div></body>
+</html>

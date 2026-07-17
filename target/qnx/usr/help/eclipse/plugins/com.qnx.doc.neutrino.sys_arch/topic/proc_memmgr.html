@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Memory management" />
+<meta name="abstract" content="The virtual memory system implements the POSIX model for memory management along with some QNX OS extensions." />
+<meta name="description" content="The virtual memory system implements the POSIX model for memory management along with some QNX OS extensions." />
+<meta name="DC.subject" content="memory, management, POSIX, memory module, extensions, QNX OS, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="memory, management, POSIX, memory module, extensions, QNX OS, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/memory_accounting.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="proc_memmgr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Memory management</title>
+</head>
+<body id="proc_memmgr">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Memory management</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The virtual memory system implements the POSIX model for memory management along with some
+<span class="keyword">QNX OS</span> extensions.
+</p>
+
+
+<div class="p">
+These extensions include:
+<ul class="ul">
+<li class="li">virtual address spaces that contain mappings to memory objects</li>
+
+<li class="li">mappings that can be manipulated at page-size granularity</li>
+
+<li class="li">memory-mapped files that use persistent filesystem backing storage</li>
+
+<li class="li">shared memory objects that use RAM</li>
+
+<li class="li">shared memory objects using the
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html"><span class="keyword apiname">shm_ctl()</span> and <span class="keyword apiname">shm_ctl_special()</span></a> interface</li>
+
+<li class="li">typed memory objects that represent physical memory ranges</li>
+
+<li class="li"><span class="keyword const">MAP_ANON</span> to allocate anonymous memory (memory that isn't associated with a file or device)</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+
+The memory manager's task is to create an abstraction
+of all components in the system that present themselves as physical memory devices.
+This abstraction allows the content of memory to come
+from anywhere in RAM, files in a filesystem,  mapped device registers, and
+other types of memory such as read-only memory (ROM) or non-volatile memory (NVRAM).
+Virtual memory gives a per-process view of memory, which helps with safety and security,
+but also allows for shared memory objects and shared libraries.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Virtual memory is an abstraction of physical memory.</span>
+
+<br /><img class="image" src="../images/virtual_memory.svg" width="576" alt="Virtual memory" /><br />
+</div>
+
+
+<p class="p">
+
+The hardware that you run <span class="keyword">QNX OS</span> on must have a Memory Management Unit (MMU).
+The MMU is turned on early in the startup sequence, before the kernel itself starts.
+Once the MMU has started, there are no direct references to physical memory; the MMU translates virtual addresses
+into physical ones.
+It's up to the memory manager to create the information for managing physical memory, including the mappings
+of virtual to physical addresses.
+</p>
+
+
+<p class="p">
+The MMU divides physical memory into fixed-size pieces called <em class="ph i">pages</em> that are usually (but not always) 4 KB.
+Some physical memory is used for the image filesystem (IFS), and the memory manager has a boot heap that it uses
+to allocate the data structures that it needs.
+System RAM (or <q class="q">sysram</q>) is the physical memory that the memory manager can allocate in response to
+requests for memory.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Managing physical memory.</span>
+
+<br /><img class="image" src="../images/physical_memory_mgmt.svg" width="576" alt="Physical memory" /><br />
+</div>
+
+
+<p class="p">
+A <dfn class="term">zone</dfn> is a fixed-size, contiguous range of physical memory (currently 16 MB).
+The division of RAM into zones is intended to reduce fragmentation by
+having zones dedicated to specific allocation types.
+</p>
+
+
+
+
+<p class="p">
+
+Each process has its own virtual address space, which is a per-process view of virtual memory.
+This protects process address spaces from
+each other, preventing coding errors in a thread in one
+process from damaging memory used by threads
+in other processes or even in the OS. This protection is
+useful both for development and for the installed runtime
+system, because it makes postmortem analysis possible.
+Almost all OS services and drivers are independent processes.
+</p>
+
+
+<p class="p">
+A process's virtual address space is divided into <em class="ph i">regions</em>, which are ranges of contiguous virtual addresses
+that refer to various pieces of memory.
+<em class="ph i">Maps</em> associate virtual addresses with physical addresses, and include permissions.
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+function creates regions and the maps.
+</p>
+
+
+
+<p class="p">
+All memory regions are fully backed when they're created.
+The memory manager keeps track of how much memory is needed to back all allocated memory.
+The <span class="keyword apiname">mmap()</span> function fails if there isn't enough memory for it to reserve.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Locking memory</h2>
+
+
+
+
+
+<div class="p">
+The <span class="keyword">QNX OS</span> supports POSIX memory locking APIs, but only for compatibility reasons.
+These calls will silently succeed, but in this release all memory is <q class="q">superlocked</q>, meaning:
+<ul class="ul">
+<li class="li">faulting occurs only when the virtual address isn't mapped or the process doesn't have the necessary access permissions;
+  it always results in a failure of the operation</li>
+
+<li class="li">all memory must be initialized and privatized, and the permissions set, as soon as the memory is mapped</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+In this release, the <span class="keyword const">MAP_LAZY</span> flag is sliently ignored and has no effect on mapping behavior.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/memory_accounting.html">Memory accounting</a></strong><br />
+       Accounting for the memory used by your system and processes can be useful, especially       when debugging. This section covers examples of how to read memory-related files and       calculate reserved memory.     </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/proc.html" title="The Process Manager can create and manage multiple POSIX processes, each of which may contain multiple POSIX threads.">Process Manager</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html">Processes and Threads (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process.html">Processes (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html">procnto</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,741 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Board Support Packages" />
+<meta name="abstract" content="Updating a BSP for QNX SDP 7.1 to build and work in the QNX SDP 8.0 environment requires changes to the buildfile and drivers." />
+<meta name="description" content="Updating a BSP for QNX SDP 7.1 to build and work in the QNX SDP 8.0 environment requires changes to the buildfile and drivers." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Migrating to QNX OS 8.0, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Migrating to QNX OS 8.0, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/guidelines.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bsps" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Board Support Packages</title>
+</head>
+<body>
+<div class="nested0" aria-labelledby="ariaid-title1" id="bsps">
+
+<h1 class="title topictitle1" id="ariaid-title1">Board Support Packages</h1>
+
+
+    
+
+<div class="body conbody"><p class="shortdesc">Updating a BSP for QNX SDP 7.1 to build and work in the QNX SDP 8.0 environment
+        requires changes to the buildfile and drivers.</p>
+
+
+<p class="p">
+             To guide your migration project,
+            find the QNX SDP 8.0 BSP that most closely matches yours. If a suitable one is not
+            available, compare an available QNX SDP 8.0 BSP to its equivalent SDP 7.1 version to
+            illustrate the required changes. The guidelines and examples provided here were created
+            using the QNX SDP 7.1 BSP for the NXP I.MX8 QuadMax, which is a good starting point. If
+            you still encounter issues, contact QNX Professional Services. </p>
+
+    
+<div class="note"><span class="notetitle">Note:</span> If you have a BSP for QNX SDP 7.0 or earlier, and you need to update it to QNX SDP 8.0, we
+            recommend that you first migrate it to QNX SDP 7.1. For guidelines, see <cite class="cite">Migrating
+                to QNX SDP 7.1</cite> (<a class="xref" href="https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.qnxsdp.migration/topic/about.html" target="_blank"><span class="ph filepath">https://www.qnx.com/developers/docs/7.1/#com.qnx.doc.qnxsdp.migration/topic/about.html</span></a>). </div>
+
+
+<p class="p">For general information about working with BSPs, see the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.building/topic/bsp/bsp_about.html">Working with QNX
+                    BSPs</a></q> chapter of <cite class="cite">Building Embedded Systems</cite>. See also
+                <cite class="cite">QNX SDP 7.1: Troubleshooting Board Support Packages</cite>, which you can
+            download from our website at <a class="xref" href="https://www.qnx.com/download/feature.html?programid=51297" target="_blank"><span class="ph filepath">https://www.qnx.com/download/feature.html?programid=51297</span></a>
+            (you must be logged into myQNX to access this page).
+        </p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/guidelines.html" title="This chapter provides tips for specific aspects of moving to the current version of QNX SDP.">Migration Guidelines</a></div>
+</div>
+</div><div class="topic concept nested1" aria-labelledby="ariaid-title2" xml:lang="en-us" lang="en-us" id="bsps_buildfile">
+
+    <h2 class="title topictitle2" id="ariaid-title2">Buildfile</h2>
+
+
+    
+
+<div class="body conbody"><p class="shortdesc">Updating a BSP for QNX SDP 7.1 to build and work in the QNX SDP 8.0 environment
+        requires changes to the buildfile and drivers.</p>
+
+        <p class="p">Update the buildfile with the changes described in the following sections.</p>
+
+        <div class="section"><h3 class="title sectiontitle">Network driver</h3>
+            <p class="p"> The <span class="keyword cmdname">io-pkt</span> networking stack has been replaced with the
+                    High-Performance Networking Stack (<span class="keyword cmdname">io-sock</span>). Remove
+                    references to <span class="keyword cmdname">devnp-*</span> drivers (<span class="keyword cmdname">io-pkt</span>
+                    drivers) and use <span class="keyword cmdname">devs-*</span> drivers (<span class="keyword cmdname">io-sock</span>
+                    drivers) instead.</p>
+
+                <p class="p">For additional required updates to the buildfile, see <q class="q"><a class="xref" href="bsp_support.html" title="If QNX does not provide a BSP that supports io-sock for your target hardware, you need to create one. To simplify the process, QNX recommends that you start with the io-sock-compatible BSP provided by QNX that most closely matches your target's specifications.">Modifying a BSP to support
+                                <span class="keyword cmdname">io-sock</span></a>.</q></p>
+
+        </div>
+
+        <div class="section"><h3 class="title sectiontitle">Adding flattened device tree (FDT) support (AArch64 only)</h3>
+            
+            <p class="p">The option to use <span class="ph codeph">dtb=</span><var class="keyword varname">path</var> to specify a flattened
+                device tree blob (DTB) file when you start <span class="keyword cmdname">io-sock</span> is no longer
+                available. To adjust for this change, you need to update the startup library to
+                support the <span class="keyword option">-u</span> option, which enables adding a FDT to the
+                    <var class="keyword varname">asinfo</var> (Address Space Information) section of the system
+                page. For more information, go to <q class="q"><a class="xref" href="bsps.html#bsps_startup">Startup</a>.</q></p>
+
+            <p class="p">After you have made the startup library changes, add <span class="ph codeph">-u reg</span> or
+                    <span class="ph codeph">-u arg</span> when you specify startup parameters in the buildfile.
+                For example:</p>
+
+            <pre class="pre codeblock">startup-imx8x-qm-cpu-mek -s -W -u reg</pre>
+            <p class="p">For more information, go to the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/startup_options.html#startup_options__AArch64">Options for 64-bit ARM (AArch64) startups</a></q> in the
+                        <q class="q"><span class="keyword cmdname">startup-</span>* options</q> entry in the <span class="keyword">QNX OS</span>
+                <cite class="cite">Utilities Reference</cite>.</p>
+
+        </div>
+
+        <div class="section"><h3 class="title sectiontitle">The <span class="keyword cmdname">devc-sermx8</span> serial driver</h3>
+            
+            <p class="p">For <span class="keyword cmdname">devc-sermx8</span>, use <span class="keyword option">-i</span> to set the interrupt
+                mode to event mode (0). For example:</p>
+
+            <pre class="pre codeblock">devc-sermx8 -e -F -S -u 1 -i0 -c80000000 0x5A060000,257</pre>
+        </div>
+
+        <div class="section"><h3 class="title sectiontitle">Target-side command-line utilities</h3>
+            
+            <p class="p">Some <span class="keyword">QNX OS</span> command-line utilities that run on <span class="keyword">QNX OS</span> targets have been replaced with toybox versions (see
+                        <a class="xref" href="http://landley.net/toybox/about.html" target="_blank">http://landley.net/toybox/about.html</a>).</p>
+
+                <p class="p">For instructions on how to enable toybox utilities, see the
+                    <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/toybox.html"><span class="keyword cmdname">toybox</span></a></q>
+                    entry in the <span class="keyword">QNX OS</span>
+                    <cite class="cite">Utilities Reference</cite>.</p>
+
+                <p class="p">For a full list of deprecated and discontinued items, see the <cite class="cite">QNX Software
+                        Development Platform 8.0: Discontinuation Notice</cite>.</p>
+
+        </div>
+
+        <div class="section"><h3 class="title sectiontitle">Networking utilities</h3>
+            
+            <div class="p">A number of networking utilities have been discontinued. For example, remove all
+                configuration for the following utilities and files:<ul class="ul" id="bsps_buildfile__ul_ck1_dkq_3xb">
+                    <li class="li"><span class="keyword cmdname">telnet</span></li>
+
+                    <li class="li"><span class="keyword cmdname">ftp</span>, <span class="ph filepath">/etc/ftpusers</span>,
+                            <span class="ph filepath">/etc/ftpd.conf</span></li>
+
+                    <li class="li"><span class="keyword cmdname">inetd</span></li>
+
+                    <li class="li"><span class="keyword cmdname">dhclient</span></li>
+
+                    <li class="li"><span class="keyword cmdname">autoipd</span></li>
+
+                    <li class="li"><span class="keyword cmdname">rtsold</span></li>
+
+                </ul>
+ For a full list of discontinued items, see the <cite class="cite">QNX Software Development
+                    Platform 8.0: Deprecation and Discontinuation Notice</cite>.</div>
+
+            <p class="p">To provide network access, use a secure protocol such as SSH and SCP. For example,
+                the following buildfile content starts the SSH server
+                    (<span class="ph filepath">/proc/boot/.ssh-server.sh</span>), configures the
+                    <span class="keyword cmdname">ssh</span> and <span class="keyword cmdname">scp</span> utilities, and updates the PAM
+                configuration (the <span class="ph filepath">/etc/shadow</span> values need to be replaced with
+                functional ones):</p>
+
+            <pre class="pre codeblock">#############################################################################################
+## Network services (ssh) support
+#############################################################################################
+[uid=0 gid=0 perms=0755] /usr/sbin/sshd=sshd
+
+[uid=0 gid=0 perms=0755] /usr/libexec/sftp-server=${QNX_TARGET}/${PROCESSOR}/usr/libexec/sftp-server
+
+[uid=0 gid=0 perms=0755] /usr/bin/scp=scp
+[uid=0 gid=0 perms=0755] /usr/bin/ssh=ssh
+[uid=0 gid=0 perms=0755] /usr/bin/ssh-keygen=ssh-keygen
+
+#############################################################################################
+## sshd board specific config file
+#############################################################################################
+
+[type=link] /etc/ssh = /dev/shmem
+/dev/shmem/sshd_config=${QNX_TARGET}/etc/ssh/sshd_config
+
+/etc/esh = {
+}
+
+[perms=0744] .ssh-server.sh={
+# Start ssh server
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]
+then
+ssh-keygen -q -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
+fi
+if [ ! -f /etc/ssh/ssh_host_ecdsa_key ]
+then
+ssh-keygen -q -t ecdsa -N '' -f /etc/ssh/ssh_host_ecdsa_key
+fi
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]
+then
+ssh-keygen -q -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+fi
+/usr/sbin/sshd
+}
+
+################################################################################################
+## Security files
+################################################################################################
+[uid=0 gid=0 perms=4755] /bin/login=login
+[uid=0 gid=0 perms=4755] /bin/su=su
+
+[uid=0 gid=0 perms=4755] /usr/bin/passwd=passwd
+
+[uid=0 gid=0 perms=0644] /etc/passwd = {
+root:x:0:0:Superuser:/root:/bin/sh
+sshd:x:15:6:sshd:/var/chroot/sshd:/bin/false
+qnxuser:x:1000:1000:QNX User:/home/qnxuser:/bin/sh
+}
+
+## Enabled Username/Password: root/root, qnxuser/qnxuser
+[uid=0 gid=0 perms=0644] /etc/shadow = {
+root:&lt;password&gt;
+sshd:*:1231323780:0:0
+qnxuser:&lt;password&gt;
+}
+
+[uid=0 gid=0 perms=0644] /etc/group = {
+root:x:0:root
+sshd:x:6:
+qnxuser:x:1000
+}
+
+###########################################################################
+## PAM configurations addon build file
+###########################################################################
+[uid=0 gid=0 type=dir dperms=0755] /
+[uid=0 gid=0 type=dir dperms=0755] /etc
+[uid=0 gid=0 type=dir dperms=0755] /etc/pam.d
+[uid=0 gid=0 type=dir dperms=0755] /home
+[uid=1000 gid=1000 type=dir dperms=0755] /home/qnxuser
+[uid=0 gid=0 type=dir dperms=0755] /lib
+[uid=0 gid=0 type=dir dperms=0700] /root
+[uid=0 gid=0 type=dir dperms=0755] /usr
+[uid=0 gid=0 type=dir dperms=0755] /usr/lib
+[uid=0 gid=0 type=dir dperms=0755] /var
+[uid=0 gid=0 type=dir dperms=0755] /var/chroot
+[uid=0 gid=0 type=dir dperms=0755] /var/chroot/sshd
+[uid=0 gid=0 type=dir dperms=0755] /var/db
+[uid=0 gid=0 type=dir dperms=0755] /var/run
+
+[uid=0 gid=0 perms=0644] /etc/pam.d/login=${QNX_TARGET}/etc/pam.d/login
+[uid=0 gid=0 perms=0644] /etc/pam.d/passwd=${QNX_TARGET}/etc/pam.d/passwd
+[uid=0 gid=0 perms=0644] /etc/pam.d/su=${QNX_TARGET}/etc/pam.d/su
+
+[uid=0 gid=0 perms=0755] /usr/lib/libpam.so=libpam.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_deny.so=pam_deny.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_echo.so=pam_echo.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_exec.so=pam_exec.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_group.so=pam_group.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_mac.so=pam_mac.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_permit.so=pam_permit.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_qnx.so=pam_qnx.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_rootok.so=pam_rootok.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_secpol.so=pam_secpol.so
+[uid=0 gid=0 perms=0755] /usr/lib/pam_self.so=pam_self.so</pre>
+        </div>
+
+        <div class="section"><h3 class="title sectiontitle">OpenSSL updates</h3>
+            
+            <p class="p">The QNX cryptography library (<span class="ph filepath">qcrypto</span> library) plugin for
+                OpenSSL is updated from <span class="ph filepath">qcrypto-openssl.so</span> to
+                    <span class="ph filepath">qcrypto-openssl-3.so</span>.</p>
+
+            <p class="p">Update the <strong class="ph b">qcrypto</strong> library configuration file tags to use the updated
+                plugin. For example:</p>
+
+            <pre class="pre codeblock">[uid=0 gid=0 perms=0644] /etc/qcrypto.conf = {
+openssl-3 tags=*
+}</pre>
+        </div>
+
+
+        <div class="section"><h3 class="title sectiontitle">DHCP client</h3>
+            
+            <p class="p">The DHCP client for QNX SDP 8.0 is <span class="keyword cmdname">dhcpcd</span>. It also provides the
+                IPv4 Link Local addressing and IPv6 Router Solicitation functionality that was
+                previously provided by <span class="keyword cmdname">autoipd</span> and <span class="keyword cmdname">rtsold</span>,
+                which have been removed.</p>
+
+
+                <p class="p">Because <span class="keyword cmdname">dhcpcd</span> can monitor interface states, you don't need to
+                    run it under <span class="keyword cmdname">ifwatchd</span>. However, <span class="keyword cmdname">ifwatchd</span>
+                    is still provided to support the configuration of static IP addresses.</p>
+
+                <p class="p">For <span class="keyword cmdname">dhcpcd</span> to start, you need to create
+                        <span class="ph filepath">/var/run</span> in a persistent filesystem (e.g., Power-Safe
+                    filesystem).  See <q class="q"><a class="xref" href="bsps.html#bsps_filesystem">Persistent filesystem</a>.</q></p>
+
+        </div>
+
+
+    <div class="section"><h3 class="title sectiontitle">Audio components</h3>
+        
+        <p class="p">Currently, <span class="keyword">QNX OS</span> does not support any audio functionality.
+            Remove any references to audio components (e.g., <span class="keyword cmdname">io-audio</span>, <span class="keyword cmdname">deva-*</span> drivers).</p>
+
+    </div>
+
+
+    <div class="section"><h3 class="title sectiontitle"><span class="ph codeph">[data=c]</span> attribute setting</h3>
+        
+        <p class="p">The <span class="ph codeph">[data=c]</span> attribute setting that could be applied to all OS image
+                    executables is no longer supported.</p>
+
+    </div>
+
+    </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title3" xml:lang="en-us" lang="en-us" id="bsps_startup">
+
+    <h2 class="title topictitle2" id="ariaid-title3">Startup</h2>
+
+
+<div class="body conbody">
+    <div class="section"><h3 class="title sectiontitle">Startup library</h3>
+        
+        <p class="p">The startup library requires several changes to support QNX OS 8.0, including adding FDT
+                (flattened device tree) support and configuring the CPU's virtualization hardware.</p>
+
+            <p class="p">For details, compare the <span class="ph filepath">hardware/startup/lib</span> directory of a QNX
+                SDP 7.1 BSP with an appropriate QNX SDP 8.0 BSP.</p>
+
+    </div>
+
+    <div class="section"><h3 class="title sectiontitle">Board-specific startup module</h3>
+        
+        <p class="p">After making the startup library changes, make the following changes to the
+                board-specific startup module in
+                        <span class="ph filepath">hardware/startup/boards/<var class="keyword varname">soc</var>/</span>:</p>
+
+            <ul class="ul">
+                <li class="li">In
+                            <span class="ph filepath">hardware/startup/boards/<var class="keyword varname">soc</var>/<var class="keyword varname">board_name</var>/main.c</span>,
+                    after calling <span class="keyword apiname">alloc_ram()</span> in <span class="keyword apiname">main()</span>, add
+                    the following call: <pre class="pre codeblock">hypervisor_init(0);</pre></li>
+
+                <li class="li">For AArch64 targets only, in
+                        <span class="ph filepath">hardware/startup/boards/common.mk</span>, add the following
+                    line: <pre class="pre codeblock">LIBS += fdt</pre></li>
+
+            </ul>
+
+    </div>
+
+</div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title4" xml:lang="en-us" lang="en-us" id="bsps_ipl">
+
+    <h2 class="title topictitle2" id="ariaid-title4">IPL</h2>
+
+    
+    <div class="body conbody">
+        <p class="p">The initial program loader (IPL) requires changes to add FDT support. Changes include
+                adding a configuration that loads the FDT from the IPL.</p>
+
+            <p class="p">For details, compare an appropriate QNX SDP 7.1 BSP with a QNX SDP 8.0 BSP.</p>
+
+    </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title5" xml:lang="en-us" lang="en-us" id="bsps_secpol">
+
+    <h2 class="title topictitle2" id="ariaid-title5">Security policies</h2>
+
+        
+        <div class="body conbody">
+            <p class="p">The new <span class="ph filepath">secpol/ids.h</span> header file is the new location for
+                    <span class="keyword apiname">set_ids_from_arg()</span> (it also adds
+                    <span class="keyword apiname">get_ids_from_arg()</span>). Make the following changes in the driver
+                files listed below:</p>
+<ul class="ul" id="bsps_secpol__ul_xf3_vgs_3xb">
+                    <li class="li">In <span class="ph filepath">*.mk</span> files, replace references to
+                            <span class="ph filepath">login</span> with <span class="ph filepath">secpol</span>.</li>
+
+                    <li class="li">In <span class="ph filepath">*.c</span> files, include <span class="ph filepath">secpol/ids.h</span>
+                    instead of <span class="ph filepath">login.h</span></li>
+
+                </ul>
+
+            <div class="p">The driver files to change are:<ul class="ul" id="bsps_secpol__ul_xwp_cls_3xb">
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">support/wdtkick-sc</span></strong><ul class="ul" id="bsps_secpol__ul_m2r_w5s_3xb">
+                                <li class="li"><span class="ph filepath">common.mk</span></li>
+
+                                <li class="li"><span class="ph filepath">main.c</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">support/sc-imx8</span></strong><ul class="ul" id="bsps_secpol__ul_an5_x5s_3xb">
+                                <li class="li"><span class="ph filepath">common.mk</span></li>
+
+                                <li class="li"><span class="ph filepath">imx8_sci_mgr.c</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">devc</span></strong><ul class="ul" id="bsps_secpol__ul_zhc_z5s_3xb">
+                                <li class="li"><span class="ph filepath">sermx8/main.c</span></li>
+
+                                <li class="li"><span class="ph filepath">sermx8/extra.mk</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">can</span></strong><ul class="ul" id="bsps_secpol__ul_zfd_1vs_3xb">
+                                <li class="li"><span class="ph filepath">mx7x/extra.mk</span></li>
+
+                                <li class="li"><span class="ph filepath">mx7x/driver.c</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">i2c</span></strong><ul class="ul" id="bsps_secpol__ul_kzx_1vs_3xb">
+                                <li class="li"><span class="ph filepath">imx8/common.mk</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">devb</span></strong><ul class="ul" id="bsps_secpol__ul_bkm_bvs_3xb">
+                                <li class="li"><span class="ph filepath">common.mk</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                <li class="li"><strong class="ph b"><span class="keyword cmdname">dvfsmgr</span></strong><ul class="ul" id="bsps_secpol__ul_y3k_cvs_3xb">
+                            <li class="li"><span class="ph filepath">common.mk</span></li>
+
+                            <li class="li"><span class="ph filepath">dvfs.c</span></li>
+
+                        </ul>
+
+                    </li>
+
+                </ul>
+</div>
+
+        </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title6" xml:lang="en-us" lang="en-us" id="bsps_isr">
+
+    <h2 class="title topictitle2" id="ariaid-title6">Interrupt Service Routines (ISRs)</h2>
+
+        
+        <div class="body conbody">
+            <p class="p">QNX SDP 8.0 does not support Interrupt Service Routines (ISRs). Some resources may
+                already be updated (e.g., <span class="keyword cmdname">devc-sermx8</span>).</p>
+
+            <div class="p">To update drivers to reflect this change:<ul class="ul" id="bsps_isr__ul_dvr_mqs_3xb">
+                    <li class="li">
+                        <p class="p">Replace any interrupt handlers with interrupt event handlers.</p>
+
+                    </li>
+
+                    <li class="li">Replace <span class="keyword apiname">InterruptAttach()</span> with
+                            <span class="keyword apiname">InterruptAttachEvent()</span>.</li>
+
+                    <li class="li">After each interrupt event, call <span class="keyword apiname">InterruptUnmask()</span>.</li>
+
+                </ul>
+The following drivers need the updates:<ul class="ul" id="bsps_isr__ul_frb_qss_3xb">
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">can</span></strong>
+                            <ul class="ul" id="bsps_isr__ul_wzg_b5s_3xb">
+                                <li class="li"><span class="ph filepath">can/mx7x/canmx7x.c</span></li>
+
+                                <li class="li"><span class="ph filepath">can/mx7x/canmx7x.h</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">i2c</span></strong><ul class="ul" id="bsps_isr__ul_bby_c5s_3xb">
+                                <li class="li"><span class="ph filepath">i2c/imx8/common.c</span></li>
+
+                                <li class="li"><span class="ph filepath">i2c/imx8/fini.c</span></li>
+
+                                <li class="li"><span class="ph filepath">i2c/imx8/init.c</span></li>
+
+                                <li class="li"><span class="ph filepath">i2c/imx8/proto.h</span></li>
+
+                                <li class="li"><span class="ph filepath">i2c/imx8/recv.c</span></li>
+
+                                <li class="li"><span class="ph filepath">i2c/imx8/send.c</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">flash</span></strong><ul class="ul" id="bsps_isr__ul_v2d_g5s_3xb">
+                                <li class="li"><span class="ph filepath">flash/boards/flexspi-imx8/imx_fc_flexspi.c</span></li>
+
+                                <li class="li"><span class="ph filepath">flash/boards/flexspi-imx8/imx_fc_flexspi.h</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><strong class="ph b"><span class="keyword cmdname">spi</span></strong><ul class="ul" id="bsps_isr__ul_xmw_j5s_3xb">
+                                <li class="li"><span class="ph filepath">spi/imx8lpspi/intr.c</span></li>
+
+                                <li class="li"><span class="ph filepath">spi/imx8lpspi/mx8lpspi.c</span></li>
+
+                                <li class="li"><span class="ph filepath">spi/imx8lpspi/mx8lpspi.h</span></li>
+
+                                <li class="li"><span class="ph filepath">imx8lpspi/wait.c</span></li>
+
+                            </ul>
+</div>
+
+                    </li>
+
+                </ul>
+</div>
+
+        </div>
+
+    </div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title7" xml:lang="en-us" lang="en-us" id="bsps_net_drivers">
+
+    <h2 class="title topictitle2" id="ariaid-title7">Network drivers</h2>
+
+        
+        <div class="body conbody">
+            <p class="p">The <span class="keyword cmdname">devnp-*</span> network drivers are discontinued. Use
+                    <span class="keyword cmdname">devs-*</span> drivers instead.</p>
+
+        </div>
+
+    </div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title8" xml:lang="en-us" lang="en-us" id="bsps_spi">
+
+    <h2 class="title topictitle2" id="ariaid-title8">SPI support</h2>
+
+    
+    <div class="body conbody">
+            <p class="p">The EDMA function needs to be re-built to support the Serial Peripheral Interface (SPI).</p>
+
+        </div>
+
+    </div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title9" xml:lang="en-us" lang="en-us" id="bsps_dvfs">
+
+    <h2 class="title topictitle2" id="ariaid-title9">DVFS resource manager</h2>
+
+        
+        <div class="body conbody">
+            <p class="p">In <span class="ph filepath">dvfsmgr/aarch64/imx8x.le/dvfs_core.c</span>, replace
+                    <span class="ph codeph">cpu_info.qtp-&gt;nsec</span> with
+                    <span class="ph codeph">_syspage_time(CLOCK_MONOTONIC).</span></p>
+
+            <p class="p">With the update to the supported compiler version, a duplicate instance of the
+                    UserParm variable generates a multiple declaration error. To fix this, make it
+                    external in the headers that define it (e.g., <span class="ph filepath">dvfs.h</span>) .
+            </p>
+
+        </div>
+
+    </div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title10" xml:lang="en-us" lang="en-us" id="bsps_seco-imx8">
+
+    <h2 class="title topictitle2" id="ariaid-title10">SECO Message Unit (MU) driver (<span class="keyword cmdname">seco-imx8</span>)</h2>
+
+       
+       <div class="body conbody">
+            <p class="p">In <span class="keyword cmdname">seco-imx8</span>, add support for interrupt attach events and
+                rebuild.</p>
+
+        </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title11" xml:lang="en-us" lang="en-us" id="bsps_rtc">
+
+    <h2 class="title topictitle2" id="ariaid-title11"><span class="keyword cmdname">rtc</span></h2>
+
+        
+        <div class="body conbody">
+            <div class="p">The <span class="keyword cmdname">rtc</span> utility contains code that supports the discontinued Qnet
+                feature. References to <span class="ph codeph">qtime::nsec</span> block the merge of the changes
+                to the system page header. To fix this problem, remove the following items:<ul class="ul" id="bsps_rtc__ul_e5v_5dz_3xb">
+                    <li class="li"><span class="ph filepath">src/utils/r/rtc/nto/clk_net.c</span></li>
+
+                    <li class="li">any code related to NET_CLOCK_IDX</li>
+
+                    <li class="li">in <span class="ph filepath">qnxrtc.c</span>, any use of <span class="ph codeph">net</span>
+                    </li>
+
+                </ul>
+</div>
+
+        </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title12" xml:lang="en-us" lang="en-us" id="bsps_binaries">
+
+    <h2 class="title topictitle2" id="ariaid-title12">Prebuilt binaries</h2>
+
+            
+            <div class="body conbody">
+                <p class="p">Prebuilt binaries that were built for SDP 7.1 are not supported in SDP 8 and
+            should be removed. These binaries are located in:
+                <span class="ph filepath">prebuilt/aarch64le</span>, <span class="ph filepath">prebuilt/x86_64</span>,
+                <span class="ph filepath">install/aarch64le</span>, <span class="ph filepath">install/x86_64</span>.</p>
+
+            </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title13" xml:lang="en-us" lang="en-us" id="bsps_libraries">
+
+    <h2 class="title topictitle2" id="ariaid-title13">Updated libraries</h2>
+
+    
+    <div class="body conbody">
+        <div class="p">Contact QNX for the latest versions of the following libraries:<ul class="ul" id="bsps_libraries__ul_b2k_f3z_3xb">
+                    <li class="li"><span class="ph filepath">devu-hcd-ehci-mx28.so</span></li>
+
+                    <li class="li"><span class="ph filepath">devu-hcd-imx8-xhci.so</span></li>
+
+                    <li class="li"><span class="ph filepath">libcam.so</span></li>
+
+                </ul>
+</div>
+
+    </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title14" xml:lang="en-us" lang="en-us" id="bsps_audio">
+
+    <h2 class="title topictitle2" id="ariaid-title14">Audio components</h2>
+
+        
+        <div class="body conbody">
+            <p class="p">Currently, <span class="keyword">QNX OS</span> does not support any audio functionality.
+            Remove any references to audio components (e.g., <span class="keyword cmdname">io-audio</span>, <span class="keyword cmdname">deva-*</span> drivers).</p>
+
+        </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title15" xml:lang="en-us" lang="en-us" id="bsps_filesystem">
+
+    <h2 class="title topictitle2" id="ariaid-title15">Persistent filesystem</h2>
+
+            
+            <div class="body conbody">
+                <p class="p">Some QNX SDP 8.0 BSPs specify a persistent Power-Safe filesystem
+                (<span class="ph filepath">fs-qnx6.so</span>)  partition that is used to save executable files
+            and data. For example, an x86_64 BSP uses <span class="ph filepath">/dev/umass0t179</span>.</p>
+
+        <p class="p">However, not all QNX SDP 8.0 BSPs use this feature.</p>
+
+        <p class="p">If the BSP supports a persistent filesystem, it detects whether the required partition
+            exists on target board at system startup and uses it for storage. If it does not detect
+            the required partition, the system instead starts and uses <span class="keyword cmdname">devf-ram</span>
+            (which simulates flash filesystem using RAM memory). See the
+                <span class="ph filepath">.storage-server.sh</span> script in the buildfile for details.</p>
+
+            </div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title16" xml:lang="en-us" lang="en-us" id="bsps_i2c">
+
+    <h2 class="title topictitle2" id="ariaid-title16">I2C serial protocol</h2>
+
+            <div class="body conbody">
+                <p class="p">The following <span class="keyword apiname">devctl()</span> commands are deprecated in QNX SDP 8.0
+            and should be replaced in any I2C application code:</p>
+
+                
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d3037e1432">Instead of:</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d3037e1435">Use:</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1432 "><span class="keyword const">DCMD_I2C_SET_SLAVE_ADDR</span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1435 "><span class="keyword const">DCMD_I2C_SEND</span> (or
+                            <span class="keyword const">DCMD_I2C_RECV</span>) and specify <var class="keyword varname">slave</var> in
+                                <span class="keyword dtype">i2c_send_t</span> (or <span class="keyword dtype">i2c_recv_t</span>).</td>
+
+                            </tr>
+
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1432 "><span class="keyword const">DCMD_I2C_MASTER_SEND</span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1435 "><span class="keyword const">DCMD_I2C_SEND</span></td>
+
+                            </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1432 "><span class="keyword const">DCMD_I2C_MASTER_RECV</span></td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d3037e1435 "><span class="keyword const">DCMD_I2C_RECV</span></td>
+
+                    </tr>
+
+
+                        </tbody>
+</table>
+</div>
+
+                <p class="p">For more information, go to <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.custom_bsp/topic/i2c/i2c_framework_Resmgr.html">Resource manager interface</a></q> in the <q class="q">I2C</q> chapter of the <span class="keyword">QNX OS</span>
+            <cite class="cite">Customizing a BSP</cite> guide.</p>
+
+            </div>
+
+</div>
+</div>
+</body>
+</html>

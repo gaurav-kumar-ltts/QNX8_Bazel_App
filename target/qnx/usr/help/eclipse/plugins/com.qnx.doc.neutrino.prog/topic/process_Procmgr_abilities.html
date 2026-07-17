@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Procmgr abilities" />
+<meta name="abstract" content="The QNX OS supports procmgr abilities, process-manager settings that govern which operations a particular process is permitted to do." />
+<meta name="description" content="The QNX OS supports procmgr abilities, process-manager settings that govern which operations a particular process is permitted to do." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Privileges.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_domains.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_ranges.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_locking.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_dropping.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_inheritance.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Ability_creating.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Procmgr_abilities" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Procmgr abilities</title>
+</head>
+<body id="process_Procmgr_abilities">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Procmgr abilities</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The <span class="keyword">QNX OS</span> supports <em class="ph i">procmgr abilities</em>, process-manager settings
+that govern which operations a particular process is permitted to do.
+</p>
+
+
+<p class="p">
+
+
+A privileged process can obtain these abilities before dropping
+<span class="ph filepath">root</span> privileges, which lets it retain some
+functionality that historically would have been restricted to
+<span class="ph filepath">root</span>.
+Furthermore, procmgr abilities can be locked, meaning that even
+<span class="ph filepath">root</span> users can't carry out certain actions that they
+might historically have been able to.
+This change significantly reduces the attack surface of the system, even when
+dealing with a <span class="ph filepath">root</span> process.
+</p>
+
+
+<p class="p">
+We recommend that you use the procmgr ability model wherever possible,
+retaining specific abilities, and dropping and locking whatever isn't explicitly required.
+Once you've used the retained abilities, you should drop and lock them if they're no longer
+necessary. A number of simple examples of ability retention and locking are included in
+the following sections.
+</p>
+
+
+<p class="p">
+
+You can adjust procmgr abilities by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>.
+This function is typically used by services that start as
+<span class="ph filepath">root</span> and need to retain certain capabilities before
+dropping privileges.
+</p>
+
+
+<div class="p">
+The <span class="keyword apiname">procmgr_ability()</span> function takes as its
+first argument a process ID, or 0 to indicate the calling process.
+It's followed by a variable number of arguments, each of which
+consists of a set of flags that indicate:
+
+<ul class="ul">
+<li class="li">an ability</li>
+
+<li class="li">the domain (<span class="ph filepath">root</span> or non-<span class="ph filepath">root</span>)</li>
+
+<li class="li">whether or not the ability should be allowed, denied, inheritable, and so on</li>
+
+<li class="li">whether or not additional arguments are required
+  (e.g., the <span class="keyword const">PROCMGR_AOP_SUBRANGE</span> flag calls for
+  a range to be associated with the ability)
+  
+</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+The list of abilities must be terminated by an argument that includes the
+<span class="keyword const">PROCMGR_AID_EOL</span> flag.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_domains.html">Ability domains</a></strong><br />
+ The process manager supports  <span class="keyword const">PROCMGR_ADN_ROOT</span> and <span class="keyword const">PROCMGR_ADN_NONROOT</span> flags that indicate which domain an ability applies to. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_ranges.html">Ability ranges</a></strong><br />
+ The <span class="keyword apiname">procmgr_ability()</span> function also lets you specify subranges for specific abilities. This is useful for limiting certain abilities to the smallest number of privileges possible. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_locking.html">Locking an ability</a></strong><br />
+ An important aspect of procmgr abilities is ability locking, which allows you to force a specific ability to be immutable until the next time the process starts. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_dropping.html">Dropping an ability</a></strong><br />
+ You can drop an ability that your application doesn't need at all, or that it no longer needs. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_inheritance.html">Ability inheritance</a></strong><br />
+ By default, procmgr abilities aren't inherited when you create a new process by using <span class="keyword apiname">exec*()</span>, <span class="keyword apiname">posix_spawn*()</span>, or <span class="keyword apiname">spawn*()</span>. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Ability_creating.html">Creating abilities</a></strong><br />
+ Not only can servers check that their clients have the appropriate abilities, but they can create custom abilities. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Privileges.html" title="In systems where security is important, applications should run with the fewest privileges possible. This practice helps reduce the impact of possible compromises and can also help lower the privilege escalation attack surface of the device.">Process privileges</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Producer" />
+<meta name="abstract" content="The producer creates content and shares it with permitted consumers." />
+<meta name="description" content="The producer creates content and shares it with permitted consumers." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing-streams.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_producers" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Producer</title>
+</head>
+<body id="cscreen_producers">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Producer
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        The producer creates content and shares it with permitted consumers.
+    </p>
+
+        <p class="p">
+            
+                As the producer, you must set up
+                the stream accordingly for consumption. Generally, you need to perform the following steps in your
+                producer application to share the content you produce:
+            </p>
+
+        <ol class="ol">
+            <li class="li">Create the producer's stream. <p class="p"> Call <a class="xref" href="../screen_create_stream.html" title="Create a stream that can be used to provide graphical content to generic consumers"><span class="keyword apiname">screen_create_stream()</span></a> to create a stream for the producer to render into. For example: </p>
+
+                <pre class="pre codeblock">...
+screen_context_t screen_pctx;
+screen_create_context(&amp;screen_pctx, SCREEN_APPLICATION_CONTEXT);
+...
+/* Create the producer's stream */
+screen_stream_t stream_p;
+screen_create_stream(&amp;stream_p, screen_pctx);
+...
+                </pre>
+            </li>
+
+            <li class="li">Set the appropriate properties on the producer's stream. <p class="p"> Call the appropriate <span class="keyword apiname">screen_set_stream_property_*()</span> functions to set properties of the producer's stream. You should set, at the minimum, the following properties: </p>
+
+                <ul class="ul">
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFER_SIZE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_FORMAT</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_USAGE</span></li>
+
+                </ul>
+
+                <p class="p">
+                    <span class="keyword const">SCREEN_PROPERTY_USAGE</span> must reflect the needs of the producer. That is, if the producer intends to render to the stream using Khronos rendering APIs, then the usage flag must reflect this rendering choice. For example: </p>
+
+                <pre class="pre codeblock">...
+int buffer_size[2] = {720, 720};
+screen_set_stream_property_iv(stream_p, SCREEN_PROPERTY_BUFFER_SIZE, buffer_size);
+screen_set_stream_property_iv(stream_p, SCREEN_PROPERTY_FORMAT,
+                              (const int[]){ SCREEN_FORMAT_RGBX8888 });
+screen_set_stream_property_iv(stream_p, SCREEN_PROPERTY_USAGE,
+                              (const int[]){ SCREEN_USAGE_OPENGL_ES2 | \
+                                             SCREEN_USAGE_OPENGL_ES3 | \
+                                             SCREEN_USAGE_WRITE | \
+                                             SCREEN_USAGE_NATIVE });
+                </pre>
+            </li>
+
+            <li class="li">Create buffers for the stream. <p class="p"> Call <a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a> to create buffers for the stream. In the example below, the producer is double-buffered, and so we pass in 2 for the numbers of buffers to create: </p>
+
+                <pre class="pre codeblock">...
+screen_create_stream_buffers(stream_p, 2);
+...
+                    </pre>
+            </li>
+
+            <li class="li">Grant the appropriate permissions to allow consumers to receive events pertaining to the producer's stream, and to allow access to the stream's buffers. <p class="p"> A producer can have multiple consumers. So, you need to consider what permissions are appropriate to account for all your expected consumers. It's important to set the permissions correctly. If the consumers don't have the right permissions to your producer's stream, they won't be notified with the respective events and won't have access to the producer's stream. Similarly, if your permissions aren't set correctly, the producer may be inadvertently providing access to consumers that shouldn't have access. See the <a class="xref" href="cscreen_permissions.html">Permissions and Privileges</a> chapter for more details on how to set permissions. </p>
+
+                <p class="p"> Set the <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property on the producer's stream to grant permissions. For example: </p>
+
+                <pre class="pre codeblock">...
+int permissions;
+screen_get_stream_property_iv(stream_p, SCREEN_PROPERTY_PERMISSIONS, &amp;permissions);
+/* Allow processes in the same group to access the stream */
+permissions |= SCREEN_PERMISSION_IRGRP;
+screen_set_stream_property_iv(stream_p, SCREEN_PROPERTY_PERMISSIONS, &amp;permissions);
+...
+                </pre>
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-producer-create.svg" width="672" /><br />
+                </div>
+
+                <p class="p"> When the producer grants access, the consumer receives a <span class="keyword const">SCREEN_EVENT_CREATE</span> event. This event provides the consumer with the handle to the producer's stream. The consumer uses this handle to connect to the producer's stream. </p>
+
+                <p class="p"> If the producer changes the permissions to deny access on a stream that's already connected with a consumer stream, the consumer receives a <span class="keyword const">SCREEN_EVENT_CLOSE</span> event. The producer can undo the connection between its stream and a consumer stream by changing the <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property to deny that consumer access. </p>
+
+            </li>
+
+            <li class="li">Render and post.
+                    <p class="p">
+                        The producer application renders to its stream. You can refer the
+                        <a class="xref" href="cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a> chapter for details on rendering to
+                        render targets. After the producer is ready to make the content
+                        ready to consumers, it must call
+                        <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a>.
+                    </p>
+
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-producer-render-and-post.svg" width="672" /><br />
+                </div>
+
+                <p class="p">
+                        Once the producer posts the stream, the consumer is able to acquire and share its content.
+                        The producer may be blocked while the consumer is accessing the shared stream buffers. When
+                        there are multiple consumers, all consumers that are acquiring buffers receive the same
+                        front buffer of the producer's stream. When there are no more available render buffers, the
+                        producer is blocked until the last consumer that's accessing the buffer releases it. For example,
+                        if the producer's stream is single-buffered, and two consumers have acquired the buffer, the
+                        producer is blocked until <em class="ph i">both</em> consumers have called
+                        <a class="xref" href="../screen_release_buffer.html" title="Return a buffer to the producer"><span class="keyword apiname">screen_release_buffer()</span></a>.
+                    </p>
+
+            </li>
+
+        </ol>
+
+        <div class="section"><h2 class="title sectiontitle">Modes</h2>
+            
+            
+            <p class="p"> The mode of the stream determines how <span class="keyword">Screen</span> makes front buffers available.
+                The producer sets the mode by calling
+                <a class="xref" href="../screen_set_stream_property_iv.html" title="Set the value of the specified stream property of type integer"><span class="keyword apiname">screen_set_stream_property_iv()</span></a>
+                with the <span class="keyword const">SCREEN_PROPERTY_MODE</span> property. Valid modes are:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_STREAM_MODE_DEFAULT</span></dt>
+
+                    <dd class="dd">
+                        <span class="keyword">Screen</span> defaults to this mode if the producer application doesn't explicitly set the <span class="keyword const">SCREEN_PROPERTY_MODE</span> property on the stream. In this mode, <span class="keyword">Screen</span> determines the mode to be either <span class="keyword const">SCREEN_STREAM_MODE_FIFO</span> or <span class="keyword const">SCREEN_STREAM_MODE_MAILBOX</span>. </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_STREAM_MODE_FIFO</span></dt>
+
+                    <dd class="dd">
+                        <p class="p"> In this mode, there's no limit to the number of front buffers (other than the number of total
+                            buffers available in the stream). The producer can make multiple calls to
+                            <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a> as
+                            long there is an available buffer, and the same buffer isn't posted more than once. For
+                            example, the following illustrates a producer posting two buffers:
+                        </p>
+
+                        <div class="fig fignone">
+                            <br /><img class="image" src="../../images/stream_mode_fifo-post2.svg" width="672" /><br />
+                        </div>
+
+                        <p class="p">
+                            When the consumer calls <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>,
+                            twice (once for each buffer to acquire), each of the two front buffers is secured for access
+                            by consumer. If the producer has more than two render buffers available, it can continue
+                            posting those buffers while the consumer has acquired the first two.
+                        </p>
+
+                        <div class="fig fignone">
+                            <br /><img class="image" src="../../images/stream_mode_fifo-acquire2.svg" width="672" /><br />
+                        </div>
+
+                        <p class="p"> If the consumer isn't keeping up with acquiring and releasing the buffers, the front buffers
+                            will pile up and the producer eventually runs out of buffers. The producer's rate to produce
+                            content is limited by the consumer's ability to process and release the buffers.
+                        </p>
+
+                        <p class="p">
+                            Use this mode when the producer is rendering at a variable rate. This is typical of most
+                            types of rendering.
+                        </p>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_STREAM_MODE_MAILBOX</span></dt>
+
+                    <dd class="dd">
+                        <p class="p"> In this mode, there's only one front buffer. The producer can make multiple calls to
+                            <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a> for
+                            consumers to acquire, but the consumers can acquire only the last buffer posted. For example,
+                            the following illustrates what happens when a producer posts the first time:
+                        </p>
+
+                        <div class="fig fignone">
+                            <br /><img class="image" src="../../images/stream_mode_mailbox-post1.svg" width="672" /><br />
+                        </div>
+
+                        <p class="p">
+                            When the producer posts a second time, and before the consumer has acquired the front
+                            buffer, the second post replaces the front buffer.
+                        </p>
+
+                        <div class="fig fignone">
+                            <br /><img class="image" src="../../images/stream_mode_mailbox-post2.svg" width="672" /><br />
+                        </div>
+
+                        <p class="p">
+                            Now, when the consumer acquires a buffer, it will secure the front buffer that's available—which
+                            is the buffer from the producer's second post. When the consumer calls <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>
+                            a second time, it doesn't get a buffer because it has already acquired the one front buffer.
+                        </p>
+
+                        <div class="fig fignone">
+                            <br /><img class="image" src="../../images/stream_mode_mailbox-acquire.svg" width="672" /><br />
+                        </div>
+
+                        <p class="p">Consumers only ever have one buffer to acquire and process at a time.</p>
+
+                        <p class="p">
+                            Use this mode when the timing of the input is controlled by the producer. Examples are video
+                            or camera applications, where the input is coming in at a fixed rate. In these types of
+                            producer applications, the producer is unlikely to produce more frames than the consumer can
+                            acquire and process (e.g. 30fps). </p>
+
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_resource_sharing-streams.html" title="Streams are off-screen, multi-buffered render targets that are provided by the Screen API.">Using Streams</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="x86 disk boot IPLs" />
+<meta name="abstract" content="IPLs for x86 processors are board-agnostic and support x86_64 boards." />
+<meta name="description" content="IPLs for x86 processors are board-agnostic and support x86_64 boards." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_x86" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>x86 disk boot IPLs</title>
+</head>
+<body id="ipl_x86">
+
+	<h1 class="title topictitle1" id="ariaid-title1">x86 disk boot IPLs</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">IPLs for x86 processors are board-agnostic and support x86_64 boards.</p>
+
+		<div class="section" id="ipl_x86__bios"><h2 class="title sectiontitle">BIOS</h2>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The provided IPLs assume the x86 board has a PC-compatible BIOS and is configured to
+				boot with legacy BIOS mode. The IPLs aren't designed to be used on boards that use a
+				Unified Extensible Firmware Interface (UEFI) or an Automotive Boot Loader (ABL). The
+				BIOS, UEFI, or ABL is in the board's firmware, which the board manufacturer can
+				modify or update. (For simplicity, this guide uses <q class="q">BIOS</q> unless it is
+				discussing something specific to a UEFI or ABL.)</p>
+
+			<p class="p">The startup program in the buildfile should match the board firmware. For x86
+				platforms, this typically means you must include <span class="keyword cmdname">startup-x86</span> in
+				the buildfile when you boot with BIOS or UEFI firmware.</p>
+
+			<p class="p">The BIOS looks after the first set of hardware initializations; when it finishes and
+				passes execution to the IPL, the IPL only has to look after finding, validating, and
+				loading the IFS. Further hardware initializations are done by the startup code (see
+						<q class="q"><a class="xref" href="../startup/startup_hw_init.html" title="The startup code does the minimum needed to detect the hardware configuration and completes any other configuration needed for the OS kernel to run.">Hardware initialization</a></q> in the <q class="q">Startup
+					Programs</q> chapter).</p>
+
+			<div class="note"><span class="notetitle">Note:</span> It is possible to replace the BIOS on an x86 system with a QNX IPL that performs
+				most system initialization. In most cases, you replace the BIOS because you want to
+				boot the system very quickly. (For instance, to meet specific boot requirements such
+				as displaying output from a camera within <var class="keyword varname">n</var> milliseconds.)
+				However, this configuration requires information about how to initialize the
+				specific CPU and board from the board manufacturer (e.g., Intel).</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">About x86 boot loader IPLs</h2>
+			
+			<p class="p">Because the IPL for an x86 disk boot has to boot off partitioned media, it is
+				composed of two IPLs, which we'll call IPL1 and IPL2. Both are written in assembly.
+				The division into IPL1 and IPL2 is necessary because the first code to execute on an
+				x86 board must be inside the disk's Master Boot Record (MBR). Because this area has
+				only a few hundred bytes of storage, IPL1 is always very small.</p>
+
+			<p class="p">Since the IPL for x86 boards is generic, its source code files are rarely included in
+				a BSP. Instead, when you build a BSP, the generic IPL modules are retrieved from the
+				QNX SDP directories.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">IPL1</h2>
+			
+			
+			
+			
+			
+			<p class="p">IPL1 is usually called <span class="ph filepath">ipl-diskpc1</span> and it begins execution after
+				the BIOS has completed the hardware initializations. Its tasks are to determine the
+				disk and partition to boot from, load the first sector of IPL2, and transfer
+				execution to IPL2.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">IPL2</h2>
+			
+			
+			
+			
+			
+			<p class="p">IPL2 is usually called <span class="ph filepath">ipl-diskpc2-fsq6</span> (the suffix
+				<span class="ph filepath">-fsq6</span> means that it is designed to boot from a
+				Power-Safe or <span class="ph filepath">fs-qnx6.so</span> filesystem), and performs the same
+				tasks as the <span class="keyword apiname">main()</span> function in an ARM IPL (see <q class="q"><a class="xref" href="ipl_arm.html" title="IPLs for ARM are board-specific. This means that a great deal of work is usually required to adapt an IPL written for one ARM board so it can be used on another ARM board.">ARM IPLs</a></q>, below). Like IPL1, IPL2 is written in assembly,
+				but IPL2 is stored in reserved sectors within the Power-Safe filesystem.</p>
+
+			<h3 class="title sectiontitle">Creating and updating IPL2</h3>
+			<p class="p">The <span class="keyword cmdname">mkqnx6fs</span> utility creates and configures IPL2 (see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html"><span class="keyword cmdname">mkqnx6fs</span></a></q> in the
+				<cite class="cite">Utilities Reference</cite>).
+				To update IPL2 to a newer version without reformatting or losing the filesystem
+				contents, use<span class="keyword cmdname"> mkqnx6fs -B</span>.</p>
+
+			
+			<h3 class="title sectiontitle">Filesystems that IPL2 can boot</h3>
+			<p class="p"><span class="ph filepath">ipl-diskpc2-fsq6</span> can boot only little-endian, Power-Safe
+				filesystems, which are either formatted with<span class="keyword cmdname"> mkqnx6fs -elittle </span>on
+				any machine or natively formatted on a little-endian platform without specifying the
+				endianness to <span class="keyword cmdname">mkqnx6fs</span>.</p>
+
+			
+			<h3 class="title sectiontitle">Filesystem booting process</h3>
+			<p class="p">Because IPL2 is larger than the single block loaded by IPL1, its first action is to
+				load the rest of its code. Next, it validates the filesystem and locates the most
+				recent stable snapshot. In a Power-Safe filesystem, the IFS for an x86 board is
+				always stored as a regular file in the <span class="ph filepath">/.boot</span> directory. To be
+				bootable, a file cannot be zero-length and its filename cannot be longer than 27
+				characters. If no file that meets these criteria is found, a <samp class="ph systemoutput sysout">Missing
+					OS Image</samp> message is displayed.</p>
+
+			<p class="p">If the <span class="ph filepath">/.boot</span> directory contains only a single bootable file, it
+				is booted immediately.</p>
+
+			<p class="p">If more than one file is available, IPL2 displays all
+				bootable files from the <span class="ph filepath">/.boot</span> directory as a scrolling list
+				and pauses for 3–4 seconds for a key press. You can use the up and down arrows to
+				move from one file to another and press <span class="keyword key">Enter</span> to select a file. You can
+				also press <span class="keyword key">Home</span> and <span class="keyword key">End</span> to go to the beginning or end of the
+				list. A maximum of 10 files are displayed on the screen. To see more files, press
+				the up or down arrows to scroll the list.</p>
+
+			<div class="p">If you don't press a key before the
+				timeout, the loader boots the default image. This file is always displayed as the
+				first item in the list and is the file with the most recent modification time. (If
+				more than one file has the most recent modification time, the file with the larger
+				inode number is used.) Generally, this is the image that was copied into the
+				directory most recently. You can use the <span class="keyword cmdname">touch</span> utility to change
+				the default image, and the following command to determine the default file:
+				<pre class="pre codeblock">ls -t /.boot | head -1</pre></div>
+
+			<p class="p">After IPL2 has determined which IFS to try to boot first, it populates the boot
+				header structure <span class="keyword dtype">startup_header</span> with the information that the startup
+				code needs to start the OS (see <q class="q"><a class="xref" href="ipl_startup_header.html" title="The startup header (or boot header) structure is defined in startup.h.">The startup header</a></q>).</p>
+
+			<p class="p">If the IFS is compressed, the IPL copies the IFS to a temporary
+				location in RAM and the startup code handles the extraction to the final location
+				(see <q class="q"><a class="xref" href="../startup/startup_about.html" title="The first program to run in a bootable OS image is the startup program; it completes the system configuration, then launches the OS kernel.">Startup Programs</a></q>).</p>
+
+			<h3 class="title sectiontitle">Errors</h3>
+			<div class="p">The boot loader can display the following error messages:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><samp class="ph systemoutput sysout">Unsupported BIOS</samp></dt>
+
+						<dd class="dd">The BIOS doesn't support INT13 Logical Block Addressing (LBA)
+							extensions.</dd>
+
+					
+					
+						<dt class="dt dlterm"><samp class="ph systemoutput sysout">Missing OS Image</samp></dt>
+
+						<dd class="dd"> The filesystem isn't a Power-Safe (<span class="ph filepath">fs-qnx6.so</span>) one or
+							the <span class="ph filepath">.boot</span> directory is empty.</dd>
+
+					
+					
+						<dt class="dt dlterm"><samp class="ph systemoutput sysout">Invalid OS Image</samp></dt>
+
+						<dd class="dd"> The selected file isn't an x86 boot image.</dd>
+
+					
+					
+						<dt class="dt dlterm"><samp class="ph systemoutput sysout">Disk Read Error</samp></dt>
+
+						<dd class="dd"> A physical I/O error occurred while reading the disk.</dd>
+
+					
+					
+						<dt class="dt dlterm"><samp class="ph systemoutput sysout">Ram Error</samp></dt>
+
+						<dd class="dd"> A physical RAM error occurred while copying the boot image.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<h3 class="title sectiontitle">Filesystem offset</h3>
+			<div class="p">To access the Power-Safe filesystem, IPL2 needs to know in which disk partition the
+				filesystem is located. Because IPL1 does not provide this information, the
+				filesystem contains a dedicated field (<var class="keyword varname">offset</var>) that specifies at
+				which LBA location the partition begins. How the filesystem is created and
+				intialized determines if and how this field is set:
+				<ul class="ul">
+					<li class="li">If the filesystem is initialized on the target (using 
+						<span class="keyword cmdname">mkqnx6fs</span>), then this offset is known and filled in immediately.
+					</li>
+
+					<li class="li">When you use <span class="keyword cmdname">diskimage</span> to create an image of an entire disk,
+						the utility allows you to adjust the offset.</li>
+
+					<li class="li">
+						<p class="p">When you use <span class="keyword cmdname">mkxfs</span> or <span class="keyword cmdname">mkqnx6fsimg</span> to
+							create an image of an individual Power-Safe filesystem, because you can use
+							the partition image anywhere, no offset information is available yet. When
+							this type of image is applied to a target disk partition, you can use the
+							<span class="keyword cmdname">patch</span> command provided by the partition table editor
+							<span class="keyword cmdname">pted</span> to provide the filesystem offset information.</p>
+
+						<p class="p">The <span class="keyword cmdname">pted</span> utility automatically performs the patching
+							process. Because it knows the partition’s location and the filesystem’s
+							internal structure, it can locate the <em class="ph i">offset</em> field and populate it
+							with the correct value. The <span class="keyword cmdname">patch</span> command has no
+							arguments other than the one that specifies which partition to patch.</p>
+
+						<p class="p">For more information, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/pted.html"><span class="keyword cmdname">pted</span></a></q> in the
+							<cite class="cite">Utilities Reference</cite>.</p>
+
+					</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">For more information about Power-Safe filesystems, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_QNX6_filesystem.html">Power-Safe filesystem</a></q> in the
+				<cite class="cite">System Architecture</cite> guide and <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="ph filepath">fs-qnx6.so</span></a> in the
+				<cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

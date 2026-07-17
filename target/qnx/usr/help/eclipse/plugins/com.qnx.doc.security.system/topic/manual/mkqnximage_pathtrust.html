@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Pathtrust option" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mkqnximage_pathtrust" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Pathtrust option</title>
+</head>
+<body id="mkqnximage_pathtrust">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Pathtrust option</h1>
+
+    
+    
+    
+    <div class="body conbody">
+        <div class="section">
+            
+            <p class="p">The <span class="keyword option">--pathtrust</span> option allows you to ensure that no untrusted
+                binaries can be executed or shared libraries loaded. By default, only the IFS is
+                trusted. By using the <span class="keyword option">--qtd</span> option, the system partition is made
+                into a read-only integrity protected file system that is mounted as trusted. This
+                gives much more flexibility in how a system is configured. </p>
+
+            <p class="p">To build an image with both these options, run: </p>
+
+            <pre class="pre codeblock">mkqnximage --pathtrust=yes --qtd=yes </pre>
+            <p class="p">The main change made for pathtrust is the addition of the <span class="keyword option">-qt</span> option
+                for <span class="keyword cmdname">procnto</span>. When not used, all files are treated as trusted. By
+                including it, only selected file systems have trusted files. By also including the
+                    <span class="keyword cmdname">--qtd</span> option, the system partition is trusted as well. </p>
+
+            <p class="p">When running with both the pathtrust and QTD options, if you run the command
+                    <tt class="ph tt">mount -f</tt>, you get the following output: </p>
+
+            <pre class="pre codeblock">ifs on / type ifs (rdonly,trusted)  
+
+/data/var/pps on /pps type PPS  
+
+/dev/hd0t177 on /boot type qnx6  
+
+/dev/hd0t179 on /data type qnx6 (sync=optional)  
+
+/dev/hd0t185-qnx6/ on /system type qnx6 (noatime,rdonly,trusted,sync=optional) </pre>
+            <p class="p">Showing that only two file systems are trusted: the IFS mounted at
+                    <span class="ph filepath">/</span> and the system partition mounted at
+                    <span class="ph filepath">/system</span>. </p>
+
+            <p class="p">To show what pathtrust does, first copy the <span class="keyword cmdname">echo</span> binary to
+                    <span class="ph filepath">/data</span>: </p>
+
+            <pre class="pre codeblock"># cp /proc/boot/echo /data </pre>
+            <p class="p">This can be run as usual, for example: </p>
+
+            <pre class="pre codeblock"># /data/echo Hello 
+
+Hello </pre>
+            <p class="p">You can, however, create a shell that lacks the ability
+                    <span class="keyword const">PROCMGR_AID_UNTRUSTED_EXEC</span>, which is the ability required to run
+                untrusted binaries. If you do, the original <span class="keyword cmdname">echo</span> binary from
+                    <span class="ph filepath">/proc/boot</span> can be run but the copy that is in
+                    <span class="ph filepath">/data</span> cannot: </p>
+
+            <pre class="pre codeblock"># on -A deny,all,inherit,untrusted_exec ksh 
+
+# /proc/boot/echo Hello 
+
+Hello 
+
+# /data/echo Hello 
+
+ksh: /data/echo: Operation not permitted </pre>
+            <p class="p">The other effect of pathtrust is that when you enable it, the setuid bit on binaries
+                is ignored. It has the same effect as mounting all untrusted file systems with the
+                nosuid option. For example, copy the <span class="keyword cmdname">id</span> binary to
+                    <span class="ph filepath">/data</span> and make it setuid <span class="ph filepath">root</span>: </p>
+
+            <pre class="pre codeblock"># cp /system/xbin/id /data 
+
+# chmod u+s /data/id</pre>
+            <p class="p">Then, create a non-root shell and execute this binary: </p>
+
+            <pre class="pre codeblock"># on -u 100 ksh 
+
+$ /data/id 
+
+uid=100 gid=0(root) groups=0(root) </pre>
+            <p class="p">This shows that when <span class="keyword cmdname">id</span> is run, it is still user ID (UID) 100. If
+                this same sequence of commands is executed on an image not using pathtrust, the
+                output is instead: </p>
+
+            <pre class="pre codeblock">$ /data/id  
+
+uid=100 gid=0(root) euid=0(root) groups=0(root) </pre>
+            <p class="p">In this case, while it still shows the real UID is 100, the effective UID has become
+                0, or root. </p>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

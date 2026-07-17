@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Tutorial: Create a custom gesture" />
+<meta name="abstract" content="This tutorial shows you the basics for defining a custom gesture recognizer." />
+<meta name="description" content="This tutorial shows you the basics for defining a custom gesture recognizer." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/gestures_tutorials.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/custom_gesture_example.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="create-custom-gesture" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Tutorial: Create a custom gesture</title>
+</head>
+<body id="create-custom-gesture">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Tutorial: Create a custom gesture</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">This tutorial shows you the basics for defining a custom gesture
+               recognizer. </p>
+
+        <div class="section"><h2 class="title sectiontitle">You will learn to:</h2>
+            
+                <ul class="ul">
+                    <li class="li">define a custom gesture recognizer</li>
+
+                    <li class="li">create a timer callback function</li>
+
+                    <li class="li">create an <span class="keyword apiname">alloc()</span> function</li>
+
+                    <li class="li">create a <span class="keyword apiname">process_event()</span> function</li>
+
+                    <li class="li">create a <span class="keyword apiname">free()</span> function</li>
+
+                    <li class="li">create a <span class="keyword apiname">reset()</span> function</li>
+
+                </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Define your custom gesture recognizer</h2>
+            
+            <p class="p">
+                The definition of your custom gesture recognizer includes the
+                following:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Custom gesture recognizer parameters (optional)</dt>
+
+                    <dd class="dd">A structure that represents the parameters specific to
+                        your custom gesture recognizer. This structure is
+                        optional. If your custom gesture recognizer has no
+                        specific parameters, then you don't need to define this
+                        structure. Here's an example of what parameters might be
+                        in this custom gesture-recognizer structure:
+                        <pre class="pre codeblock">typedef struct {
+	unsigned max_displacement; /** The maximum distance your finger can move before
+	                                this custom gesture fails. */
+	unsigned max_hold_ms;      /** The maximum time your finger can remain touching
+	                                the screen before this custom gesture fails. */
+	unsigned max_delay_ms;     /** The time between the first release and the second
+	                               touch. */
+
+} custom_gesture_params_t;
+                        </pre>
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Custom gesture-recognizer states (optional)</dt>
+
+                    <dd class="dd">Constants that represent the states specific to your
+                        custom gesture recognizer; these states are <strong class="ph b">in addition</strong> to
+                        the set of states defined in <span class="keyword const">gesture_state_e</span>.
+                        Additional states for your gesture recognizer are optional.
+                        If your gesture recognizer doesn't need additional
+                        states, these constants aren't necessary. Here's an
+                        example of what the definition of additional states
+                        might look like: 
+                        <pre class="pre codeblock">typedef enum {
+	CUSTOM_STATE_INIT = 0,
+	CUSTOM_STATE_FIRST_TOUCH,
+	CUSTOM_STATE_FIRST_RELEASE,
+	CUSTOM_STATE_SECOND_TOUCH,
+	CUSTOM_STATE_SECOND_RELEASE
+} custom_gesture_state_e;
+                        </pre>
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Custom gesture-recognizer information</dt>
+
+                    <dd class="dd">A structure that contains information about your
+                        custom gesture recognizer. This structure must list
+                        <var class="keyword varname">gesture_base_t</var> as its first data
+                        member. Here's an example of what information might be
+                        included in your gesture recognizer: 
+                        <pre class="pre codeblock">typedef struct {
+	gesture_base_t base;             /* The gesture base data structure. */
+	custom_gesture_params_t params;  /** Your custom gesture recognizer parameters. */
+	gesture_coords_t first_touch;    /** The coordinates of the first touch. */
+	gesture_coords_t first_release;  /** The coordinates of the first release. */
+	gesture_coords_t second_touch;   /** The coordinates of the second touch. */
+	gesture_coords_t second_release; /** The coordinates of the second release. */
+	custom_gesture_state_e ct_state; /** The intermediate state of your recognizer. */
+	int timer;                       /** The ID of the timer for this gesture. */
+} gesture_custom_t;
+                        </pre>
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create the timer callback function (optional)</h2>
+            
+            <p class="p">If your custom gesture recognizer is timer-based, you need to implement a callback
+                function that will be called upon receipt of a timer event. Your
+                    <span class="keyword apiname">gesture_timer_callback_t</span> function returns the new, or
+                unchanged, state based on the timer event received and might look like this: </p>
+
+            <pre class="pre codeblock">static gesture_state_e custom_gesture_timer_callback(gesture_base_t* base, void* param)
+{
+	return GESTURE_STATE_FAILED;
+}
+                </pre>
+        </div>
+     
+        <div class="section"><h2 class="title sectiontitle">Create the <span class="keyword apiname">alloc()</span> function</h2>
+            
+            <div class="p"> Your <span class="keyword apiname">alloc()</span> function must:
+               <ol class="ol">
+                  <li class="li">
+                      Allocate the memory necessary for your custom gesture recognizer.
+                  </li>
+
+                  <li class="li">
+                      Invoke <span class="keyword apiname">gesture_base_init()</span> to initialize the gesture base
+                      data structure.
+                  </li>
+
+                  <li class="li">
+                      Invoke <span class="keyword apiname">gesture_set_add()</span> to add your
+                      custom gesture to the gesture set.
+                  </li>
+
+                  <li class="li">
+                      Set the gesture recognizer type as <span class="keyword const">GESTURE_USER</span>.
+                  </li>
+
+                  <li class="li">
+                      Set the <span class="keyword apiname">process_event()</span>, the
+                      <span class="keyword apiname">reset()</span>, and the <span class="keyword apiname">free()</span>
+                      functions.
+                  </li>
+
+                  <li class="li">
+                      Set the gesture callback: <span class="keyword parmname">callback</span>.
+                  </li>
+
+                  <li class="li">
+                      Perform any custom gesture-specific initialization that isn't
+                      part of the reset.
+                  </li>
+
+                  <li class="li">
+                      Store the custom gesture-specific parameters with the
+                      gesture recognizer, and set default parameters. If your 
+                      custom gesture recognizer uses a timer, use
+                      <span class="keyword apiname">gesture_timer_create()</span> to obtain the ID
+                      for your timer.
+                  </li>
+
+               </ol>
+
+            </div>
+
+            <div class="note"><span class="notetitle">Note:</span>  If your custom gesture recognizer uses timers, then use
+                <span class="keyword apiname">gesture_timer_create()</span> to create the timer
+                and register your timer callback with your gesture recognizer.
+            </div>
+
+            <p class="p">Here's an example of what your custom gesture recognizer
+                <span class="keyword apiname">alloc()</span> might look like:
+            </p>
+
+                <pre class="pre codeblock">gesture_custom_t*
+custom_gesture_alloc(custom_gesture_params_t* params,
+                     gesture_callback_f callback,
+                     struct gestures_set* set)
+{
+	gesture_custom_t* user_gesture = calloc(1, sizeof(*user_gesture));
+	if (NULL == user_gesture) {
+		return NULL;
+	}
+
+	gesture_base_init(&amp;user_gesture-&gt;base);
+	gestures_set_add(set, &amp;user_gesture-&gt;base);
+	user_gesture-&gt;base.type = GESTURE_USER;
+	user_gesture-&gt;base.funcs.free = user_gesture_gesture_free;
+	user_gesture-&gt;base.funcs.process_event = user_gesture_gesture_process_event;
+	user_gesture-&gt;base.funcs.reset = user_gesture_gesture_reset;
+	user_gesture-&gt;base.callback = callback;
+	user_gesture-&gt;timer = gesture_timer_create(&amp;user_gesture-&gt;base,
+	                                           custom_gesture_timer_callback, NULL);
+	user_gesture_gesture_reset(&amp;user_gesture-&gt;base);
+
+	if (NULL != params) {
+		user_gesture-&gt;params = *params;
+	} else {
+		user_gesture_gesture_default_params(&amp;user_gesture-&gt;params);
+	}
+
+	return user_gesture;
+}
+                </pre>
+        </div>
+       
+        <div class="section"><h2 class="title sectiontitle">Create the <span class="keyword apiname">process_event()</span> function</h2>
+            
+            <p class="p">
+                You need to implement a <span class="keyword apiname">process_event()</span> function
+                that's responsible for state-handling and returning the new
+                (or unchanged) gesture set:
+            </p>
+
+            <pre class="pre codeblock">gesture_state_e (*process_event)(struct contact_id_map* map,
+                                 struct gesture_base* gesture,
+                                 mtouch_event_t* event,
+                                 int* consumed);
+            </pre>
+            <p class="p">
+                Ensure that your state transitions are valid according to the
+                Gestures library. Refer to
+                <a class="xref" href="gesture_recognition.html#gesture-recognition__gesture_state_transitions">State transitions</a>.
+            </p>
+
+            <div class="p">
+                A <span class="keyword apiname">process_event()</span> function for a custom gesture may
+                look like this:
+                <pre class="pre codeblock">gesture_state_e
+custom_gesture_gesture_process_event(struct contact_id_map* map,
+                                     gesture_base_t* gesture,
+                                     mtouch_event_t* event,
+                                     int* consumed)
+{
+	gesture_custom_t* custom_gesture = (gesture_custom_gesture_t*)gesture;
+	gesture_coords_t coords;
+	gesture_coords_t* compare_coords;
+	int set_id = map_contact_id(map, event-&gt;contact_id);
+
+	if (set_id &lt; 0) {
+		error("process_event() called with event with invalid contact_id");
+		goto failed;
+	}
+
+	switch (user_gesture-&gt;base.state) {
+		case GESTURE_STATE_UNRECOGNIZED:
+			switch (event-&gt;event_type) {
+				case INPUT_EVENT_MTOUCH_TOUCH:
+					if (set_id &gt; 0) {
+						goto failed;
+					} else if (user_gesture-&gt;ct_state &gt; CUSTOM_STATE_FIRST_TOUCH) {
+						gesture_timer_clear(gesture, user_gesture-&gt;fail_timer);
+						save_coords(event, &amp;user_gesture-&gt;second_touch);
+						
+						if (!((max_displacement_abs(&amp;user_gesture-&gt;first_release,
+						                            &amp;user_gesture-&gt;second_touch)
+						        &lt;= user_gesture-&gt;params.max_displacement) &amp;&amp;
+                               (diff_time_ms(&amp;user_gesture-&gt;first_release,
+						                     &amp;user_gesture-&gt;second_touch)
+                               &lt;= user_gesture-&gt;params.max_delay_ms))) {
+							goto failed;
+						}
+						user_gesture-&gt;ct_state = CUSTOM_STATE_SECOND_TOUCH;
+					} else {
+						save_coords(event, &amp;user_gesture-&gt;first_touch);
+						user_gesture-&gt;ct_state = CUSTOM_STATE_FIRST_TOUCH;
+					}
+
+					goto nochange;
+				case INPUT_EVENT_MTOUCH_MOVE:
+					save_coords(event, &amp;coords);
+					if (user_gesture-&gt;ct_state &gt;= CUSTOM_STATE_SECOND_TOUCH) {
+						compare_coords = &amp;user_gesture-&gt;second_touch;
+					} else {
+						compare_coords = &amp;user_gesture-&gt;first_touch;
+					}
+
+				    if (!((max_displacement_abs(compare_coords,
+					                            &amp;coords)
+					        &lt;= user_gesture-&gt;params.max_displacement) &amp;&amp;
+                            (diff_time_ms(compare_coords,
+     				                      &amp;coords)
+                            &lt;= user_gesture-&gt;params.max_hold_ms)))
+                    {
+						goto failed;
+					}
+
+					goto nochange;
+				case INPUT_EVENT_MTOUCH_RELEASE:
+					if (user_gesture-&gt;ct_state &gt;= CUSTOM_STATE_SECOND_TOUCH) {
+						save_coords(event, &amp;user_gesture-&gt;second_release);
+						
+						if (!((max_displacement_abs(&amp;user_gesture-&gt;second_touch,
+					                                &amp;user_gesture-&gt;second_release)
+					        &lt;= user_gesture-&gt;params.max_displacement) &amp;&amp;
+                            (diff_time_ms(&amp;user_gesture-&gt;second_touch,
+     				                      &amp;user_gesture-&gt;second_release)
+                            &lt;= user_gesture-&gt;params.max_hold_ms)))
+                        {
+						  goto failed;
+					    }
+
+						user_gesture-&gt;ct_state = CUSTOM_STATE_SECOND_RELEASE;
+						goto complete;
+					} else {
+						save_coords(event, &amp;user_gesture-&gt;first_release);
+						
+						if (!((max_displacement_abs(&amp;user_gesture-&gt;first_touch,
+					                                &amp;user_gesture-&gt;first_release)
+					        &lt;= user_gesture-&gt;params.max_displacement) &amp;&amp;
+                            (diff_time_ms(&amp;user_gesture-&gt;first_touch,
+     				                      &amp;user_gesture-&gt;first_release)
+                            &lt;= user_gesture-&gt;params.max_hold_ms)))
+                        {
+							goto failed;
+						}
+						user_gesture-&gt;ct_state = CUSTOM_STATE_FIRST_RELEASE;
+
+						/* Set a timer in case an event doesn't come in */
+						gesture_timer_set_event(gesture, user_gesture-&gt;timer,
+						                        user_gesture-&gt;params.max_delay_ms, event);
+					}
+
+					goto nochange;
+				default:
+					warn("Unhandled switch/case: %d", event-&gt;event_type);
+					goto failed;
+			}
+		case GESTURE_STATE_RECOGNIZED:
+			error("GESTURE_STATE_RECOGNIZED is an invalid state for double tap");
+			break;
+		case GESTURE_STATE_UPDATING:
+			error("GESTURE_STATE_UPDATING is an invalid state for double tap");
+			break;
+		case GESTURE_STATE_COMPLETE:
+			error("process_event() called on complete gesture");
+			break;
+		case GESTURE_STATE_FAILED:
+			error("process_event() called on failed gesture");
+			break;
+		case GESTURE_STATE_NONE:
+			error("process_event() called on uninitialized gesture");
+			break;
+	}
+
+nochange:
+	*consumed = 0;
+	return user_gesture-&gt;base.state;
+
+failed:
+	*consumed = 0;
+	return GESTURE_STATE_FAILED;
+
+complete:
+	*consumed = 1;
+	return GESTURE_STATE_COMPLETE;
+}
+                </pre>
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create the <span class="keyword apiname">free()</span> function</h2>
+            
+            <p class="p">
+                Release the memory that's associated with the custom gesture:
+            </p>
+
+            <pre class="pre codeblock">void custom_gesture_free(struct gesture_base* gesture);
+            </pre>
+            <p class="p">
+                A <span class="keyword apiname">free()</span> function for a custom gesture may
+                simply look like this:
+            </p>
+
+            <pre class="pre codeblock">void custom_gesture_free(gesture_base_t* gesture)
+{
+    free(gesture);
+}
+            </pre>
+        </div>
+ 
+        <div class="section"><h2 class="title sectiontitle">Create the <span class="keyword apiname">reset()</span> function</h2>
+            
+            <p class="p">
+                Reset any specific data structures that are associated with the
+                custom gesture:
+            </p>
+
+            <pre class="pre codeblock">void custom_gesture_reset(struct gesture_base* gesture);
+             </pre>
+            <p class="p">
+                A <span class="keyword apiname">reset()</span> function for a custom gesture may
+                be empty if there are no specific data structures associated
+                with your custom gesture.
+            </p>
+
+            <pre class="pre codeblock">void
+custom_gesture_reset(gesture_base_t* gesture)
+{
+	gesture_custom_t* user_gesture = (gesture_custom_t*)gesture;
+	user_gesture-&gt;ct_state = CUSTOM_STATE_INIT;
+}
+            </pre>
+        </div>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../../topic/manual/custom_gesture_example.html">Example: Code snippets of a defining a custom gesture</a></strong><br />
+     	This example contains most of the code snippets that illustrate what you     	need in order to define a custom gesture.     </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/gestures_tutorials.html" title="Gestures tutorials aim to help you understand how to use the Gestures library in your own applications by providing step-by-step guides.">Gesture Tutorials</a></div>
+</div>
+</div></body>
+</html>

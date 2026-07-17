@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Adding PTP to io-sock Network Drivers" />
+<meta name="abstract" content="This appendix describes how to add 2-Step Precision Time Protocol (PTP) Ethernet packet timestamping functionality to an io-sock driver." />
+<meta name="description" content="This appendix describes how to add 2-Step Precision Time Protocol (PTP) Ethernet packet timestamping functionality to an io-sock driver." />
+<meta name="DC.subject" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="add_ptp_driver" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Adding PTP to io-sock Network Drivers</title>
+</head>
+<body id="add_ptp_driver">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Adding PTP to <span class="keyword cmdname">io-sock</span> Network Drivers</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> This appendix describes how to add 2-Step Precision Time Protocol (PTP) Ethernet packet
+        timestamping functionality to an <span class="keyword cmdname">io-sock</span> driver. </p>
+
+
+    <p class="p">PTP is documented in IEEE 1588-2002, IEEE 1588-2008, and IEEE 1588-2019. The 2-Step solution
+            involves simpler hardware than the 1-step solution and it is used on many more hardware
+            platforms. 2-Step is also currently the only option that supports an Ethernet speed of
+            10 Gigabit or higher, which provides limited time to encode messages.</p>
+
+        <p class="p">Because this discussion is not meant to be limited to a particular PTP profile or
+            hardware platform, the information about initialization and timestamp collection from
+            the transmit and receive PTP packets does not provide any details about hardware
+            register handling.</p>
+
+        <p class="p">For a general discussion of writing <span class="keyword cmdname">io-sock</span> drivers, see <q class="q"><a class="xref" href="native_drvr.html">Writing Network Drivers for <span class="keyword cmdname">io-sock</span>.</a></q></p>
+
+
+<p class="p">For easier reading, the calling and PTP functions are presented and discussed in the order in
+            which they are used. Functions that are used to initialize the hardware are discussed
+            first, followed by the ones that process timestamps.</p>
+
+<div class="section"><h2 class="title sectiontitle">Summary</h2>
+             <p class="p">This driver design assumes that the hardware uses a free-running internal oscillator. No
+                adjustments are made in the hardware to try to control the internal oscillator's
+                frequency. Adjusting the frequency of an oscillator (e.g., using a Phase-Locked Loop
+                (PLL)) is slow and prone to gain peaking effects. Instead of hardware frequency
+                adjustments, the driver uses the <var class="keyword varname">addend</var> value it receives from
+                the PTP module in the <span class="keyword apiname">sample_ptp_set_compensation()</span> call to
+                change how much time is added to the PTP hardware clock after each tick of the
+                internal oscillator. This solution allows the internal oscillator to free run and
+                its frequency varies over time due to temperature and other variables. However, the
+                PTP daemon adjusts to the changes and keeps the PTP client (slave) synchronized to
+                the PTP server (master) by adjusting the <var class="keyword varname">addend</var> passed to the
+                module. This adjustment causes the module to call the
+                    <span class="keyword apiname">ptp_write_comp()</span> function.</p>
+
+</div>
+
+    <div class="section"><h2 class="title sectiontitle">PTP module support</h2>
+        
+        <p class="p">Adding PTP support requires <span class="ph filepath">ptp_mod.h</span>, which declares functions that
+                are implemented by the PTP module. Networking drivers use these functions to handle
+                actions such as transmit (Tx) and receive (Rx) timestamping and handing off PTP
+                I/O-command (<span class="keyword apiname">ioctl()</span>) processing. For detailed information about
+            these functions, go to <q class="q"><a class="xref" href="ptp_api.html" title="These PTP module functions are implemented by the PTP module. Networking drivers use them to handle actions such as transmit (Tx) and receive (Rx) timestamping and handing off PTP I/O-command (ioctl()) command processing.">PTP Module Library API</a>.</q></p>
+
+            <p class="p">The <strong class="ph b">ptp_mod.h</strong> header file also includes <strong class="ph b">ptp.h</strong>, which declares
+                user-space macros and structures like the IEEE 1588 PTP message header and the
+                    <span class="keyword const">SIOCSDRVSPEC</span> and <span class="keyword const">SIOCGDRVSPEC</span>
+                <span class="keyword apiname">ioctl()</span> commands.</p>
+
+            <p class="p">Additional FreeBSD driver module setup is required to use the
+                    <span class="keyword apiname">DEVMETHOD()</span> functions. The module calls these functions when
+                it receives I/O-control (<span class="keyword apiname">ioctl()</span>) commands and
+                    <span class="keyword apiname">ptp_*()</span> function calls. They include functions for setup,
+                Tx/Rx, and PTP module and hardware setup.</p>
+
+        <pre class="pre codeblock">#include &lt;qnx/ptp_mod.h&gt;
+struct sample_softc {
+	/* ... Driver-specific context members ... */
+	pthread_mutex_t        hw_rw_mutex;
+	if_t                   ifp;
+	device_t               dev;
+	struct tx_desc         txq[NUM_TXDS];
+	struct rx_desc         rxq[NUM_RXDS];
+	bool                   is_attached;
+
+	/* PTP-specific data structures */
+	struct ptp_ctx     *ptp;
+	uint32_t           addend;
+	uint32_t           ptp_clk_rate;
+	int                ptp_disable;
+}
+
+
+/* PTP module functions */
+static int sample_ptp_set_time(device_t dev, struct ptp_time *time);
+static int sample_ptp_get_time(device_t dev, struct ptp_time *time);
+static int sample_ptp_set_compensation(device_t dev, struct ptp_comp *comp);
+static int sample_ptp_get_compensation(device_t dev, struct ptp_comp *comp);
+static bool sample_ptp_compare_header(device_t dev, struct ptp_uhdr *mod,
+    struct ptp_uhdr *drv);
+
+/* driver-specific setup */
+static int sample_ptp_init_hw(struct sample_softc *sc);
+
+/* generic driver setup */
+static int sample_ioctl(if_t ifp, u_long cmd, caddr_t data);
+static int sample_attach(device_t dev);
+static int sample_detach(device_t dev);
+
+/* generic driver Tx/Rx */
+static int sample_tx(struct sample_softc *sc);
+static int sample_txfinish(struct sample_softc *sc);
+static int sample_tstmp_intr(struct sample_softc *sc, struct sample_event *evt);
+static int sample_rx(struct sample_softc *sc);</pre>
+        <p class="p">The following prototypes use the syntax that the PTP module expects when these functions
+                are called. They are called by the module and should be implemented by the driver
+                via the <span class="keyword apiname">DEVMETHOD()</span> functions:</p>
+
+            <pre class="pre codeblock">/**
+ * @brief Read the current PTP clock time
+ *
+ * @details Called with @c ptp_mtx locked. @c ptp_time must be within the bounds:
+ * - @c ptp_time.sec &lt;= @c MAX_SECONDS (provided in @e ptp_attach())
+ * - @c ptp_time.sec &gt; @c 0
+ * - @c ptp_time.nsec &lt; @c 1000000000 (equivalent to 1s)
+ * - @c ptp_time.nsec &gt; @c 0
+ * This function is required.
+ *
+ * @param[in]  dev      A driver's @c device_t struct given on @e ptp_attach().
+ * @param[out] ptp_time Current PTP clock time.
+ *
+ * @return EOK on success, !EOK otherwise.
+ */
+int ptp_read_time(device_t dev, struct ptp_time *ptp_time);
+
+/**
+ * @brief Set the PTP clock to the provided time
+ *
+ * @details Called with @c ptp_mtx locked. You may assume @c ptp_time follows
+ * the same bounds as required in @e ptp_read_time(). This function is required.
+ *
+ * @param[in] dev      A driver's @c device_t struct given on @e ptp_attach().
+ * @param[in] ptp_time Provided time to write to the PTP clock.
+ *
+ * @return EOK on success, !EOK otherwise.
+ */
+int ptp_write_time(device_t dev, struct ptp_time *ptp_time);
+
+/**
+ * @brief Write the PTP clock's clock adjustments
+ *
+ * @details This function is required. Updates the logical clock addend hardware.
+ * Syntonization in PTP is optional, but mandatory in gPTP.
+ *
+ * @param[in] dev  A driver's @c device_t struct given on @e ptp_attach().
+ * @param[in] comp Requested addend adjustment value and sign.
+ *
+ * @return EOK on success, !EOK otherwise.
+ */
+int ptp_write_comp(device_t dev, struct ptp_comp *comp);
+
+/**
+ * @brief Read the PTP clock's clock adjustments
+ *
+ * @details This function is not required.
+ *
+ * @param[in]  dev  A driver's @c device_t struct given on @e ptp_attach().
+ * @param[out] comp PTP clock's current addend adjustment value and sign.
+ *
+ * @return EOK on success, !EOK otherwise.
+ */
+int ptp_read_comp(device_t dev, struct ptp_comp *comp);
+
+/**
+ * @brief Compare two @c ptp_uhdr structures.
+ *
+ * @details This function is required @b if the Tx timestamp is returned via
+ * an interrupt, @b AND @c ptp_txintr_finish() is called. It should be
+ * constructed with the @c PTP_UHDR_* macros, and must return @c true at the end
+ * of the function. @e mod will have its values in host byte order.
+ *
+ * @param[in] dev A driver's @c device_t struct given on @e ptp_attach().
+ * @param[in] mod @c ptp_uhdr copied from @e ptp_txintr().
+ * @param[in] drv @c ptp_uhdr provided as an argument to @e ptp_txintr_finish().
+ */
+int ptp_compare_hdr(device_t dev, struct ptp_uhdr *mod, struct ptp_uhdr *drv);
+            </pre>
+        <p class="p">The driver calls the PTP module functions via the <span class="keyword apiname">DEVMETHOD()</span>
+                associated with the <span class="keyword apiname">ptp_*()</span> function, as declared in the
+                    <span class="keyword dtype">device_methods_t</span> structure.</p>
+
+            <pre class="pre codeblock">static device_method_t sample_methods[] = {
+	DEVMETHOD(device_attach, sample_attach),
+	DEVMETHOD(device_detach, sample_detach),
+	/* ... other device methods ... */
+
+	/* PTP methods */
+
+	/* both ptp_read_time and ptp_write_time are locked by a mutex */
+	DEVMETHOD(ptp_read_time, sample_ptp_get_time),
+	DEVMETHOD(ptp_write_time, sample_ptp_set_time),
+	DEVMETHOD(ptp_write_comp, sample_ptp_set_compensation),
+
+	/*
+	 * both ptp_read_comp and ptp_compare_hdr are optional though
+	 * ptp_compare_hdr must be defined if you call ptp_txintr_finish()
+	 */
+	DEVMETHOD(ptp_read_comp, sample_ptp_get_compensation),
+	DEVMETHOD(ptp_compare_hdr, sample_ptp_compare_header),
+	DEVMETHOD_END
+};
+
+static driver_t sample_driver = {
+	"sample", sample_methods, sizeof(struct sample_softc)
+};
+
+static devclass_t sample_devclass;
+DRIVER_MODULE(sample, simplebus, sample_driver, sample_devclass, 0 , 0);
+MODULE_DEPEND(sample, ptp, 1, 1, 1);</pre>  
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">PTP module functions</h2>
+        
+        <p class="p">Below are examples of PTP module functions as defined in a driver. The
+                    <span class="keyword apiname">ptp_write_comp()</span> function has the largest impact on driver
+                performance. </p>
+
+            <pre class="pre codeblock">/* PTP module functions */
+static int sample_ptp_get_time(device_t dev, struct ptp_time *time)
+{
+	/* get the current time from hardware. */
+
+	return (EOK);
+}
+
+static int sample_ptp_set_time(device_t dev, struct ptp_time *time)
+{
+	/* write the new time to hardware */
+
+	return (EOK);
+}
+
+static int sample_ptp_set_compensation(device_t dev, struct ptp_comp *comp)
+{
+	uint32_t new_addend;
+	uint32_t delta;
+	uint64_t adjustment;
+	struct sample_softc *sc = device_get_softc(dev);
+
+	adjustment = ((uint64_t)sc-&gt;addend)*((uint64_t)comp-&gt;comp);
+	delta = (uint32_t)(adjustment / 1000000000ULL);
+	if (comp-&gt;positive) {
+		new_addend = sc-&gt;addend + delta;
+	} else {
+		new_addend = sc-&gt;addend - delta;
+	}
+
+	/* write new_addend to hardware */
+
+	return (EOK);
+}
+
+static int sample_ptp_get_compensation(device_t dev, struct ptp_comp *comp)
+{
+	/* get the current addend from hardware, unless saved in sc */
+	return (EOK);
+}
+
+static bool sample_ptp_compare_header(device_t dev, struct ptp_uhdr *mod,
+    struct ptp_uhdr *drv)
+{
+	/*
+	 * This function is called when ptp_txintr_finish() is called. The
+	 * PTP_UHDR_* macros should be used, with a return of true at the end
+	 * of the function. As well, the macros should check the header in
+	 * increasing likelihood of equality. i.e., seqid is unlikely to be the
+	 * same between multiple packets, in contrast to domain, which may always
+	 * be the same. Example:
+	 */
+
+	PTP_UHDR_SEQID(mod, drv);
+	PTP_UHDR_MSGTYPE(mod, drv);
+	PTP_UHDR_DOMAIN(mod, drv);
+
+	return (true);
+}</pre>
+    
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Initialization</h2>
+            
+            <p class="p">The <span class="keyword dtype">device_t</span> structure is the pointer type for the device structure.
+                All API functions have the device pointer as a first parameter.</p>
+
+            <p class="p">When an Ethernet device is found during initialization, the compatible
+                    <span class="keyword apiname">sample_attach()</span> function is called.</p>
+
+            <p class="p">From the PTP perspective, the attach function is executed for each Ethernet device
+                detected. The attach function should contain everything needed to initialize the
+                hardware, allocate resources, initialize the MAC and PHY, attach to the interrupts
+                required to transmit and receive packets, and so on.</p>
+
+            <p class="p">An attach function attaches a driver to a device. The following example is a
+                simplified example of an Ethernet driver connecting to an Ethernet device and adding
+                in the PTP functionality. The PTP driver functionality is enabled in
+                    <span class="keyword apiname">sample_attach()</span>, and <span class="keyword apiname">ptp_attach()</span> is
+                usually called after the Ethernet interface has been created. Because
+                    <span class="keyword apiname">ptp_attach()</span> calls <span class="keyword apiname">ptp_write_time()</span>, all
+                PTP hardware initialization should also be completed before it is called. All the
+                Ethernet initialization is done inside <span class="keyword apiname">sample_attach()</span> and not
+                before it is called.</p>
+
+            <pre class="pre codeblock">static int sample_attach(device_t dev)
+{
+	struct sample_softc *sc;
+	int rc;
+
+	sc = device_get_softc(dev);
+	sc-&gt;dev = dev;
+
+	/* Initialize hardware access mutex (io-sock is multi-threaded) */
+	rc = pthread_mutex_init(&amp;sc-&gt;hw_rw_mutex, NULL)
+	if (rc != EOK) {
+		device_printf(dev, "Failed to init hardware access mutex\n");
+		return (rc);
+	}
+
+	/* Ethernet interface is created and fully configured */
+	if_setioctlfn(sc-&gt;ifp, sample_ioctl)
+	sc-&gt;is_attached = true;
+
+	/* Initialize the PTP hardware */
+	rc = sample_ptp_init_hw(sc);
+	if (rc != EOK) {
+		device_printf(dev, "PTP HW initialization failed\n");
+		return (rc);
+	}
+
+	/* Initialize the PTP module */
+	rc = ptp_attach(dev, &amp;sc-&gt;ptp, device_get_nameunit(dev), MAX_SECONDS);
+	if (rc != EOK) {
+		device_printf(dev, "PTP module initialization failed\n");
+		return (rc);
+	}
+	sc-&gt;ptp_disable = false;
+
+	return (rc);
+}
+
+static int sample_ptp_init_hw(struct sample_softc *sc)
+{
+	pthread_mutex_lock(&amp;sc-&gt;hw_rw_mutex);
+
+       struct ptp_comp comp;
+
+	/* Initialize the clocking hardware */
+
+	pthread_mutex_unlock(&amp;sc-&gt;hw_rw_mutex);
+
+	/*
+	 * The addend parameter is the time adjustment used (the increment
+	 * added to the clock on every tick) in the PTP clock handling. The
+	 * initial value should be calculated based on the PTP clocking hardware
+	 * and the clock initialization above.
+	 * 
+	 * Note: sample_set_addend() is also called frequently on a PTP client
+	 * (slave) with adjustment requests from the PTP module. The adjustment
+	 * call is made through the PTP module functions.
+	 */
+
+	sc-&gt;addend = STARTUP_ADDEND;
+	comp-&gt;comp = sc-&gt;addend;
+	comp-&gt;positive = true;
+	sample_ptp_set_compensation(sc, &amp;comp);
+
+	pthread_mutex_lock(&amp;sc-&gt;hw_rw_mutex);
+
+	/* Configure the Rx and Tx timestamping hardware */
+
+	pthread_mutex_unlock(&amp;sc-&gt;hw_rw_mutex);
+
+	return (EOK);
+}</pre>
+        </div>
+
+    <div class="section" id="add_ptp_driver__register_driver"><h2 class="title sectiontitle">Hardware initialization routines</h2>
+            
+            <p class="p">The two functions <span class="keyword apiname">sample_ptp_get_time()</span> and
+                    <span class="keyword apiname">sample_ptp_set_time()</span> support the
+                    <span class="keyword dtype">device_method_t</span> interface into the PTP driver from the PTP
+                module. The <span class="keyword apiname">sample_ptp_get_time()</span> function reads the PTP hardware
+                time in seconds and nanoseconds and returns the value in <span class="ph codeph">ptp_time</span>.
+                The <span class="keyword apiname">sample_ptp_set_time()</span> function updates the PTP hardware time
+                from the module.</p>
+
+            <p class="p">In many cases, implementations also use these functions during hardware
+                initialization to verify that the PTP clock is performing as expected. Depending on
+                the platform hardware, there may be other, better methods to verify the timestamping
+                hardware initialization.</p>
+
+
+        </div>
+
+
+    <div class="section"><h2 class="title sectiontitle">Detaching: stopping PTP</h2> The detach function is called when the driver is
+            being removed or a <span class="keyword cmdname">devctl detach</span> command is applied.<p class="p">For the code
+                details of a driver without PTP, see the <span class="keyword apiname">sample_detach()</span> function
+                in <q class="q"><a class="xref" href="native_drvr_sample.html">A Hardware-Independent Sample Driver:
+                        sample.c.</a></q> In most drivers, PTP support is one of the last pieces
+                of functionality turned on in <span class="keyword apiname">sample_attach()</span>. Therefore, it
+                should be one of the first pieces of functionality turned off in
+                    <span class="keyword apiname">sample_detach()</span>.
+            </p>
+<pre class="pre codeblock">static int sample_detach(device_t dev)
+{
+	struct sample_softc *sc;
+	int rc;
+
+	/* Disable anything that could call a ptp_* function, then detach */
+
+	sc = device_get_softc(dev);
+	sc-&gt;ptp_disable = true;
+	if (sc-&gt;ptp != NULL) {
+		ptp_detach(sc-&gt;ptp);
+	}
+
+	/* Disable interrupts, release hardware and mutexes, etc. */
+
+	pthread_mutex_destroy(&amp;sc-&gt;hw_rw_mutex);
+
+	return (EOK);
+}   </pre></div>
+
+    <div class="section"><h2 class="title sectiontitle">The <span class="keyword apiname">ioctl()</span> interface</h2>
+        
+        <p class="p">The PTP module supports the following PTP daemon <span class="keyword apiname">ioctl()</span> commands,
+                which can be found along with some PTP structures in <span class="ph codeph">io-sock/ptp.h</span>.
+                The driver’s <span class="keyword apiname">ioctl()</span> function must call
+                    <span class="keyword apiname">ptp_ioctl()</span> when processing either a SIOCSDRVSPEC or
+                SIOCGDRVSPEC command, in case the call is a PTP command:</p>
+
+        <pre class="pre codeblock">static int sample_ioctl(if_t ifp, u_long cmd, caddr_t data)
+{
+	struct sample_softc *sc = if_getsoftc(ifp);
+	struct ifdrv *ifd = (struct ifdrv *)data;
+	int err = EOK;
+
+	switch(cmd) {
+	/* all other cases */
+	case SIOCSDRVSPEC:
+	case SIOCGDRVSPEC:
+		if (!sc-&gt;ptp_disable) {
+			err = ptp_ioctl(sc-&gt;ptp, ifd);
+		}
+		/* other *DRVSPEC handling as needed */
+		break;
+	}
+
+	return (err);
+}</pre>        
+    </div>
+
+<div class="section"><h2 class="title sectiontitle">Transmit packet handling</h2>
+    <div class="p">When using the PTP module, use the following steps for transmit packet handling:<ol class="ol" id="add_ptp_driver__ol_xt2_wvk_3bc">
+                    <li class="li">If the packet to be transmitted has requested that it be timestamped, set up
+                        any hardware-specific needs or function calls. If necessary, this setup
+                        includes configuring the transmit descriptor. For example:
+                        <pre class="pre codeblock">if (PTP_TX_TIMESTAMP(mbuf)) { ... }</pre></li>
+
+                    <li class="li">If the Tx timestamp is returned on an interrupt:<ol class="ol" type="a" id="add_ptp_driver__ol_gwk_2wk_3bc">
+                            <li class="li">Call <span class="keyword apiname">ptp_txintr()</span> with the packet to timestamp
+                                before transmission.</li>
+
+                            <li class="li">When the timestamp interrupt is received:<ol class="ol" type="i" id="add_ptp_driver__ol_zt2_hwk_3bc">
+                                    <li class="li"> If using header comparison, call
+                                            <span class="keyword apiname">ptp_txintr_finish()</span>; otherwise</li>
+
+                                    <li class="li">call <span class="keyword apiname">ptp_txintr_finish_head()</span> to pass the
+                                        timestamp to the first available memory buffer tag
+                                            (<span class="keyword dtype">m_tag</span>).</li>
+
+                                </ol>
+</li>
+
+                        </ol>
+</li>
+
+                    <li class="li">If the Tx timestamp is returned in the packet or descriptor:<ol class="ol" type="a" id="add_ptp_driver__ol_yzr_jwk_3bc">
+                            <li class="li">Call <span class="keyword apiname">ptp_txfinish()</span> with the timestamped
+                                packet.</li>
+
+                        </ol>
+</li>
+
+                </ol>
+For both interrupt and in-packet methods, use an <span class="keyword dtype">m_tag</span> that has
+                been prepended to the memory buffer (<span class="keyword dtype">mbuf</span>) tag list.</div>
+
+            <p class="p">When using <span class="keyword apiname">ptp_txintr()</span>, the tag is unlinked from the
+                    <span class="keyword dtype">mbuf</span> and queued to wait for the interrupt to return. While
+                queued, if the timestamp has become stale (i.e., exceeded the maximum timeout), it
+                is freed. By default, the timeout is 3 seconds.</p>
+
+            <p class="p">When using <span class="keyword apiname">ptp_txfinish()</span>, the tag is still linked with the
+                    <span class="keyword dtype">mbuf</span>, and no expiration is calculated. In-packet timestamping is
+                preferred because it requires less processing.</p>
+
+
+    <div class="cautiontitle" id="add_ptp_driver__note_aqh_zwk_3bc">CAUTION:</div><div class="note caution">If the tag has not been unlinked and the
+                    <span class="keyword dtype">mbuf</span> is freed, the tag is also freed, and a timestamp cannot be
+                returned.</div>
+
+    <p class="p">The following example illustrates both methods, starting with the transmission, followed by
+                the action of returning the timestamp with both the in-packet and interrupt
+                method.</p>
+
+            <pre class="pre codeblock">static int sample_tx(struct sample_softc *sc)
+{
+	struct mbuf *m;
+
+	/* On transmission w/ the in-packet method */
+	if (PTP_TX_TIMESTAMP(m)) {
+		/* setup Tx description or other requirements for Tx timestamping */
+	}
+
+	/* else, if using the interrupt method */
+	if (PTP_TX_TIMESTAMP(m)) {
+		/* setup Tx description or other requirements for Tx timestamping */
+		ptp_txintr(sc-&gt;ctx, m);
+	}
+}
+
+static int sample_txfinish(struct sample_softc *sc)
+{
+	struct mbuf *m;
+	struct ptp_time ptp_time;
+	int i;
+
+	/*
+	 * The in-packet Tx timestamping assumes that the packet mbuf has not
+	 * been freed, and the timestamp can be tied back to the mbuf,
+	 * i.e., Tx descriptor. Since the descriptor should be checked before the
+	 * mbuf is freed, we can check if a timestamp has been returned for this
+	 * descriptor, and return it
+	 */
+
+	for (i = cidx; i &lt; pidx; i++) {
+		if (!sc-&gt;txqs[i].complete) {
+			break;
+		}
+
+		/* txd cleanup */
+		if (sc-&gt;txqs[i].timestamp) {
+			ptp_time.sec = timestamp.seconds;
+			ptp_time.nsec = timestamp.nanoseconds;
+			ptp_txfinish(sc-&gt;ptp , m, &amp;ptp_time);
+		}
+		m_freem(m);
+	}
+}
+
+static int sample_tstmp_intr(struct sample_softc *sc, struct sample_event *evt)
+{
+	struct ptp_uhdr uhdr;
+	struct ptp_time ptp_time;
+
+	/*
+	 * Interrupt-based Tx timestamping requires either a comparison
+	 * (ptp_compare_hdr()) or an assumption of transmission -&gt; interrupt
+	 * without overlapping Tx timestamps, i.e., FIFO
+	 * 
+	 * The mbuf may have been freed, but the m_tag is still queued in the
+	 * PTP module
+	 */
+
+	switch(evt-&gt;type) {
+	case TX_TSTMP:
+		ptp_time.sec = evt-&gt;timestamp.sec;
+		ptp_time.nsec = evt-&gt;timestamp.nsec;
+
+		/* if using hdr comparison */
+		/* copying over the information from the interrupt to the uhdr */
+		uhdr.members = evt-&gt;hdr_info;
+		ptp_txintr_finish(sc-&gt;ptp, &amp;uhdr, &amp;ptp_time);
+		
+		/* else, if using FIFO */
+		ptp_txintr_finish_head(sc-&gt;ptp, &amp;ptp_time);
+		break;
+	}
+}</pre>
+</div>
+
+    
+<div class="section"><h2 class="title sectiontitle">Receive packet handling</h2>
+    
+    <p class="p">The timestamp is collected before the receive packet is sent to the
+                    <span class="keyword cmdname">io-sock</span> stack. The <span class="keyword apiname">ptp_rx()</span> function fills
+                in the <var class="keyword varname">rcv_tstmp</var> field of the <span class="keyword dtype">mbuf</span> with the time
+                provided. The <span class="keyword apiname">ptp_rx()</span> function also allocates an
+                    <span class="keyword dtype">m_tag</span>, which is not needed if the <span class="keyword dtype">mbuf</span> is later
+                freed by an error condition. To save time, call <span class="keyword apiname">ptp_rx()</span> only
+                after all error conditions that can free the <span class="keyword dtype">mbuf</span> are checked.</p>
+
+    <pre class="pre codeblock">static int sample_rx(struct sample_softc *sc)
+{
+	struct mbuf *m;
+	struct ptp_time ptp_time;
+	int i;
+
+	/* we've received a packet */
+	for (i = cidx; i &lt; pidx; i++) {
+		/* Rx data cleanup and mbuf alloc */
+		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
+		/* packet in mbuf now */
+
+		if (sc-&gt;rxqs[i].timestamp) {
+			ptp_time.sec = timestamp.seconds;
+			ptp_time.nsec = timestamp.nanoseconds;
+			/*
+			 * to save time, ptp_rx() should only be called when
+			 * certain no more errors can stop its input
+			 */
+			ptp_rx(sc-&gt;ptp , m, &amp;ptp_time);
+		}
+	}
+
+	if_input(m);
+}</pre>
+</div>
+
+
+</div>
+
+</body>
+</html>

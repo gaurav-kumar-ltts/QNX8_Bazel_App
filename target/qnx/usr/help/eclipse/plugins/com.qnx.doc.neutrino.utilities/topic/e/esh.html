@@ -1,0 +1,888 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="esh" />
+<meta name="abstract" content="Embedded shell (QNX OS)" />
+<meta name="description" content="Embedded shell (QNX OS)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-e.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.user_guide/topic/cmdline.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.user_guide/topic/scripts.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/f/fesh.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/k/ksh.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sh.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/u/uesh.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="esh" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>esh</title>
+</head>
+<body id="esh">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">esh</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Embedded shell (<span class="keyword">QNX OS</span>)</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">esh [-c <var class="keyword varname">command</var>] [-irv] [<var class="keyword varname">script_file</var>]
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p"><span class="keyword">QNX OS</span></p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-c</span> <var class="keyword varname">command</var></dt>
+
+<dd class="dd">Run this command.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-i</span></dt>
+
+<dd class="dd">Enter interactive mode after running a script file.
+  If you don't specify this option, <span class="keyword cmdname">esh</span> terminates after running a script.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-r</span></dt>
+
+<dd class="dd">Run in restricted mode.
+  In this mode, you can't perform certain operations.
+  If you try to, the error message, <q class="q">Operation not permitted</q> is displayed.
+
+  <p class="p">
+  Restricted operations include running executables that start with
+  a slash, exporting variables, and reattaching standard input, output and error to another device.
+  For more information, see the sections 
+  <q class="q"><a class="xref" href="esh.html#esh__CommandLineFormat">Command-line format</a></q> 
+  and <q class="q"><a class="xref" href="esh.html#esh__BuiltinCommands">Builtin commands</a>.</q>
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+<dd class="dd">Be verbose: echo each command before executing it.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">script_file</var></dt>
+
+<dd class="dd">A file containing shell commands to execute.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword cmdname">esh</span> utility provides a subset of the functionality
+found in the standard shell, <span class="ph filepath">/bin/sh</span>. You should find
+<span class="keyword cmdname">esh</span> useful for situations where memory requirements are
+limited. For example, you could use it to run a simple system
+initialization file for an embedded system.
+</p>
+
+
+<p class="p" id="esh__CommandLineFormat"><strong class="ph b">Command-line format</strong></p>
+
+
+<div class="p">
+In <span class="keyword cmdname">esh</span>, command lines take this form:
+
+<pre class="pre codeblock"><var class="keyword varname">command</var> <var class="keyword varname">arg1</var> <var class="keyword varname">arg2</var> ... [<var class="keyword varname">redir-op</var> <var class="keyword varname">file</var>] [&amp;]
+</pre>
+</div>
+
+
+<div class="p">
+where:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">command</var></dt>
+
+<dd class="dd">The command to be executed. If it doesn't start with a slash,
+  the command follows the path set by the <span class="keyword envar">PATH</span> environment
+  variable. In restricted mode, a command can't start with a slash.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">redir-op</var> <var class="keyword varname">file</var></dt>
+
+<dd class="dd">A redirection operator. When a command is invoked, three standard files
+  are set up in its environment. These files, <em class="ph i">standard input</em>,
+  <em class="ph i">standard output</em>, and <em class="ph i">standard error</em> output
+  (<var class="keyword varname">stdin</var>, <var class="keyword varname">stdout</var>, <var class="keyword varname">stderr</var>), are usually
+  attached to the active terminal. You can redirect a command's standard
+  input, standard output, and standard error as follows:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d372237e289">Specifying: </th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d372237e292">Will:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">&lt;</span><var class="keyword varname">file</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">Redirect standard input from this file.</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">&gt;</span><var class="keyword varname">file</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">Redirect standard output to this file.
+      If the file exists, it's overwritten; if the file doesn't exist, it's created.
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">&gt;&gt;</span><var class="keyword varname">file</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">Redirect standard output to this file.
+      If the file exists, the information is appended to the end of the file; if the file doesn't exist, it's created.
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">2&gt;</span><var class="keyword varname">file</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">Do the same as <span class="keyword cmdname">&gt;</span><var class="keyword varname">file</var>, but for standard error.</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">2&gt;&gt;</span><var class="keyword varname">file</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">Do the same as <span class="keyword cmdname">&gt;&gt;</span><var class="keyword varname">file</var>, but for standard error.</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e289 "><span class="keyword cmdname">&amp;</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e292 ">If a command contains an unquoted &amp;, then <span class="keyword cmdname">esh</span>
+      doesn't wait for the command to complete execution, but
+      immediately moves on to process the next command.
+      The standard input of the command is redirected from <span class="ph filepath">/dev/null</span>,
+      and <span class="keyword const">SIGINT</span> and <span class="keyword const">SIGQUIT</span> are ignored.
+    </td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p"><strong class="ph b">Filename expansion</strong></p>
+
+
+<p class="p">
+You use most commands for manipulating files in one way
+or another. As such, <span class="keyword cmdname">esh</span> has a filename <q class="q">shorthand</q>
+(consisting of <span class="keyword cmdname">*</span>, <span class="keyword cmdname">?</span>, <span class="keyword cmdname">[</span>, and <span class="keyword cmdname">]</span>)
+that you can use to specify the files that a command is to operate on. This
+shorthand is the same used by the standard shell. For more information, see 
+<q class="q"><a class="xref" href="../k/ksh.html#ksh__FilenamePatterns">Filename patterns</a></q>
+in <span class="keyword cmdname">ksh</span>.
+</p>
+
+
+<p class="p"><strong class="ph b">Quoting</strong></p>
+
+
+<p class="p">
+The following characters have a special meaning in <span class="keyword cmdname">esh</span>:
+</p>
+
+
+<pre class="pre codeblock">&amp;  \  "  *  ?  [  space
+</pre>
+
+<p class="p">
+To suppress the special meaning of these characters and keep their literal meaning, you use quoting.
+</p>
+
+
+<p class="p">
+To quote a sequence of characters or sequence of words, enclose the
+sequence in double quotes. To quote a single character, use double
+quotes or precede it with the escape character (<span class="ph codeph">\</span>).
+</p>
+
+
+<p class="p"><strong class="ph b">Escape character (backslash)</strong></p>
+
+
+<p class="p">
+The escape character (<span class="ph codeph">\</span>) preserves the literal meaning of the 
+next character. You can't obtain a single backslash by quoting <span class="ph codeph">\</span>
+with double quotes. To obtain a backslash, enter <span class="ph codeph">\\</span> instead.
+</p>
+
+
+<p class="p"><strong class="ph b">Double quotes</strong></p>
+
+
+<p class="p">
+Enclosing characters and words in double quotes (<span class="ph codeph">""</span>)
+preserves the literal meaning of all characters within double quotes,
+with the exception of the <span class="ph codeph">\</span> character. For example:
+</p>
+
+
+<pre class="pre codeblock">"ab cd"
+</pre>
+
+<p class="p">
+represents a single, five-character argument.
+</p>
+
+
+<p class="p">
+You can keep the literal meaning of a double quote with the <span class="ph codeph">\</span> character. For example:
+</p>
+
+
+<pre class="pre codeblock">ab\"cd
+</pre>
+
+<p class="p">
+represents the single, five-character argument <span class="ph codeph">ab"cd</span>.
+</p>
+
+
+<p class="p" id="esh__BuiltinCommands"><strong class="ph b">Builtin commands</strong></p>
+
+
+<p class="p">
+The following commands are built into <span class="keyword cmdname">esh</span> (that is, <span class="keyword cmdname">esh</span> interprets and
+executes them internally):
+</p>
+
+
+<ul class="ul">
+<li class="li"><a class="xref" href="esh.html#esh__dot"><span class="keyword cmdname">.</span> (dot)</a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__alias"><span class="keyword cmdname">alias</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__cd"><span class="keyword cmdname">cd</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__emount"><span class="keyword cmdname">emount</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__ewaitfor"><span class="keyword cmdname">ewaitfor</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__exec"><span class="keyword cmdname">exec</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__exit"><span class="keyword cmdname">exit</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__export"><span class="keyword cmdname">export</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__kill"><span class="keyword cmdname">kill</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__reopen"><span class="keyword cmdname">reopen</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__set"><span class="keyword cmdname">set</span></a></li>
+
+<li class="li"><a class="xref" href="esh.html#esh__unset"><span class="keyword cmdname">unset</span></a></li>
+
+</ul>
+
+
+<p class="p" id="esh__dot"><strong class="ph b"><span class="keyword cmdname">.</span> (dot) command</strong></p>
+
+
+<pre class="pre codeblock">. <var class="keyword varname">file</var>
+</pre>
+
+<p class="p">
+
+
+
+
+The <span class="keyword cmdname">.</span> (dot) command reads and executes the commands from     
+<var class="keyword varname">file</var> within the current environment.
+The search path contained in the environment variable <span class="keyword envar">PATH</span> is
+used to find the directory containing <var class="keyword varname">file</var>.
+This command doesn't require that <var class="keyword varname">file</var> be executable.
+</p>
+
+
+<p class="p" id="esh__alias"><strong class="ph b"><span class="keyword cmdname">alias</span> command</strong></p>
+
+
+<pre class="pre codeblock">alias [<var class="keyword varname">name</var><span class="keyword cmdname">=</span><var class="keyword varname">value</var>]...
+</pre>
+
+<p class="p">
+
+Without arguments, <span class="keyword cmdname">alias</span> lists all aliases and their values.
+If only the name is specified, its value is listed. Any name specified with a value defines an alias.
+</p>
+
+
+<p class="p">
+Alias expansion occurs when the first word of a statement is a defined alias,
+except when that alias is already being expanded.
+</p>
+
+
+<p class="p">
+List all aliases:
+</p>
+
+
+<pre class="pre codeblock">alias
+</pre>
+
+<p class="p">
+Remove an alias:
+</p>
+
+
+<pre class="pre codeblock">alias <var class="keyword varname">name</var>=
+</pre>
+
+<p class="p" id="esh__cd"><strong class="ph b"><span class="keyword cmdname">cd</span> command</strong></p>
+
+
+<pre class="pre codeblock">cd [<var class="keyword varname">directory</var>]
+</pre>
+
+<p class="p">
+
+Change the working directory of the current execution environment.
+If <var class="keyword varname">directory</var> isn't specified, the value of the <span class="keyword envar">HOME</span> environment variable
+becomes the new working directory. 
+
+
+</p>
+
+
+<p class="p" id="esh__emount"><strong class="ph b"><span class="keyword cmdname">emount</span> command (QNX Momentics 6.3.0 Service Pack 2 or later)</strong></p>
+
+
+<pre class="pre codeblock">emount <var class="keyword varname">special</var> <var class="keyword varname">directory</var> [<var class="keyword varname">fs_type</var>]
+</pre>
+
+<p class="p">
+
+Mount a special device.
+The arguments are:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">special</var></dt>
+
+<dd class="dd">The name of the special device.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mountpoint</var></dt>
+
+<dd class="dd">Where to mount the device on your system.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+<dd class="dd">The type of filesystem or manager to mount:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d372237e830"><var class="keyword varname">type</var>:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d372237e835">Filesystem or manager:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e830 "><span class="ph codeph">cd</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e835 "><a class="xref" href="../f/fs-udf.so.html" title="Universal Disk Format and ISO 9660 filesystem support"><span class="ph filepath">fs-udf.so</span></a></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e830 "><span class="ph codeph">dos</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e835 "><a class="xref" href="../f/fs-dos.so.html" title="DOS filesystem (QNX OS)"><span class="ph filepath">fs-dos.so</span></a></td>
+
+  </tr>
+
+
+  
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e830 "><span class="ph codeph">nfs</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e835 "><a class="xref" href="../f/fs-nfs3.html" title="NFS 3 client filesystem (QNX OS)"><span class="keyword cmdname">fs-nfs3</span></a></td>
+
+  </tr>
+
+
+  
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e830 "><span class="ph codeph">qnx6</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e835 "><a class="xref" href="../f/fs-qnx6.so.html" title="Shared object that supports the Power-Safe filesystem (QNX OS)"><span class="ph filepath">fs-qnx6.so</span></a> (Power-Safe filesystem)</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e830 "><span class="ph codeph">udf</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d372237e835 "><a class="xref" href="../f/fs-udf.so.html" title="Universal Disk Format and ISO 9660 filesystem support"><span class="ph filepath">fs-udf.so</span></a></td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  The default is <span class="ph codeph">qnx6</span>.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p" id="esh__ewaitfor"><strong class="ph b"><span class="keyword cmdname">ewaitfor</span> command (QNX Momentics 6.3.0 Service Pack 2 or later)</strong></p>
+
+
+<pre class="pre codeblock">ewaitfor <var class="keyword varname">path</var> [<var class="keyword varname">max_seconds</var> [<var class="keyword varname">delay</var>]]
+</pre>
+
+<p class="p">
+
+Wait until the given path exists.
+The arguments are:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">path</var></dt>
+
+<dd class="dd">The path to test.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">max_seconds</var></dt>
+
+<dd class="dd">The maximum number of seconds to wait for the file to appear.
+  The default is 1 second.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">delay</var></dt>
+
+<dd class="dd">The number of milliseconds to wait between attempts.
+  The default is 100 ms.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p" id="esh__exec"><strong class="ph b"><span class="keyword cmdname">exec</span> command</strong></p>
+
+
+<pre class="pre codeblock">exec [<var class="keyword varname">command</var> [<var class="keyword varname">argument</var>...]]
+</pre>
+
+<p class="p">
+
+Execute a command and/or manipulate file descriptors.
+</p>
+
+
+<p class="p">
+The <span class="keyword cmdname">exec</span> command opens, closes, or copies file descriptors
+as specified by any I/O redirections given as part of
+<var class="keyword varname">argument</var>. If a command is specified, that command
+is spawned as a replacement for <span class="keyword cmdname">esh</span>.
+Any specified arguments are passed to the spawned process.
+</p>
+
+
+<p class="p">
+If <span class="keyword cmdname">esh</span> is operating in restricted mode (<span class="keyword option">-r</span>),
+you can't use the <span class="keyword cmdname">exec</span> command to run a command whose path starts with a slash.
+</p>
+
+
+<p class="p" id="esh__exit"><strong class="ph b"><span class="keyword cmdname">exit</span> command</strong></p>
+
+
+<pre class="pre codeblock">exit [<var class="keyword varname">n</var>]
+</pre>
+
+<p class="p">
+
+Cause <span class="keyword cmdname">esh</span> to exit with the exit status
+specified by <var class="keyword varname">n</var>. If <var class="keyword varname">n</var> isn't
+specified, <span class="keyword cmdname">esh</span> exits with the status of the last command executed.
+</p>
+
+
+<p class="p" id="esh__export"><strong class="ph b"><span class="keyword cmdname">export</span> command</strong></p>
+
+
+<pre class="pre codeblock">export <var class="keyword varname">name</var>[<span class="keyword cmdname">=</span><var class="keyword varname">word</var>]...
+export <span class="keyword option">-p</span>
+</pre>
+
+<p class="p">
+
+Mark environment variables for export.
+This makes them be in the environment of
+subsequently executed commands. If you specify the <span class="keyword option">-p</span>
+option, the names and values of all exported variables are written to the standard output.
+</p>
+
+
+<p class="p">
+If restricted mode (<span class="keyword option">-r</span>) is set, you can't use this command.
+</p>
+
+
+<p class="p" id="esh__kill"><strong class="ph b"><span class="keyword cmdname">kill</span> command</strong></p>
+
+
+<pre class="pre codeblock">kill <var class="keyword varname">pid</var>
+</pre>
+
+<p class="p">
+
+Set a <span class="keyword const">SIGTERM</span> on the process with process ID <var class="keyword varname">pid</var>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The cleanup of the terminated process occurs at the priority of the thread that sent the signal.
+</div>
+
+
+<p class="p" id="esh__reopen"><strong class="ph b"><span class="keyword cmdname">reopen</span> command</strong></p>
+
+
+<pre class="pre codeblock">reopen [<var class="keyword varname">device</var>]
+</pre>
+
+<p class="p">
+
+Close standard input, standard output, and standard error and attach them to the specified device.
+This command is often used in startup scripts.
+If you don't specify a device, <span class="ph filepath">/dev/con1</span> is used.
+</p>
+
+
+<p class="p">
+If restricted mode (<span class="keyword option">-r</span>) is set, you can't use this command.
+</p>
+
+
+<p class="p" id="esh__set"><strong class="ph b"><span class="keyword cmdname">set</span> command</strong></p>
+
+
+<pre class="pre codeblock">set <span class="keyword option">-v</span>
+</pre>
+
+<p class="p">
+
+Enable verbose mode; all commands are echoed to the standard output before they're executed.
+</p>
+
+
+<p class="p" id="esh__unset"><strong class="ph b"><span class="keyword cmdname">unset</span> command</strong></p>
+
+
+<pre class="pre codeblock">unset <var class="keyword varname">variable</var>
+</pre>
+
+<p class="p">
+
+Unset the specified variable.
+If restricted mode (<span class="keyword option">-r</span>) is set, you can't use this command.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">
+Invoke a subshell:
+</p>
+
+
+<pre class="pre codeblock">esh
+</pre>
+
+<p class="p">
+Invoke a subshell with a script file:
+</p>
+
+
+<pre class="pre codeblock">esh /etc/backup
+</pre>
+
+<p class="p">
+Run the following command and exit:
+</p>
+
+
+<pre class="pre codeblock">esh -c "ls /bin"
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Files:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/esh</span></dt>
+
+<dd class="dd">ASCII text file containing shell commands, executed when <span class="keyword cmdname">esh</span> is started as a login shell.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Environment variables:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword envar">HOME</span></dt>
+
+<dd class="dd">The pathname of the user's home directory.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">LOGNAME</span></dt>
+
+<dd class="dd">The user's <a class="xref" href="../l/login.html" title="Log in"><span class="keyword cmdname">login</span></a> name.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PATH</span></dt>
+
+<dd class="dd">The directory search path used by esh for locating executable programs
+  and <span class="keyword cmdname">esh</span> shell scripts. To change <span class="keyword envar">PATH</span>, you must
+  use the <span class="keyword cmdname">export</span> command.
+
+  <p class="p">
+  
+  
+  If <span class="keyword envar">PATH</span> isn't in the existing environment when 
+  <span class="keyword cmdname">esh</span> is invoked, it is set to <span class="ph filepath">/bin:/usr/bin</span>. For 
+  more information on setting <span class="keyword envar">PATH</span>, see 
+  <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/environment_PATH.html">Setting <span class="keyword envar">PATH</span> and <span class="keyword envar">LD_LIBRARY_PATH</span></a></q>
+  in the Configuring Your Environment chapter of the
+  <span class="keyword">QNX OS</span> <cite class="cite">User's Guide</cite>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">SHELL</span></dt>
+
+<dd class="dd">The pathname of the user's preferred shell.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">TERM</span></dt>
+
+<dd class="dd">The terminal type.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">TMPDIR</span></dt>
+
+<dd class="dd">The name of a directory where utilities can create temporary files.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">TZ</span></dt>
+
+<dd class="dd">The timezone setting.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The current version of <span class="keyword cmdname">esh</span> strips out single quotes 
+(<span class="ph codeph">'</span>), which means that many common uses of commands such as
+<a class="xref" href="../f/find-target.html" title="Find files (POSIX, toybox)"><span class="keyword cmdname">find</span></a> fail.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-e.html">E</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.user_guide/topic/cmdline.html">Using the Command Line (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.user_guide/topic/scripts.html">Writing Shell Scripts (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/f/fesh.html" title="Fat embedded shell (QNX OS)">fesh</a></li>
+<li class="linklist"><a class="link" href="../../topic/k/ksh.html" title="Public domain Korn shell command interpreter (UNIX)">ksh</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sh.html" title="Public domain Korn shell command interpreter (UNIX)">sh</a></li>
+<li class="linklist"><a class="link" href="../../topic/u/uesh.html" title="Micro-embedded shell (QNX OS)">uesh</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="dloader" />
+<meta name="abstract" content="Write a boot loader to a disk on an x86 system" />
+<meta name="description" content="Write a boot loader to a disk on an x86 system" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-d.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/f/fdisk.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dloader" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>dloader</title>
+</head>
+<body id="dloader">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">dloader</span></h1>
+
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Write a boot loader to a disk on an x86 system</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+
+<pre class="pre codeblock">dloader [-v] [-d <var class="keyword varname">drive_number</var>] [-F|H] <var class="keyword varname">device</var> <var class="keyword varname">loader</var> [<var class="keyword varname">device</var> <var class="keyword varname">loader</var>]...
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p"><span class="keyword">QNX OS</span></p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">-d</span> <var class="keyword varname">drive_number</var></dt>
+
+<dd class="dd">Set the BIOS drive number for booting the second-stage loader (<span class="keyword cmdname">*pc2</span>). 
+  This lets you set up the loader to boot when the drive is configured as either a primary or secondary drive.
+  Common values for <var class="keyword varname">drive_number</var> are 80 for the first hard drive, and 81 for the second one.</dd>
+
+
+<dd class="dd ddexpand">
+  If you don't specify this option or any of the other override options (<span class="keyword option">-F</span>, <span class="keyword option">-H</span>),
+  a heuristic based on disk size and removability determines whether the drive is for a fixed or removable disk.
+  The order of precedence used to determine the drive number to be patched into the loader code is:
+  <ol class="ol">
+    <li class="li"><span class="keyword option">-d</span></li>
+
+    <li class="li"><span class="keyword option">-F</span></li>
+
+    <li class="li"><span class="keyword option">-H</span></li>
+
+    <li class="li">heuristic</li>
+
+  </ol>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-F</span></dt>
+
+<dd class="dd">Use the removable-disk loader (originally for floppies, hence the <q class="q">F</q>).</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-H</span></dt>
+
+<dd class="dd">Use the hard-disk loader.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+<dd class="dd">Be verbose.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">device</var></dt>
+
+<dd class="dd">The name of the disk partition mountpoint, or the raw device name if no partition table is required.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">loader</var></dt>
+
+<dd class="dd">The full path of the loader. You must specify a loader for each <var class="keyword varname">device</var> argument.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+
+
+<p class="p"> The <span class="keyword cmdname">dloader</span> utility writes boot loaders to disks on x86 systems.
+We provide loaders in
+<span class="keyword envar">$QNX_TARGET</span><span class="ph filepath">/x86_64/boot/sys</span> on a development host, but
+you can provide your own custom loaders.
+In either case, you need to include the loaders in your OS image.
+</p>
+
+
+<p class="p">
+You must specify at least one <var class="keyword varname">device</var> and <var class="keyword varname">loader</var>.
+Specifying multiple pairs lets you write stage 1 and
+stage 2 loaders to disk using a single <span class="keyword cmdname">dloader</span> invocation. </p>
+
+
+<div class="p"> Currently, the <span class="keyword">QNX OS</span> supports the following forms for loader
+names: <dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath"><var class="keyword varname">prefix</var>pc1*</span></dt>
+
+<dd class="dd">This is the standard first-stage (partition) loader on a PC. This loader has to fit in less than
+one block (block 0—the first block—of the physical disk); the BIOS itself will have
+jumped to this block content when the hardware board was first powered on. The first-stage loader's
+job is basic; it just identifies a bootable OS partition, reads one block from the start of that
+partition into memory, then jumps into (begins executing) it.
+The BIOS expects to find this boot loader on the first system disk.
+  The <span class="keyword cmdname">fdisk</span> utility can also write this loader.
+</dd>
+
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath"><var class="keyword varname">prefix</var>pc2*</span></dt>
+
+<dd class="dd">This is the standard second-stage (OS-specific) loader on a PC. This loader's job is more
+complicated because it needs to understand the particular filesystem format and boot the OS. For
+this reason, there are more variants for this loader type, often based on the filesystem.
+Depending on the variation, this loader can be a single or multiple blocks
+but its first block is always written to the first block of the OS partition.</dd>
+
+
+<dd class="dd ddexpand">
+The second-stage bootloader is always written to the first few sectors of the filesystem
+(normally the start of the partition).
+Filesystems each reserve space for the loader.
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p"> More details about these two loader types and what exactly they do during system startup are
+given in the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/ipl/ipl_x86.html">x86 disk boot IPLs</a></q> section of <cite class="cite">Building Embedded
+Systems</cite>. Because the two loaders get written to different physical locations, you have to be
+careful to match the drive name given in the <span class="keyword option">device</span> option (e.g.,
+<span class="ph filepath">/dev/hd0</span> or <span class="ph filepath">/dev/hd0t179</span>) with the loader code that you
+are writing to that device. </p>
+
+<div class="p"> The device names for our shipped loaders are prefixed with <tt class="ph tt">ipl-disk</tt>.
+On a development host, <span class="keyword envar">$QNX_TARGET</span><span class="ph filepath">/x86_64/boot/sys</span> includes at least
+the following loaders:
+<ul class="ul">
+<li class="li"><span class="ph filepath">ipl-diskpc1</span></li>
+
+<li class="li"><span class="ph filepath">ipl-diskpc1-nomsg</span></li>
+
+
+<li class="li"><span class="ph filepath">ipl-diskpc2-fsq6</span> — for use with the Power-Safe
+  (<a class="xref" href="../f/fs-qnx6.so.html" title="Shared object that supports the Power-Safe filesystem (QNX OS)"><span class="ph filepath">fs-qnx6.so</span></a>)
+  filesystem.
+  You can't write this file with <span class="keyword cmdname">dloader</span>; you must use 
+  <a class="xref" href="../m/mkqnx6fs.html" title="Format a Power-Safe filesystem (QNX OS)"><span class="keyword cmdname">mkqnx6fs</span></a>
+  with the <span class="keyword option">-B</span> option (which puts it in place by default).
+</li>
+
+</ul>
+
+</div>
+
+<p class="p"> If you wish to write and use your own loaders, you must include this
+<span class="ph codeph">ipl-disk</span> naming prefix but you can provide your own unique variant names.
+You have to specify the exact path, including the prefix.
+</p>
+
+<p class="p"> Assuming you specified a device and loader correctly, <span class="keyword cmdname">dloader</span> opens the
+device in the specified path and, if you selected the verbose option, displays the device's disk and
+partition information. The specified loader data are then put together and written to the disk. </p>
+
+<div class="note"><span class="notetitle">Note:</span>  The removable disk (<span class="keyword option">-F</span>) option forces <span class="keyword cmdname">dloader</span> to treat a
+fixed device (e.g., a hard disk) as if it were a removable device, and the hard disk
+(<span class="keyword option">-H</span>) option does the opposite. </div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<div class="p">
+Write a PC partition loader to a hard disk:
+
+<pre class="pre codeblock">dloader /dev/hd0 /home/joe/ipl-diskpc1
+</pre>
+</div>
+
+
+<div class="p">
+Write a custom partition loader to the second hard disk:
+
+<pre class="pre codeblock">dloader -d 81 /dev/hd1 /home/joe/ipl-diskpc1-tst
+</pre>
+</div>
+
+
+<div class="p">
+Write a QNX loader to a <q class="q">removable</q> disk:
+
+<pre class="pre codeblock">dloader -F /dev/dsk1 /home/joe/ipl-diskpc1
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Exit status:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">The loader was written to the disk.</dd>
+
+
+
+
+<dt class="dt dlterm">Any other value</dt>
+
+<dd class="dd">An error occurred.
+In these cases, <span class="keyword cmdname">dloader</span> sends a 
+description of the error to <var class="keyword varname">stderr</var>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-d.html">D</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/f/fdisk.html" title="Create and manage partitions on a hard disk">fdisk</a></li></ul></div>
+</div></body>
+</html>

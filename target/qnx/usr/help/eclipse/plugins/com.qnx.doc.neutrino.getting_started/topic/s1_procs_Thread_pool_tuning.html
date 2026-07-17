@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Tuning a thread pool" />
+<meta name="abstract" content="By tuning parameters such as lo_water and hi_water, you can create thread pools that handle variable loads while striking a good balance of CPU and memory usage." />
+<meta name="description" content="By tuning parameters such as lo_water and hi_water, you can create thread pools that handle variable loads while striking a good balance of CPU and memory usage." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_tpool.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="s1_procs_Thread_pool_tuning" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Tuning a thread pool</title>
+</head>
+<body id="s1_procs_Thread_pool_tuning">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Tuning a thread pool</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+By tuning parameters such as <var class="keyword varname">lo_water</var> and <var class="keyword varname">hi_water</var>,
+you can create thread pools that handle variable loads while striking a good balance
+of CPU and memory usage.
+</p>
+
+
+<p class="p">
+
+A dynamic thread pool (i.e. a pool in which worker threads are created and destroyed
+as needed) can help a server manage variable loads.
+Problem is, the pool creates new threads—which contribute to overhead—at the worst
+time possible: when the server is getting hit by a heavy load.
+This approach is preferable to not creating the threads, but comes at a cost nonetheless.
+</p>
+
+
+<p class="p">
+In some cases, you can avoid the issue by setting the pool to a fixed size.
+To take this approach, you need to:
+</p>
+
+
+<ul class="ul">
+
+<li class="li">
+Determine, whether through testing or system analysis, the number of threads that
+the thread pool requires.
+</li>
+
+
+<li class="li">
+Set <var class="keyword varname">maximum</var> to the number of required threads.
+</li>
+
+
+<li class="li">
+Set both <var class="keyword varname">lo_water</var> and <var class="keyword varname">hi_water</var> to
+the same number as <var class="keyword varname">maximum</var>.
+</li>
+
+
+</ul>
+
+
+<div class="p">
+
+Of course, setting the pool to a fixed size isn't always appropriate.
+For instance, you may need to tune your parameters to handle the following dynamic scenarios:
+
+  <ul class="ul">
+  
+  <li class="li">
+  <em class="ph i">A high initial load that drops down to a lower, steady load</em> — In this case,
+  you likely need to set <var class="keyword varname">hi_water</var> to be significantly lower than
+  <var class="keyword varname">maximum</var>. This configuration allows many threads to be created
+  at the high load point, but will recover the memory overhead of the per-thread data
+  as the load decreases.
+  </li>
+
+
+  <li class="li">
+  <em class="ph i">An ongoing series of burst loads</em> — In this case, you would set 
+  <var class="keyword varname">hi_water</var> to <var class="keyword varname">maximum</var>. This configuration assumes
+  that, once you've hit the load required to create a new thread, you're likely
+  to hit that load again. It thus avoids the overhead of thread creation each time the load occurs.
+  Compared to an approach that creates and destroys threads, this configuration commits
+  more memory, but reduces CPU overhead and latency for future requests to the pool.
+  </li>
+
+
+  </ul>
+
+</div>
+
+
+<p class="p">
+A further concern is the thrashing that can occur when load bursts cause threads
+to be repeatedly created and then destroyed. To prevent this issue, increase the
+difference between <var class="keyword varname">lo_water</var> and <var class="keyword varname">hi_water</var>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_tpool.html" title="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits.">Pools of threads</a></div>
+</div>
+</div></body>
+</html>

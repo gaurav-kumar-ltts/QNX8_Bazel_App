@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Optimize the bootloader" />
+<meta name="abstract" content="After developers get the system to boot for the first time, bootloader development is often neglected." />
+<meta name="description" content="After developers get the system to boot for the first time, bootloader development is often neglected." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_optimize_os.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="optimize_bootloader" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Optimize the bootloader</title>
+</head>
+<body id="optimize_bootloader">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Optimize the bootloader</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">After developers get the system to boot for the first time, bootloader development is often neglected.</p>
+
+        <div class="p">
+              Here are a few techniques that sometimes get overlooked: <ul class="ul">
+                <li class="li">Enable the data and instruction cache as early as possible. This consideration sounds obvious, but some of the tight copy loops used in the bootloader benefit immensely from having the instruction cache enabled.</li>
+
+                <li class="li"><p class="p">Minimize or eliminate the boot script timeout. Bootloaders like RedBoot and U-Boot, which run a script, typically contain an automatic timeout that lets you abort the loading of one OS load and then load another OS. The bootloader might print messages (for instance, help or welcome messages) to the serial port; you should suppress these as well.</p>
+
+                    <p class="p">To modify the timeout in U-Boot, use the <var class="keyword varname">bootdelay</var>, <var class="keyword varname">bootcmd</var>, and <var class="keyword varname">preboot</var> environment variables. For RedBoot, use <span class="keyword cmdname">fconfig</span> to change the value for the boot script timeout. This step applies only if you're using a bootloader other than the IPL (for production systems, use the IPL).</p>
+</li>
+
+                <li class="li">Don't scan for the OS image. If the system uses a primary QNX IPL, you should look at the code in <span class="keyword apiname">main()</span> in <span class="ph filepath">main.c</span> and remove anything that's unnecessary. In particular, look for code that calls <span class="keyword apiname">image_scan()</span> and replace it with the address of the OS image. You can also turn off the scan option when you generate the IPL (see the <q class="q"><a class="xref" href="fb_ipl_skip_image_scan.html" title="The IPL normally scans for a valid system image so that it can load that image into RAM.">Optimize your image scan</a></q> section later in this chapter). <div class="note"><span class="notetitle">Note:</span> If you pad the IPL to a fixed size, you will always know where the OS image begins.</div>
+
+                </li>
+
+                <li class="li">Eliminate the bootup checksum. In most cases, the system has a single OS image. Consequently, performing a checksum to ensure the image's validity has little value, since you can't perform a recovery if the image has failed. Also, the checksum takes time; removing it allows your important code to start running sooner.</li>
+
+            </ul>
+
+        </div>
+
+        <p class="p">For information about the <span class="keyword apiname">image_scan_*()</span> functions, see the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.building/topic/ipl_lib/ipl_library.html">IPL Library</a></q> section in <cite class="cite">Building Embedded Systems</cite>.</p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_optimize_os.html" title="This chapter presents optimization techniques you can apply in the bootup sequence that precedes the boot script.">Optimizing the Loading and Launching of the OS</a></div>
+</div>
+</div></body>
+</html>

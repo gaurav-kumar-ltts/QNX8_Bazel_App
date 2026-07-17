@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A simple read I/O function handler example" />
+<meta name="abstract" content="To illustrate how your resource manager might return data to a client, consider a simple resource manager that always returns the constant string &#34;Hello, world!\n&#34;. There are a number of issues involved, even in this very simple case." />
+<meta name="description" content="To illustrate how your resource manager might return data to a client, consider a simple resource manager that always returns the constant string &#34;Hello, world!\n&#34;. There are a number of issues involved, even in this very simple case." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_simple_code.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Effective_use.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="read_simple" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A simple read I/O function handler example</title>
+</head>
+<body id="read_simple">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A simple read I/O function handler example</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+To illustrate how your resource manager might return data to a client, consider
+a simple resource manager that always returns the constant string <tt class="ph tt">"Hello, world!\n"</tt>.
+There are a number of issues involved, even in this very simple case.
+</p>
+
+<p class="p">
+  
+  
+  
+  
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Matching of the client's data area size to the data being returned</dt>
+
+<dd class="dd">In our case, the resource manager is returning a fixed string of 14 bytes—there is exactly
+  that much data available. This is identical to a read-only file on a disk that contains
+  the string in question; the only real difference is that this <q class="q">file</q> is maintained in
+  our C program via the statement:
+<pre class="pre codeblock">char    *data_string = "Hello, world!\n";
+</pre>
+  <p class="p"> The client, on the other hand, can issue a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a> request of any size—the client could ask for
+    one byte, 14 bytes, or more. The impact of this on the read I/O function handler that
+    you're going to provide is that you must be able to match the client's requested data
+    size with what's available.
+    
+    
+    
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Handling of the EOF case</dt>
+
+<dd class="dd">A natural fallout of the way you handle the client's data area size considerations is the
+  corner case of dealing with the End-Of-File (EOF) on the fixed string.
+  Once the client has read the final <tt class="ph tt">\n</tt> character, further attempts
+  by the client to read more data should return EOF.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Maintenance of context information (the <span class="keyword apiname">lseek()</span> index)</dt>
+
+<dd class="dd">Both the <q class="q">Data area size considerations</q> and the <q class="q">Handling of EOF case</q> scenarios will
+  require that context be maintained in the OCB passed to your read I/O function handler,
+  specifically the <var class="keyword varname">offset</var> member.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Updating of POSIX <span class="keyword apiname">stat()</span> information</dt>
+
+<dd class="dd">One final consideration: when data is read from a resource manager,
+  the POSIX <em class="ph i">access time</em> (<var class="keyword varname">atime</var>) variable needs to be updated.
+  This is so that a client <span class="keyword apiname">stat()</span>
+  function will show that someone has indeed accessed the device.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_read_simple_code.html">The code</a></strong><br />
+ Here's the code that addresses all the above points. We'll go through it step by step in the discussion that follows. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_Effective_use.html">Effective use of other messaging functions</a></strong><br />
+ As you'll recall from the Message Passing chapter, we discussed a few other message-passing functions—namely <span class="keyword apiname">MsgWrite()</span>, <span class="keyword apiname">MsgWritev()</span>, and <span class="keyword apiname">MsgReplyv()</span>. The reason I'm mentioning them here again is because your read I/O function handler may be in an excellent position to use these functions. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_examples.html" title="I'm now going to show you a number of “cookbook” examples you can cut and paste into your code, to use as a basis for your projects. These aren't complete resource managers—you'll need to add the thread pool and dispatch “skeleton” shown immediately below, and ensure that your versions of the I/O functions are placed into the I/O functions table after you've done the iofunc_func_init(), in order to override the defaults!">Examples</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

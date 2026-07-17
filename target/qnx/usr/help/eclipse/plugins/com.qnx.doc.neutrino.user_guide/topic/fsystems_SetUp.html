@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Setting up, starting, and stopping a block filesystem" />
+<meta name="abstract" content="When you launch a block device driver (devb-*), it detects the partitions on the block I/O devices. You can then issue mount commands to start the appropriate filesystems for various partitions." />
+<meta name="description" content="When you launch a block device driver (devb-*), it detects the partitions on the block I/O devices. You can then issue mount commands to start the appropriate filesystems for various partitions." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="SetUp" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Setting up, starting, and stopping a block filesystem</title>
+</head>
+<body id="SetUp">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Setting up, starting, and stopping a block filesystem</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When you launch a block device driver (<span class="keyword cmdname">devb-*</span>), it detects the partitions
+on the block I/O devices.
+You can then issue <span class="keyword cmdname">mount</span> commands to start the appropriate filesystems for various partitions.
+</p>
+
+
+
+<p class="p">
+You aren't likely ever to need to stop or restart a block filesystem;
+if you change any of the filesystem's options, you can use the <span class="keyword option">-e</span>
+or <span class="keyword option">-u</span> option to the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a>
+command to update the filesystem.
+</p>
+
+
+<p class="p">
+If you need to change any of the options associated with the block I/O
+device, you can
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/slay.html"><span class="keyword cmdname">slay</span></a>
+the appropriate <span class="keyword cmdname">devb-*</span> driver (being
+careful not to pull the carpet from under your feet) and restart it,
+but you'll need to explicitly mount any of the filesystems on it.
+</p>
+
+
+<div class="p">
+
+
+
+You can determine the maximum filename length that a filesystem supports
+by using the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/getconf.html"><span class="keyword cmdname">getconf</span></a>
+utility:
+
+<pre class="pre codeblock">getconf _PC_NAME_MAX <var class="keyword varname">root_dir</var>
+</pre>
+
+where <var class="keyword varname">root_dir</var> is the root directory of the filesystem.
+</div>
+
+
+<p class="p">
+
+
+
+
+
+To determine how much free space you have on a filesystem, use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/df.html"><span class="keyword cmdname">df</span></a>
+command.
+For more information, see the <cite class="cite">Utilities Reference</cite>.
+</p>
+
+
+<p class="p">
+
+
+Some filesystems have the concept of being marked as <q class="q">dirty.</q>
+This can be used to skip an intensive filesystem-check the next time it
+starts up.
+The Ext2 filesystem has a flag bit; the DOS filesystem
+has some magic bits in the FAT.
+By default, when you mount a filesystem as read-write, that flag is set;
+when you cleanly unmount the filesystem, the flag is cleared.
+In between, the filesystem is dirty and may need to be checked (if it
+never gets cleanly unmounted).
+The Power-Safe filesystem has no such flag; it just rolls back to the
+last clean snapshot.
+You can use the <span class="keyword option">blk marking=none</span> option to turn off this
+marking; see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk.so</span></a>
+in the <cite class="cite">Utilities Reference</cite>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems.html" title="The QNX OS provides a variety of filesystems, so that you can easily access DOS, Linux, as well as native Power-Safe disks.">Working with Filesystems</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Security policy language" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="secpol_language" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Security policy language</title>
+</head>
+<body id="secpol_language">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Security policy language</h1>
+
+    
+    <div class="body conbody">
+<p class="p">Because the simplest way to develop a security policy is to use <span class="keyword cmdname">secpolgenerate</span>
+            to generate an initial policy, your initial use of the security policy language is
+            usually to help interpret the types and rules that the tool generates. Later, you can
+            use the language when you revise the policy to address any gaps in security, correct
+            errors, or edit it for simplicity.</p>
+
+        <p class="p">Security policy files are made up of statements—entries that define, for example, a type
+            or rule, and are terminated with a semi-colon (;). You can add white space to your
+            security file statements to make it easier to read, but these spaces are ignored by the
+            compiler. Comments are indicated by a pound sign (#) and extend to the rest of the
+            line.</p>
+
+<div class="section"><h2 class="title sectiontitle">Defining types</h2>
+            
+            <p class="p">The <tt class="ph tt">type</tt> statement declares a security type by name. In the following
+                example, <tt class="ph tt">screen_t</tt> is the type:</p>
+
+            <pre class="pre codeblock"># Type to represent the screen process 
+type screen_t;</pre>
+            <div class="p">Type names may contain alphanumeric characters and underscores. They cannot start
+                with a number. A hyphen in a type name will generate an error when the policy is
+                    compiled.<div class="note"><span class="notetitle">Note:</span> The type name <tt class="ph tt">default</tt> is reserved, must be declared only
+                    if it is referenced, and is associated with type ID 0. QNX strongly recommends
+                    that you don't use <tt class="ph tt">default</tt> as the type for any process.</div>
+
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Granting <span class="keyword cmdname">procmgr</span> abilities</h2><p class="p">Rules with the
+                    <tt class="ph tt">ability</tt> keyword grant an ability to a type. For example, the following
+                rule gives the type <tt class="ph tt">server</tt> the abilities that allow it to map physical
+                memory over some range, switch to user IDs 4, 6 and 23, and create dynamic
+                abilities:</p>
+<pre class="pre codeblock">allow server self:ability {
+    mem_phys:0x1200000-0x24000000
+    setuid:4,6,23
+    able_create
+};</pre>
+        <p class="p">For a list of abilities, see <q class="q"><a class="xref" href="abilities.html">Abilities</a>.</q>
+        </p>
+
+            <h3 class="title sectiontitle">Ability ranges</h3><p class="p">As shown in the previous example allow rule, a rule that
+                grants an ability can include a range. You can specify a single range or a
+                comma-separated list of ranges. For the majority of abilities, ranges are numeric
+                and consist of a range start and end value separated by a hyphen. The start and end
+                are represented in decimal, octal, or hexadecimal with conventional
+                notation.</p>
+<p class="p">If only the start of range is specified with no hyphen, the start
+                and end values are the same. If the end is omitted but the hyphen is still present,
+                the end of the range is equal to the largest possible value.</p>
+<p class="p">A range for the
+                    <tt class="ph tt">settypeid</tt> and <tt class="ph tt">channel_connect</tt> abilities uses names rather than
+                numbers because these abilities reference types, which have a numeric value that can
+                change. For
+                example:</p>
+<pre class="pre codeblock">allow server self:ability {
+    # Grant mem_phys over the range 1024 to 4096 and 
+    # 0x1200000 to 0x24000000
+    mem_phys:1024-4096,0x1200000-0x24000000
+    # Grant setuid for 4, 5, 6, 23 and 96 and above
+    setuid:4-6,23,96-
+    # Grant settypeid for the type ids associated with types
+    # server1 and server2
+    settypeid:server1,server2
+    # Grant channel_connect for type server3
+    channel_connect:server3
+    };</pre><p class="p">You
+                can add spaces when you specify the range (e.g., to make it easier to read). It is
+                not necessary to specify all ranges for a given ability in a single rule. If
+                multiple rules specify ranges for the same ability, the individual ranges are
+                combined. </p>
+<h3 class="title sectiontitle">Named ranges</h3><p class="p">You can also specify ability ranges
+                using a name. This is useful when the range values are not known until the system
+                boots (for example, address and interrupt ranges for devices).</p>
+<p class="p">The range names
+                and properties are defined in a range name file and are resolved to their actual
+                values when the policy is pushed to <span class="keyword cmdname">procnto</span>.</p>
+ To use named
+            ranges in a policy, you declare the ranges and then use them with the appropriate
+            abilities. For example:
+                <pre class="pre codeblock">range gpu_mem;
+range gpu_int;
+
+allow screen_t self:ability {
+    mem_phys: gpu_mem
+    interrupt: gpu_int
+    setuid: gpu_mem
+};</pre><p class="p">The
+                ranges for an ability can contain both named and unnamed ranges.</p>
+<p class="p">To generate
+                policies that use named ranges, use <span class="keyword cmdname">secpolgenerate</span> with the
+                    <span class="keyword option">-r </span>option. To push them, use <span class="keyword cmdname">secpolpush</span> with
+                    <span class="keyword option">-r</span>.</p>
+<p class="p">For information on the format that the named range
+                file uses, see <q class="q"><a class="xref" href="named_range_file.html">Named range file</a>.</q></p>
+<h3 class="title sectiontitle">Granting
+                abilities to non-root processes</h3><p class="p">By default, a process gets the abilities
+                specified in an allow statement only if it is <tt class="ph tt">root</tt> (i.e., when it has an
+                effective user ID of 0). To grant them when the process is non-root (effective user
+                ID other than 0) as well, include the <tt class="ph tt">nonroot</tt> option. For
+            example:</p>
+<pre class="pre codeblock">allow server self:ability {
+    nonroot
+    mem_phys:0x1200000-0x24000000
+    setuid:4,6,23
+    able_create
+};</pre>
+            The <tt class="ph tt">nonroot</tt> option grants abilities to both root and non-root processes. You
+            cannot grant an ability to non-root processes only. <h3 class="title sectiontitle">Unlocking
+                abilities</h3><p class="p">The <tt class="ph tt">unlocked</tt> option allows a process to change its
+                abilities from those granted via its security policy type. Although this option does
+                not appear in generated policies, you can add it as required to accommodate special
+                cases where the configuration of abilities needs to be flexible.</p>
+<p class="p">For example,
+                you need to restrict a processes uses of <tt class="ph tt">mem_phys</tt> to a named memory range
+                from the <var class="keyword varname">asinfo</var> section of the syspage, but the range of
+                addresses changes each time the system is booted. If the <tt class="ph tt">mem_phys</tt> ability
+                is unlocked, the exact range can be configured at runtime.</p>
+
+            <pre class="pre codeblock">allow server self:ability {
+    unlock
+    mem_phys:0x1200000-0x24000000
+};</pre>
+            If any rule unlocks a particular ability it remains unlocked irrespective of any rules
+            that may follow. <div class="note"><span class="notetitle">Note:</span> To allow the security policy to fully control abilities without
+                causing failures when processes try to configure their abilities themselves, run
+                    <span class="keyword cmdname">procnto</span> with the -bl ("el") option. In future releases, this
+                behavior will be the default. For more information, see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto*</span></a> in the <cite class="cite">Utilities Reference</cite>.
+                </div>
+<h3 class="title sectiontitle">Changing whether abilities are inherited</h3> By default, abilities
+            that policies grant to a process are inherited by any child process. The
+                <tt class="ph tt">noinherit</tt> keyword is available to prevent these abilities from being
+            inherited. However, the <tt class="ph tt">default_spawn_type</tt> keyword is a simpler, more flexible
+            way to configure inheritability (see <q class="q"><a class="xref" href="#secpol_language__require_type_change">Forcing a type change when
+                    spawning</a></q>). <h3 class="title sectiontitle">Custom abilities</h3>In some cases, a process
+            needs a custom ability (sometimes called a dynamic ability). This type of ability must
+            be declared in the security policy. For example, if <tt class="ph tt">server</tt> also needs to be
+            able to bind to a privileged TCP port:
+            <pre class="pre codeblock">ability network/bind/privport;
+ 
+allow server self:ability {
+    network/bind/privport
+};</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Rules for connecting to channels</h2> By
+            default, a process of any type is only allowed to connect to channels that have the type
+                <tt class="ph tt">default</tt>. But because the type of a channel defaults to the type of the
+            process that creates it, channel types are usually not <tt class="ph tt">default</tt>. Most channels
+            require explicit rules to allow processes to connect to them. <p class="p">The <tt class="ph tt">channel</tt>
+                class supports the <tt class="ph tt">connect</tt> permission, which controls a process's ability
+                to connect to a channel on the same node.</p>
+<p class="p">For example, the following
+                    <tt class="ph tt">allow</tt> statement allows a process of type <tt class="ph tt">mm_client</tt> to connect
+                to a channel on the same node that has the type
+                <tt class="ph tt">mm_server</tt>:</p>
+<pre class="pre codeblock">allow mm_client mm_server:channel connect;</pre>
+            <h3 class="title sectiontitle">Allow a process to attach one of its channels to a path</h3>
+            <p class="p">The security policy language includes rules that allow you to attach channels to paths using <span class="keyword apiname">resmgr_attach()</span>.
+                For example, the following rule allows the random process to provide the path <span class="ph filepath">/dev/random</span>:</p>
+
+            <pre class="pre codeblock">allow_attach random_t /dev/random;</pre>
+            <h3 class="title sectiontitle">Specifying a file type</h3>
+            <p class="p">The <span class="keyword apiname">resmg_attach()</span> function has a <var class="keyword varname">file_type</var> parameter that can be used to indicate special
+                types of attachments. For example, if the file is _FTYPE_MOUNT, it matches pathname requests from <span class="keyword apiname">mount()</span>.
+                (For detailed information, see the <q class="q">File types</q> section of the <span class="keyword apiname">resmgr_attach()</span> entry in the <cite class="cite">C Library Reference</cite>.)</p>
+
+            <p class="p">You can add a prefix to the path in the <tt class="ph tt">allow_attach</tt> rule to indicate that the rule applies to a specific file type.
+                It uses the following format:</p>
+
+            <pre class="pre codeblock"><var class="keyword varname">path_ftype</var>:</pre>
+            <p class="p">where <var class="keyword varname">path_ftype</var> is the <span class="keyword apiname">resmgr_attach()</span> file type value without the prefix _FTYPE_.
+                For example, the type indicated in the following rule is _FTYPE_MOUNT.
+                The rule allows a process of type <tt class="ph tt">devb_t</tt> to attach to <span class="ph filepath">/</span> for the purpose of receiving mount requests only:</p>
+
+            <pre class="pre codeblock">allow_attach devb_t mount:/;</pre>
+            <p class="p">In other words, it allows a call to <span class="keyword apiname">resmgr_attach()</span> with _FTYPE_MOUNT as the file type parameter.</p>
+
+            <p class="p">If no prefix is given, the rule allows registrations of _FTYPE_ANY. For example:</p>
+
+            <pre class="pre codeblock">allow_attach devb_t /system;</pre>
+            <p class="p">In addition, you can add <tt class="ph tt">+</tt> (plus sign) to the prefix to allow the process to attach its channel
+                to the path for both regular opens and those restricted by a file type. For example:</p>
+
+            <pre class="pre codeblock">allow_attach devb_t mount+:/system;</pre>
+            <p class="p">It is possible to allow any type of file type by using the prefix <tt class="ph tt">*:</tt> but this defeats the purpose of a security policy rule.</p>
+
+            <p class="p">When you automatically generate policies using <span class="keyword cmdname">secpolgenerate</span>, the utility adds all the appropriate
+                <span class="keyword apiname">resmgr_attach()</span> file type prefixes. The <span class="keyword cmdname">secpolmonitor</span> utility also adds them all as part of its output.</p>
+
+            <h3 class="title sectiontitle">Specifying a channel type</h3>
+            <p class="p">You can also specify the type for the channel after the process attaches it. If a process has multiple channels,
+                this rule allows you to apply different rules to each channel. Paths can include <tt class="ph tt">*</tt> (a wildcard that can represent any name) and …
+                (ellipsis that indicates any path below its location is a match).</p>
+
+            <p class="p">In the following example, the rule allows <span class="keyword cmdname">io-sock</span> to attach to many paths under <span class="ph filepath">/dev/socket</span>.
+                The type of any channel it attaches is <tt class="ph tt">socket_t</tt>:</p>
+
+            <pre class="pre codeblock" id="secpol_language__codeblock_jj4_422_pwb">allow_attach io_sock_t /dev/socket/* socket_t;</pre>
+            <p class="p">The following rule allows a process with the type <tt class="ph tt">unrestricted_t</tt> to attach a channel to any path.
+                It does not change the type of the channel:</p>
+
+            <pre class="pre codeblock" id="secpol_language__codeblock_kj4_422_pwb">allow_attach unrestricted_t /…;</pre>
+            <h3 class="title sectiontitle">Allow a process to create a symbolic link or attach the channel of another
+                process</h3> An <tt class="ph tt">allow_link</tt> rule allows a process to create a
+                <span class="keyword cmdname">procmgr</span> symbolic link or attach the channel of another process to
+            a path. It affects the ability of a process to use the functions
+                <span class="keyword apiname">pathmgr_symlink()</span> and <span class="keyword apiname">pathmgr_link()</span> (when the
+            channel involved belongs to another process). Paths can include * (wildcard) and
+            … (ellipsis that indicates any path below its location is a match).<p class="p">In the
+                following example, the rule allows a process of type <tt class="ph tt">type1_t</tt> to replace the
+                dynamic linker by pointing it to somewhere other than
+                    <span class="ph filepath">/proc/boot/ldqnx-64.so.2</span>:</p>
+<pre class="pre codeblock">allow_link type1_t /usr/lib/ldqnx-64.so.2;</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Forcing a type change when spawning</h2>The
+                <tt class="ph tt">default_spawn_type</tt> keyword indicates that the process is required to change
+            types on spawn. If the process explicitly provides a type, there is no change in
+            behavior; if it doesn't, it changes to the new type specified in the rule.<p class="p">For
+                example, the following rule requires a <tt class="ph tt">type1_t</tt> process to switch to
+                    <tt class="ph tt">type2_t</tt> when it spawns (unless the process changes type on its
+                own):</p>
+<pre class="pre">default_spawn_type type1_t type2_t; </pre>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Using custom classes and
+                actions</h2><p class="p">Security policies also work with custom classes of permissions
+                that you define.</p>
+<p class="p">For example, the following statement defines the class
+                    <tt class="ph tt">file</tt> and its
+                permissions:</p>
+<pre class="pre codeblock">class file { read write delete execute };</pre><p class="p">The
+                following rule grants permissions using the new class
+            <tt class="ph tt">file</tt>:</p>
+<pre class="pre codeblock">allow ptype ftype : file read;</pre>The system checks
+            whether the permissions you grant are associated with the class you've specified. For
+            example, using the <tt class="ph tt">file</tt> class example, the following statement generates an
+            error:<pre class="pre codeblock">allow ptype ftype : file connect;</pre>Continuing with the
+                <tt class="ph tt">file</tt> class example, a resource manager can use the following code to check
+            if an operation is
+                permitted:<pre class="pre codeblock">static secpol_permission_t *s_file_read_permission;
+static secpol_permission_t *s_file_write_permission;
+void
+init()
+{ 
+    s_file_read_permission = secpol_get_permission(handle, "file", "read", 0);
+    s_file_write_permission = secpol_get_permission(handle, "file", "write", 0);
+}
+
+bool
+can_read(const struct _msg_info *info, uint32_t ftype)
+{
+    return secpol_check_permission(info, ftype, s_file_read_permission) == 0;
+}</pre><p class="p">While
+                a resource manager can specify any name for a class or permission, it is strongly
+                recommended that each resource manager use a unique class name. In principle, only
+                the combination of class name and permission has to be unique. However, using the
+                same class name for objects that do different things could result in inappropriate
+                permissions being available to a type via a class. </p>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">The <tt class="ph tt">self</tt> type</h2><p class="p">The type name <tt class="ph tt">self</tt> is reserved and
+                specifies that the type of the object acted on is the same as the type of the
+                process taking the action.</p>
+<p class="p">For example, the following rule grants an ability
+                to
+                <tt class="ph tt">random_t</tt>:</p>
+<pre class="pre codeblock">allow random_t self:ability { io }; </pre><p class="p">This
+                rule has an effect that is equivalent to the following rule:
+            </p>
+<pre class="pre codeblock">allow random_t random_t:ability { io };</pre>However, there is no
+            advantage to specifying the object type by name, and using <tt class="ph tt">self</tt> prevents a
+            possible mismatch of types when, for example, the process type is a set of
+                types.<p class="p">Using <tt class="ph tt">self</tt> can help simplify rules that specify a set of types or
+                use attributes that group types (see <q class="q"><a class="xref" href="#secpol_language__using_an_attribute">Using an attribute to group
+                        types</a></q>).</p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Derived types</h2>Processes often need to be able to change types as a
+            way to drop privileges after they start up and when they spawn child processes. However,
+            because the types a system uses are specific to each system, specifying the type to
+            change to would require a command line option or equivalent mechanism.<p class="p">To meet the
+                requirement without a new command line option, a type ID that is determined by the
+                process's current type and the name passed in (i.e., a derived type) is used with
+                the <span class="keyword apiname">secpol_transition_type()</span> and
+                    <span class="keyword apiname">secpol_posix_spawnattr_settypeid()</span>. Using derived types
+                allows a process to hard code names that are then used to derive a final type from
+                its current type.</p>
+<div class="p">A <tt class="ph tt">derive_type</tt> statement uses the following
+                syntax:<pre class="pre codeblock">derive_type type1 name type2;</pre>For example, if a process
+                is running as <tt class="ph tt">type1</tt> and makes the following function call, it switches to
+                    <tt class="ph tt">type2</tt>:<pre class="pre codeblock">secpol_transition_type(NULL, "name", 0);</pre>If
+                it is running as some other type and there is a matching derive rule, it switches to
+                the type specified by that rule.</div>
+<div class="p">You can specify sets of source types and
+                names in a <tt class="ph tt">derive_type</tt> rule. For example, the following statement sets a
+                process to <tt class="ph tt">type3</tt> when the process is either <tt class="ph tt">type1</tt> or
+                    <tt class="ph tt">type2</tt> and uses either the <tt class="ph tt">run</tt> or <tt class="ph tt">init</tt> string in a
+                call to
+                <span class="keyword apiname">secpol_transition_type()</span>:<pre class="pre codeblock">derive_type { type1 type2 } { run init } type3;</pre></div>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Specifying which privileges can be acquired by switching type</h2>Types
+            with the <tt class="ph tt">settypeid</tt> ability can switch to the types specified by that ability.
+            The <span class="keyword cmdname">secpolcompile</span> utility prevents the creation of a security policy
+            that unintentionally allows a process to gain privileges that it should not have. If a
+            non-root process of some type can gain additional privileges by switching to another type,
+            those privileges must be specified using <tt class="ph tt">gain_priv</tt>.<p class="p">The intention is that a
+            system will be designed such that all processes are non-root and do not have the ability
+            to switch to root. The inability to switch to root means the abilities given to root should be inaccessible to the processes.</p>
+<p class="p">The
+            need for <tt class="ph tt">gain_priv</tt> can be a sign that there is a potential for improvement.
+            If a process needs to spawn a child of a different type that has additional privileges,
+            a means to avoid the need for <tt class="ph tt">gain_priv</tt> is to spawn the child via <span class="keyword cmdname">secpollaunch</span>.
+            This function will not require the use of <tt class="ph tt">gain_priv</tt> since <span class="keyword cmdname">secpollaunch</span>
+            will be spawned with the parent's type and makes the type transition as root. While the end
+            results might be the same, with the use of <span class="keyword cmdname">secpollaunch</span>, the parent has
+            little or no control over how the child is spawned and thus the change of privileges is of
+            less consequence.</p>
+<p class="p">In the following example, the
+                    <tt class="ph tt">server</tt> type can switch to <tt class="ph tt">server1</tt> or <tt class="ph tt">server2</tt>. By
+                switching type (to <tt class="ph tt">server1</tt>, <tt class="ph tt">server2</tt>, or both), it gains the
+                    <tt class="ph tt">pathspace</tt> ability. The <tt class="ph tt">gain_priv</tt> ability specifies that this
+                additional privilege is allowed:
+                </p>
+<pre class="pre codeblock">allow server self:ability {
+    nonroot
+    # Grant settypeid for the type ids associated with types
+    # server1 and server2
+    settypeid:server1,server2
+    # Grant channel_connect for type server3
+    channel_connect:server3
+    # Allow a switch to a type that has the pathspace ability
+    gain_priv:pathspace
+};</pre><div class="p">The
+                policy compiler generates the following output related to <tt class="ph tt">gain_priv</tt>:<ul class="ul" id="secpol_language__ul_mvc_c4l_thb">
+                    <li class="li">A warning for any privileges that <tt class="ph tt">gain_priv</tt> specifies but the type
+                        does not gain by switching its type to one specified by
+                        <tt class="ph tt">settypeid</tt>.</li>
+
+                    <li class="li">An error for any privileges that the type gains by switching type that are
+                        not specified by <tt class="ph tt">gain_priv</tt>.</li>
+
+                </ul>
+</div>
+<p class="p">To see which type specified by <tt class="ph tt">settypeid</tt> is associated with a
+                privilege specified by <tt class="ph tt">gain_priv</tt>, comment out <tt class="ph tt">gain_priv</tt> in the
+                policy and compile it. The error messages indicate the type associated with each
+                missing privilege.</p>
+
+            <h3 class="title sectiontitle">Specifying custom class permissions with <tt class="ph tt">gain_priv</tt></h3>
+            <div class="p">To specify a custom permission with <tt class="ph tt">gain_priv</tt>, use a string with the
+                following format:<pre class="pre codeblock">class:perm:type</pre>where a * can replace
+                    <tt class="ph tt">perm</tt>, <tt class="ph tt">type</tt>, or both to indicate all permissions or all
+                types.</div>
+<div class="p">For example, a class <tt class="ph tt">file</tt> has permissions <tt class="ph tt">read</tt> and
+                    <tt class="ph tt">write</tt>. The following statement allows a process to gain the privilege
+                to read files of type
+                <tt class="ph tt">file1_t</tt>:<pre class="pre codeblock">gain_priv: file:read:file1_t</pre>Using the same
+                example, the following statement allows the type to gain all privileges for type
+                    <tt class="ph tt">file1_t</tt>:<pre class="pre codeblock">gain_priv: file:*:file1_t</pre></div>
+</div>
+
+        <div class="section" id="secpol_language__mount_point"><h2 class="title sectiontitle">Setting ownership and permissions for mount points</h2>
+            
+            <div class="p">A <tt class="ph tt">mount_point</tt> rule sets the ownership and permissions for a specified path
+                when a process calls <span class="keyword apiname">secpol_resmgr_attach()</span>. Unlike other rules,
+                it does not depend on the caller's type. It uses the following format:
+                <pre class="pre codeblock">mount_point <var class="keyword varname">uid</var> : <var class="keyword varname">gid</var> <var class="keyword varname">permissions</var> <var class="keyword varname">mount-points</var> ;</pre>When
+                any path specified by <var class="keyword varname">mount-points</var> is added to the pathname space
+                via <span class="keyword apiname">secpol_resmgr_attach()</span>, the ownership is set to the specified
+                user ID and group ID, and the permissions set to the specified permissions.</div>
+The
+                <var class="keyword varname">uid</var> and <var class="keyword varname">gid</var> values must be numeric. <p class="p">If you
+                specify multiple values for <var class="keyword varname">permissions</var> and
+                    <var class="keyword varname">mount-points</var>, enclose them in { } (curly brackets; as for
+                other security policy rules). </p>
+<p class="p">The <var class="keyword varname">mount-points</var> value is
+                one or more paths and, like other security policy rules, can include * (wildcard)
+                and <span class="ph filepath">...</span> (ellipsis that indicates any path below its location is
+                a match).</p>
+<p class="p">The <var class="keyword varname">permissions</var> value can include:</p>
+<ul class="ul" id="secpol_language__ul_tjb_3gf_lxb">
+                <li class="li">Simple permissions that are specified using a nine-character string of
+                    characters and in the same format as the output of <span class="keyword cmdname">ls -l</span>. For
+                    example, the following rule makes user ID 1000 and group 1001 the owners of the
+                    mount point, gives read/write access to the owner and group, and gives read
+                    access to others: <pre class="pre codeblock">mount_point 1000:1001 rw-rw-r-- {
+    /dev/random
+    /dev/urandom
+} ;</pre></li>
+
+                <li class="li">ACLs that use the format described in <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/files_acls.html">Access
+                            Control Lists (ACLs)</a></q> in the <span class="keyword">QNX OS</span>
+                    <cite class="cite">User's Guide</cite>. For example, the following rule gives read/write
+                    access to the owner's user ID, user ID 99, group ID 100, and gives read access
+                    for everyone else: <pre class="pre codeblock">mount_point 1000:1001 { 
+    user::rw
+    user:99:rw
+    group:100:rw
+    group::r
+    other::r
+} /dev/random;</pre>To specify this same rule more compactly, use
+                        <span class="ph codeph">u</span>, <span class="ph codeph">g</span>, and <span class="ph codeph">o</span> instead of
+                        <span class="ph codeph">user</span>, <span class="ph codeph">group</span>, and <span class="ph codeph">other</span>,
+                    and a nine-character string. For example:
+                    <pre class="pre codeblock">mount_point 1000:1001 { 
+    rw-r--r--
+    u:99:rw
+    g:100:rw
+    }  /dev/random;</pre></li>
+
+            </ul>
+<div class="note"><span class="notetitle">Note:</span> Because the <tt class="ph tt">mount_point</tt> rule does not depend on types, you can use it
+                in a system that makes no other use of security policies—your policy can
+                consist of <tt class="ph tt">mount_point</tt> rules only. The policy is compiled as usual and
+                located at the standard location (<span class="ph filepath">/proc/boot/secpol.bin)</span>.
+                However, you don't use <span class="keyword cmdname">secpolpush</span> to push the policy to
+                    <span class="keyword cmdname">procnto</span>. </div>
+</div>
+
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Using an attribute to group types</h2>
+            <p class="p"></p>
+<p class="p">You can use the <tt class="ph tt">attribute</tt> keyword to
+                group a set of types that have some security attributes in common. Attribute names
+                must be different than type names. Use a comma as shown in the following syntax to
+                associate an attribute name with a type name after you declare
+                it:</p>
+<span class="keyword option">type</span>
+            <var class="keyword varname">type-name</var> [, <var class="keyword varname">attribute-name</var>] ... ; <p class="p">When you
+                specify an attribute for a type, the type gets any permissions that are granted to
+                the attribute. Types can be associated with multiple attributes. Attributes do not
+                have type IDs.</p>
+<p class="p">In this example, the following section of a security policy
+                could be rewritten using an attribute and the reserved type
+                <tt class="ph tt">self</tt>:</p>
+<pre class="pre codeblock">allow secure1_t secure1_t : channel connect;
+allow secure2_t secure2_t : channel connect;
+allow secure3_t secure3_t : channel connect;</pre><p class="p">For
+                example:</p>
+<pre class="pre codeblock">attribute secure;
+type secure1_t, secure;
+type secure2_t, secure;
+type secure3_t, secure;
+allow secure self : channel connect;</pre>
+            You can use attributes when you specify sets of process types or object types, or a
+            combination of types and attributes. </div>
+
+        <div class="section"><h2 class="title sectiontitle">Apply default rules to types</h2>
+            
+            <p class="p">The type <tt class="ph tt">default_rules</tt> allows you to give privileges to other types by
+                default. Only types that have an allow rule in their definition get the default
+                privileges.</p>
+
+            <p class="p">For example, the following rule gives the spawn ability to all applicable types:</p>
+
+            <pre class="pre codeblock">allow default_rules self:ability spawn;</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Rules for sets of types, targets, and classes</h2>
+            
+            <p class="p">You can revise or create rules to specify multiple types, multiple permissions, or
+                both (rules generated by <span class="keyword cmdname">secpolgenerate</span> specify only individual
+                types). </p>
+
+            <p class="p">The effect of this type of <tt class="ph tt">allow</tt> statement is equivalent to creating
+                separate <tt class="ph tt">allow</tt> statements from all combinations of the set of process
+                types, the set of object types (i.e., the target of the process's action), and the
+                set of permissions.</p>
+
+            <p class="p">For example, the following rule assigns permissions to two types that are applied to
+                processes. The permission is for connecting to a channel that is one of two
+                types:</p>
+
+            <pre class="pre codeblock">allow { type1 type2 } { type3 type4 }:channel connect;</pre>
+            <p class="p">The following set of rules creates permissions that are equivalent to the example
+                    <tt class="ph tt">allow</tt> statement:</p>
+
+            <pre class="pre codeblock">allow type1 type3:channel connect;
+allow type1 type4:channel connect;
+allow type2 type3:channel connect;
+allow type2 type4:channel connect;</pre>
+            <p class="p">You can also specify sets of custom classes, as long as all the classes in the set
+                support the permissions the rule specifies (see <q class="q"><a class="xref" href="#secpol_language__using_custom_classes">Using custom classes and
+                        actions</a></q>).</p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Example of an uncompiled policy file (secpol.txt)</h2>The following
+            example policy content controls the use of the path <span class="ph filepath">/dev/screen</span> by
+            the screen service and its clients:
+            <pre class="pre codeblock"># Type to represent the screen process
+type screen_t;
+# Type to represent screen clients (you might want more than one type)
+type screen_client_t;
+        
+allow_attach screen_t /dev/screen;
+allow screen_client_t screen_t : channel connect;
+        </pre>This
+            policy declares the type <tt class="ph tt">screen_t</tt> (to use when starting the screen service) and
+                <tt class="ph tt">screen_client_t</tt> (to use when starting its clients). The
+                <tt class="ph tt">allow_attach</tt> rule states that any process labeled with <tt class="ph tt">screen_t</tt> is
+            allowed to attach a channel to the path <span class="ph filepath">/dev/screen</span>. After this
+            policy has been installed in <span class="keyword cmdname">procnto</span>, it is not possible to attach
+            any path that is not explicitly allowed, including <span class="keyword cmdname">procmgr</span> symbolic
+            links. <p class="p">The example shows the simpler form of the <tt class="ph tt">allow_attach</tt> statement
+                where there is no change in the type associated with the channel being attached.
+                Channels inherit the type of the process that owns them; this means that this
+                channel will also have a type of <tt class="ph tt">screen_t</tt>. By default, no process is able
+                to connect to a channel with type <tt class="ph tt">screen_t</tt>. To make the channel useful, an
+                    <tt class="ph tt">allow</tt> statement is added that allows a process with the type
+                    <tt class="ph tt">screen_client_t</tt> to connect to a channel that has a type
+                    <tt class="ph tt">screen_t</tt>.</p>
+</div>
+
+    </div>
+
+</body>
+</html>

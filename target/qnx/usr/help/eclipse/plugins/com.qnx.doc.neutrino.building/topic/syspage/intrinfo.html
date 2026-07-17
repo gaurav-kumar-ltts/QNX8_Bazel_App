@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="intrinfo" />
+<meta name="abstract" content="Information about the interrupt system" />
+<meta name="description" content="Information about the interrupt system" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="intrinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>intrinfo</title>
+</head>
+<body id="intrinfo">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><var class="keyword varname">intrinfo</var></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc"><em class="ph i">Information about the interrupt system</em></p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The <var class="keyword varname">intrinfo</var> area stores information about the interrupt system,
+				and contains the kernel callouts that manipulate the interrupt controller hardware.
+				This area is defined by an array of <span class="keyword dtype">intrinfo</span>
+				data structures.</p>
+<p class="p">On a multicore system, each interrupt is directed to only one CPU,
+				although it doesn't matter which. How this happens is controlled by the board's
+				Programmable Interrupt Controller chips (PICs). When you initialize the PICs at
+				startup, you can program them to deliver the interrupts to whichever CPU you want;
+				on some PICs you can even get an interrupt to rotate between CPUs each time it is
+				asserted.</p>
+<p class="p">Often, QNX startup programs are written so that all interrupts
+				(except those used for interprocessor interrupts) are sent to CPU 0. This allows for
+				the same startup for <span class="keyword cmdname">procnto</span> and <span class="keyword cmdname">procnto-smp</span>.
+				Also, directing all interrupts to one CPU is efficient because it supports better
+				cache usage.</p>
+<div class="p">The startup library's <a class="xref" href="../startup_lib/init_intrinfo.html" title="Initialize the intrinfo data structure in the system page."><span class="keyword apiname">init_intrinfo()</span></a> function fills in the
+				<var class="keyword varname">intrinfo</var> area. If you need to override some defaults set by
+				this function (which is common for non-x86 systems) or if the function isn't
+				suitable for your custom environment, you can call <a class="xref" href="../startup_lib/add_interrupt_array.html" title="Populate the interrupt kernel callout array in the system page."><span class="keyword apiname">add_interrupt_array()</span></a>, passing in a table with
+				these fields:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><var class="keyword varname">vector_base</var></dt>
+
+						<dd class="dd">The base number of the logical interrupt numbers that programs will use.
+							(e.g., the interrupt vector passed to
+							<span class="keyword apiname">InterruptAttachThread()</span>).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">num_vectors</var></dt>
+
+						<dd class="dd">The number of vectors starting at <var class="keyword varname">vector_base</var>
+							described by this entry.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">cascade_vector</var></dt>
+
+						<dd class="dd">If this interrupt entry describes a set of interrupts that are cascaded
+							into another interrupt controller, then this member contains the logical
+							interrupt number of the interrupt that this controller cascades into.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">cpu_intr_base</var></dt>
+
+						<dd class="dd">
+							
+							
+							
+							The association between this set of interrupts and the CPU's view of the
+							interrupt source.</dd>
+
+						<dd class="dd ddexpand">The interpretation of the <var class="keyword varname">cpu_intr_base</var> member varies
+							with the processor. For ARM processors, this value should be 0, because
+							all ARM interrupts are handled via the IRQ exception. For x86, this is
+							the Interrupt Descriptor Table (IDT) entry, typically 0x30.</dd>
+
+					
+					
+						<dt class="dt dlterm" id="intrinfo__cpu_intr_stride"><var class="keyword varname">cpu_intr_stride</var></dt>
+
+						<dd class="dd">The spacing between interrupt vector entries for interrupt systems that
+							do autovectoring. The default is 0 (no autovectoring).</dd>
+
+						<dd class="dd ddexpand">On an x86 platform with the standard 8259 controller setup, this value
+							is 1, meaning that the interrupt vector corresponding to the hardware
+							interrupt sources is offset by 1 (e.g., interrupt vector 0 goes to
+							interrupt 0x30, interrupt vector 1 goes to interrupt 0x31, etc).</dd>
+
+						<dd class="dd ddexpand">On non-x86 systems, this value is usually 0, because their interrupt
+							systems generally don't do autovectoring.
+							<div class="cautiontitle">CAUTION:</div><div class="note caution">The system checks the value of
+								<var class="keyword varname">cpu_intr_stride</var> on all platforms and
+								fails if this value isn't valid for the current hardware
+								(e.g., 0 for non-x86 architectures).</div>
+
+						</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+						<dd class="dd">Used by the startup code when generating the entry points
+							for interrupt handling (see <q class="q"><a class="xref" href="#intrinfo__flags">INTR_* flags</a></q> below).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+						<dd class="dd">A code snippet that the kernel uses
+							to identify the source of the interrupt, for the case when multiple
+							hardware events can trigger one CPU-visible interrupt. Further modified
+							by the <a class="xref" href="#intrinfo__intr_genflag"><span class="keyword const">INTR_GENFLAG_*</span></a> flags, defined below.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">eoi</var></dt>
+
+						<dd class="dd">A code snippet that provides the End Of Interrupt (EOI) functionality.
+							This code is responsible for telling the controller that the interrupt is done,
+							and for unmasking the interrupt level.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">mask</var></dt>
+
+						<dd class="dd">A callout to mask an interrupt source at the hardware controller level.
+							The numbers passed to this function are the interrupt vector numbers
+							(from 0 to <var class="keyword varname">num_vectors</var> - 1).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">unmask</var></dt>
+
+						<dd class="dd">A callout to unmask an interrupt source at the hardware controller
+							level. Same vector numbers as <var class="keyword varname">mask</var>, above.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">config</var></dt>
+
+						<dd class="dd">Provides configuration information on individual interrupt levels. The
+							function get passed the system page pointer, a pointer to this interrupt
+							info entry, and the zero-based interrupt level. Returns a bitmask (see
+							<a class="xref" href="#intrinfo__intr_config"><span class="keyword const">INTR_CONFIG_FLAG*</span></a> below).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">patch_data</var></dt>
+
+						<dd class="dd">Provides information about patched data. This data is passed to the
+							<span class="keyword apiname">patcher()</span> routine that gets called once for each
+							kernel callout in a <span class="keyword apiname">startup_intrinfo()</span> structure.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">local_stride</var></dt>
+
+						<dd class="dd">When <var class="keyword varname">local_stride</var> is non-zero, the interrupt is
+							processor-specific.</dd>
+
+						<dd class="dd ddexpand">The processor-specific interrupt ID must be passed to functions like
+							<span class="keyword apiname">InterruptAttachThread()</span>. This ID is calculated as follows:
+							<pre class="pre codeblock">processor_intid = common_intid + (processor_number * local_stride)</pre>
+							The common interrupt ID is architecture-specific and must be known by the programmer.
+							The processor number is the processor targeted by the interrupt.</dd>
+
+						<dd class="dd ddexpand">A <var class="keyword varname">local_stride</var> of zero (0) indicates that the interrupt is
+							not processor-specific.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				
+				
+				
+				<p class="p">Each group of kernel callouts (<var class="keyword varname">id</var>, <var class="keyword varname">eoi</var>,
+					<var class="keyword varname">mask</var>, <var class="keyword varname">unmask</var>) for each interrupt
+					controller level deals with a set of zero-based interrupt vectors. You must set
+					the kernel callouts for each interrupt level accordingly.</p>
+<p class="p">Interrupt vector
+					numbers are passed without offset to the callout routines. The mapping between
+					the zero-based interrupt vectors used by the callouts and the system-wide
+					interrupt vectors is configured in the <span class="keyword dtype">intrinfo</span> structures, which
+					are found in the <span class="keyword apiname">init_intrinfo()</span> routine.</p>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="intrinfo__flags"><h2 class="title sectiontitle"><span class="keyword const">INTR_*</span> flags</h2>
+			
+			
+			
+			
+			
+			<p class="p">The <var class="keyword varname">flags</var> member takes two sets of flags. One set describes
+				interrupt characteristics, the other set affects interrupt code generation. Both
+				sets are system-independent.</p>
+
+			<h3 class="title sectiontitle">Interrupt characteristics</h3>
+			
+			
+			<div class="p">The first set of flags deals with the characteristics of the interrupts:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_FLAG_NMI</span></dt>
+
+						<dd class="dd">Indicates that this is a NonMaskable Interrupt (NMI). An NMI is an interrupt
+							which, unlike normal interrupts, can't be disabled by clearing the CPU's
+							interrupt enable flag. NMIs are typically used to signal events that require
+							immediate action, such as a parity error, a hardware failure, or an imminent
+							loss of power.</dd>
+
+						<dd class="dd ddexpand">Interrupts that are normally used and referred to by number are called
+							<em class="ph i">maskable</em> interrupts. These interrupts can be ignored (masked) to
+							let the processor complete a task.</dd>
+
+						<dd class="dd ddexpand">With an NMI, the kernel needs to know that it can't protect (mask) the
+							interrupt. The <span class="keyword const">INTR_FLAG_NMI</span> value in the
+							<var class="keyword varname">flags</var> member allows the kernel to differentiate
+							between normal (maskable) interrupts and NMIs.</dd>
+
+						<dd class="dd ddexpand">We strongly discourage the use of the NMI vector in x86 designs; we don't
+							support it on any non-x86 platforms.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_FLAG_CASCADE_IMPLICIT_EOI</span></dt>
+
+						<dd class="dd">Indicates that an EOI to the primary interrupt controller is not required
+							when handling a cascaded interrupt, because the EOI is issued automatically.
+							Only used if this entry describes a cascaded controller.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_FLAG_CPU_FAULT</span></dt>
+
+						<dd class="dd">Indicates that one or more vectors described by this entry is <em class="ph i">not</em>
+							connected to a hardware interrupt source, but is generated as a result of a
+							CPU fault (e.g., bus fault, parity error).</dd>
+
+						<dd class="dd ddexpand">We strongly discourage designing your hardware this way. The implication is
+							that a check needs to be inserted for an exception into the generated code
+							stream; after the interrupt has been identified, an EOI needs to be sent to
+							the controller. The EOI code burst has the additional responsibility of
+							detecting what address caused the fault, retrieving the fault type, and then
+							passing the fault on. The primary disadvantage of this approach is that it
+							causes extra code to be inserted into the code path.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			
+			<h3 class="title sectiontitle">Interrupt code generation</h3>
+			
+			
+			
+			
+			
+			
+			<div class="p">The second set of flags deals with code generation:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_GENFLAG_LOAD_SYSPAGE</span></dt>
+
+						<dd class="dd">Before the interrupt identification or EOI code sequence is generated, a
+							piece of code needs to be inserted to fetch the system page pointer into a
+							register so that it's usable in the identification code sequence.
+							<div class="note"><span class="notetitle">Note:</span>  If you use the <span class="keyword apiname">interrupt_id_dec()</span>,
+								<span class="keyword apiname">interrupt_id_dec_smp()</span>, or
+								<span class="keyword apiname">interrupt_eoi_dec()</span> kernel callouts, you must
+								specify the <span class="keyword const">INTR_GENFLAG_LOAD_SYSPAGE</span> flag in the
+								<var class="keyword varname">genflags</var> field of the
+								<span class="keyword dtype">intrinfo_entry</span> structure in the board-specific code.
+							</div>
+</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_GENFLAG_LOAD_INTRINFO</span></dt>
+
+						<dd class="dd">Same as <span class="keyword const">INTR_GENFLAG_LOAD_SYSPAGE</span>, except that it loads a
+							pointer to this structure.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_GENFLAG_LOAD_INTRMASK</span></dt>
+
+						<dd class="dd">Used only by EOI routines for hardware that doesn't automatically mask at
+							the chip level. When the EOI routine is about to re-enable interrupts, it
+							should re-enable only those interrupts that are actually enabled at the user
+							level (i.e., managed by the functions <span class="keyword apiname">InterruptMask()</span> and
+							<span class="keyword apiname">InterruptUnmask()</span>).</dd>
+
+						<dd class="dd ddexpand">When this flag is set, the existing interrupt mask is stored in a register
+							for access by the EOI routine. A zero in the register indicates that the
+							interrupt should be unmasked; a non-zero indicates it should remain masked.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_GENFLAG_LOAD_CPUNUM</span></dt>
+
+						<dd class="dd">Same as <span class="keyword const">INTR_GENFLAG_LOAD_SYSPAGE</span>, except that it loads a
+							pointer to the number of the CPU this structure uses.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_GENFLAG_ID_LOOP</span></dt>
+
+						<dd class="dd">Some interrupt controllers have read-and-clear registers indicating the
+							active interrupts. The first read returns a bitset of the pending
+							interrupts, then immediately zeroes the register.</dd>
+
+						<dd class="dd ddexpand">Since the interrupt ID kernel callout can return only one interrupt number
+							at a time, if there's more than one bit set in the status register, we might
+							fail to process all interrupts. When <span class="keyword const">INTR_GENFLAG_ID_LOOP</span> is
+							set, the kernel generates code to jump back to the ID kernel callout after
+							the EOI has finished.</dd>
+
+						<dd class="dd ddexpand">
+							<div class="p">In the ID kernel callout, you can allocate read-write storage in the
+								usual way. The storage is initially set to zero. When the callout runs,
+								the first thing it does is check the storage area:
+								<ul class="ul">
+									<li class="li">If the storage is non-zero, the callout uses it to identify
+										another interrupt to process, unsets that bit, writes the new
+										value back into the storage location, and returns the identified
+										interrupt number.</li>
+
+									<li class="li">If the storage location is zero, the callout reads the hardware
+										status register (clearing it) and identifies the interrupt
+										number from it. It then unsets that bit, writes the value to the
+										storage location, and returns the appropriate interrupt number.</li>
+
+									<li class="li">If both the storage and hardware register are zero, the routine
+										returns -1 to indicate no interrupt is present as per usual.</li>
+
+								</ul>
+
+							</div>
+
+						</dd>
+
+					
+				</dl>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="intrinfo__intr_config"><h2 class="title sectiontitle"><span class="keyword apiname">config()</span> return values</h2>
+			
+			
+			
+			
+			
+			<div class="p">The interrupt interface's <span class="keyword apiname">config()</span> kernel callout (see <q class="q"><a class="xref" href="../callouts/callout_irq.html" title="The interrupt controller interface includes kernel callouts and stubs.">Interrupt controller</a></q> in the Kernel
+				Callouts chapter) may return zero or more of the following flags:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_CONFIG_FLAG_PREATTACH</span></dt>
+
+						<dd class="dd">Normally, an interrupt is masked (ignored) until a thread attaches to it
+							via <span class="keyword apiname">InterruptAttachThread()</span>,
+							<span class="keyword apiname">InterruptAttachEvent()</span>, or
+							<span class="keyword apiname">InterruptAttachEventPriority()</span>. If CPU fault
+							indications are routed through to a hardware interrupt (<em class="ph i">not</em>
+							recommended!), the interrupt would, by default, be disabled. Setting
+							this flag causes a <q class="q">dummy</q> connection to be made to this source,
+							causing this level to become unmasked.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_CONFIG_FLAG_DISALLOWED</span></dt>
+
+						<dd class="dd">Prevents user code from attaching to this interrupt level. Generally
+							used with <span class="keyword const">INTR_CONFIG_FLAG_PREATTACH</span>, but could be used
+							to prevent user code from attaching to any interrupt in general.</dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">INTR_CONFIG_FLAG_IPI</span></dt>
+
+						<dd class="dd">Identifies the vector used as the target of an inter-processor interrupt
+							in an SMP system.
+							
+						</dd>
+
+					
+				</dl>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

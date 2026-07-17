@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Detecting process termination" />
+<meta name="abstract" content="In an embedded application, it's often important to detect if any process terminates prematurely and, if so, to handle it." />
+<meta name="description" content="In an embedded application, it's often important to detect if any process terminates prematurely and, if so, to handle it." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_High_Availability.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Detecting_termination.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Sample_using_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Sample_using_sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Detecting_dumped.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Termination_of_daemons.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Client_termination.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="PROCDETECTTERM" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Detecting process termination</title>
+</head>
+<body id="PROCDETECTTERM">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Detecting process termination</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In an embedded application, it's often important to detect
+if any process terminates prematurely and, if so, to handle it.
+</p>
+
+
+<p class="p">
+
+Handling it may involve something as simple as restarting the process or as complex as:
+</p>
+
+
+<ol class="ol">
+<li class="li">Notifying other processes that they should put their systems into a safe state.</li>
+
+<li class="li">Resetting the hardware.</li>
+
+</ol>
+
+
+<p class="p">
+
+
+This is complicated by the fact that some processes call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_daemon.html"><span class="keyword apiname">procmgr_daemon()</span></a>.
+Processes that call this function are referred to as <em class="ph i">daemons</em>.
+The <span class="keyword apiname">procmgr_daemon()</span> function:
+</p>
+
+
+<ul class="ul">
+<li class="li">detaches the caller from the controlling terminal</li>
+
+
+<li class="li">puts it in session 1</li>
+
+
+<li class="li">optionally, closes all file descriptors except <var class="keyword varname">stdin</var>, <var class="keyword varname">stdout</var>,
+  and <var class="keyword varname">stderr</var></li>
+
+
+<li class="li">optionally, redirects <var class="keyword varname">stdin</var>, <var class="keyword varname">stdout</var>, <var class="keyword varname">stderr</var>
+  to <span class="ph filepath">/dev/null</span></li>
+
+
+<li class="li">severs the parent-child relationship</li>
+
+
+</ul>
+
+
+<p class="p">
+As a result of the above, their termination is hard to detect.
+</p>
+
+
+<p class="p">
+Another scenario is where a server process wants to know if any
+of its clients disappear so that it can clean up any resources
+it had set aside on their behalf.
+</p>
+
+
+<p class="p">
+Let's look at various ways of detecting process termination.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/process_High_Availability.html">Using the High Availability Framework</a></strong><br />
+ The High Availability Framework provides components not only for detecting when processes terminate, but also for recovering from such terminations. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Detecting_termination.html">Detecting termination from a starter process</a></strong><br />
+  If you've created a set of processes using a starter process, then all those processes are children of that process, with the exception of those that have called <span class="keyword apiname">procmgr_daemon()</span>. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Sample_using_wait.html">Sample parent process using wait()</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Sample_using_sigwaitinfo.html">Sample parent process using sigwaitinfo()</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Detecting_dumped.html">Detecting dumped processes</a></strong><br />
+ As mentioned above, you can run <span class="keyword cmdname">dumper</span> so that when a process dies,  <span class="keyword cmdname">dumper</span> writes the state of the process to a file. You can also write your own dumper-type process to run instead of, or as well as, <span class="keyword cmdname">dumper</span>.  This way the terminating process doesn't have to be a child of yours. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Termination_of_daemons.html">Detecting the termination of daemons or of all processes</a></strong><br />
+ What would happen if you've created some processes that subsequently made themselves daemons (i.e., called <span class="keyword apiname">procmgr_daemon()</span>)? As we mentioned above,  the <span class="keyword apiname">wait*()</span> functions and <span class="keyword apiname">sigwaitinfo()</span> won't help. </li>
+<li class="link ulchildlink"><strong><a href="../topic/process_Client_termination.html">Detecting client termination</a></strong><br />
+ The last scenario is where a server process wants to be notified of any clients that terminate so that it can clean up any resources that it had set aside for them. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process.html" title="Your applications should be written in a way that reflects the architecture of the QNX OS—as a set of cooperating processes. In this chapter, we see how to start processes (also known as creating processes) from code, how to terminate them, and how to detect their termination.">Processes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html">Thread life cycle (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html">Threads and processes (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html">struct sigaction</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html">SignalAction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

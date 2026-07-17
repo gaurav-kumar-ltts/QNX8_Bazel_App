@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="Sample code for handling _IO_NOTIFY messages" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_HANDLING_ionotify.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Sample_IO_NOTIFY" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sample code for handling _IO_NOTIFY messages</title>
+</head>
+<body id="Sample_IO_NOTIFY">
+
+<h1 class="title topictitle1" id="ariaid-title1">Sample code for handling <span class="keyword const">_IO_NOTIFY</span> messages</h1>
+
+
+
+<div class="body refbody"><p class="shortdesc"></p>
+
+
+<div class="section" id="Sample_IO_NOTIFY__overview">
+<p class="p">
+To handle <span class="keyword const">_IO_NOTIFY</span> messages,
+we can add the code samples shown below to either of the examples provided in the
+<q class="q"><a class="xref" href="skeleton_SIMPLE_EGS.html">Simple device resource manager examples</a></q>
+section of the Bones of a Resource Manager chapter.
+Both of those examples provided the device name <span class="ph filepath">/dev/sample</span>.
+With the changes indicated below,
+clients can use writes to send data to this device, which the resource manager will store as discrete messages.
+Other clients can use either <span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll()</span>, or <span class="keyword apiname">select()</span> 
+to request notification when that data arrives.
+When these clients receive notification, they can issue reads to get the data.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__storage"><h2 class="title sectiontitle">Define the device-specific data storage</h2>
+
+
+<div class="p">
+First, we need to replace this code that's located above the <span class="keyword apiname">main()</span> function:
+
+<pre class="pre codeblock">#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+static resmgr_connect_funcs_t    connect_funcs;
+static resmgr_io_funcs_t         io_funcs;
+static iofunc_attr_t             attr;
+</pre>
+
+with the following:
+
+<pre class="pre codeblock">struct device_attr_s;
+#define IOFUNC_ATTR_T   struct device_attr_s
+
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+/*
+ * Define a structure and variables for storing the data that is received.
+ * When clients write data to us, we store it here. When clients do reads,
+ * we get the data from here. The result is a simple message queue.
+*/
+typedef struct item_s {
+    struct item_s   *next;
+    char            *data;
+} item_t;
+
+/* Extended attributes structure */
+typedef struct device_attr_s {
+    iofunc_attr_t   attr;
+    iofunc_notify_t notify[3];  /* notification list used by iofunc_notify*() */
+    item_t          *firstitem; /* the queue of items */
+    int             nitems;     /* number of items in the queue */
+} device_attr_t;
+
+/* We only have one device; device_attr is its attribute structure */
+static device_attr_t    device_attr;
+
+int io_read(resmgr_context_t *ctp, io_read_t  *msg,
+            RESMGR_OCB_T *ocb);
+int io_write(resmgr_context_t *ctp, io_write_t *msg,
+             RESMGR_OCB_T *ocb);
+int io_notify(resmgr_context_t *ctp, io_notify_t *msg,
+              RESMGR_OCB_T *ocb);
+int io_close_dup(resmgr_context_t *ctp, io_close_t* msg,
+                 RESMGR_OCB_T *ocb);
+
+static resmgr_connect_funcs_t  connect_funcs;
+static resmgr_io_funcs_t       io_funcs;
+</pre>
+</div>
+
+
+<p class="p">
+We need a place to keep data that's specific to our device.
+A good place for this is in an attribute structure that we can associate with
+the <span class="ph filepath">/dev/sample</span> device name that we registered.
+So, in the code above, we defined <span class="keyword dtype">device_attr_t</span> and <span class="keyword dtype">IOFUNC_ATTR_T</span> for this purpose.
+We talk more about this type of device-specific attribute structure in the
+<a class="xref" href="structures.html" title="The resource manager library defines (in &lt;sys/iofunc.h&gt;) several key structures that are related to the POSIX-layer support routines.">POSIX-Layer Data Structures</a> chapter.
+</p>
+
+
+<p class="p">We need two types of device-specific data:</p>
+
+
+<ul class="ul">
+<li class="li">an array of three notification lists,
+  one for each possible condition that a client can ask to be notified about.
+  In <span class="keyword dtype">device_attr_t</span>, we called this <var class="keyword varname">notify</var>.
+</li>
+
+
+<li class="li">a queue to keep the data that gets written to us (the server) and that we use to reply to a client.
+  For this, we defined <span class="keyword dtype">item_t</span>;
+  it's a type that contains data for a single item, as well as a pointer to the next <span class="keyword dtype">item_t</span>.
+  In <span class="keyword dtype">device_attr_t</span> we use <var class="keyword varname">firstitem</var> (which points to the first item in the queue)
+  and <var class="keyword varname">nitems</var> (which is the number of items).
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Note that we removed the definition of <var class="keyword varname">attr</var>,
+since we use <var class="keyword varname">device_attr</var> instead.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__io_functions"><h2 class="title sectiontitle">Create and fill in the I/O functions table</h2>
+
+
+<div class="p">
+Of course, we have to give the resource manager library 
+the address of our handlers so that it'll know to call them. 
+In the code for <span class="keyword apiname">main()</span> where we called
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a>,
+we'll add the following code to register our handlers: 
+
+<pre class="pre codeblock">/* initialize functions for handling messages */
+iofunc_func_init(_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs,
+                 _RESMGR_IO_NFUNCS, &amp;io_funcs);
+
+/* for handling _IO_NOTIFY, sent as a result of client
+   calls to ionotify(), poll(), and select() */
+io_funcs.notify = io_notify;
+
+io_funcs.write = io_write;
+io_funcs.read = io_read;
+io_funcs.close_dup = io_close_dup;
+</pre>
+</div>
+
+
+<div class="p">
+Since we're using <var class="keyword varname">device_attr</var> instead of <var class="keyword varname">attr</var>,
+we need to replace this code:
+
+<pre class="pre codeblock">/* initialize attribute structure used by the device */
+iofunc_attr_init(<strong class="ph b">&amp;attr</strong>, S_IFNAM | 0666, 0, 0);
+
+/* attach our device name */
+id = resmgr_attach(dpp,            /* dispatch handle        */
+                   &amp;resmgr_attr,   /* resource manager attrs */
+                   "/dev/sample",  /* device name            */
+                   _FTYPE_ANY,     /* open type              */
+                   0,              /* flags                  */
+                   &amp;connect_funcs, /* connect routines       */
+                   &amp;io_funcs,      /* I/O routines           */
+                   &amp;<strong class="ph b">attr</strong>);         /* handle                 */
+</pre>
+
+with the following:
+
+<pre class="pre codeblock">/* initialize attribute structure used by the device */
+iofunc_attr_init(<strong class="ph b">&amp;device_attr.attr</strong>, S_IFNAM | 0666, 0, 0);
+IOFUNC_NOTIFY_INIT(device_attr.notify);
+device_attr.firstitem = NULL;
+device_attr.nitems = 0;
+
+/* attach our device name */
+id = resmgr_attach(dpp,            /* dispatch handle        */
+                   &amp;resmgr_attr,   /* resource manager attrs */
+                   "/dev/sample",  /* device name            */
+                   _FTYPE_ANY,     /* open type              */
+                   0,              /* flags                  */
+                   &amp;connect_funcs, /* connect routines       */
+                   &amp;io_funcs,      /* I/O routines           */
+                   &amp;<strong class="ph b">device_attr</strong>);  /* handle                 */
+</pre>
+</div>
+
+
+<p class="p">
+Note that we set up our device-specific data in <var class="keyword varname">device_attr</var>,
+and, in the call to 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>,
+we passed <span class="ph codeph">&amp;device_attr</span> for the handle parameter.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__io_notify"><h2 class="title sectiontitle">Implement the notify handler</h2>
+
+
+<div class="p">
+Now, we need to include the new function to handle the <span class="keyword const">_IO_NOTIFY</span> message:
+
+
+<pre class="pre codeblock">int io_notify(resmgr_context_t *ctp, io_notify_t *msg, RESMGR_OCB_T *ocb)
+{
+    device_attr_t   *dattr = (device_attr_t *) ocb-&gt;attr;
+    int             trig;
+    
+    /* 
+     * 'trig' will tell iofunc_notify() which conditions are now satisfied.
+     * 'dattr-&gt;nitems' is the number of messages in our list of stored messages.
+    */
+    trig = _NOTIFY_COND_OUTPUT; /* clients can always give us data */
+    if (dattr-&gt;nitems &gt; 0)
+        trig |= _NOTIFY_COND_INPUT; /* we have some data available */
+    
+    /*
+     * iofunc_notify() will do any necessary handling, including
+     * adding the client to the notification list if need be.
+    */
+    return (iofunc_notify(ctp, msg, dattr-&gt;notify, trig, NULL, NULL));
+}
+</pre>
+</div>
+
+
+<p class="p">
+As stated above, our <var class="keyword varname">io_notify</var> handler will be called when a
+client calls <span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll</span>, or <span class="keyword apiname">select()</span>.
+In our handler, we're expected to remember who those clients are
+and what conditions they want to be notified about.
+We should be able to respond immediately with conditions that are already true.
+The <span class="keyword apiname">iofunc_notify()</span> helper function makes this easy.
+</p>
+
+
+<p class="p">
+The first thing we do is determine which of the conditions we handle have currently been met.
+In this example, we're always able to accept writes,
+so in the code above we set the <var class="keyword varname">_NOTIFY_COND_OUTPUT</var> bit in <var class="keyword varname">trig</var>.
+We also check <var class="keyword varname">nitems</var> to see if we have data and set the <span class="keyword const">_NOTIFY_COND_INPUT</span> if we do.
+</p>
+
+
+<p class="p">
+We then call 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify.html"><span class="keyword apiname">iofunc_notify()</span></a>,
+passing it the message that was received (<var class="keyword varname">msg</var>), 
+the notification lists (<var class="keyword varname">notify</var>), 
+and which conditions have been met (<var class="keyword varname">trig</var>).
+If one of the conditions that the client is asking about has been met,
+and the client wants us to poll for the condition before arming,
+then <span class="keyword apiname">iofunc_notify()</span> will return with a value that indicates
+what condition has been met and the condition will not be armed.
+Otherwise, the condition will be armed.
+In either case, we'll return from the handler with the return value from <span class="keyword apiname">iofunc_notify()</span>.
+</p>
+
+
+<div class="p">
+Earlier, when we talked about the three possible conditions,
+we mentioned that if you specify <span class="keyword const">_NOTIFY_COND_INPUT</span>,
+the client is notified when there's one or more units of input data available,
+and that the number of units is up to you.
+We said a similar thing about
+<span class="keyword const">_NOTIFY_COND_OUTPUT</span> and <span class="keyword const">_NOTIFY_COND_OBAND</span>.
+In the code above, we let the number of units for all these conditions default to 1
+by specifying <span class="keyword const">NULL</span> as the second last parameter
+for <span class="keyword apiname">iofunc_notify()</span>.
+If we wanted to use something different, then we would declare an array such as:
+
+<pre class="pre codeblock">int notifycounts[3] = { 10, 2, 1 };
+</pre>
+</div>
+
+
+<p class="p">
+This sets the units for: 
+<span class="keyword const">_NOTIFY_COND_INPUT</span> to 10;
+<span class="keyword const">_NOTIFY_COND_OUTPUT</span> to 2; and
+<span class="keyword const">_NOTIFY_COND_OBAND</span> to 1.
+We then would pass <var class="keyword varname">notifycounts</var> to as the second last parameter.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__io_write"><h2 class="title sectiontitle">Implement the write handler</h2>
+
+
+<div class="p">
+
+When data arrives, we notify whichever clients have asked for notification.
+In our sample program, data arrives through clients sending us <span class="keyword const">_IO_WRITE</span> messages,
+and we handle it using an <var class="keyword varname">io_write</var> handler:
+
+<pre class="pre codeblock">int io_write(resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb)
+{
+    device_attr_t   *dattr = (device_attr_t *) ocb-&gt;attr;
+    int             status;
+    item_t          *newitem;
+
+    if ((status = iofunc_write_verify(ctp, msg, ocb, NULL)) != EOK)
+        return (status);
+
+    if ((msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE)
+        return (ENOSYS);
+
+    if (msg-&gt;i.nbytes &gt; 0) {
+        
+        /* get and store the data */
+        if ((newitem = malloc(sizeof(item_t))) == NULL)
+            return (errno);
+        if ((newitem-&gt;data = malloc(msg-&gt;i.nbytes+1)) == NULL) {
+            free(newitem);
+            return (errno);
+        }
+        /* read the data from the sender's message */
+        resmgr_msgget(ctp, newitem-&gt;data, msg-&gt;i.nbytes, sizeof(msg-&gt;i));
+        newitem-&gt;data[msg-&gt;i.nbytes] = '\0';
+
+        if (dattr-&gt;firstitem)
+            newitem-&gt;next = dattr-&gt;firstitem;
+        else
+            newitem-&gt;next = NULL;
+        dattr-&gt;firstitem = newitem;
+        dattr-&gt;nitems++;
+
+        /* notify clients who may have asked to be notified when there is data */
+        if (IOFUNC_NOTIFY_INPUT_CHECK(dattr-&gt;notify, dattr-&gt;nitems, 0))
+            iofunc_notify_trigger(dattr-&gt;notify, dattr-&gt;nitems, 
+                                  IOFUNC_NOTIFY_INPUT);
+    }
+   
+    /* set up the number of bytes (returned by client's write()) */
+    _IO_SET_WRITE_NBYTES(ctp, msg-&gt;i.nbytes);
+
+    if (msg-&gt;i.nbytes &gt; 0)
+        ocb-&gt;attr-&gt;attr.flags |= IOFUNC_ATTR_MTIME | IOFUNC_ATTR_CTIME;
+
+    return (_RESMGR_NPARTS(0));
+}
+</pre>
+</div>
+
+
+<div class="p">
+The important part of the above <var class="keyword varname">io_write</var> handler is the code
+within the following section:
+
+<pre class="pre codeblock">if (msg-&gt;i.nbytes &gt; 0) {
+    ....
+}
+</pre>
+</div>
+
+
+<p class="p">
+ Here we first allocate space
+for the incoming data, then use <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgget.html"><span class="keyword apiname">resmgr_msgget()</span></a> to copy the data from the client
+message into the allocated space, and then add the data to our queue.
+</p>
+
+
+<p class="p">
+Next, we pass the number of input units that are available to
+<span class="keyword apiname">IOFUNC_NOTIFY_INPUT_CHECK()</span> to see if there are enough
+units to notify clients about.
+This is checked against the <var class="keyword varname">notifycounts</var> that we mentioned above when describing
+the <var class="keyword varname">io_notify</var> handler.
+If there are enough units available, then we call 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify_trigger.html"><span class="keyword apiname">iofunc_notify_trigger()</span></a>
+telling it that <var class="keyword varname">nitems</var> of data are available
+(<span class="keyword const">IOFUNC_NOTIFY_INPUT</span> means input is available).
+The <span class="keyword apiname">iofunc_notify_trigger()</span> function checks the lists of clients asking
+for notification (<var class="keyword varname">notify</var>) and notifies any that asked about input being available.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__io_read"><h2 class="title sectiontitle">Implement the read handler</h2>
+
+
+<div class="p">
+Any client that gets notified will then perform a read to get the data.
+In our sample program, we handle this with the following <var class="keyword varname">io_read</var> handler:
+
+<pre class="pre codeblock">int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb)
+{
+    device_attr_t   *dattr = (device_attr_t *) ocb-&gt;attr;
+    int             status;
+    
+    if ((status = iofunc_read_verify(ctp, msg, ocb, NULL)) != EOK)
+        return (status);
+
+    if ((msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE)
+        return (ENOSYS);
+
+    if (dattr-&gt;firstitem) {
+        size_t  nbytes;
+        item_t  *item, *prev;
+        
+        /* get last item */
+        item = dattr-&gt;firstitem;
+        prev = NULL;
+        while (item-&gt;next != NULL) {
+            prev = item;
+            item = item-&gt;next;
+        }
+
+        /* 
+         * figure out number of bytes to give, write the data to the 
+         * client's reply buffer, even if we have more bytes than they
+         * are asking for, we remove the item from our list
+        */
+        nbytes = min (strlen (item-&gt;data), msg-&gt;i.nbytes);
+
+        /* set up the number of bytes (returned by client's read()) */
+        _IO_SET_READ_NBYTES (ctp, nbytes);
+
+        /* 
+         * write the bytes to the client's reply buffer now since we
+         * are about to free the data
+        */
+        resmgr_msgwrite (ctp, item-&gt;data, nbytes, 0);
+
+        /* remove the data from the queue */
+        if (prev)
+            prev-&gt;next = item-&gt;next;
+        else
+            dattr-&gt;firstitem = NULL;
+        free(item-&gt;data);
+        free(item);
+        dattr-&gt;nitems--;
+    } else {
+        /* the read() will return with 0 bytes */
+        _IO_SET_READ_NBYTES (ctp, 0);
+    }
+
+    /* mark the access time as invalid (we just accessed it) */
+    if (msg-&gt;i.nbytes &gt; 0)
+        ocb-&gt;attr-&gt;attr.flags |= IOFUNC_ATTR_ATIME;
+
+    return (EOK);
+}
+</pre>
+</div>
+
+
+<div class="p">
+The important part of the above <var class="keyword varname">io_read</var> handler is the code
+within this section:
+
+<pre class="pre codeblock">if (firstitem) {
+    ....
+}
+</pre>
+</div>
+
+
+<p class="p">
+We first walk through the queue looking for the oldest item.
+Then we use 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgwrite.html"><span class="keyword apiname">resmgr_msgwrite()</span></a>
+to write the data to the client's reply buffer.
+We do this now because the next step is to free the memory that we're using to store that data.
+We also remove the item from our queue.
+</p>
+
+</div>
+
+
+<div class="section" id="Sample_IO_NOTIFY__io_close_dup"><h2 class="title sectiontitle">Implement the close file handler</h2>
+
+
+<div class="p">
+Lastly, if a client closes its file descriptor, we must remove the client from our list.
+This is done using an <var class="keyword varname">io_close_dup</var> handler:
+
+<pre class="pre codeblock">int io_close_dup(resmgr_context_t *ctp, io_close_t* msg, RESMGR_OCB_T *ocb)
+{
+    device_attr_t   *dattr = (device_attr_t *) ocb-&gt;attr;
+
+    /*
+     * A client has closed its file descriptor or has terminated.
+     * Unblock any threads waiting for notification, then
+     * remove the client from the notification list.
+     */
+    iofunc_notify_trigger_strict( ctp, dattr-&gt;notify, INT_MAX, 
+                                  IOFUNC_NOTIFY_INPUT );
+    iofunc_notify_trigger_strict( ctp, dattr-&gt;notify, INT_MAX, 
+                                  IOFUNC_NOTIFY_OUTPUT );
+    iofunc_notify_trigger_strict( ctp, dattr-&gt;notify, INT_MAX, 
+                                  IOFUNC_NOTIFY_OBAND );
+ 
+    iofunc_notify_remove(ctp, dattr-&gt;notify);
+
+    return (iofunc_close_dup_default(ctp, msg, ocb));
+}
+</pre>
+</div>
+
+
+<p class="p">
+In the <var class="keyword varname">io_close_dup</var> handler, we called
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify_remove.html"><span class="keyword apiname">iofunc_notify_remove()</span></a>
+and passed it <var class="keyword varname">ctp</var>, which contains the information that identifies the client,
+and <var class="keyword varname">notify</var>, which contains the list of clients, to remove the client from the lists.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages_HANDLING_ionotify.html">Handling ionotify(), poll(), and select()</a></div>
+</div>
+</div></body>
+</html>

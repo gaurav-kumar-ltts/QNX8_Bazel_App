@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="secpol_transition_type()" />
+<meta name="abstract" content="Transition to a new type" />
+<meta name="description" content="Transition to a new type" />
+<meta name="DC.relation" scheme="URI" content="../topic/secpol_open.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/secpol_posix_spawnattr_settypeid.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/secpol_resolve_name.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="secpol_transition_type" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>secpol_transition_type()</title>
+</head>
+<body id="secpol_transition_type">
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">secpol_transition_type()</span></h1>
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Transition to a new type</em></p>
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2><pre class="pre codeblock">#include &lt;secpol/secpol.h&gt;</pre><pre class="pre codeblock">int secpol_transition_type(secpol_file_t *handle,
+                           const char *name,
+                           uint32_t flags)</pre></div>
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2><dl class="dl"><dt class="dt dlterm"><var class="keyword varname">handle</var></dt>
+<dd class="dd">Handle to the security policy file. Usually NULL, which specifies that the default security policy file is used (either the system default or one set using <em class="ph i"><a class="xref" href="secpol_open.html" title="Open a security policy file"><span class="keyword apiname">secpol_open()</span></a></em>). </dd>
+<dt class="dt dlterm"><var class="keyword varname">name</var></dt>
+<dd class="dd">Name of type, or name to derive type from based on the current type. If a derived type is used, NULL may be passed to use the default name "run". </dd>
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+<dd class="dd">Zero or more flags from <span class="ph codeph">secpol_flags_e</span> ORred together.</dd>
+</dl>
+</div>
+<div class="section"><h2 class="title sectiontitle">Library:</h2><span class="ph filepath">libsecpol</span></div>
+<div class="section"><h2 class="title sectiontitle">Description:</h2><p class="p">The <span class="keyword apiname">secpol_transition_type()</span> function attempts to switch to a new type that is either specified as a type name, or, more commonly, as a string (e.g., "run") that is used to derive a type from the current type of the process.</p>
+<p class="p">If the function is successful, it indicates that there is a security policy in use, the process is now running with whatever capabilities were deemed appropriate, and that the process should not itself attempt to modify abilities as a means of dropping privilege.</p>
+<p class="p">If the function fails, the process should instead perform whatever privilege dropping procedure it supports, which in some cases means doing nothing. If the function fails and a policy is in force, system trace events are emitted to allow the problem to be diagnosed.</p>
+<p class="p">Behavior should usually be based only on success or failure, not on the specific cause of failure. Failure of this function should not be considered fatal as it will render the program unable to run without security policies.</p>
+<p class="p">By default, a derived type is used; that is, the type ID is selected based on the process' current type and the name passed in. The <var class="keyword varname">name</var> parameter can also represent the actual type name by passing <span class="ph codeph">SECPOL_TYPE_NAME</span> in the flags.</p>
+<p class="p">It is expected this function will be called only once following initialization. Multiple calls to the function are unlikely to yield any security benefits.</p>
+<p class="p"><strong class="ph b">Example</strong> </p>
+<p class="p">A security policy has the following rules:</p>
+<div class="p"><pre class="pre">derive_type resmgr1_t run resmgr1_run_t;
+derive_type resmgr2_t run resmgr_post_init_t;
+</pre>
+</div>
+<p class="p">If a resource manager is started using the security type <span class="ph codeph">resmgr1_t</span> and then calls the following function, it switches its type to <span class="ph codeph">resmgr1_run_t:</span> </p>
+<div class="p"><pre class="pre">secpol_transition_type(NULL, NULL, 0); 
+</pre>
+</div>
+<p class="p">Alternatively, if the resource manager is started using the type <span class="ph codeph">resmgr2_t</span>, this call switches it to <span class="ph codeph">resmgr_post_init_t</span>.</p>
+</div>
+<div class="section"><h2 class="title sectiontitle">Returns:</h2><div class="p">0 if the type was successfully switched; if no type change was performed, -1 and <em class="ph i">errno</em> is set to one of the following values:<ul class="ul"><li class="li"><strong class="ph b">ENOTSUP</strong> - No security policy is in effect.</li>
+<li class="li"><strong class="ph b">ESECTYPEINVAL</strong> - The security policy is invalid. </li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="related-links">
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/secpol_open.html" title="Open a security policy file">secpol_open()</a></li>
+<li class="linklist"><a class="link" href="../topic/secpol_posix_spawnattr_settypeid.html" title="Update a spawn attribute object to spawn a child with a different type">secpol_posix_spawnattr_settypeid()</a></li>
+<li class="linklist"><a class="link" href="../topic/secpol_resolve_name.html" title="Resolve a type name to a type ID">secpol_resolve_name()</a></li></ul></div>
+</div></body>
+</html>

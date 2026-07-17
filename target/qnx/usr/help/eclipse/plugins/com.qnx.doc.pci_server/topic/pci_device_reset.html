@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_device_reset()" />
+<meta name="abstract" content="Reset a device" />
+<meta name="description" content="Reset a device" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_device_reset" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_device_reset()</title>
+</head>
+<body id="pci_device_reset">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_device_reset()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Reset a device</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_err_t pci_device_reset( pci_devhdl_t <var class="keyword varname">hdl</var>,
+                            pci_resetType_e <var class="keyword varname">resetType</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">hdl</var></dt>
+
+<dd class="dd">The handle of the device, obtained by calling
+  <a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">resetType</var></dt>
+
+<dd class="dd">The type of reset to initiate.
+  The defined types are:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_resetType_e_BUS</span></li>
+
+  <li class="li"><span class="keyword const">pci_resetType_e_FUNCTION</span></li>
+
+  </ul>
+
+
+  <p class="p">
+  A reset type that's less than <span class="keyword const">pci_resetType_e_BUS</span> is considered to mean <q class="q">no reset</q> (a no-op).
+  </p>
+
+
+  <p class="p">
+  A reset type that's greater than <span class="keyword const">pci_resetType_e_FUNCTION</span> is considered to be a
+  hardware-specific reset.
+  The behavior of hardware-specific resets, if supported, is defined by the hardware-dependent module.
+  Refer to the release notes or the usage information in the hardware-dependent module applicable to your
+  platform for details.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">pci_device_reset()</span> function initiates a reset of a specific device
+(function-level reset if the device is PCIe and supports FLR as determined by the
+device capabilities register or if the device is PCI and supports the
+Advanced Features capability and FLR as per the AF capabilities register) or
+of a PCI bus segment/PCIe link (secondary bus reset) if the device is a
+PCI-to-PCI bridge or PCIe Root Port that reports as a PCI-to-PCI bridge.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">hdl</var> arguments identifies the specific device to be reset, or the bus or link on which the
+device resides.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Since this API can potentially impact multiple devices, you must be sure of what you're doing.
+During the time that the reset is occurring, configuration space accesses to the device(s) is halted,
+but there's currently no in-band mechanism for preventing access to device-specific registers obtained from a
+successful call to
+<a class="xref" href="pci_device_read_ba.html" title="Get the base addresses of a device"><span class="keyword apiname">pci_device_read_ba()</span></a>
+and <span class="keyword apiname">mmap()</span>'d by other driver software.
+It's your responsibility to coordinate with such software as required.
+</div>
+
+
+<p class="p">
+The primary types of reset are:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">pci_resetType_e_BUS</span></dt>
+
+<dd class="dd">Reset all devices on the bus or link
+  on which the device identified by <var class="keyword varname">hdl</var> resides, including any downstream buses or links for
+  subordinate bridges.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">pci_resetType_e_FUNCTION</span></dt>
+
+<dd class="dd">Reset only the specific device identified by <var class="keyword varname">hdl</var>.
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+In both cases, you <em class="ph i">must</em> be an owner of the device identified by <var class="keyword varname">hdl</var> and the only
+remaining attacher.
+</p>
+
+
+<p class="p"><strong class="ph b">Affected devices</strong></p>
+
+
+<p class="p">
+For a function reset, only the device identified by <var class="keyword varname">hdl</var> is reset.
+This includes a specific function of a multifunction device.
+You must be an owner of the device and the only remaining attacher (all other multiowned
+attachers, if any, must have detached).
+In addition, for bus/link resets, all devices that reside on the same bus/link as the device identified by
+<var class="keyword varname">hdl</var> or that reside on a bus/link that's downstream of the bus/link on which the device
+identified by <var class="keyword varname">hdl</var> resides are also reset.
+In this case, those devices must not have any attachments (i.e., no other software must have successfully called
+<a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>
+on these devices without having called
+<a class="xref" href="pci_device_detach.html" title="Detach a device"><span class="keyword apiname">pci_device_detach()</span></a>
+prior to the reset operation).
+It's the responsibility of the application software to coordinate these operations for other affected
+device software, or the <span class="keyword apiname">pci_device_reset()</span> call will fail.
+</p>
+
+
+<p class="p">
+A reset of a specific device (i.e., a BDF) is supported by the
+PCI specification-defined Function Level Reset (FLR) mechanism.
+In order to  initiate this type of reset, the device must either be a PCIe endpoint with bit 28 of the
+device capabilities register set to binary value 1 or have the Advanced Features (AF) capability
+with bit 1 of the AF capabilities register set to binary value 1, otherwise this reset is unsupported.
+</p>
+
+
+<p class="p">
+Other reset types are allowed, but these have no defined behavior within the PCI server, and so are passed directly
+to the hardware-dependent module.
+This allows for platform-specific reset processing to be accommodated.
+It's the responsibility of the hardware-dependent module to document what additional reset types if any it supports
+and what the behaviors of those resets are.
+</p>
+
+
+<p class="p">
+Although the hardware-dependent module has complete control over the reset behavior, the PCI server ensures
+that configuration space accesses to the device being reset are halted, and after reset, that the device is
+configured into the D0-initialized state unless otherwise prevented from doing so by the hardware-dependent module.
+All of the discussions that follow regarding post-reset state and interrupts are applicable to
+hardware-dependent reset types unless the hardware-dependent module documents otherwise.
+</p>
+
+
+<p class="p"><strong class="ph b">Post-reset driver state</strong></p>
+
+
+<p class="p">
+On return from a successful <span class="keyword apiname">pci_device_reset()</span>, your <var class="keyword varname">hdl</var> is still
+valid, as are any mappings to address spaces obtained with a successful call to 
+<a class="xref" href="pci_device_read_ba.html" title="Get the base addresses of a device"><span class="keyword apiname">pci_device_read_ba()</span></a>,
+but all capabilities are disabled.
+In order to use the capabilities, you need to:
+</p>
+
+
+<ul class="ul">
+<li class="li">reread them, using 
+  <a class="xref" href="pci_device_read_cap.html" title="Load a capability module"><span class="keyword apiname">pci_device_read_cap()</span></a>;
+  you can reuse the same <span class="keyword dtype">pci_cap_t</span>
+</li>
+
+
+<li class="li">reconfigure them (as required using the appropriate capability-specific APIs)</li>
+
+
+<li class="li">reenable them by calling
+  <a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a>
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Device software for other affected devices (if any), must go through the entire initialization phase starting with 
+<a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>,
+because they were required to detach in order for the reset to take place.
+</p>
+
+
+<p class="p"><strong class="ph b">Regarding interrupts</strong></p>
+
+
+<p class="p">
+If the device was configured to use the MSI or MSI-X capability, the IRQs associated with the MSI/MSI-X vectors
+are released when the capability is disabled.
+Since MSI/MSI-X vectors are allocated when the capability is enabled, and these could potentially change between
+the disabling and reenabling of these capabilities, driver software should call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html"><span class="keyword apiname">InterruptDetach()</span></a>
+for previously assigned IRQs, reread them with 
+<a class="xref" href="pci_device_read_irq.html" title="Get the IRQs associated with a device"><span class="keyword apiname">pci_device_read_irq()</span></a>,
+and then reattach them with 
+<span class="keyword apiname">InterruptAttach()</span>
+or
+<span class="keyword apiname">InterruptAttachEvent()</span>.
+</p>
+
+
+<p class="p">
+If you aren't using MSI or MSI-X, you don't need to reread the pin-based IRQs originally returned because they
+don't change.
+That is, there's no need for the driver software to call <span class="keyword apiname">InterruptDetach()</span>,
+<span class="keyword apiname">pci_device_read_irq()</span>, and then <span class="keyword apiname">InterruptAttach()</span> or
+<span class="keyword apiname">InterruptAttachEvent()</span> after the reset if using pin-based (i.e., non-MSI or non-MSI-X) interrupts.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+If successful, a call to <span class="keyword apiname">pci_device_reset()</span> with a reset type of either
+<span class="keyword const">pci_resetType_e_BUS</span> or <span class="keyword const">pci_resetType_e_FUNCTION</span> returns <span class="keyword const">PCI_ERR_OK</span>,
+and all affected devices (as described above) have been reset and reconfigured to the D0-initialized state.
+Any driver software using those device must comprehend this condition and perform any required device-specific
+initialization that may have been lost as a result of the reset operation.
+</p>
+
+
+<p class="p">
+For reset types other than <span class="keyword const">pci_resetType_e_BUS</span> or <span class="keyword const">pci_resetType_e_FUNCTION</span>,
+the hardware-dependent module must document the post-reset state of affected devices.
+</p>
+
+
+<p class="p">
+If any error occurs, <span class="keyword apiname">pci_device_reset()</span> returns one of the following values, and you should
+consider all affected devices (as outlined above) to be in an unknown and unusable state.
+It this situation, it may be possible, and even desirable to reissue the reset command.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENOTSUP</span></dt>
+
+<dd class="dd">The reset type specified isn't supported by the device identified by <var class="keyword varname">hdl</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EINVAL</span></dt>
+
+<dd class="dd">The <var class="keyword varname">hdl</var> doesn't refer to a valid device that you attached to, or other parameters
+  are otherwise invalid.
+  The hardware-dependent module can also return this error.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENODEV</span></dt>
+
+<dd class="dd">The device identified by <var class="keyword varname">hdl</var> doesn't exist.
+  Note that this error can also be returned if a device that supports live removal is removed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_NOT_OWNER</span></dt>
+
+<dd class="dd">You don't own the device identified by <var class="keyword varname">hdl</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ATTACH_SHARED</span></dt>
+
+<dd class="dd">The device identified by <var class="keyword varname">hdl</var> is currently attached to by more than just you.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ATTACH_OWNED</span></dt>
+
+<dd class="dd">Devices on the same bus or link as the device identified by <var class="keyword varname">hdl</var>
+  or on a downstream bus or link are still attached.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d18766e541">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d18766e543"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e541 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e543 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e541 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e543 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e541 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18766e543 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>

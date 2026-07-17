@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The “Strings” module" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/design.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="strings" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The “Strings” module</title>
+</head>
+<body id="strings">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The <q class="q">Strings</q> module</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+
+One of the goals of the PCI server design is to eliminate the dependency of the code base on external factors
+such as vendor and device names and the addition of new devices, etc.
+To accomplish this, the PCI server and library don't contain any textual information related to vendors, devices,
+or class codes.
+This information is provided in the form of <span class="ph codeph">#defines</span> (see
+<span class="ph filepath">&lt;pci/pci_id.h&gt;</span> and <span class="ph filepath">&lt;pci/pci_ccode.h&gt;</span>) based on
+PCISIG assignments so that they're available to driver software when calling
+<a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>,
+but the text associated with these definitions isn't.
+</p>
+
+
+<p class="p">
+Instead, a strings module that contains APIs to access this information is available for linking tools and
+utilities against, as it's really only this software that needs to display such human-readable information.
+The strings module is the only module that software will link against and, hence, create a version dependency.
+</p>
+
+
+<p class="p">
+API definitions for the strings module are contained in <span class="ph filepath">&lt;pci/pci_strings.h&gt;</span>,
+meaning your source code must include this file using <span class="ph codeph">#include &lt;pci/pci_strings.h&gt;</span>
+to use the API.
+</p>
+
+
+<p class="p">
+The class code strings within the strings module are fixed and as defined by the PCISIG.
+They correspond to the class codes defined in <span class="ph filepath">&lt;pci/pci_ccode.h&gt;</span>.
+</p>
+
+
+<p class="p">
+
+
+
+The vendor and device strings are obtained by parsing a strings database file contained in
+<span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}/etc/system/config/pci/</span> on your development host,
+and normally installed in <span class="ph filepath">/etc/system/config/pci/</span> on your target.
+The current version of the strings module expects a tab-delimited file.
+The original source of this file was obtained from <span class="ph filepath">pcidatabase.com</span>, but you can
+edit this file to add, delete, and modify the strings as required.
+The database file is specified with the <span class="keyword envar">PCI_STRINGS_FILE</span> environment variable.
+If this variable is not set, the default file,
+<span class="ph filepath">/etc/system/config/pci/pcidatabase.com-tab_delimited.txt</span>, is used.
+This allows users to freely edit the database file to list only known devices or to add custom ones without any
+PCI server changes.
+</p>
+
+
+<p class="p">
+The benefits include:
+</p>
+
+
+<ul class="ul">
+<li class="li">It leverages an existing database of vendor and device strings.</li>
+
+<li class="li">The information isn't hard-coded into any code.</li>
+
+<li class="li">Customers can update or edit the file as they wish.</li>
+
+<li class="li">Community updates can be easily provided to all through forum posts, etc.</li>
+
+<li class="li">For systems with no slots, the file can be edited down to include only the devices known to exist
+  on the particular hardware, thus reducing the overhead of processing a large file.
+</li>
+
+</ul>
+
+
+<p class="p">
+Because the strings module is a separate and independent module, the format of the database file can change
+in the future without impacting other PCI server subsystems.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/design.html">Design Details</a></div>
+</div>
+</div></body>
+</html>

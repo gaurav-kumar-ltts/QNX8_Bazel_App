@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Put a name into the namespace" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_SIMPLE_ST_EG.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="RegisterName" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Put a name into the namespace</title>
+</head>
+<body id="RegisterName">
+
+<h1 class="title topictitle1" id="ariaid-title1">Put a name into the namespace</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+To register our resource manager's path, we call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a> like this:
+
+<pre class="pre codeblock">/* attach our device name */
+id = resmgr_attach(dpp,            /* dispatch handle        */
+                   &amp;resmgr_attr,   /* resource manager attrs */
+                   "/dev/sample",  /* device name            */
+                   _FTYPE_ANY,     /* open type              */
+                   0,              /* flags                  */
+                   &amp;connect_funcs, /* connect routines       */
+                   &amp;io_funcs,      /* I/O routines           */
+                   &amp;attr);         /* handle                 */
+
+if(id == -1) {
+    fprintf(stderr, "%s: Unable to attach name.\n", argv[0]);
+    return EXIT_FAILURE;
+}
+</pre>
+</div>
+
+
+<p class="p">
+Before a resource manager can receive messages from other programs, 
+it needs to inform the other programs (via the process manager) 
+that it's the one responsible for a particular pathname prefix.
+This is done via pathname registration.
+When the name is registered, other processes can find and connect to this process using the registered name.
+</p>
+
+
+<p class="p">
+In this example, a serial port may be managed by a resource manager called <span class="keyword cmdname">devc-xxx</span>, 
+but the actual resource is registered as <span class="ph filepath">/dev/sample</span> in the pathname space. 
+Therefore, when a program requests serial port services, 
+it opens the <span class="ph filepath">/dev/sample</span> serial port.
+</p>
+
+
+<p class="p">
+We'll look at the parameters in turn, skipping the ones we've already discussed.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">device name</dt>
+
+<dd class="dd">Name associated with our device (i.e., <span class="ph filepath">/dev/sample</span>).</dd>
+
+
+
+
+<dt class="dt dlterm">open type</dt>
+
+<dd class="dd">Specifies the constant value of <span class="keyword const">_FTYPE_ANY</span>. 
+  This tells the process manager that our resource manager will accept <em class="ph i">any</em> type of open request;
+  we're not limiting the kinds of connections we're going to be handling.
+  
+
+  <p class="p">
+  Some resource managers limit the types of open requests they handle.
+  For instance, the POSIX message queue resource manager accepts only 
+  <span class="keyword const">_FTYPE_MQUEUE</span> open messages.
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">flags</dt>
+
+<dd class="dd">Controls the process manager's pathname resolution behavior. 
+  By specifying a value of zero, we indicate that we'll accept only
+  requests for the name <q class="q"><span class="ph filepath">/dev/sample</span></q>.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  
+  The bits that you use in this argument are the <span class="keyword const">_RESMGR_FLAG_*</span> flags (e.g.,
+  <span class="keyword const">_RESMGR_FLAG_BEFORE</span>) defined in <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>.
+  We'll discuss some of these flags in this guide, but you can find a full list in the entry for
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+  in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+
+  <p class="p">
+  There are flags whose names <em class="ph i">don't</em> start with an
+  underscore, but they're for the <var class="keyword varname">flags</var> member of the
+  <span class="keyword dtype">resmgr_attr_t</span> structure, which we'll look at in detail in
+  <q class="q"><a class="xref" href="fleshing_out_Attributes.html">Setting resource manager attributes</a></q>
+  in the Fleshing Out the Skeleton chapter.
+  </p>
+
+  </div>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If you want to use the same dispatch handler for other types of notifications, you can also call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/message_attach.html"><span class="keyword apiname">message_attach()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pulse_attach.html"><span class="keyword apiname">pulse_attach()</span></a>,
+and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select_attach.html"><span class="keyword apiname">select_attach()</span></a>
+at this point.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton_SIMPLE_ST_EG.html">Single-threaded device resource manager</a></div>
+</div>
+</div></body>
+</html>

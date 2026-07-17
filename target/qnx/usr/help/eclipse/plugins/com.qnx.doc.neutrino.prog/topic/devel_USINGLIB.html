@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using libraries" />
+<meta name="abstract" content="When you're developing code, you almost always make use of a library, a collection of code modules that you or someone else has already developed (and hopefully debugged)." />
+<meta name="description" content="When you're developing code, you almost always make use of a library, a collection of code modules that you or someone else has already developed (and hopefully debugged)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/dll.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="USINGLIB" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using libraries</title>
+</head>
+<body id="USINGLIB">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Using libraries</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When you're developing code, you almost always make use of a
+<em class="ph i">library</em>, a collection of code modules that
+you or someone else has already developed (and hopefully debugged).
+</p>
+
+
+<p class="p">
+Under <span class="keyword">QNX OS</span>, we have three different ways of using libraries:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Static linking</dt>
+
+<dd class="dd">You can combine your modules with the modules from the
+  library to form a single executable that's entirely
+  self-contained. We call this <em class="ph i">static linking</em>. The
+  word <q class="q">static</q> implies that it's not going to
+  change—<em class="ph i">all</em> the required modules are already
+  combined into one executable.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Dynamic linking</dt>
+
+<dd class="dd">Rather than build a self-contained executable ahead of time,
+  you can take your modules and link them in such a way that
+  the Process Manager links them to the library modules
+  before your program runs. We call this <em class="ph i">dynamic linking</em>.
+  The word <q class="q">dynamic</q> here means
+  that the association between your program and the library
+  modules that it uses is done <em class="ph i">at load time</em>, not at
+  link time (as was the case with the static version).
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Runtime loading</dt>
+
+<dd class="dd">There's a variation on the theme of dynamic linking called
+  <em class="ph i">runtime loading</em>. In this case, the program
+  decides <em class="ph i">while it's actually running</em> that it wishes
+  to load a particular function from a library.
+  
+</dd>
+
+
+
+</dl>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Static and dynamic libraries</h2>
+
+
+<p class="p">
+To support the two major kinds of linking described above,
+<span class="keyword">QNX OS</span> has two kinds of libraries: <em class="ph i">static</em> and
+<em class="ph i">dynamic</em>:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Static libraries</dt>
+
+<dd class="dd">A static library is usually identified by a <span class="ph filepath">.a</span> (for <q class="q">archive</q>) suffix
+  (e.g., <span class="ph filepath">libc.a</span>).
+  The library contains the modules you want to include in your program and is
+  formatted as a collection of ELF object modules that the
+  linker can then extract (as required by your program) and
+  <em class="ph i">bind</em> with your program at link time.
+
+  <p class="p">
+  
+  
+  
+  This <q class="q">binding</q> operation literally copies the
+  object module from the library and incorporates it into your
+  <q class="q">finished</q> executable. The major advantage of
+  this approach is that when the executable is created, it's
+  entirely self-sufficient—it doesn't require any
+  other object modules to be present on the target system.
+  This advantage is usually outweighed by two principal
+  disadvantages, however:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li"><em class="ph i">Every</em> executable created in this manner has its own private
+    copy of the library's object modules, resulting in large executable
+    sizes (and possibly slower loading times, depending on the medium).
+  </li>
+
+
+  <li class="li">You must <em class="ph i">relink the executable</em> in order to upgrade the library modules that it's using.</li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Dynamic libraries</dt>
+
+<dd class="dd">A dynamic library is usually identified by a <span class="ph filepath">.so</span> (for <q class="q">shared object</q>) suffix
+  (e.g., <span class="ph filepath">libc.so</span>).
+
+  <p class="p">
+  
+  
+  
+  Like a static library, this kind of library also contains the modules that you want to
+  include in your program, but these modules are <em class="ph i">not</em>
+  bound to your program at link time. Instead, your program is
+  linked in such a way that the Process Manager causes your
+  program to be bound to the shared objects at load time.
+  </p>
+
+
+  <p class="p">
+  The Process Manager performs this binding by looking at the
+  program to see if it references any shared objects
+  (<span class="ph filepath">.so</span> files). If it does, then the Process
+  Manager looks to see if those particular shared objects are
+  already present in memory. If they're not, it loads them
+  into memory. Then the Process Manager patches your program
+  to be able to use the shared objects. Finally, the Process
+  Manager starts your program.
+  </p>
+
+
+  <p class="p">
+  Note that from your program's perspective, it isn't even
+  aware that it's running with a shared object versus being
+  statically linked—that happened before the first
+  line of your program ran!
+  </p>
+
+
+  <p class="p">
+  The main advantage of dynamic linking is that the
+  programs in the system reference only a particular set
+  of objects—they don't contain them. As a result,
+  programs are smaller. This also means that you can upgrade
+  the shared objects <em class="ph i">without relinking the programs</em>.
+  This is especially handy when you don't have access to the
+  source code for some of the programs.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="keyword apiname">dlopen()</span></h2>
+
+
+<p class="p">
+If you want to <q class="q">augment</q> your program with additional code at runtime, you can call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a>.
+</p>
+
+
+<p class="p">
+This function call tells the system
+that it should find the shared object referenced by the
+<span class="keyword apiname">dlopen()</span> function and create a binding between
+the program and the shared object. Again, if the shared
+object isn't present in memory already, the system
+loads it. The main advantage of this approach is that
+the program can determine, at runtime, which objects it
+needs to have access to.
+</p>
+
+
+<p class="p">
+Note that there's no <em class="ph i">real</em> difference between a
+library of shared objects that you link against and a
+library of shared objects that you load at runtime. Both
+modules are of the exact same format. The only difference is
+in how they get used.
+</p>
+
+
+<p class="p">
+By convention, therefore, we place libraries that you link
+against (whether statically or dynamically) into the
+<span class="ph filepath">lib</span> directory, and shared objects that you
+load at runtime into the <span class="ph filepath">lib/dll</span> (for
+<q class="q">dynamically loaded libraries</q>) directory.
+</p>
+
+
+<p class="p">
+Note that this is just a convention—there's nothing
+stopping you from linking against a shared object in the
+<span class="ph filepath">lib/dll</span> directory or from using the
+<span class="keyword apiname">dlopen()</span> function call on a shared object in the
+<span class="ph filepath">lib</span> directory.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Platform-specific library locations</h2>
+
+
+<p class="p">
+The development tools have been designed to work out of their processor directories (<span class="ph filepath">x86_64</span>,
+<span class="ph filepath">aarch64le</span>, etc.).
+This means you can use the same toolset for any target platform.
+</p>
+
+
+<p class="p">
+If you have development libraries for a certain platform,
+then put them into the platform-specific library directory
+(e.g., <span class="ph filepath">/x86_64/lib</span>), which is where the compiler and tools look. 
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can use the <span class="keyword option">-L</span> option to <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to explicitly provide a library path.
+</div>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel.html" title="Let's start by looking at some things you should consider when you start to write a program for the QNX OS.">Compiling and Debugging</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/dll.html">Dynamic Linking (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html">dladdr()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html">dlclose()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html">dlerror()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html">dlsym()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li></ul></div>
+</div></body>
+</html>

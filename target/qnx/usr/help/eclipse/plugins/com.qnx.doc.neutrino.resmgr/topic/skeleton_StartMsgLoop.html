@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Start the resource manager message loop" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_SIMPLE_ST_EG.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="StartMsgLoop" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Start the resource manager message loop</title>
+</head>
+<body id="StartMsgLoop">
+
+<h1 class="title topictitle1" id="ariaid-title1">Start the resource manager message loop</h1>
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">/* start the resource manager message loop */
+while(1) {
+    if(dispatch_handler == NULL) {
+        fprintf(stderr, "block error\n");
+        return EXIT_FAILURE;
+    }
+    dispatch_handler(ctp);
+}
+</pre>
+
+<p class="p">
+Once the resource manager establishes its name, 
+it receives messages when any client program tries to perform
+an operation (e.g., <span class="keyword apiname">open()</span>, <span class="keyword apiname">read()</span>, <span class="keyword apiname">write()</span>)
+on that name.
+
+
+
+</p>
+
+
+<div class="p">
+In our example, once <span class="ph filepath">/dev/sample</span> is registered, and a client program executes:
+
+<pre class="pre codeblock">fd = open ("/dev/sample", O_RDONLY);
+</pre>
+</div>
+
+
+<p class="p">
+
+the client's C library constructs an <span class="keyword const">_IO_CONNECT</span> message and
+sends it to our resource manager.
+Our resource manager receives the message within the 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_block.html"><span class="keyword apiname">dispatch_block()</span></a> function.
+We then call 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_handler.html"><span class="keyword apiname">dispatch_handler()</span></a>,
+which decodes the message and calls the appropriate handler function based
+on the connect and I/O function tables that we passed in previously.
+After <span class="keyword apiname">dispatch_handler()</span> returns, 
+we go back to the <span class="keyword apiname">dispatch_block()</span> function to wait for another message.
+
+</p>
+
+
+<div class="p">
+At some later time, when the client program executes:
+
+<pre class="pre codeblock">read (fd, buf, BUFSIZ);
+</pre>
+
+the client's C library constructs an <span class="keyword const">_IO_READ</span> message, 
+which is then sent directly to our resource manager, and the decoding cycle repeats.
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton_SIMPLE_ST_EG.html">Single-threaded device resource manager</a></div>
+</div>
+</div></body>
+</html>

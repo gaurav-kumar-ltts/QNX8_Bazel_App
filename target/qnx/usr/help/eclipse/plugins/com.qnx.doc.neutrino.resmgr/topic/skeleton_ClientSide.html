@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Under the client's covers" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/skeleton_UnderTheCovers.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ClientSide" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Under the client's covers</title>
+</head>
+<body id="ClientSide">
+
+<h1 class="title topictitle1" id="ariaid-title1">Under the client's covers</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+When a client calls a function that requires pathname resolution (e.g.,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/rename.html"><span class="keyword apiname">rename()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>,
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/u/unlink.html"><span class="keyword apiname">unlink()</span></a>),
+the function sends messages to both the process manager
+and the resource manager to obtain a file descriptor.
+Once the file descriptor is obtained, the client can use it to send messages to the device associated with the
+pathname, via the resource manager.
+</p>
+
+
+<div class="p">
+In the following, the file descriptor is obtained,
+and then the client writes directly to the device:
+
+<pre class="pre codeblock">/* In this stage, the client talks to the process manager and 
+   the resource manager. */
+fd = open("/dev/ser1", O_RDWR);
+
+/* In this stage, the client talks directly to the resource manager. */
+for (packet = 0; packet &lt; npackets; packet++)
+{
+    write(fd, packets[packet], PACKET_SIZE);
+}
+close(fd);
+</pre>
+</div>
+
+
+<div class="p">
+For the above example, here's the description of what happened behind the scenes.
+We'll assume that a serial port is managed by a resource manager called <span class="keyword cmdname">devc-ser8250</span>
+that's been registered with the pathname prefix <span class="ph filepath">/dev/ser1</span>:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Under-the-cover communication between the client, the process manager, and the resource manager.</span>
+
+<br /><img class="image" src="../images/client_side.svg" width="312" alt="Under-the-cover diagram illustrating the client side" /><br />
+</div>
+
+</div>
+
+
+<ol class="ol">
+<li class="li">The client's library sends a <q class="q">query</q> message.
+  The <span class="keyword apiname">open()</span> in the client's library sends a message
+  to the process manager asking it to look up a name (e.g., <span class="ph filepath">/dev/ser1</span>).
+</li>
+
+
+<li class="li">The process manager indicates who's responsible and it returns the
+  <var class="keyword varname">nd</var>, <var class="keyword varname">pid</var>, <var class="keyword varname">chid</var>, and <var class="keyword varname">handle</var>
+  that are associated with the pathname prefix.
+
+  <p class="p">
+  <strong class="ph b">Here's what went on behind the scenes...</strong>
+  </p>
+
+
+  <div class="p">
+  When the <span class="keyword cmdname">devc-ser8250</span> resource manager registered its name (<span class="ph filepath">/dev/ser1</span>)
+  in the namespace, it called the process manager.
+  The process manager is responsible for maintaining information about pathname prefixes.
+  During registration, it adds an entry to its table that looks similar to this:
+
+<pre class="pre codeblock">47167, 1, 0, 0, /dev/ser1
+</pre>
+  </div>
+
+
+  <p class="p">
+  The table entries represent:
+  </p>
+
+
+  <dl class="dl">
+  
+  <dt class="dt dlterm">47167</dt>
+
+  <dd class="dd">Process ID (<var class="keyword varname">pid</var>) of the resource manager.</dd>
+
+  
+
+  
+  <dt class="dt dlterm">1</dt>
+
+  <dd class="dd">Channel ID (<var class="keyword varname">chid</var>) that the resource manager is using to receive messages with.</dd>
+
+  
+
+  
+  <dt class="dt dlterm">0</dt>
+
+  <dd class="dd">Handle given in case the resource manager has registered more than one name.
+    The handle for the first name is 0, 1 for the next name, etc.
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm">0</dt>
+
+  <dd class="dd">The open type passed during name registration (0 is <span class="keyword const">_FTYPE_ANY</span>).
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="ph filepath">/dev/ser1</span></dt>
+
+  <dd class="dd">The pathname prefix.</dd>
+
+  
+
+  </dl>
+
+
+  <p class="p">
+  A resource manager is uniquely identified by a process ID, and a channel ID.
+  The process manager's table entry associates the resource manager with a name,
+  a handle (to distinguish multiple names when a resource manager registers more than one name), and an open type.
+  </p>
+
+
+  <p class="p">
+  When the client's library issued the query call in step 1,
+  the process manager looked through all of its tables for any registered pathname prefixes that match the name.
+  If another resource manager had previously registered the name <span class="ph filepath">/</span>,
+  more than one match would be found.
+  So, in this case, both <span class="ph filepath">/</span> and <span class="ph filepath">/dev/ser1</span> match.
+  The process manager will reply to the <span class="keyword apiname">open()</span> with the list of matched servers or resource managers.
+  The client's library can then query the servers in turn about their handling of the path,
+  beginning with the longest match.
+  </p>
+
+
+  
+
+</li>
+
+
+<li class="li">The client's library sends a <q class="q">connect</q> message to the resource manager.
+  To do so, it must create a connection to the resource manager's channel:
+
+<pre class="pre codeblock">fd = ConnectAttach(0, pid, chid, 0, 0);
+</pre>
+   
+  <p class="p">
+  
+  The file descriptor that's returned by 
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectattach.html"><span class="keyword apiname">ConnectAttach()</span></a>
+  is also a connection ID and is used for sending messages directly to the resource manager.
+  In this case, it's used to send a connect message
+  (<span class="keyword const">_IO_CONNECT</span> defined in <span class="ph filepath">&lt;sys/iomsg.h&gt;</span>)
+  containing the handle to the resource manager requesting that it open <span class="ph filepath">/dev/ser1</span>.
+  
+  </p>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  
+  
+  
+  
+  Typically, only functions such as
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>
+  call <span class="keyword apiname">ConnectAttach()</span> with an <var class="keyword varname">index</var> argument of 0.
+  Most of the time, you should OR <span class="keyword const">_NTO_SIDE_CHANNEL</span> into
+  this argument, so that the connection is made via a
+  <em class="ph i">side channel</em>, resulting in a connection ID that's greater than any valid file descriptor.
+  </div>
+
+
+  <p class="p">
+  When the resource manager gets the connect message,
+  it performs validation using the access modes specified in the <span class="keyword apiname">open()</span> call
+  (e.g., are you trying to write to a read-only device?).
+  </p>
+
+</li>
+
+
+<li class="li">The resource manager generally responds with a pass (and <span class="keyword apiname">open()</span> returns with the file descriptor)
+  or fail (the next server is queried).
+</li>
+
+
+<li class="li">When the file descriptor is obtained,
+  the client can use it to send messages directly to the device associated with the pathname.
+
+  <p class="p">
+  In the sample code, it looks as if the client opens and writes directly to the device.
+  In fact, the <span class="keyword apiname">write()</span> call sends an <span class="keyword const">_IO_WRITE</span> message 
+  to the resource manager requesting that the given data be written,
+  and the resource manager responds that it either wrote some of all of the data, or that the write failed.
+  
+  </p>
+
+</li>
+
+
+</ol>
+
+
+<p class="p">
+Eventually, the client calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>,
+which sends an <span class="keyword const">_IO_CLOSE</span> message to the resource manager.
+The resource manager handles this by doing some cleanup.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/skeleton_UnderTheCovers.html">Under the covers</a></div>
+</div>
+</div></body>
+</html>

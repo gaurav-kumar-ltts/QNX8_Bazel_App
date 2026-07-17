@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Configuration space access" />
+<meta name="abstract" content="By design, each driver process has read access to the configuration space of the device it's managing, via the libpci and capability module APIs." />
+<meta name="description" content="By design, each driver process has read access to the configuration space of the device it's managing, via the libpci and capability module APIs." />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/design.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="config_space" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Configuration space access</title>
+</head>
+<body id="config_space">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Configuration space access</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+By design, each driver process has read access to the configuration space of the device it's managing, via the
+<span class="ph filepath">libpci</span> and capability module APIs.
+</p>
+
+
+<p class="p">
+This is enabled by the hardware-dependent module when it's demand-loaded on the first hardware access.
+All configuration space writes are handled by the PCI server.
+This design allows for optimal efficiency for reads because there's no context switch as a result of a
+message pass when performing read operations.
+</p>
+
+
+<p class="p">
+
+
+
+
+Access to device configuration space registers is facilitated through a set of read and write APIs.
+Most read APIs require only a BDF (Bus/Device/Function—<q class="q">Bus</q> is synonymous with a PCIe link)
+value of type <span class="keyword dtype">pci_bdf_t</span>.
+This value can be constructed using the
+<a class="xref" href="pci_bdf_t.html" title="Base type that encodes a Bus/Device/Function"><span class="keyword apiname">PCI_BDF()</span></a>
+macro, but usually it's obtained from a successful call to
+<a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>.
+</p>
+
+
+<p class="p">
+
+
+
+Write APIs and APIs that provide certain types of information (such as address space and interrupt information)
+require a handle (of type <span class="keyword dtype">pci_devhdl_t</span>) that you obtain from a successful call to
+<a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</p>
+
+
+<p class="p">
+Read and Write APIs for common configuration space registers are provided by specifically named APIs (see the
+<a class="xref" href="library.html">API Reference</a>
+chapter for details).
+For example, to read and write the command register, use
+<a class="xref" href="pci_device_read.html" title="Read information from the common PCI configuration space registers"><span class="keyword apiname">pci_device_read_cmd()</span></a>
+and
+<a class="xref" href="pci_device_write.html" title="Write a value in the device command or status register"><span class="keyword apiname">pci_device_write_cmd()</span></a>.
+This provides a self-documenting interface for driver code.
+Access to device specific registers is provided by the
+<a class="xref" href="pci_device_cfg_rd.html" title="Read from the device-specific PCI configuration space registers"><span class="keyword apiname">pci_device_cfg_rd*()</span></a>
+and
+<a class="xref" href="pci_device_cfg_wr.html" title="Write to the device-specific PCI configuration space registers"><span class="keyword apiname">pci_device_cfg_wr*()</span></a>
+APIs.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/design.html">Design Details</a></div>
+</div>
+</div></body>
+</html>

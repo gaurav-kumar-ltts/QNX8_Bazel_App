@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Global options" />
+<meta name="abstract" content="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both." />
+<meta name="description" content="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/config.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="options" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Global options</title>
+</head>
+<body id="options">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Global options</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Options for the <span class="keyword cmdname">smmuman</span> service may be specified in the command
+		line, in a configuration file (e.g., <span class="ph filepath">mysystem.smmu</span>), or in
+		both.</p>
+
+		<div class="section">
+			
+			
+			<p class="p">The <span class="keyword cmdname">smmuman</span> configuration uses <em class="ph i">options</em>, which may have
+				<em class="ph i">arguments</em>. Options and arguments available for all supported hardware
+				platforms are described below.</p>
+
+		</div>
+
+		<div class="section" id="options__notation"><h2 class="title sectiontitle">About notation</h2>
+			
+			<div class="p">The default notations (no prefix needed) for specifying memory addresses and sizes are:
+				<ul class="ul">
+					<li class="li">address in memory — hexadecimal</li>
+
+					<li class="li">size or length of memory region — decimal</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">For example, <span class="ph codeph">allow foo 4000,4096</span> refers to a memory region
+				that starts at address <span class="ph codeph">0x4000</span> and has a size of 4096
+				(<span class="ph codeph">0x1000</span>) bytes.</p>
+
+			<div class="p">If you prefer to write a memory address or region size with a notation other than the
+				default, you can use a prefix to specify the notation:
+				<ul class="ul">
+					<li class="li">decimal — <span class="ph codeph">0d</span> (e.g., <span class="ph codeph">0d1234</span>)</li>
+
+					<li class="li">hexadecimal — <span class="ph codeph">0x</span> (e.g., <span class="ph codeph">0x4D2</span>)</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">Thus, the following are equivalent:
+<pre class="pre codeblock">allow foo 0x4000,4096
+allow foo 4000,4096
+allow foo 0x4000,0x1000
+allow foo 0x4000,0d4096
+allow foo 0d16384,4096
+allow foo 0d16384,0d4096
+allow foo 0d16384,0x1000
+</pre></div>
+
+			<p class="p">You can use size multipliers: <q class="q">K</q>, <q class="q">M</q>, <q class="q">G</q> (or <q class="q">k</q>, <q class="q">m</q>,
+				<q class="q">g</q>) in the address and length arguments; for example:
+				<span class="ph codeph">allow foo 4K,1k</span> is equivalent to
+				<span class="ph codeph">allow foo 0x1000,0x400</span>. (Remember: the size
+				multipliers are <em class="ph i">decimal</em> multipliers, so <span class="ph codeph">4K</span> is
+				<span class="ph codeph">4 x 1024 = 4096</span>, or <span class="ph codeph">0x1000</span>.)</p>
+
+			<p class="p">Other numeric configuration values are specified in decimal; for example, in
+				<span class="ph codeph">device pci:0:18.0 foo</span> the values for
+				<var class="keyword varname">bus</var>, <var class="keyword varname">dev</var>, and <var class="keyword varname">func</var> are
+				decimal values (see <a class="xref" href="#options__device"><span class="keyword option">device</span></a> below).</p>
+
+			<div class="note"><span class="notetitle">Note:</span> We recommend that, to avoid confusion, when using hexadecimal values you specify
+				the prefix; for example: <span class="ph codeph">allow foo 0x4000,4096</span>.</div>
+
+		</div>
+
+		<div class="section" id="options__allow"><h2 class="title sectiontitle"><span class="keyword option">allow</span></h2>
+			
+			
+			<pre class="pre codeblock">allow <var class="keyword varname">allow_name</var> <var class="keyword varname">start</var>,<var class="keyword varname">len</var>[,<var class="keyword varname">permissions</var>]</pre>
+			<div class="p">Add to the set of addresses DMA may be used to or from. Use the arguments as follows:
+				<ul class="ul">
+					<li class="li"><var class="keyword varname">allow_name</var> — the name of the allowed DMA address set.
+						This name is a convenience, which you can specify to facilitate referring to a
+						memory region (see <q class="q"><a class="xref" href="use_startup.html" title="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up.">Startup mappings</a></q>).</li>
+
+					<li class="li"><var class="keyword varname">start</var> — the start address of the allowed range</li>
+
+					<li class="li"><var class="keyword varname">len</var> — the length, in bytes, of the allowed range</li>
+
+					<li class="li"><div class="p"><var class="keyword varname">permissions</var> — if specified, may be:
+							<ul class="ul">
+								<li class="li"><span class="ph codeph">s</span> — permit the device to use the allowed range as
+									a source of DMA (read permission)</li>
+
+								<li class="li"><span class="ph codeph">t</span> — permit the device to use the allowed range as
+									a target of DMA (write permission)</li>
+
+							</ul>
+
+						</div>
+
+						<p class="p">If neither <span class="ph codeph">s</span> nor <span class="ph codeph">t</span> is specified, the
+							<span class="keyword cmdname">smmuman</span> service assumes that both are present: permit the
+							device to use the allowed address range as both a source and a target of DMA.
+						</p>
+
+					</li>
+
+				</ul>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> <p class="p">The recommended method for allocating memory for devices is to use the startup
+				configuration. For more information, see the <q class="q"><a class="xref" href="config.html#config__map">Mapping devices and memory regions</a></q>
+				section.</p>
+<p class="p">The <span class="keyword cmdname">smmuman</span> service has the <span class="keyword option">allow</span>
+				option to support legacy drivers (see <q class="q"><a class="xref" href="use_startup.html" title="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up.">Startup mappings</a></q> in this chapter).</p>
+</div>
+
+		</div>
+
+		<div class="section" id="options__debug"><h2 class="title sectiontitle"><span class="keyword option">debug</span></h2>
+			
+			
+			<pre class="pre codeblock">debug 1|2</pre>
+			<p class="p">Output debugging information. Specify 2 for more verbose output.</p>
+
+			<p class="p">During initialization, all <span class="keyword cmdname">smmuman</span> output goes to both
+				<span class="keyword cmdname">stderr</span> and <span class="keyword cmdname">slog2</span>. Afterwards,
+				<span class="keyword cmdname">smmuman</span> output goes to <span class="keyword cmdname">slog2</span> only.</p>
+
+		</div>
+
+		<div class="section" id="options__device"><h2 class="title sectiontitle"><span class="keyword option">device</span></h2>
+			
+			
+			<pre class="pre codeblock">device <var class="keyword varname">device_spec</var> [<var class="keyword varname">allow_name</var>]</pre>
+			<p class="p">Set the current device being configured to <var class="keyword varname">device_spec</var>.</p>
+
+			<div class="p">Note that:
+				<ul class="ul">
+					<li class="li">If no type is specified for <var class="keyword varname">device_spec</var>, then the default
+						(<span class="keyword option">mem:</span>) is assumed. Thus,
+						<span class="ph codeph">device 0xF800B000/4000</span> is equivalent to
+						<span class="ph codeph">device mem:0xF800B000/4000</span>.</li>
+
+					<li class="li">If <var class="keyword varname">allow_name</var> is specified for this option, then the device
+						is restricted to address ranges specified by the <span class="keyword option">allow</span> options
+						with the same value for <var class="keyword varname">allow_name</var> (see <a class="xref" href="#options__allow"><span class="keyword option">allow</span></a> above).</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">The <var class="keyword varname">device_spec</var> argument may take the following values:
+				<dl class="dl">
+					
+						<dt class="dt dlterm">pci:*</dt>
+
+						<dd class="dd">Specify increasingly detailed information about a PCI device, as follows:
+							<ul class="ul">
+								<li class="li"><span class="keyword option">pci:*</span> — any PCI device</li>
+
+								<li class="li"><span class="keyword option">pci:</span><var class="keyword varname">bus</var>:* — any PCI device
+									on bus <var class="keyword varname">bus</var></li>
+
+								<li class="li"><span class="keyword option">pci:</span><var class="keyword varname">bus</var>:<var class="keyword varname">dev</var>.*
+									— any function number on PCI device <var class="keyword varname">dev</var> on bus
+									<var class="keyword varname">bus</var></li>
+
+								<li class="li"><span class="keyword option">pci:</span><var class="keyword varname">bus</var>:<var class="keyword varname">dev</var>.<var class="keyword varname">func</var>
+									— function <var class="keyword varname">func</var> on PCI device
+									<var class="keyword varname">dev</var> on bus <var class="keyword varname">bus</var></li>
+
+							</ul>
+
+						</dd>
+
+					
+					
+						<dt class="dt dlterm">[mem:]<var class="keyword varname">paddr</var>[/<var class="keyword varname">length</var>]</dt>
+
+						<dd class="dd">Specify a memory-mapped I/O device at physical address
+							<var class="keyword varname">paddr</var> for <var class="keyword varname">length</var> bytes.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> <p class="p">Devices may be attached to only one SMMU object at a time. The process that
+					creates the SMMU object and attaches devices to it has exclusive control of the
+					SMMU object and of the memory mappings and memory access permissions for the
+					attached devices.</p>
+
+				<p class="p">If you use the startup configuration to map a memory region for a device, the
+					<span class="keyword cmdname">smmuman</span> service controls both the SMMU object, and the
+					device's memory mappings and memory access permissions. Your
+					<span class="keyword cmdname">smmuman</span> clients won't be able to modify these mappings
+					and permissions, or even remove the device from the SMMU object controlled by
+					the <span class="keyword cmdname">smmuman</span> service.</p>
+
+				<p class="p">Thus, if you may need to modify a device's memory mappings or memory access
+					permissions after startup, you can specify the device in the startup
+					configuration, but you can't use the <span class="keyword option">device</span> 
+					<var class="keyword varname">allow_name</var> argument and assign memory regions to the device.</p>
+
+			</div>
+
+			<h3 class="title sectiontitle">Memory sharing</h3>
+			
+			
+			
+			<div class="p">The following shows two devices configured to share the same memory region:
+<pre class="pre codeblock">smmu vtd require
+
+allow foo   0xF8000000,0x4000,st
+allow moo   0xF8000000,0x4000,st
+
+device pci:0:18.0 foo
+device pci:0:21.0 moo
+</pre></div>
+
+			<p class="p">Both the <span class="ph codeph">foo</span> and <span class="ph codeph">moo</span>
+				<span class="keyword option">allow</span> options specify the same memory region (starting at
+				<span class="ph codeph">0xF8000000</span>, for <span class="ph codeph">0x4000</span> bytes), and both have
+				their permissions set to <span class="ph codeph">st</span>, so devices configured with their
+				<var class="keyword varname">allow_name</var> arguments set to <span class="ph codeph">foo</span> or
+				<span class="ph codeph">moo</span> will have permission to read and write this region.</p>
+
+			<div class="p">The <span class="keyword cmdname">smmuman</span> configuration syntax provides a better way to achieve
+				the same result, however. You can specify the the same <var class="keyword varname">allow_name</var>
+				argument for multiple devices (e.g., <span class="ph codeph">foo</span>), so that all devices with
+				this <var class="keyword varname">allow_name</var> argument can read and write the same memory region:
+<pre class="pre codeblock">allow foo   0xF8000000,0x4000,st
+
+device pci:0:18.0 foo
+device pci:0:21.0 foo
+</pre></div>
+
+			<p class="p">Since this method requires only a single <span class="keyword option">allow</span> option entry, it uses
+				less system page memory than the previous configuration.</p>
+
+			<div class="p">Finally, if several devices require access to the same memory region but with
+				different permissions, you must use the <span class="keyword option">allow</span> option to specify
+				different memory region names. For example, in the configuration below, devices
+				<span class="ph codeph">pci:0:18.0</span> and <span class="ph codeph">pci:0:21:0</span> may read from the
+				memory region at <span class="ph codeph">0xF8000000,0x4000</span>, but only device
+				<span class="ph codeph">pci:0:26.2</span> may both read and write the region:
+<pre class="pre codeblock">allow foo   0xF8000000,0x4000,s
+allow moo   0xF8000000,0x4000,st
+
+device pci:0:18.0 foo
+device pci:0:21.0 foo
+device pci:0:26.2 moo
+</pre></div>
+
+		</div>
+
+		<div class="section" id="options__foreground"><h2 class="title sectiontitle"><span class="keyword option">foreground</span></h2>
+			
+			
+			<pre class="pre codeblock">foreground</pre>
+			<p class="p">After parsing the configuration, leave the <span class="keyword cmdname">smmuman</span> service running
+				in the foreground. The default is to leave <span class="keyword cmdname">smmuman</span> running in the
+				background.</p>
+
+		</div>
+
+		<div class="section" id="options__reserved"><h2 class="title sectiontitle"><span class="keyword option">reserved</span></h2>
+			
+			
+			<pre class="pre codeblock">reserved <var class="keyword varname">start_paddr</var>,<var class="keyword varname">length</var></pre>
+			<p class="p">If this option is used, it applies to the device specified by the preceding
+				<span class="keyword option">device</span> option.</p>
+
+			<p class="p">Some devices may need to access a specific memory region in order to function (e.g.,
+				they may need access to code or to data tables found at specific locations on the
+				hardware). For example, a graphics device may store its font definitions separately
+				from the text it will display. This is typical for x86 boards, and for these boards
+				the ACPI tables should provide all the information needed to reserve the required
+				memory regions for whatever devices need them.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> Remember: <em class="ph i">reserved</em> memory isn't the same as a <em class="ph i">mapped</em> memory region:
+				<ul class="ul">
+					<li class="li">Reserved memory is only required for some devices, and is used for ancillary
+						data, such as font definitions.</li>
+
+					<li class="li">Typically, the <span class="keyword cmdname">smmuman</span> retrieves the required location
+						and size of reserved memory from the board, and programs this information
+						into the IOMMU/SMMUs without your having to specifically ask it to do so.</li>
+
+					<li class="li">Your <span class="keyword cmdname">smmuman</span> client should know what memory regions it
+						has asked the <span class="keyword cmdname">smmuman</span> service to map for which devices,
+						but the client needs to use the <a class="xref" href="../api/smmu_device_report_reserved.html" title="Report which memory region or regions are reserved for a DMA device that requires device-specific reserved memory"><span class="keyword apiname">smmu_device_report_reserved()</span></a>
+						function to learn what reserved memory (if any) has been assigned to a DMA
+						device.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">You need to use the <span class="keyword option">reserved</span> option to manually set aside such
+				regions only if the information isn't available from the board firmware. For
+				example, if on an x86 board the ACPI DMAR tables weren't available, you would need
+				to use the <span class="keyword option">ignore</span> option, then specify the VT-d units and the
+				devices. Your configuration might include something like the following:
+<pre class="pre codeblock">smmu vtd ignore
+  unit vtd1 0xfed64000
+  unit vtd2 0xfed65000
+
+device pci:0:2.0
+  use vtd1
+  reserved 0x7b800000,0x4800000
+
+device pci:*
+  use vtd2
+
+device pci:0:21.0
+  reserved 0x7afe0000,0x20000
+
+device pci:0:21.1
+  reserved 0x7afe0000,0x20000
+</pre></div>
+
+			<p class="p">Note that no space is permitted between the <var class="keyword varname">start_paddr</var> and
+				<var class="keyword varname">length</var> arguments; thus
+				<span class="ph codeph">reserved 0x7afe0000,0x20000</span> is permitted, but
+				<span class="ph codeph">reserved 0x7afe0000, 0x20000</span> will fail.</p>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">
+				<p class="p">If a board doesn't provide information it should provide (e.g., the ACPI DMAR
+					tables), the board likely has other problems as well, and you should consult
+					your board manufacturer.</p>
+
+				<div class="p">Additionally, any change to your board (e.g., firmware revision) will oblige you
+					to revisit a configuration that uses the <span class="keyword option">ignore</span> option:
+					<ul class="ul">
+						<li class="li">x86 — the addresses for the VT-d units may change with any firmware
+							revision; the firmware specification doesn't provide any recommendations or
+							guidelines.</li>
+
+						<li class="li">ARM — the reserved regions for the GPU and for USB support may change
+							if the board RAM layout changes.</li>
+
+					</ul>
+
+				</div>
+
+			</div>
+
+			<p class="p">For more information about configuring the <span class="keyword cmdname">smmuman</span> service for x86
+				platforms, see <q class="q"><a class="xref" href="x86.html" title="On x86 boards, IOMMU/SMMUs are known as VT-ds; configuration is needed only for non-standard VT-d variants.">Options for x86 IOMMUs (VT-ds)</a></q> in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="options__safety"><h2 class="title sectiontitle"><span class="keyword option">safety</span></h2>
+			
+			
+			<pre class="pre codeblock">safety none|warn|required</pre>
+			<div class="p">Specify how the <span class="keyword cmdname">smmuman</span> service responds if any of the components on
+				which it depends (e.g., <span class="keyword cmdname">procnto</span>) isn't a safety-certified component:
+				<dl class="dl">
+					
+						<dt class="dt dlterm">none</dt>
+
+						<dd class="dd">Ignore the presence of a non-safety component and just run.</dd>
+
+					
+					
+						<dt class="dt dlterm">warn</dt>
+
+						<dd class="dd">If any component isn't safety-certified, issue a warning, and run.</dd>
+
+					
+					
+						<dt class="dt dlterm">required</dt>
+
+						<dd class="dd">If a component isn't safety-certified, issue an error message and move to
+							the DSS (see <q class="q"><a class="xref" href="../arch/arch.html#arch__dss">Design Safe State (DSS)</a></q>).</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<div class="p">Default behaviors are as follows:
+				<ul class="ul">
+					<li class="li"><span class="keyword cmdname">smmuman</span> — none</li>
+
+					<li class="li"><span class="keyword cmdname">smmuman-safety</span> — required</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">You can use multiple instances of the <span class="keyword option">safety</span> option to specify
+				different responses for different components. For example, in a safety-related
+				system you might use an uncertified support file and have the
+				<span class="keyword cmdname">smmuman</span> service issue only a warning for that file, but move
+				to its DSS if any other component isn't certified.</p>
+
+			<p class="p">If more than one instance of the <span class="keyword option">safety</span> option is specified, the
+				final instance is used to specify the <span class="keyword cmdname">smmuman</span> service's global
+				response to the presence of uncertified components (i.e., how it should respond to
+				the presence of an uncertified <span class="keyword cmdname">procnto</span> and other components not
+				otherwise explicitly specified in the configuration).</p>
+
+			<div class="dangertitle">DANGER</div><div class="note danger">Including non-safety SMMUMAN components in a system invalidates the
+				system's safety-certification.</div>
+
+		</div>
+
+		<div class="section" id="options__set"><h2 class="title sectiontitle"><span class="keyword option">set</span></h2>
+			
+			
+			
+			
+			
+			
+			<pre class="pre codeblock">set <var class="keyword varname">var</var> <var class="keyword varname">val</var></pre>
+			<div class="p">The <span class="keyword option">set</span> option supports the following variables types:
+				<ul class="ul">
+					<li class="li"><span class="keyword dtype">address</span> — use any of the forms permitted for memory sizes
+						when you specify <var class="keyword varname">val</var> (e.g., 4K, 0d16384 (see <q class="q"><a class="xref" href="#options__notation">About notation</a></q>))</li>
+
+					<li class="li"><span class="keyword dtype">boolean</span> — any of the following values are equivalent; the
+						first term turns on the feature, the second turns it off:
+						<span class="ph codeph">1</span>/<span class="ph codeph">0</span>,
+						<span class="ph codeph">yes</span>/<span class="ph codeph">no</span>,
+						<span class="ph codeph">on</span>/<span class="ph codeph">off</span></li>
+
+					<li class="li"><span class="keyword dtype">number</span> — any integer</li>
+
+					<li class="li"><span class="keyword dtype">string</span> — a text string</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">You can use the command line at startup to display currently permitted variables and
+				their contexts. For example:
+<pre class="pre codeblock">smmuman set ?
+  grow-heap (address, global)
+  message-block-timeout (number, global)
+  slogger2-required (boolean, global)
+</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> A question mark (<tt class="ph tt">?</tt>) is a shell wildcard character, so you may
+				need to escape it.</div>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">grow-heap</var></dt>
+
+					<dd class="dd"><ul class="ul">
+							<li class="li">Context: global — applies to the entire service</li>
+
+							<li class="li">Variable type: address</li>
+
+							<li class="li">Default: don't grow the heap</li>
+
+						</ul>
+
+					</dd>
+
+					<dd class="dd ddexpand"><div class="p">Grow the heap by the amount specified by <var class="keyword varname">val</var>.
+						For example:
+						<pre class="pre codeblock">set grow-heap 0x4000</pre>
+						will increase the heap by 16384 bytes.</div>
+</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">message-block-timeout</var></dt>
+
+					<dd class="dd">
+						<ul class="ul">
+							<li class="li">Context: global — applies to the entire service</li>
+
+							<li class="li">Variable type: number</li>
+
+							<li class="li">Default: 100 milliseconds</li>
+
+						</ul>
+
+					</dd>
+
+					<dd class="dd ddexpand"><div class="p">Set the maximum allowed time, in milliseconds, that a message from the
+							<span class="keyword cmdname">smmuman</span> service may be blocked before the service
+							sends an unblock pulse to the receiving server. For example:
+							<pre class="pre codeblock">set message-block-timeout 200</pre>
+							configures the <span class="keyword cmdname">smmuman</span> service to send an unblock
+							pulse to any server that doesn't respond to a message within 200
+							milliseconds.</div>
+
+					</dd>
+
+					<dd class="dd ddexpand">The <span class="keyword option">set</span>
+						<var class="keyword varname">message-block-timeout</var> variable must be a value from 5
+						through 10000, or 0 (zero). A 0 makes the timeout infinite (never time out).</dd>
+
+					<dd class="dd ddexpand">Depending on the server's response (or non-response), the
+						<span class="keyword cmdname">smmuman</span> service may terminate with an error. You can
+						use <span class="keyword cmdname">server-monitor</span> to handle situations where a server
+						doesn't respond to an unblock pulse (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/server-monitor.html"><span class="keyword cmdname">server-monitor</span></a> in
+						the <span class="keyword">QNX OS</span> <cite class="cite">Utilities Reference</cite>).</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">slogger2-required</var></dt>
+
+					<dd class="dd">
+						<ul class="ul">
+							<li class="li">Context: global — applies to the entire service</li>
+
+							<li class="li">Variable type: boolean</li>
+
+							<li class="li">Default: <span class="ph codeph">on</span></li>
+
+						</ul>
+
+					</dd>
+
+					<dd class="dd ddexpand">Log messages to a <span class="keyword cmdname">slogger2</span> buffer.</dd>
+
+				
+			</dl>
+
+			<div class="note"><span class="notetitle">Note:</span> Currently, all <span class="keyword cmdname">set</span> variables for the <span class="keyword cmdname">smmuman</span>
+				service are global (i.e., specify the variable once and it applies to the entire
+				service).</div>
+
+		</div>
+
+		<div class="section" id="options__smmu"><h2 class="title sectiontitle"><span class="keyword option">smmu</span></h2>
+			
+			
+			<pre class="pre codeblock">smmu <var class="keyword varname">smmu_type</var> [<var class="keyword varname">smmu_type_param</var>]</pre>
+			<div class="p">Load the <span class="ph filepath">smmu-<var class="keyword varname">smmu_type</var>.so</span> support library,
+				and call its initialization routine, passing <var class="keyword varname">smmu_type_param</var> to
+				the routine. For example:
+			<pre class="pre codeblock">smmu <strong class="ph b">vtd</strong></pre>
+				will load the <span class="ph filepath">smmu-vtd.so</span> support library needed for x86
+				boards, and
+			<pre class="pre codeblock">smmu <strong class="ph b">rcar3</strong> 0xe67b0000,228,0x4f.0x01,0x4f.0x10,0x4f.0x20</pre>
+				will load the <span class="ph filepath">smmu-rcar3.so</span> library with the specified
+				arguments.</div>
+
+			
+			<p class="p">For more information about <var class="keyword varname">smmu_type_param</var>, see the
+				architecture-specific and board-specific sections in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="options__unit"><h2 class="title sectiontitle"><span class="keyword option">unit</span></h2>
+			
+			
+			<pre class="pre codeblock">unit <var class="keyword varname">unit_name</var> [<var class="keyword varname">smmu_unit_param</var>]</pre>
+			<p class="p">Define an individual IOMMU/SMMU unit with name <var class="keyword varname">unit_name</var>.
+				The type of the unit will be from the preceding <span class="keyword option">smmu</span> option.</p>
+
+			<div class="p">The unit initialization routine will be invoked and passed
+				<var class="keyword varname">smmu_unit_param</var>. For example, for an ARM Renesas R-Car H3 board:
+<pre class="pre codeblock">smmu rcar3 0xe67b0000,228,0x4f.0x01,0x4f.0x10,0x4f.0x20
+	unit vi0 0xfebd0000,14  # video IO domain AXI
+	unit vi1 0xfebe0000,15  # video IO domain AXI
+	...
+	unit ir  0xff8b0000,3   # IMP domain AXI
+	unit hc  0xe6570000,2   # high communication domain AXI
+...
+</pre></div>
+
+			<div class="p">Or, for an x86 board:
+<pre class="pre codeblock">smmu vtd ignore
+  unit vtd1 0xfed64000
+  unit vtd2 0xfed65000
+</pre></div>
+
+			<p class="p">For more information about <var class="keyword varname">smmu_unit_param</var>, see the
+				architecture-specific and board-specific sections in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="options__use"><h2 class="title sectiontitle"><span class="keyword option">use</span></h2>
+			
+			
+			<pre class="pre codeblock">use <var class="keyword varname">unit_name</var> [<var class="keyword varname">smmu_use_param</var>]</pre>
+			<p class="p">The current device (specified by the preceding <span class="keyword option">device</span> option) will
+				use the IOMMU/SMMU unit identified by <var class="keyword varname">unit_name</var>.
+				The <var class="keyword varname">smmu_use_param</var> provides additional information on the device
+				to the IOMMU/SMMU unit.</p>
+
+			<p class="p">For more information about <var class="keyword varname">smmu_use_param</var>, see the
+				architecture-specific and board-specific sections in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="options__user"><h2 class="title sectiontitle"><span class="keyword option">user</span></h2>
+			
+			
+			<pre class="pre codeblock">user <var class="keyword varname">uid</var>[:<var class="keyword varname">gid</var>[,<var class="keyword varname">sup_gid</var>]*] | <var class="keyword varname">user_name</var>[,<var class="keyword varname">sup_gid</var>]*</pre>
+			<p class="p">Set the user ID (<var class="keyword varname">uid</var>) and group ID (<var class="keyword varname">gid</var>) and,
+				optionally, supplementary group IDs (<var class="keyword varname">sup_gid</var>) the
+				<span class="keyword cmdname">smmuman</span> service runs with, so that it doesn't have to run as
+				<span class="ph filepath">root</span>. In the second form, the primary group is the one
+				specified for <var class="keyword varname">user_name</var> in <span class="ph filepath">/etc/passwd</span>.</p>
+
+			<p class="p">For more information about user and group IDs, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/process_Privileges.html">Process privileges</a></q> in the
+				<cite class="cite"><span class="keyword">QNX OS</span> Programmer's Guide</cite>.</p>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/config.html" title="Correct configuration of the smmuman service requires careful attention to architecture-specific and board-specific details provided in the board manufacturer’s documentation.">Configuring smmuman</a></div>
+</div>
+</div></body>
+</html>

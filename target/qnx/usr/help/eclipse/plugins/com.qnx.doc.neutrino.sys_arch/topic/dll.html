@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Dynamic Linking" />
+<meta name="abstract" content="In a typical system, a number of programs will be running. Each program relies on a number of functions, some of which will be “standard” C library functions, like printf(), malloc(), write(), etc." />
+<meta name="description" content="In a typical system, a number of programs will be running. Each program relies on a number of functions, some of which will be “standard” C library functions, like printf(), malloc(), write(), etc." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll_HOWUSED.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll_Process_memory.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll_Runtime_linker.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll_Loading_shared_library.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/dll_SYMBOLNAME.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dll" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Dynamic Linking</title>
+</head>
+<body id="dll">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Dynamic Linking</h1>
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In a typical system, a number of programs will be running.
+Each program relies on a number of functions, some of which
+will be <q class="q">standard</q> C library functions, like
+<span class="keyword apiname">printf()</span>, <span class="keyword apiname">malloc()</span>,
+<span class="keyword apiname">write()</span>, etc.
+</p>
+
+
+<p class="p">
+
+
+
+If every program uses the standard C library, it follows
+that each program would normally have a unique copy of this
+particular library present within it. Unfortunately, this
+results in wasted resources. Since the C library is common,
+it makes more sense to have each program <em class="ph i">reference</em>
+the common instance of that library, instead of having
+each program <em class="ph i">contain</em> a copy of the
+library. This approach yields several advantages, not the
+least of which is the savings in terms of total system
+memory required.
+</p>
+
+
+<div class="p">
+Before we go any further, let's look at some terminology:
+
+<dl class="dl">
+
+<dt class="dt dlterm">Linker</dt>
+
+<dd class="dd">A tool, such as
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html"><span class="keyword cmdname">ld</span></a>,
+  that you typically run just after compiling your program, in order to
+  combine object and archive files, relocate their data, and resolve symbol references.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Runtime linker</dt>
+
+<dd class="dd">A tool that finds and loads shared objects when you run your program.
+  This is also known as a <em class="ph i">dynamic linker</em>, but we'll use <em class="ph i">runtime linker</em> to avoid any confusion
+  with dynamic linking, which the (non-runtime) linker does.
+  
+  
+  
+
+  <p class="p">
+  
+  
+  The runtime linker's name is <span class="keyword cmdname">ldd</span> (which is also the name of a utility
+  that lists the shared objects required by a program).
+  In the <span class="ph codeph">.interp</span> section of an ELF file, it's called
+  <span class="ph filepath">/usr/lib/ldqnx-64.so</span>.
+  You'll need to include this in your OS image; see the entry for
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>
+  in the <cite class="cite">Utilities Reference</cite> for more details.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Statically linked</dt>
+
+<dd class="dd">The program and the particular library that it references are combined by
+  the linker at link time.
+  
+
+  <p class="p">
+  
+  This means that the binding between the program and the particular library
+  is fixed and known at link time—well in advance of
+  the program's ever running. It also means that we can't change
+  this binding, unless we relink the program with a new
+  version of the library.
+  </p>
+
+
+  <p class="p">
+  You might consider linking a program statically if
+  you aren't sure whether the correct version of a
+  library will be available at runtime, or if you are testing
+  a new library version that you don't yet want to install
+  as shared.
+  </p>
+
+
+  <p class="p">
+  Programs that are linked statically are linked against
+  archives of objects (<dfn class="term">libraries</dfn>) that typically
+  have the extension of <span class="ph filepath">.a</span>. An example of such
+  a collection of objects is the standard C library,
+  <span class="ph filepath">libc.a</span>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Dynamically linked</dt>
+
+<dd class="dd">The program and the particular library that it references <em class="ph i">aren't</em>
+  combined by the linker at link time.
+
+  <p class="p">
+  
+  
+  Instead, the linker places information into the executable
+  that tells the loader which shared object module the code is
+  in and which runtime linker should be used to find and bind
+  the references. This means that the binding between the
+  program and the shared object is done
+  <em class="ph i">at runtime</em>—before the program starts, the appropriate
+  shared objects are found and bound.
+  </p>
+
+
+  <p class="p">
+  
+  
+  This type of program is called a <em class="ph i">partially bound
+  executable</em>, because it isn't fully <em class="ph i">resolved</em>—the
+  linker, at link time, didn't associate all
+  referenced symbols in the program with
+  specific code from the library. Instead, the linker simply
+  said: <q class="q">This program calls some functions within a
+  particular shared object, so I'll just make a note of
+  <em class="ph i">which</em> shared object these functions are in, and
+  continue on.</q> Effectively, this defers the binding
+  until runtime.
+  </p>
+
+
+  <p class="p">
+  Programs that are linked dynamically are linked against
+  shared objects that have the extension <span class="ph filepath">.so</span>.
+  An example of such an object is the shared object version of
+  the standard C library, <span class="ph filepath">libc.so</span>.
+  </p>
+
+
+  <p class="p">
+  You use a command-line option to the compiler driver
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+  to tell the toolchain whether you're linking
+  statically or dynamically. This command-line option then
+  determines the extension used (either <span class="ph filepath">.a</span> or
+  <span class="ph filepath">.so</span>).
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Augmenting code at runtime</h2>
+
+
+<p class="p">
+Taking this one step further, a program may not know which
+functions it needs to call until it's running. While this
+may <em class="ph i">seem</em> a little strange initially (after all, how
+could a program <em class="ph i">not</em> know what functions it's going
+to call?), it really can be a very powerful feature. Here's why.
+</p>
+
+
+<p class="p">
+Consider a <q class="q">generic</q> disk driver. It starts,
+probes the hardware, and detects a hard disk. The driver
+would then dynamically load the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk</span></a>
+code to handle the disk blocks, because it found a block-oriented
+device. Now that the driver has access to the disk at the
+block level, it finds two partitions present on the disk: a
+DOS partition and a Power-Safe partition. Rather than force the
+disk driver to contain filesystem drivers for all possible
+partition types it may encounter, we kept it simple: it
+doesn't have <em class="ph i">any</em> filesystem drivers! At runtime, it
+detects the two partitions and <em class="ph i">then</em> knows that it
+should load the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html"><span class="keyword cmdname">fs-dos.so</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="keyword cmdname">fs-qnx6.so</span></a>
+filesystem code to handle those partitions.
+</p>
+
+
+<p class="p">
+By deferring the decision of which functions to call, we've
+enhanced the flexibility of the disk driver (and also
+reduced its size).
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/dll_HOWUSED.html">How shared objects are used</a></strong><br />
+ To understand how a program makes use of shared objects, let's first see the format of an executable and then examine the steps that occur when the program starts. </li>
+<li class="link ulchildlink"><strong><a href="../topic/dll_Process_memory.html">Memory layout for a typical process</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/dll_Runtime_linker.html">Runtime linker</a></strong><br />
+ The runtime linker is invoked when a program that was linked against a shared object is started or when a program requests that a shared object be dynamically loaded. This linker is contained within the C runtime library. </li>
+<li class="link ulchildlink"><strong><a href="../topic/dll_Loading_shared_library.html">Loading a shared library at runtime</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/dll_SYMBOLNAME.html">Symbol name resolution</a></strong><br />
+ When the runtime linker loads a shared library, the symbols within that library have to be resolved. The order and the scope of the symbol resolution are important. If a shared library calls a function that happens to exist by the same name in several libraries that the program has loaded, the order in which these libraries are searched for this symbol is critical. This is why the OS defines several options that can be used when loading libraries. </li>
+</ul>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/devel_USINGLIB.html">Using libraries (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dladdr.html">dladdr()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlclose.html">dlclose()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlerror.html">dlerror()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlsym.html">dlsym()</a></li></ul></div>
+</div></body>
+</html>

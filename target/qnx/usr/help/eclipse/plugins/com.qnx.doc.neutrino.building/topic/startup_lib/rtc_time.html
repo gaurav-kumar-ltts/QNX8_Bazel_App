@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="rtc_time()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rtc_time" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>rtc_time()</title>
+</head>
+<body id="rtc_time">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">rtc_time()</span></h1>
+
+	
+	<div class="body refbody">
+		<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+			
+			
+<pre class="pre codeblock">unsigned long rtc_time (void)
+</pre></div>
+
+		<div class="section"><h2 class="title sectiontitle">Description:</h2>
+			<p class="p">This is a user-replaceable function responsible for returning the number of seconds
+				since January 1 1970 00:00:00 GMT. </p>
+
+			<dl class="dl">
+
+				
+					<dt class="dt dlterm">x86</dt>
+
+
+					<dd class="dd">This function defaults to calling <span class="keyword apiname">rtc_time_mc146818()</span>,
+						which knows how to get the time from an IBM-PC standard clock chip. </dd>
+
+				
+
+				
+					<dt class="dt dlterm">ARM</dt>
+
+					<dd class="dd">The default library version simply returns zero. 
+					</dd>
+
+				
+
+			</dl>
+
+			<p class="p">Currently, these are the chip-specific versions: </p>
+
+			<dl class="dl compact">
+
+				
+					<dt class="dt dlterm"><span class="keyword apiname">rtc_time_ds1386()</span>
+					</dt>
+
+
+					<dd class="dd">Dallas Semiconductor DS-1386 compatible </dd>
+
+				
+
+				
+					<dt class="dt dlterm"><span class="keyword apiname">rtc_time_m48t5x()</span>
+					</dt>
+
+
+					<dd class="dd">SGS-Thomson M48T59 RTC/NVRAM chip </dd>
+
+				
+
+				
+					<dt class="dt dlterm"><span class="keyword apiname">rtc_time_mc146818()</span>
+					</dt>
+
+
+					<dd class="dd">Motorola 146818 compatible </dd>
+
+				
+
+				
+					<dt class="dt dlterm"><span class="keyword apiname">rtc_time_rtc72423()</span>
+					</dt>
+
+
+					<dd class="dd">FOX RTC-72423 compatible </dd>
+
+				
+
+			</dl>
+
+			<p class="p">There's also a <q class="q">none</q> version to use if your board doesn't have RTC hardware: </p>
+
+			<pre class="pre codeblock">unsigned long rtc_time_none(void);
+</pre>
+			<p class="p">If you're supplying the <span class="keyword apiname">rtc_time()</span> routine, you should call one of
+				the chip-specific routines or write your own. The chip-specific routines all share
+				the same parameter list: </p>
+
+			<pre class="pre codeblock">(paddr_t <var class="keyword varname">base</var>, unsigned <var class="keyword varname">reg_shift</var>, int <var class="keyword varname">mmap</var>, int <var class="keyword varname">cent_reg</var>);
+</pre>
+			<p class="p">The <var class="keyword varname">base</var> parameter indicates the physical base address or I/O port
+				of the device. The <var class="keyword varname">reg_shift</var> indicates the register offset as a
+				power of two. </p>
+
+			<p class="p">A typical value would be <span class="ph codeph">0</span> (meaning 2<sup class="ph sup">0</sup>, i.e. 1),
+				indicating that the registers of the device are one byte apart in the address space.
+				As another example, a value of <span class="ph codeph">2</span> (meaning 2<sup class="ph sup">2</sup>, i.e. 4)
+				indicates that the registers in the device are four bytes apart. </p>
+
+			<p class="p">If the <var class="keyword varname">mmap</var> variable is <span class="ph codeph">0</span>, then the device is in
+				I/O space. If <var class="keyword varname">mmap</var> is <span class="ph codeph">1</span>, then the device is in
+				memory space. </p>
+
+			<p class="p">Finally, <var class="keyword varname">cent_reg</var> indicates which register in the device contains
+				the century byte (<span class="ph codeph">-1</span> indicates no such register). If there's no
+				century byte register, then the behavior is chip-specific. If the chip is year
+				2000-compliant, then we will get the correct time. If the chip isn't compliant, then
+				if the year is less than 70, we assume it's in the range 2000 to 2069; else we
+				assume it's in the range 1970 to 1999. </p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Returns:</h2><dl class="dl">
+				
+					<dt class="dt dlterm">&gt;0</dt>
+
+					<dd class="dd">Success</dd>
+
+				
+			</dl>
+</div>
+
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Backtracing a thread in another process" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/backtrace_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Another_process" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Backtracing a thread in another process</title>
+</head>
+<body id="Another_process">
+
+<h1 class="title topictitle1" id="ariaid-title1">Backtracing a thread in another process</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Use the following sample code to repeatedly backtrace a thread in another
+process by using the remote process's pid and thread tid:
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;backtrace.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;errno.h&gt;
+
+int main(int argc, char *argv[])
+{
+    char out[1024];
+    bt_addr_t pc[16];
+    bt_accessor_t acc;
+    int remotepid = -1;
+    int remotetid = -1;
+    char opt;
+    bt_memmap_t memmap;
+
+    while((opt = getopt(argc, argv, "p:t:")) != -1)
+    {
+        switch(opt) {
+        case 'p':
+            remotepid = strtol(optarg, 0, 0);
+            break;
+        case 't':
+            remotetid = strtol(optarg, 0, 0);
+            break;
+        default:
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if ((remotepid == -1) || (remotetid == -1)) {
+        fprintf(stderr, "Invalid parameters. Use -p &lt;pid&gt; -t &lt;tid&gt;\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (bt_init_accessor( &amp;acc, BT_PROCESS, remotepid, remotetid) == -1)
+    {
+        fprintf(stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                "bt_init_accessor", errno, strerror(errno));
+		return EXIT_FAILURE;
+    }
+
+    if (bt_load_memmap( &amp;acc, &amp;memmap ) ==-1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_load_memmap", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    if (bt_sprn_memmap(&amp;memmap, out, sizeof(out)) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_sprn_memmap", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    /* Make sure that the string is null-terminated. */
+    out[sizeof(out) - 1] = '\0';
+    puts (out);
+
+    for (int i=0; i &lt; 10; i++)
+    {
+        int count = bt_get_backtrace( &amp;acc, pc, sizeof(pc) / sizeof(bt_addr_t));
+        int w = 0;
+        while (count &gt; 0)
+        {
+            w = bt_sprnf_addrs(&amp;memmap, pc + w, count, "%a\n", out, sizeof(out), 0);
+            if (w == -1)
+            {
+                fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                         "bt_sprnf_addrs", errno, strerror(errno));
+                return EXIT_FAILURE;
+            }
+            count -= w;
+            puts (out);
+        }
+    }
+
+    bt_unload_memmap( &amp;memmap );
+
+    if (bt_release_accessor( &amp;acc ) == -1)
+    {
+        fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                 "bt_release_accessor", errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/backtrace_Examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

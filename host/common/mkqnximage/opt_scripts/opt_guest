@@ -1,0 +1,76 @@
+#!/bin/bash
+
+. ${TOOL_DIR}/functions
+
+function brief()
+{
+    if [ -n "$HAVE_QVM" -o -e $QNX_TARGET/x86_64/sbin/qvm ]; then
+        echo "--guest=[none|<path>]"
+        export HAVE_QVM=1
+    fi
+}
+
+function help()
+{
+    brief
+    if [ -n "$HAVE_QVM" ]; then
+        cat <<EOF
+    Set to the path of a mkqnximage directory (like the one you're probably in
+    now) containing a guest OS to include.  If you want to include some other
+    type of image, you'll have to add it yourself by updating
+    local/data_files.custom though this might be a useful way to get started.
+
+    This option is ignored if qvm option is no.
+EOF
+    fi
+}
+
+function validate() {
+	if [ "$OPT_GUEST" != "none" -a ! -e "$OPT_GUEST" ]; then
+		echo "--guest refers to a non-existent directory: $OPT_GUEST"
+		exit 1
+	else
+		exit 0
+	fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_guest
+    if [ "$OPT_GUEST" != none -a "$OPT_QVM" = yes ]; then
+        cat >output/option_files/data_files.opt_guest <<EOF
+[dperms=555 type=dir] hypervisor
+[dperms=555 type=dir] hypervisor/guest
+hypervisor/guest/ifs.bin=__OPT_GUEST__/output/ifs.bin
+hypervisor/guest/disk-qvm=__OPT_GUEST__/output/disk-qvm
+[perms=555] /hypervisor/start_guest = {
+#!/bin/sh
+if [ ! -e /dev/qvmdisk0 ]; then
+   echo "Setting up block devices for guest"
+   devb-loopback loopback blksz=512,prefix=qvmdisk,fd=/data/hypervisor/guest/disk-qvm
+
+   echo "Setting up networking devices for guest"
+   ifconfig vp0 create 192.168.10.1/24 up
+   vpctl vp0 peer=/dev/qvm/mkqnximage-guest/network bind=/dev/vdevpeers/vp0
+fi
+qvm @/data/hypervisor/guest/guest.conf
+}
+EOF
+        cat ${TOOL_DIR}/inputs/qvmconf-${OPT_ARCH} >>output/option_files/data_files.opt_guest
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+    default)
+        echo none;;
+esac

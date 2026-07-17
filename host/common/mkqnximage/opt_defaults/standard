@@ -1,0 +1,358 @@
+#
+#--help=[<option>]
+#    Helpful information.  If an option is provided, only help for that option is
+#    output.
+ #
+
+#
+#--clean
+#    Clean output directory prior to building. This can be useful in cases where an
+#    image might not have been built correctly due to changes in files that
+#    mkqnximage was unaware of, for example following an update to the package
+#    containing mkqnximage.  Other than taking slightly longer, --clean should always
+#    be safe to use and is useful if there is some doubt as to what was built.
+ #
+
+#
+#--wipe
+#    Attempts to remove all traces of the virtual machine. The virtual machine is
+#    stopped if running. If possible the vm is unregistered from whatever
+#    virtualisation environments it has been registered with. Finally the local and
+#    output directories are deleted.
+ #
+
+#
+#--noprompt
+#    Don't ever prompt for anything and instead fail if a prompt is required. This is
+#    not usually wanted unless running in an environment where it is not possible to
+#    request information.
+ #
+
+#
+#--run=[<options>]
+#    Requests that the virtual machine be run, possibly after rebuilding. If no
+#    options are changed, using --run will stop any existing virtual machine and
+#    restart it without a rebuild.  Options are passed to the runimage script. The
+#    only option currently supported is '-h' which means run in a 'headless' manner
+#    which for VMWare and VirtualBox means without a visible window and for QEMU
+#    means to run in the background.
+ #
+
+#
+#--stop
+#    Stop any running virtual machine.
+
+#
+#--getip
+#    Attempt to get the IP address of a running virtual machine.
+ #
+
+#
+#--build=[<partitions>]
+#    If --run is specified, --build can be used to force a rebuild of the virtual
+#    machine prior to running it, otherwise the virtual machine is rebuilt only if
+#    options are changed. This can be useful if, for example, binaries that are
+#    included in the image are rebuilt.
+#
+#    If --part-sizes is not set to full, <partitions> may be passed to selectively
+#    build individual partitions. This should be a string containing 'b', 's'
+#    and/or 'd' to build the boot, system or data partition or the string 'all'
+#    to build all. If omitted, all partitions are built.
+OPT_BUILD=all
+
+#
+#--force
+#    By default mkqnximage will not create a new virtual machine image in a non-empty
+#    directory. The --force option allows you to override this.
+ #
+
+#
+#--options
+#    Provides a full list of the options being used and exits.
+ #
+
+#
+#--config=<path>[:<path>...]
+#    A colon separated list of paths. These should contain values of options similar
+#    to local/options. This allows an easy way to set a set of options.
+ #
+
+#
+#--defaults=[<option>]
+#    Reset all or a single option to its default.
+ #
+
+#
+#--verbose=[yes|no]
+#    If yes, output additional information while building images. Omitting the value
+#    is equivalent to using --verbose=yes. The option must be respecified each time
+#    mkqnximage is run to have an effect.
+ #
+
+#
+#--type=[qemu|vmware|vbox|qvm|...]
+#    Build an image for a particular target type.  QEMU allows for a greater
+#    selection of architectures but doesn't support graphics, and might not operate
+#    on all platforms.  VMWare supports graphics. VirtualBox is free.  QVM is for a
+#    qvm guest OS.
+#
+#    The default is qemu.
+OPT_TYPE=qemu
+
+#
+#--boot-size=<size>
+#    Extra space expressed in Mbytes to allocate for boot partition beyond initial
+#    requirements.
+OPT_BOOT_SIZE=0
+
+#
+#--sys-size=<size>
+#    Extra space expressed in Mbytes to allocate for system partition beyond initial
+#    requirements.
+OPT_SYS_SIZE=20
+
+#
+#--sys-inodes=<size>
+#    Number of inodes in system partition
+OPT_SYS_INODES=1000
+
+#
+#--data-size=<size>
+#    Extra space expressed in Mbytes to allocate for data partition beyond initial
+#    requirements.
+OPT_DATA_SIZE=60
+
+#
+#--data-inodes=<size>
+#    Number of inodes in data partition
+OPT_DATA_INODES=3000
+
+#
+#--repos=<path>[:<path>]...
+#    A colon separated list of directories to be used by mkifs and mkqnx6fsimg to
+#    search for files.  This option may contain environment variables such as
+#    $QNX_TARGET.  These are expanded at build time.  Defaults to
+#    "$QNX_STAGE_nto:$QNX_TARGET".
+OPT_REPOS='$QNX_STAGE_nto:$QNX_TARGET'
+
+#
+#--aslr=[yes|no]
+#    If yes, use Address Space Layout Randomization. This should be used on a
+#    shipping system as it improves security.
+#
+#    The default is yes.
+OPT_ASLR=yes
+
+#
+#--secure-procfs=[yes|no]
+#    If yes, permissions for /proc/<pid> will be restricted to prevent access by
+#    other processes unless they have XPROCESS_QUERY or XPROCESS_DEBUG abilities.
+OPT_SECURE_PROCFS=yes
+
+#
+#--ip=[dhcp|<ip-address>]
+#    Static IP address to use or dhcp to obtain an address using DHCP.
+#
+#    The default is dhcp.
+OPT_IP=dhcp
+
+#
+#--hostname=<hostname>
+#    Hostname for system.
+OPT_HOSTNAME=noname
+
+#
+#--union=[yes|no]
+#    If yes, use the traditional QNX organisation that has the ifs mounted at /.  If
+#    no, a union free system is created. With no unions, opens are slightly faster as
+#    only a single resource manager has to be queried for any path.
+#
+#    The default is yes.
+OPT_UNION=yes
+
+#
+#--certicom=[yes|no]
+#    If yes, include Certicom libraries.  The default is no.
+OPT_CERTICOM=no
+
+#
+#--tz=<timezone_config>
+#    The time zone the target is used in.  The format is as specified by the POSIX TZ
+#    format (e.g.  stdoffset[dst[offset][,start[/time],end[/time]]]), and accepts the
+#    zoneinfo style as well (e.g.  America/Montreal), though in that case, the
+#    --zoneinfo option needs to be configured.  To configure, for example, Eastern
+#    Time, you would use EST5EDT,M3.2.0/2,M11.1.0/2.
+#
+#    The default is UTC.
+OPT_TZ=UTC0
+
+#
+#--extra-dirs=[none|<directory-list>]
+#    A colon separated list of extra content directories to search for mkqnximage
+#    option and other files. If the directories are preceded by a '+' or '-', they
+#    are added or removed from the existing set of extra directories. The directories
+#    may be absolute paths, relative to the directory mkqnximage is run in or
+#    relative to any 'extras' directory in any current content directory. If 'none',
+#    only the standard mkqnximage directory and local are used.
+OPT_EXTRA_DIRS=none
+
+#
+#--secure-data=[no|nosuid|noexec]
+#    If no, the default, the /data directory allows executables to be run from
+#    it. For a secure system, ideally this should not be allowed or at a minimum suid
+#    binaries should be disallowed which the options, noexec and nosuid enable (see
+#    mount utility for details).
+OPT_SECURE_DATA=no
+
+#
+#--macaddr=[xx:xx:xx:xx:xx:xx]
+#    The MAC address for the network interface. You do not usually want to set this
+#    option in which case it is set to a randomly chosen value.
+OPT_MACADDR=generate
+
+#
+#--root=[yes|no]
+#    If no, have services drop root after start-up if they support it.  This is
+#    usually what you want.
+#
+#    The default is no.
+OPT_ROOT=no
+
+#
+#--ablelock=[yes|no]
+#    If yes, allow abilities to be locked without causing failures in procmgr_ability
+#    calls that reference them. If no, locked abilities will cause procmgr_ability
+#    calls to fail if they refer to a locked ability.
+#
+#    The default is yes.
+OPT_ABLELOCK=yes
+
+#
+#--tomcrypt=[yes|no]
+#    If yes, include Tomcrypt library.  The default is no.
+OPT_TOMCRYPT=no
+
+#
+#--io-sock-diag[no|yes]
+#    If yes, use the version of io-sock with extra diagnostics (io-sock-diag)
+OPT_IO_SOCK_DIAG=no
+
+#
+# --sanitizers=[yes|no]
+#    If set to yes, sanitizer libraries will be loaded on the system (libubsan.so,
+#    libasan.so, etc.).
+OPT_SANITIZERS=no
+
+#
+#--cpu=[1|2|3|4]
+#    Set the number of CPUs. The default is 2 CPUs and the maximum is 4. An
+#    exception is when running arm or aarch64 and the QEMU version is 2.*, it will
+#    only use 1 CPU. If your QEMU version is 3+, running aarch64 with multiple
+#    CPUs may require a newer version of QEMU for it to work.
+OPT_CPU=2
+
+#
+#--proc=no|<procnto>
+#    Set the name of the procnto executable to use. If not set then the name
+#    is either procnto-smp-instr for the standard build or
+#    procnto-smp-instr-safety for the safety build.
+OPT_PROC=no
+
+#
+#--ram=<X>[M|G]
+#    Set the amount of RAM dedicated to the image when running through QEMU
+#    where <X> is the amount. M is megabytes and G is gigabytes.
+#    default: 1G
+OPT_RAM=1G
+
+#
+#--users=[+][<user1>[/<password1>][:<user2>[/<password2>]
+#    List of users. This controls the contents of the passwd, group and shadow
+#    files as well home directories. The value is a colon separated list of user
+#    names. Each user name may be followed by a '/' and the user's password. If the
+#    password is omitted and it was not previously set, one will be created that
+#    matches the user name. To instead  have no password, a password of '-' can
+#    be specified.
+
+#    If the value is preceded by a '+', the list of users represents new
+#    users to add or passwords to change if the user already exists.
+#
+#    The first non-root user is given a UID of 1000 with each subsequent one
+#    incremented by one. If a user name is given as '-', no user is created but
+#    the next UID is still incremented.
+#
+#    On setting the option, the new value becomes the list of users with passwords
+#    omitted. The passwords are contained in local/misc_files/shadow, this file
+#    may be deleted to remove remembered passwords.
+OPT_USERS=root:qnxuser:user1:user2:user3:user4:user5:user6
+
+#
+#--part-sizes=full|boot:sys[:data]
+#    If set to full, partitions are sized based on contents and --sys-size
+#    and --data-size options. Alternatively, fixed sizes can be specified
+#    for the boot, system and data partitions (in MB). This permits individual
+#    partitions to be updated selectively (see --copy and --update options).
+#    This is primarily useful when the data will be written to some external
+#    media such as SD cards for booting a real target. When the image will
+#    be written to an SD card, the data size can be omitted in which case the
+#    data partition will be made to fill the available space.
+OPT_PART_SIZES=full
+
+#
+#--copy-dest=none|<path>
+#    Path to device to write files to when the --copy option is used. This is
+#    used when updating an SD card when using a real target. You need to check
+#    carefully about what you use so you don't overwrite something you don't
+#    intend to. By default this is 'none' meaning that mkqnximage will generate
+#    an image file in the output directory.
+OPT_COPY_DEST=none
+
+#
+#--time-servers=<server>[:<server2>...]
+#    Colon-separated list of NTP servers to set time by on boot. This applies
+#    only for targets that do not have access to a real-time clock.
+#
+#    The default is pool.ntp.org. This may have to be changed to a local server
+#    if the target is run on a network that blocks NTP traffic.
+OPT_TIME_SERVERS=pool.ntp.org
+
+#
+#--copy=[<partitions>]
+#    Update one or more existing partitions on the selected path (see --copy-dest)
+#    or, if --copy-dest is none, generate a new image file. To use this option
+#    requires that the image is using fixed size partitions (see --part-sizes
+#    option) and is not applicable to virtual targets.
+#
+#    The value <partitions> may be passed to selectively copy individual
+#    partitions. This should be a string containing 'b', 's' and/or 'd' to
+#    copy the boot, system or data partition or the string 'all' to copy all.
+#    The value for the option may be omitted in which case the previous value
+#    is used.
+OPT_COPY=all
+
+#
+#--update=[<partitions>]
+#    Perform an over-the-air update of a target. To use this option requires
+#    that the image is using fixed size partitions (see --part-sizes
+#    option).
+#
+#    The value <partitions> may be passed to selectively update individual
+#    partitions. This should be a string containing 'b', 's' and/or 'd' to
+#    update the boot, system or data partition or the string 'all' to update
+#    all. It the list of partitions is omitted, the same partitions will be
+#    updated as the last time the --update option was used.
+OPT_UPDATE=all
+
+#
+#--assumed-ip=<ip-address>
+#   Use the provided IP address rather than trying to resolve it. If set
+#   to 'none', normal resolution occurs.
+OPT_ASSUMED_IP=none
+
+#
+#--boot-mode=[default|uefi|qemu]
+#    Allows changes to how booting is performed. The mode 'uefi'
+#    generates a GPT disk image and attempts to use UEFI firmware. The
+#    mode 'qemu' generates a disk that omits the IFS since that is
+#    provided to QEMU in a different manner and omitting it saves space.
+OPT_BOOT_MODE=default

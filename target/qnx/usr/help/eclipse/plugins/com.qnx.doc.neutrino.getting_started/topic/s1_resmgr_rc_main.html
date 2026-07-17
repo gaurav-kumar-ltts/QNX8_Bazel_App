@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="main() and declarations" />
+<meta name="abstract" content="The first section of code presented is the main() function and some of the declarations. There's a convenience macro, ALIGN(), that's used for alignment by the dirent_fill() and dirent_size() functions." />
+<meta name="description" content="The first section of code presented is the main() function and some of the declarations. There's a convenience macro, ALIGN(), that's used for alignment by the dirent_fill() and dirent_size() functions." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_complex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rc_main" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>main() and declarations</title>
+</head>
+<body id="rc_main">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">main()</span> and declarations</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The first section of code presented is the <span class="keyword apiname">main()</span> function and
+some of the declarations.
+There's a convenience macro, <span class="keyword apiname">ALIGN()</span>, that's used for alignment
+by the <span class="keyword apiname">dirent_fill()</span> and <span class="keyword apiname">dirent_size()</span> functions.
+</p>
+
+
+<p class="p">
+
+
+The <var class="keyword varname">atoz_attrs</var> array contains the attributes structures
+used for the <q class="q">files</q> in this example.  We declare <span class="keyword const">NUM_ENTS</span>
+array members, because we have <span class="keyword const">NUM_ENTS</span> (26) files <q class="q"><span class="ph filepath">a</span></q>
+through <q class="q"><span class="ph filepath">z</span>.</q>
+The attributes structure used for the directory itself (i.e., the <span class="ph filepath">/dev/atoz</span>
+directory) is declared within <span class="keyword apiname">main()</span> and is called simply
+<var class="keyword varname">attr</var>.
+Notice the differences in the way the two types of attributes structures are filled:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm">file attribute structure</dt>
+
+<dd class="dd">Marked as a regular file (the <span class="keyword const">S_IFREG</span> constant) with an access mode
+  of <span class="keyword const">0444</span> (meaning everyone has read access, no one has write access).
+  The size is <q class="q">1</q>—the file contains only one byte, namely, the
+  uppercase letter corresponding to the filename.
+  The inodes for these individual files are numbered <q class="q">1</q> through <q class="q">26</q>
+  inclusive (it would have been more convenient to number them <q class="q">0</q> through
+  <q class="q">25,</q> but <q class="q">0</q> is reserved).
+</dd>
+
+
+
+
+<dt class="dt dlterm">directory attribute structure</dt>
+
+<dd class="dd">Marked as a directory file (the <span class="keyword const">S_IFDIR</span> constant) with an access
+  mode of <span class="keyword const">0555</span> (meaning that everyone has read and seek access, no one has
+  write access).
+  The size is <q class="q">26</q>—this is simply a number picked based on the number
+  of entries in the directory.
+  The inode is <q class="q">27</q>—a number known not to be in use by any
+  of the other attributes structures.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Notice how we've overridden only the <var class="keyword varname">open</var> member of the <var class="keyword varname">connect_func</var>
+structure and the <var class="keyword varname">read</var> member of the <var class="keyword varname">io_func</var> structure.
+We've left all the others to use the POSIX defaults.
+</p>
+
+
+<p class="p">
+Finally, notice how we created the name <span class="ph filepath">/dev/atoz</span> using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>.
+Most importantly, we used the flag <span class="keyword const">_RESMGR_FLAG_DIR</span>, which tells
+the process manager that it can resolve requests <em class="ph i">at and below</em> this mountpoint.
+
+
+
+</p>
+
+
+<pre class="pre codeblock">/*
+ *  atoz.c
+ *
+ *  /dev/atoz using the resource manager library
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;dirent.h&gt;
+#include &lt;limits.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+#define ALIGN(x) (((x) + 3) &amp; ~3)
+#define NUM_ENTS            26
+
+static  iofunc_attr_t   atoz_attrs [NUM_ENTS];
+
+int main (int argc, char **argv)
+{
+    dispatch_t              *dpp;
+    resmgr_attr_t           resmgr_attr;
+    dispatch_context_t      *ctp;
+    resmgr_connect_funcs_t  connect_func;
+    resmgr_io_funcs_t       io_func;
+    iofunc_attr_t           attr;
+    int                     i;
+
+    // create the dispatch structure
+    if ((dpp = dispatch_create ()) == NULL) {
+        perror ("Unable to dispatch_create");
+        exit (EXIT_FAILURE);
+    }
+
+    // initialize the various data structures
+    memset (&amp;resmgr_attr, 0, sizeof (resmgr_attr));
+    resmgr_attr.nparts_max = 1;
+    resmgr_attr.msg_max_size = 2048;
+
+    // bind default functions into the outcall tables
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;connect_func,
+                      _RESMGR_IO_NFUNCS, &amp;io_func);
+
+    // Create and initialize the attributes structure for the directory.
+    // Inodes 1-26 are reserved for the files 'a' through 'z'.
+    // The number of bytes is 26 because that's how many entries there are.
+    iofunc_attr_init (&amp;attr, S_IFDIR | 0555, 0, 0);
+    attr.inode = NUM_ENTS + 1;
+    attr.nbytes = NUM_ENTS;
+
+    // and for the "a" through "z" names
+    for (i = 0; i &lt; NUM_ENTS; i++) {
+        iofunc_attr_init (&amp;atoz_attrs [i], S_IFREG | 0444, 0, 0);
+        atoz_attrs [i].inode = i + 1;
+        atoz_attrs [i].nbytes = 1;
+    }
+
+    // add our functions; we're interested only in
+    // the open connect function handler and read I/O function handlers
+    connect_func.open = my_open;
+    io_func.read = my_read;
+    io_func.read64 = my_read;
+
+    // establish a name in the pathname space
+    if (resmgr_attach (dpp, &amp;resmgr_attr, "/dev/atoz", 
+                       _FTYPE_ANY, _RESMGR_FLAG_DIR, 
+                       &amp;connect_func, &amp;io_func, 
+                       &amp;attr) == -1) {
+        perror ("Unable to resmgr_attach");
+        exit (EXIT_FAILURE);
+    }
+
+    // allocate a context
+    ctp = dispatch_context_alloc (dpp);
+
+    // wait here forever, handling messages
+    while (1) {
+        if ((ctp = dispatch_block (ctp)) == NULL) {
+            perror ("Unable to dispatch_block");
+            exit (EXIT_FAILURE);
+        }
+        dispatch_handler (ctp);
+    }
+
+    // you'll never get here
+    return (EXIT_SUCCESS);
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_complex.html" title="In this example, we're going to create a resource manager called /dev/atoz that will be a directory resource manager. It's going to manifest the “files” /dev/atoz/a through to dev/atoz/z, with a cat of any of the files returning the uppercase letter corresponding to the filename.">Example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

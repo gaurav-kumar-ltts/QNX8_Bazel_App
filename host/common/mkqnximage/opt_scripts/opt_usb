@@ -1,0 +1,72 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--usb=[yes|no]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If yes, enable USB.
+
+    Default is yes.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_USB" == yes -o "$OPT_USB" == no ]; then
+        exit 0
+    else
+        echo "--usb must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_usb
+    if [ "$OPT_USB" = yes ]; then
+         cat >output/option_files/definitions.opt_usb <<EOF
+#define __IO_USB_OTG_OPTIONS__ -d hcd-uhci -d hcd-ehci -d hcd-xhci
+EOF
+        cat >output/option_files/system_files.opt_usb <<EOF
+bin/io-usb-otg=sbin/io-usb-otg
+lib/dll/devu-hcd-xhci.so=lib/dll/devu-hcd-xhci.so
+lib/dll/devu-hcd-ehci.so=lib/dll/devu-hcd-ehci.so
+lib/dll/devu-hcd-uhci.so=lib/dll/devu-hcd-uhci.so
+lib/__LIBUSBDI__=lib/__LIBUSBDI__
+lib/dll/fs-dos.so=lib/dll/fs-dos.so
+EOF
+        if [ "$OPT_SLM" = no ]; then
+            cat >output/option_files/post_start.opt_usb <<EOF
+STARTU_P(io_usb_t,__IO_USB_ID__) io-usb-otg __IO_USB_OTG_OPTIONS__
+EOF
+        else
+            cat >output/option_files/slm.opt_usb <<EOF
+  <SLM:component name="iousb">
+    <SLM:depend>root-fs</SLM:depend>
+    <SLM:command>io-usb-otg</SLM:command>
+    <SLM:args>__IO_USB_OTG_OPTIONS__</SLM:args>
+    SLMTYPE_P(io_usb_t)SLMUSER_P(__IO_USB_ID__)
+  </SLM:component>
+EOF
+        fi
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+	default)
+		echo yes;;
+esac

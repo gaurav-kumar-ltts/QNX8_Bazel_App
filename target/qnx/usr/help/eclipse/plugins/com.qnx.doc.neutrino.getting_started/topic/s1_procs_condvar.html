@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Condition variables" />
+<meta name="abstract" content="Another common situation that occurs in multi-threaded programs is the need for a thread to wait until something happens. This something could be anything! It could be the fact that data is now available from a device, or that a conveyor belt has now moved to the proper position, or that data has been committed to disk, or whatever. Another twist to throw in here is that several threads may need to wait for the given event." />
+<meta name="description" content="Another common situation that occurs in multi-threaded programs is the need for a thread to wait until something happens. This something could be anything! It could be the fact that data is now available from a device, or that a conveyor belt has now moved to the proper position, or that data has been committed to disk, or whatever. Another twist to throw in here is that several threads may need to wait for the given event." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_More_synchronization.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Condvar_signal_vs_broadcast.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SYNCHRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Condvars.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_getclock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_getpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setclock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_broadcast.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_signal.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_timedwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="condvar" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Condition variables</title>
+</head>
+<body id="condvar">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Condition variables</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> Another common situation that occurs in multi-threaded programs is the need for a thread
+to wait until something happens. This something could be anything! It could be the fact that
+data is now available from a device, or that a conveyor belt has now moved to the proper
+position, or that data has been committed to disk, or whatever. Another twist to throw in
+here is that several threads may need to wait for the given event.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</p>
+
+
+<p class="p"> To accomplish this, you can use condition variables. A good design uses multiple mutexes, one
+for each data set, and explicitly combine them with condition variables as required. The
+true power and danger of this approach is that there is absolutely <em class="ph i">no</em> compile- or
+runtime-checking to make sure that you: </p>
+
+
+<ul class="ul">
+<li class="li">have locked the mutex before manipulating a variable</li>
+
+<li class="li">are using the correct mutex for the particular variable</li>
+
+<li class="li">are using the correct condvar with the appropriate mutex and variable</li>
+
+</ul>
+
+
+<p class="p"> The easiest way around these problems is to have this good design and a design review, and to
+            borrow techniques from object-oriented programming (like having the mutex contained in a
+            data structure, having routines to access the data structure, etc.). Of course, how much
+            of one or both you apply depends not only on your personal style, but also on
+            performance requirements. 
+        </p>
+
+
+<p class="p">
+The key points to remember when using condvars are:
+</p>
+
+<ol class="ol">
+<li class="li">The mutex is to be used for testing and accessing the variables.</li>
+
+<li class="li">The condvar is to be used as a rendezvous point.</li>
+
+</ol>
+
+
+<p class="p">
+Here's a picture:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>One-to-one mutex and condvar associations.</span>
+
+<br /><img class="image" src="../images/dpt9.svg" width="288" alt="One-to-one mutex and condvar associations" /><br />
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Example</h2>
+
+<p class="p">Let's set up an example. One thread is a producer thread that's getting data from some piece of hardware. The other thread is a consumer thread that's doing some form of processing on the data that just arrived:</p>
+
+<pre class="pre codeblock">/*
+ * cp1.c
+ */
+#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+
+int data_ready = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  condvar = PTHREAD_COND_INITIALIZER;
+
+void * consumer (void *notused)
+{
+    printf ("In consumer thread...\n");
+    while (1) {
+        pthread_mutex_lock (&amp;mutex);
+        while (!data_ready) {
+            pthread_cond_wait (&amp;condvar, &amp;mutex);
+        }
+        // process data
+        printf ("consumer:  got data from producer\n");
+        data_ready = 0;
+        pthread_cond_signal (&amp;condvar);
+        pthread_mutex_unlock (&amp;mutex);
+    }
+}
+
+void * producer (void *notused)
+{
+    printf ("In producer thread...\n");
+    while (1) {
+        // get data from hardware
+        // we'll simulate this with a sleep (1)
+        sleep (1);
+        printf ("producer:  got data from h/w\n");
+        pthread_mutex_lock (&amp;mutex);
+        while (data_ready) {
+            pthread_cond_wait (&amp;condvar, &amp;mutex);
+        }
+        data_ready = 1;
+        pthread_cond_signal (&amp;condvar);
+        pthread_mutex_unlock (&amp;mutex);
+    }
+}
+
+main ()
+{
+    printf ("Starting consumer/producer example...\n");
+
+    // create the producer and consumer threads
+    pthread_create (NULL, NULL, producer, NULL);
+    pthread_create (NULL, NULL, consumer, NULL);
+
+    // let the threads run for a bit
+    sleep (20);
+}
+</pre>
+<p class="p">In the example above, the <span class="keyword dtype">pthread_cond_t</span> data type is the declaration of the
+condition variable; we've called ours <var class="keyword varname">condvar</var>.
+
+</p>
+
+
+<p class="p"> The consumer has to lock and unlock the mutex because the mutex ensures mutual exclusion to the
+                    <var class="keyword varname">data_ready</var> variable. This means that we want to lock out the
+                producer from touching the <var class="keyword varname">data_ready</var> variable while we're
+                testing it. But, if we don't do the unlock part of the operation, the producer would
+                never be able to set the variable to tell us that data is indeed available! The
+                re-lock operation is done purely as a convenience so that the user of the
+                    <span class="keyword apiname">pthread_cond_wait()</span> doesn't have to worry about the state of
+                the lock when the consumer wakes up. </p>
+
+
+<p class="p">The producer locks the mutex to obtain exclusive access to set the <var class="keyword varname">data_ready</var>
+                variable. Keep in mind that the client doesn't wake up because you set
+                    <var class="keyword varname">data_ready</var> to <span class="ph codeph">1</span>, but rather because of the
+                call made to <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_signal.html"><span class="keyword apiname">pthread_cond_signal()</span></a>. </p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Condvar_signal_vs_broadcast.html">Signal versus broadcast</a></strong><br />
+ In this section, we'll talk about the difference between the two condvar functions <span class="keyword apiname">pthread_cond_signal()</span> and <span class="keyword apiname">pthread_cond_broadcast()</span>. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_More_synchronization.html">More on synchronization</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SYNCHRO.html">Synchronization services (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Condvars.html">Condvars: condition variables (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_destroy.html">pthread_condattr_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_getclock.html">pthread_condattr_getclock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_getpshared.html">pthread_condattr_getpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_init.html">pthread_condattr_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setclock.html">pthread_condattr_setclock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setpshared.html">pthread_condattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_broadcast.html">pthread_cond_broadcast()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_destroy.html">pthread_cond_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_init.html">pthread_cond_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_signal.html">pthread_cond_signal()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_timedwait.html">pthread_cond_timedwait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Manually mounting an in-memory IFS" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Manually_mounting" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Manually mounting an in-memory IFS</title>
+</head>
+<body id="Manually_mounting">
+
+<h1 class="title topictitle1" id="ariaid-title1">Manually mounting an in-memory IFS</h1>
+
+
+<div class="body conbody">
+        <p class="p">The <span class="keyword cmdname">mount</span> and <span class="keyword cmdname">mount_ifs</span> utilities allow you to
+            mount an IFS from a specified location in memory.</p>
+
+
+<p class="p">For example, to manually mount a 10 MB IFS located in memory at 0x0F800000: </p>
+
+<pre class="pre codeblock">mount -tifs -ooffset=0x0F800000,size=0xA00000 /dev/mem /ifs2
+</pre>
+        <p class="p">If you can’t use the utilities (e.g., because they are not safety certified), you can
+            create your own application code to perform the mounting.</p>
+
+        <p class="p">An application needs to perform the following steps to mount an in-memory IFS:</p>
+
+            <ol class="ol" id="Manually_mounting__ol_hf4_pxw_fbc">
+                <li class="li">Call <span class="keyword apiname">shm_open()</span> and <span class="keyword apiname">shm_ctl()</span> to create,
+                configure, and seal a shared memory object that encapsulates the in-memory IFS.</li>
+
+            <li class="li">Call <span class="keyword apiname">shm_create_handle()</span> to create a handle to the shared memory
+                object (<span class="ph codeph">shm_handle</span>) for consumption by <span class="keyword const">SYSMGR_PID</span>
+                (i.e., the <var class="keyword varname">pid</var> parameter is SYSMGR_PID).</li>
+
+            <li class="li">Call <span class="keyword apiname">close()</span> on the shared memory object file descriptor.</li>
+
+            <li class="li">Call <span class="keyword apiname">mount()</span>, specifying <span class="ph codeph">shm_handle</span>,
+                    <span class="ph codeph">offset</span>, and <span class="ph codeph">size</span> in the option string (i.e,
+                using the <var class="keyword varname">data</var> parameter). <p class="p">The <span class="ph codeph">shm_handle</span>
+                    value is an integer representation of the shared memory handle created by the
+                    call to <span class="keyword apiname">shm_create_handle()</span>.</p>
+The <span class="ph codeph">offset</span>
+                value represents an offset from the start of the shared memory region associated
+                with the specified shared memory handle, not a physical address.</li>
+
+            </ol>
+
+        <p class="p">For example (with error checking omitted, in the interest of brevity):</p>
+
+        <pre class="pre codeblock">shm_handle_t shm_handle;
+int shm_fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+
+uint64_t offset = <var class="keyword varname">physical-offset-of-IFS-in-memory</var>;
+uint64_t size = <var class="keyword varname">size-of-IFS</var>;
+
+/* Account for non-page-aligned images */
+uint64_t pagesize = sysconf(_SC_PAGESIZE);
+uint64_t paddr = offset - (offset % pagesize);
+offset %= pagesize;
+
+/* With SHMCTL_PHYS, size must be a multiple of the page size */
+uint64_t num_pages = (offset + size + pagesize - 1) / pagesize;
+uint64_t num_bytes = num_pages * pagesize;
+
+shm_ctl(shm_fd, SHMCTL_PHYS | SHMCTL_SEAL, paddr, num_bytes);
+shm_create_handle(shm_fd, SYSMGR_PID, O_RDONLY, &amp;shm_handle, 0);
+
+/* Close fd, so that the handle is the only reference remaining */
+close(shm_fd);
+
+snprintf(mountstr, PATH_MAX, "shm_handle=%" PRIu64 ",offset=%" PRIu64 ",size=%" PRIu64, shm_handle, offset, size);
+
+mount(<var class="keyword varname">spec</var>, <var class="keyword varname">dir</var>, <var class="keyword varname">flags</var>, "ifs", mountstr, -1);
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/reloadable_ifs.html">Reloadable Image Filesystems</a></div>
+</div>
+</div></body>
+</html>

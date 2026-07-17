@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Troubleshooting" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Troubleshooting" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Troubleshooting</title>
+</head>
+<body id="Troubleshooting">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Troubleshooting</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+
+
+Here are some problems that you might have with filesystems:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><em class="ph i">How can I make a specific flash partition read-only?</em></dt>
+
+<dd class="dd">Unmount and remount the partition, like this:
+  
+  
+  
+  
+
+<pre class="pre codeblock">flashctl -p <var class="keyword varname">raw_mountpoint</var> -u
+mount -t flash -r <var class="keyword varname">raw_mountpoint</var> /<var class="keyword varname">mountpoint</var>
+</pre>
+
+  <p class="p">
+  where <var class="keyword varname">raw_mountpoint</var> indicates the partition (e.g.,
+  <span class="ph filepath">/dev/fs0px</span>).
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">How can I determine which drivers are currently running?</em></dt>
+
+<dd class="dd">
+
+  <ol class="ol">
+  <li class="li">Use the
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/find-target.html"><span class="keyword cmdname">find</span></a>
+    utility to create a list of pathname mountpoints:
+    
+
+<pre class="pre codeblock">find /proc/mount \
+-name '[-0-9]*,[-0-9]*,[-0-9]*,[-0-9]*,[-0-9]*' \
+-prune -print &gt; mountpoints
+</pre>
+
+  </li>
+
+
+  <li class="li">Use
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/cut.html"><span class="keyword cmdname">cut</span></a>
+    and
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/sort-target.html"><span class="keyword cmdname">sort</span></a>
+    to extract a list of the processes that own the mountpoints:
+    
+    
+
+<pre class="pre codeblock">cut -d, -f2 &lt; mountpoints | sort -nu &gt; pidlist
+</pre>
+  </li>
+
+
+  <li class="li">Use
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/x/xargs-target.html"><span class="keyword cmdname">xargs</span></a>
+    and
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pidin.html"><span class="keyword cmdname">pidin</span></a>
+    to display the process ID and long name for each
+    of these processes:
+    
+    
+
+<pre class="pre codeblock">xargs -i pidin -p {} -F "%a %n" &lt; pidlist | less
+</pre>
+  </li>
+
+
+  <li class="li">Use
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/grep-target.html"><span class="keyword cmdname">grep</span></a>
+    to show the mountpoints for a specified process ID, <var class="keyword varname">pid</var>:
+    
+
+<pre class="pre codeblock">grep <var class="keyword varname">pid</var> mountpoints
+</pre>
+  </li>
+
+
+  <li class="li">Use the <span class="keyword option">-i</span> option of the
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/u/use.html"><span class="keyword cmdname">use</span></a>
+    utility to show the date of a specified driver, <var class="keyword varname">drivername</var>:
+    
+
+<pre class="pre codeblock">use -i <var class="keyword varname">drivername</var>
+</pre>
+  </li>
+
+  
+  </ol>
+
+
+  <p class="p">
+  This procedure shows the drivers (programs that have mountpoints in the pathname space)
+  that are currently running; it doesn't show those that are merely installed.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems.html" title="The QNX OS provides a variety of filesystems, so that you can easily access DOS, Linux, as well as native Power-Safe disks.">Working with Filesystems</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

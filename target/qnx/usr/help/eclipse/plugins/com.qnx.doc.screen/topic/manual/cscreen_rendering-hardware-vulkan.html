@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Vulkan rendering APIs" />
+<meta name="abstract" content="Screen supports Khronos's Vulkan rendering APIs. Vulkan is a low-overhead, cross-platform, open industry standard API for 3D graphics and computing. It enables developers to target a wide range of devices using the same graphics APIs." />
+<meta name="description" content="Screen supports Khronos's Vulkan rendering APIs. Vulkan is a low-overhead, cross-platform, open industry standard API for 3D graphics and computing. It enables developers to target a wide range of devices using the same graphics APIs." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering-hardware.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_rendering-hardware-vulkan" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Vulkan rendering APIs</title>
+</head>
+<body id="cscreen_rendering-hardware-vulkan">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Vulkan rendering APIs
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        <span class="keyword">Screen</span> supports Khronos's Vulkan rendering APIs. Vulkan is a low-overhead, cross-platform, open industry standard API for 3D graphics and computing. It enables developers
+        to target a wide range of devices using the same graphics APIs.
+    </p>
+
+        <p class="p">
+            
+        </p>
+
+        <p class="p">            
+            Vulkan standards are published by Khronos Group.</p>
+
+        <p class="p">
+            Typically, hardware vendors have their own implementation of the Khronos standards that takes advantage
+            of hardware acceleration and, in particular, the GPU hardware. In order to provide a common interface to
+            <span class="keyword">Screen</span> applications, the Khronos rendering API calls are redirected onto
+            appropriate vendor-specific rendering API functionality.
+        </p>
+
+
+        <p class="p">
+            Khronos standards are implemented specifically by the hardware vendor, and so, performance varies between
+            different implementations.
+        </p>
+
+        <p class="p">
+            
+            Below are instructions to help you get started with Khronos's Vulkan on <span class="keyword">Screen</span>.</p>
+
+
+        <div class="note"><span class="notetitle">Note:</span> This document covers steps that are specific to <span class="keyword">Screen</span>. To complete your application, you will need to refer to
+        Khronos Vulkan tutorials and documentation online. These instructions assume that you are familiar with basic Vulkan APIs and terminology.</div>
+
+
+        <ol class="ol">
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vkconfig">Configure your Vulkan display</a>
+            </li>
+
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vksurface">Create a rendering surface</a>
+            </li>
+
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vkchain">Create a swap chain</a>
+            </li>
+
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vkformat">Choosing the correct pixel format for your swap chain</a>
+            </li>
+
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vkpresentation">Choosing a presentation mode for your swap chain</a>
+            </li>
+
+            <li class="li">
+                <a class="xref" href="cscreen_rendering-hardware-vulkan.html#cscreen_rendering-hardware-vulkan__vkdebug">Debugging</a>
+            </li>
+
+        </ol>
+
+        <div class="section"><h2 class="title sectiontitle">Configure your Vulkan display</h2>
+            
+            <p class="p">
+                
+            </p>
+
+            <p class="p">
+                To get started, you will need to configure your Vulkan display in your <span class="ph filepath">graphics.conf</span> file.
+                Your Vulkan display needs to be declared as an <span class="ph codeph">egl display</span>.
+                Below is an example:
+            </p>
+
+<pre class="pre codeblock">begin egl display 1
+  egl-dlls = libglapi-mesa.so libEGL-mesa.so
+  glesv1-dlls = libglapi-mesa.so libGLESv1_CM-mesa.so
+  glesv2-dlls = libglapi-mesa.so libGLESv2-mesa.so
+  gpu-dlls = gpu_drm-gvtg.so
+  cl-dlls = libigdrcl.so
+  vk-icds = intel_icd.json
+  vk-imps = /usr/lib/graphics/vulkan/VkLayer_MESA_overlay.json
+end egl display
+</pre>
+            <p class="p">The parameters <span class="keyword parmname">vk-exps</span>, <span class="keyword parmname">vk-icds</span>, and <span class="keyword parmname">vk-imps</span>
+                are specific to Vulkan displays. They determine how layers are loaded by the ICD driver.
+            You can set one or more of the parameters
+            to a list of Vulkan JSON file names or paths. The
+                <a class="xref" href="cscreen_config_intro.html#screen_khronos_egl_display" title="The egl display subsection specifies the GPU libraries and parameters.">egl display subsection</a> in the
+                <a class="xref" href="cscreen_config_intro.html#screen_config_introduction" title="You configure libraries, drivers, and Screen parameters using the configuration file, graphics.conf.">Configuring Screen</a> chapter of this guide
+                contains more information on the behaviour of each parameter. Below are examples of the Vulkan
+                JSON files.
+            </p>
+
+            <p class="p"><kbd class="ph userinput">intel_icd.json</kbd></p>
+
+            <pre class="pre codeblock">{
+    "ICD": {
+        "api_version": "1.2.177",
+        "library_path": "/usr/lib/graphics/intel-drm/libvulkan_intel.so"
+    },
+    "file_format_version": "1.0.0"
+}
+</pre>
+            <p class="p"><kbd class="ph userinput">VkLayer_MESA_overlay.json</kbd></p>
+
+            <pre class="pre codeblock">{
+    "file_format_version" : "1.0.0",
+    "layer" : {
+        "name": "VK_LAYER_MESA_overlay",
+        "type": "GLOBAL",
+        "library_path": "/usr/lib/graphics/vulkan/libVkLayer_MESA_overlay.so",
+        "api_version": "1.1.73",
+        "implementation_version": "1",
+        "description": "Mesa Overlay layer",
+        "disable_environment": {
+          "DISABLE_VK_LAYER_MESA_OVERLAY": ""
+        }
+    }
+}
+</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create a rendering surface</h2>
+            
+            <p class="p">A surface object is a logical representation of an application's window. The Vulkan surface (<span class="keyword dtype">VkSurfaceKHR</span>)
+            is designed to allow Vulkan APIs to use it for all Window System Integration (WSI) operations.</p>
+
+            <p class="p">How Vulkan APIs communicate with <span class="keyword">Screen</span> is defined by the <span class="keyword apiname">VK_QNX_screen_surface</span>
+            extension. This extension contains the following structure used for creating the rendering surface:</p>
+
+<pre class="pre codeblock">typedef struct VkScreenSurfaceCreateInfoQNX {
+    VkStructureType                  sType;
+    const void*                      pNext;
+    VkScreenSurfaceCreateFlagsQNX    flags;
+    struct _screen_context*          context;
+    struct _screen_window*           window;
+} VkScreenSurfaceCreateInfoQNX;
+</pre>
+            <p class="p">Where:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword dtype">struct _screen_context*</span>
+                        <var class="keyword varname">context</var>
+                    </dt>
+
+                    <dd class="dd">Is a pointer to the context used for this display</dd>
+
+                
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword dtype">struct _screen_window*</span>
+                        <var class="keyword varname">window</var>
+                    </dt>
+
+                    <dd class="dd">Is a pointer to the window used for this display</dd>
+
+                
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword dtype"> VkStructureType</span>
+                        <var class="keyword varname">sType</var>
+                    </dt>
+
+                    <dd class="dd">Must be set to <span class="keyword const">VK_STRUCTURE_TYPE_SCREEN_SURFACE_CREATE_INFO_QNX</span></dd>
+
+                
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword dtype">const void*</span>
+                        <var class="keyword varname">pNext</var>
+                    </dt>
+
+                    <dd class="dd">Must be set to NULL</dd>
+
+                
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword dtype">VkScreenSurfaceCreateFlagsQNX</span>
+                        <var class="keyword varname">flags</var>
+                    </dt>
+
+                    <dd class="dd">Must be set to zero (0)</dd>
+
+                
+            </dl>
+
+            
+            <p class="p">The extension also includes the functions <span class="keyword apiname">vkCreateScreenSurfaceQNX</span> and
+                <span class="keyword apiname">vkGetPhysicalDeviceScreenPresentationSupportQNX</span>.</p>
+
+            <p class="p"><span class="keyword apiname">vkGetPhysicalDeviceScreenPresentationSupportQNX</span> is used to check the status of the
+                Vulkan WSI. It returns a Vulkan boolean <samp class="ph systemoutput sysout">VK_TRUE</samp> or <samp class="ph systemoutput sysout">VK_FALSE</samp>.
+                A <samp class="ph systemoutput sysout">VK_FALSE</samp> is returned when the Vulkan WSI cannot create swap chains or can't use
+                <span class="keyword">Screen</span> for the swap chain using the physical device provided to the function.
+            </p>
+
+<pre class="pre codeblock">VKAPI_ATTR VkBool32 VKAPI_CALL
+    vkGetPhysicalDeviceScreenPresentationSupportQNX(
+        VkPhysicalDevice                            physicalDevice,
+        uint32_t                                    queueFamilyIndex,
+        struct _screen_window*                      window);
+</pre>
+            <p class="p"><span class="keyword apiname">vkCreateScreenSurfaceQNX</span> is used to create the Vulkan <span class="keyword">Screen</span>
+            surface, explained below.</p>
+
+<pre class="pre codeblock">VKAPI_ATTR VkResult VKAPI_CALL vkCreateScreenSurfaceQNX(
+    VkInstance                                  instance,
+    const VkScreenSurfaceCreateInfoQNX*         pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkSurfaceKHR*                               pSurface);
+</pre>
+            <p class="p">To create a surface, you must first create the context and window:</p>
+
+<pre class="pre codeblock">int rc;
+screen_context_t screen_context;
+screen_window_t screen_window;
+ 
+VkResult err;
+VkInstance inst;
+VkSurfaceKHR surface;
+ 
+/* Code for creating your Vulkan instance goes here. */
+...
+ 
+rc = screen_create_context(&amp;screen_context, 0);
+if (rc) {
+    /* Cannot create QNX Screen context */
+}
+ 
+rc = screen_create_window(&amp;screen_window, screen_context);
+if (rc) {
+    /* Cannot create QNX Screen window */
+}
+</pre>
+            <p class="p">Next, you will need to create a WSI surface for the window created in the above step:</p>
+
+<pre class="pre codeblock">VkScreenSurfaceCreateInfoQNX create_info;
+ 
+createInfo.sType = VK_STRUCTURE_TYPE_SCREEN_SURFACE_CREATE_INFO_QNX;
+createInfo.pNext = NULL;
+createInfo.flags = 0;
+createInfo.context = screen_context;
+createInfo.window = screen_window;
+ 
+err = vkCreateScreenSurfaceQNX(instance, &amp;create_info, NULL, &amp;surface);
+if (err != VK_SUCCESS) {
+    /* Cannot create QNX Screen Surface */
+}
+</pre>
+            <p class="p">At this point you should have a valid surface of type <span class="keyword dtype">VkSurfaceKHR</span>.
+                Use this surface to create a swap chain for the <span class="keyword">Screen</span> window.</p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create a swap chain</h2>
+            
+            <p class="p">A swap chain is a series of window buffers. When setting up your swap chain, you will need to set its image extent,
+                pixel format, number of buffers, presentation mode, and reference the surface you created in the above steps.
+            </p>
+
+            <p class="p">To create your swap chain, first you need to obtain surface information such as mode and formats:</p>
+
+<pre class="pre codeblock">VkPhysicalDevice gpu;
+VkDevice device;
+ 
+VkSurfaceCapabilitiesKHR surface_capabilities;
+VkSwapchainKHR swapchain;
+ 
+/* Obtain surface restrictions and capabilities */
+vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+(gpu, surface, &amp;surface_capabilities);
+ 
+/* Obtain available presentation modes */
+vkGetPhysicalDeviceSurfacePresentModesKHR(...);
+ 
+/* Obrain available surface formats and color spaces */
+vkGetPhysicalDeviceSurfaceFormatsKHR(...);
+</pre>
+<p class="p">Next, initialize your swap chain structure:</p>
+
+<pre class="pre codeblock">VkSwapchainCreateInfoKHR swapchain_info = {
+    .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+    .pNext = NULL,
+    .surface = surface,
+    .minImageCount = surface_capabilities.minImageCount,
+    .imageFormat = VK_FORMAT_B8G8R8A8_UNORM,
+    .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+    .imageExtent = {
+        .width = 1920,
+        .height = 1080,
+    },
+    .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+    .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+    .imageArrayLayers = 1,
+    .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    .queueFamilyIndexCount = 0,
+    .pQueueFamilyIndices = NULL,
+    .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+    .oldSwapchain = NULL,
+    .clipped = true,
+};
+</pre>
+<p class="p">Finally, create the swap chain:</p>
+
+<pre class="pre codeblock">err = vkCreateSwapchainKHR(device, &amp;swapchain_info, NULL, &amp;swapchain);
+if (err != VK_SUCCESS) {
+    /* Cannot create swap chain */
+}
+</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Choosing the correct pixel format for your swap chain</h2>
+            
+            <p class="p">The <var class="keyword varname">imageFormat</var> field of the <span class="keyword dtype">VkSwapchainCreateInfoKHR</span> structure
+                needs to be compatible with your <span class="keyword const">SCREEN_PROPERTY_FORMAT</span> property.</p>
+
+            <p class="p">To help you choose the correct format when creating the swap chain, refer to the table below.
+                It contains the most popular Vulkan pixel formats and their corresponding <span class="keyword">Screen</span>
+            pixel formats.</p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:50%" /><col style="width:50%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d4823e453">Vulkan pixel format</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d4823e456"><span class="keyword">Screen</span> pixel format</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">
+                                    <p class="p">VK_FORMAT_R8G8B8A8_UNORM</p>
+
+                                    <p class="p">VK_FORMAT_R8G8B8A8_SRGB</p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_BGRA8888</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">
+                                    <p class="p">VK_FORMAT_B8G8R8A8_UNORM</p>
+
+                                    <p class="p">VK_FORMAT_B8G8R8A8_SRGB</p>
+
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_RGBA8888</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">VK_FORMAT_A2R10G10B10_UNORM_PACK32</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_RGBA1010102</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">VK_FORMAT_A2B10G10R10_UNORM_PACK32</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_BGRA1010102</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">VK_FORMAT_R5G6B5_UNORM_PACK16</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_RGB565</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e453 ">VK_FORMAT_A1R5G5B5_UNORM_PACK16</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d4823e456 ">SCREEN_FORMAT_RGBA5551</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Choosing a presentation mode for your swap chain</h2>
+            
+            <p class="p">The <var class="keyword varname">presentMode</var> in the <span class="keyword dtype">VkSwapchainCreateInfoKHR</span> structure defines how the chain of buffers
+            is swapped on the window. Choose from the following modes:</p>
+
+            <ul class="ul">
+                <li class="li">
+                    <span class="keyword const">VK_PRESENT_MODE_FIFO_KHR</span>: the presentation engine waits for the next vertical blanking period to update
+                    the current image. An internal FIFO queue is used to hold pending requests. New requests are added to the end of the
+                    queue. If the queue is not empty, one request is removed from the front of the queue during each vertical blanking period.
+                </li>
+
+                <li class="li">
+                    <span class="keyword const">VK_PRESENT_MODE_IMMEDIATE_KHR</span>: the presentation engine does not wait for a vertical blanking period to update
+                    the current image. There is no internal queueing and requests are updated immediately.
+                </li>
+
+                <li class="li">
+                    <span class="keyword const">VK_PRESENT_MODE_MAILBOX_KHR</span>: the presentation engine waits for the next vertical blanking period to update
+                    the current image. An internal single entry queue is used to hold pending requests. Incoming requests replace any that are in
+                    the queue. Replaced requests become available for re-use.
+                </li>
+
+            </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Debugging</h2>
+            
+            <p class="p">To debug the process of loading Vulkan drivers, you can use <span class="keyword envar">VK_LOADER_DEBUG</span>. The supported modes are:</p>
+
+            <ul class="ul">
+                <li class="li"><span class="keyword parmname">all</span></li>
+
+                <li class="li"><span class="keyword parmname">warn</span></li>
+
+                <li class="li"><span class="keyword parmname">info</span></li>
+
+                <li class="li"><span class="keyword parmname">perf</span></li>
+
+                <li class="li"><span class="keyword parmname">error</span></li>
+
+                <li class="li"><span class="keyword parmname">debug</span></li>
+
+            </ul>
+
+            <p class="p">For example, to enable debug mode for the <span class="keyword apiname">vulkaninfo</span> utility in the ICD loader, set the variable as shown:</p>
+
+<pre class="pre codeblock">VK_LOADER_DEBUG=all vulkaninfo
+</pre>
+            <p class="p">For more information on the <span class="keyword envar">VK_LOADER_DEBUG</span> environment variable and its options, refer to Vulkan
+            documentation online. For more information on the <span class="keyword apiname">vulkaninfo</span> utility, refer to the
+                <a class="xref" href="vulkaninfo.html" title="Display various Vulkan information"><span class="keyword cmdname">vulkaninfo</span></a> page in the <a class="xref" href="cscreen_utilities.html" title="Screen includes some utilities and binaries to help with calibration, debugging, and demonstrating features.">
+            Utilities and binaries </a> section of this guide.</p>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering-hardware.html" title="Applications use the target hardware's GPU to perform rendering operations with Khronos rendering API calls, or use blitting with the native Screen API function calls.">Hardware Rendering</a></div>
+</div>
+</div></body>
+</html>

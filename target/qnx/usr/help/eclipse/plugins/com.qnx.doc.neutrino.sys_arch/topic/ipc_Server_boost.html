@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Server boost" />
+<meta name="abstract" content="Priority inheritance relies on deciding which server thread needs to be boosted when a high-priority client sends a message. If there are server threads available to receive a message (i.e., RECEIVE-blocked), then the thread that receives the message is the one that gets boosted. But if no server threads are available and, thus, the client is left SEND-blocked, it's not clear which thread should be boosted." />
+<meta name="description" content="Priority inheritance relies on deciding which server thread needs to be boosted when a high-priority client sends a message. If there are server threads available to receive a message (i.e., RECEIVE-blocked), then the thread that receives the message is the one that gets boosted. But if no server threads are available and, thus, the client is left SEND-blocked, it's not clear which thread should be boosted." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc_Priority_inheritance_messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipc_Server_boost" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Server boost</title>
+</head>
+<body id="ipc_Server_boost">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Server boost</h1>
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">Priority inheritance relies on deciding which server thread needs to be boosted when a
+    high-priority client sends a message. If there are server threads available to receive a message
+    (i.e., RECEIVE-blocked), then the thread that receives the message is the one that gets boosted.
+    But if no server threads are available and, thus, the client is left SEND-blocked, it's not
+    clear which thread should be boosted.</p>
+
+
+<p class="p">Without a RECEIVE-blocked server thread, when a client sends a message or pulse, the kernel
+    boosts the priority of one server thread that's associated with that channel.
+    Priority inversion can still happen—this is a known limitation—but
+    it won't prevent any threads from finishing their work and doing a receive.</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> This situation is considered to be a symptom of a poorly designed server.
+        For a multi-threaded server, when a new client request is made, the server should always
+            have at least one RECEIVE-blocked thread.</div>
+
+
+<p class="p">When a thread is boosted for the first time, its original priority is recorded. The thread may be
+            boosted multiple times if multiple threads become SEND-blocked, but the kernel records
+            only the priority before the initial boosting.</p>
+
+
+<p class="p">When a message is next received, the kernel reevaluates the situation. If there are still pulses
+            or SEND-blocked threads, then some of the boosted threads may remain boosted (although
+            potentially at a lower priority), while others may drop back to their original
+            priority.</p>
+
+
+<p class="p">If there are no SEND-blocked threads, then all threads that were originally boosted return to
+            their original priorities.</p>
+
+
+<p class="p"><strong class="ph b">How a thread becomes associated with a channel</strong></p>
+
+
+<p class="p">A thread is associated with a channel when it does a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceive()</span></a> on it. In the case of multiple channels,
+            a thread is associated with the last channel it received from.
+             After receiving
+            a message, a thread can dissociate itself from the channel by calling
+                <span class="keyword apiname">MsgReceive()</span> with a -1 for the channel ID.</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc_Priority_inheritance_messages.html" title="QNX OS uses message-driven priority inheritance to avoid priority-inversion problems.">Priority inheritance and messages</a></div>
+</div>
+</div></body>
+</html>

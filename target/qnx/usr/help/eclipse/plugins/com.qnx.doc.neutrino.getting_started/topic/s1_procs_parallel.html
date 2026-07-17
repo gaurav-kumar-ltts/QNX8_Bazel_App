@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Threads in mathematical operations" />
+<meta name="abstract" content="Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: each raster line is independent of the others. This immediately causes the problem to stand out as a threadable program." />
+<meta name="description" content="Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: each raster line is independent of the others. This immediately causes the problem to stand out as a threadable program." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Starting_threads.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_codingeither.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_sync2term.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Joining_threads.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_barriers.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Multiple_threads_single_CPU.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_smpbeware.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="parallel" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Threads in mathematical operations</title>
+</head>
+<body id="parallel">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Threads in mathematical operations</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Suppose that we have a graphics program that performs ray tracing.
+Each raster line on the screen is dependent on the main database (which
+describes the actual picture being generated).
+The key here is this: <em class="ph i">each raster line is independent of the others</em>.
+This immediately causes the problem to stand out as a threadable program.
+</p>
+
+
+<div class="p">
+
+Here's the single-threaded version:
+
+<pre class="pre codeblock">int main (int argc, char **argv)
+{
+    int x1;
+    ...    // perform initializations
+
+    for (x1 = 0; x1 &lt; num_x_lines; x1++) {
+        do_one_line (x1);
+    }
+
+    ...    // display results
+}
+</pre>
+</div>
+
+
+<p class="p">
+Here we see that the program will iterate <var class="keyword varname">x1</var> over all the raster
+lines that are to be calculated.
+</p>
+
+
+<p class="p">
+On an SMP system, this program will use only one CPU.
+Why?
+Because we haven't told the operating system to do anything in parallel.
+The operating system isn't smart enough to look at the program and say,
+<q class="q">Hey, hold on a second!  We have 4 CPUs, and it looks like there
+are independent execution flows here.  I'll run it on all 4 CPUs!</q>
+
+
+</p>
+
+
+<div class="p">
+So, it's up to the system designer (you) to tell <span class="keyword">QNX OS</span> which parts can
+be run in parallel.
+The easiest way to do that would be:
+
+<pre class="pre codeblock">int main (int argc, char **argv)
+{
+    int x1;
+    ...    // perform initializations
+
+    for (x1 = 0; x1 &lt; num_x_lines; x1++) {
+        pthread_create (NULL, NULL, do_one_line, (void *) x1);
+    }
+
+    ...    // display results
+}
+</pre>
+</div>
+
+
+<p class="p">
+There are a number of problems with this simplistic approach.
+First of all (and this is most minor), the <span class="keyword apiname">do_one_line()</span>
+function would have to be modified to take a <span class="keyword dtype">void *</span>
+instead of an <span class="keyword dtype">int</span> as its argument.
+This is easily remedied with a typecast.
+</p>
+
+
+<p class="p">
+The second problem is a little bit trickier.
+Let's say that the screen resolution that you were computing the picture
+for was 1280 by 1024.
+We'd be creating 1280 threads!
+This is not a problem for <span class="keyword">QNX OS</span>—the OS <q class="q">limits</q>
+you to 32767 threads per process!
+However, each thread <em class="ph i">must</em> have a unique stack.
+If your stack is a reasonable size (say 8 KB), you'll have used
+1280 × 8 KB (10 megabytes!) of stack.
+And for what?
+There are only 4 processors in your SMP system.
+This means that only 4 of the 1280 threads will run at a time—the other
+1276 threads are waiting for a CPU.
+(In reality, the stack will <q class="q">fault in,</q> meaning that the space for
+it will be allocated only as required.  Nonetheless, it's a waste—there are still other overheads.)
+
+
+</p>
+
+
+<div class="p">
+A much better solution to this would be to break the problem up into 4 pieces
+(one for each CPU), and start a thread for each piece:
+
+<pre class="pre codeblock">int num_lines_per_cpu;
+int num_cpus;
+
+int main (int argc, char **argv)
+{
+    int cpu;
+    ...    // perform initializations
+
+    // get the number of CPUs
+    num_cpus = _syspage_ptr -&gt; num_cpu;
+    num_lines_per_cpu = num_x_lines / num_cpus;
+
+    for (cpu = 0; cpu &lt; num_cpus; cpu++) {
+        pthread_create (NULL, NULL, do_one_batch, (void *) cpu);
+    }
+
+    ...    // display results
+}
+
+void * do_one_batch (void *c)
+{
+    int cpu = (int) c;
+    int x1;
+
+    for (x1 = 0; x1 &lt; num_lines_per_cpu; x1++) {
+        do_line_line (x1 + cpu * num_lines_per_cpu);
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+Here we're starting only <var class="keyword varname">num_cpus</var> threads.
+Each thread will run on one CPU.
+And since we have only a small number
+of threads, we're not wasting memory with unnecessary stacks.
+Notice how we got the number of CPUs by dereferencing the <q class="q">System Page</q>
+global variable <var class="keyword varname">_syspage_ptr</var>.
+(For more information about what's in the system page, see the
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/syspage/syspage_about.html">System Page</a> chapter of <cite class="cite">Building Embedded Systems</cite>, or the
+<span class="ph filepath">&lt;sys/syspage.h&gt;</span> include file).
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_codingeither.html">Coding for SMP or single processor</a></strong><br />
+ The best part about this code is that it will function just fine on a single-processor system—you'll create only one thread, and have it do all the work. The additional overhead (one stack) is well worth the flexibility of having the software <q class="q">just work faster</q> on an SMP box. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_sync2term.html">Synchronizing to the termination of a thread</a></strong><br />
+ I mentioned that there were a number of problems with the simplistic code sample initially shown. Another problem with it is that <span class="keyword apiname">main()</span> starts up a bunch of threads and then displays the results. How does the function <em class="ph i">know</em> when it's safe to display the results? </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Joining_threads.html">Joining</a></strong><br />
+ The simplest method of synchronization is to <em class="ph i">join</em> the threads as they terminate. Joining really means waiting for termination. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_barriers.html">Using a barrier</a></strong><br />
+ When we talked about the synchronization of the <span class="keyword apiname">main()</span> function to the completion of the worker threads (in <q class="q">Synchronizing to the termination of a thread,</q> above), we mentioned two methods: <span class="keyword apiname">pthread_join()</span>, which we've looked at, and a barrier. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Multiple_threads_single_CPU.html">Multiple threads on a single CPU</a></strong><br />
+ Suppose that we modify our example slightly so that we can illustrate why it's also sometimes a good idea to have multiple threads even on a single-CPU system. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_smpbeware.html">Things to watch out for when using SMP</a></strong><br />
+ While in general you can simply <q class="q">ignore</q> whether or not you're running on an SMP architecture or a single processor, there are certain things that <em class="ph i">will</em> bite you. Unfortunately, they may be such low-probability events that they won't show up during development but rather during testing, demos, or the worst: out in the field. Taking a few moments now to program defensively will save problems down the road. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Starting_threads.html" title="Now that we've seen how to start another process, let's see how to start another thread.">Starting a thread</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li></ul></div>
+</div></body>
+</html>

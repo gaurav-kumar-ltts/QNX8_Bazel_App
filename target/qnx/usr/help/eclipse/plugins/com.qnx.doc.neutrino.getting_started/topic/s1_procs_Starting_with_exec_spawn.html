@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Starting a process with the exec() and spawn() calls" />
+<meta name="abstract" content="Let's look at some of the other process-creation functions." />
+<meta name="description" content="Let's look at some of the other process-creation functions." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Starting_process_from_programs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Starting_with_exec_spawn" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Starting a process with the exec() and spawn() calls</title>
+</head>
+<body id="Starting_with_exec_spawn">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Starting a process with the <span class="keyword apiname">exec()</span> and <span class="keyword apiname">spawn()</span> calls</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Let's look at some of the other process-creation functions.
+</p>
+
+
+<p class="p">
+The next process-creation functions we should look at are the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/lib-e.html"><span class="keyword apiname">exec()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn()</span></a>
+families.
+Before we go into the details, let's see what the differences are between
+these two groups of functions.
+
+
+
+
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">exec()</span> family <em class="ph i">transforms</em> the current process
+into another one.
+What I mean by that is that when a process issues an <span class="keyword apiname">exec()</span>
+function call, that process ceases to run the current program and
+begins to run another program.
+The process ID doesn't change—that process <em class="ph i">changed</em> into
+another program.
+What happened to all the threads in the process?  We'll come back to
+that when we look at <span class="keyword apiname">fork()</span>.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">spawn()</span> family, on the other hand, doesn't do that.
+Calling a member of the <span class="keyword apiname">spawn()</span> family creates <em class="ph i">another</em>
+process (with a new process ID) that corresponds to the program specified
+in the function's arguments.
+</p>
+
+
+<p class="p">
+
+
+Let's look at the different variants of the <span class="keyword apiname">spawn()</span> and
+<span class="keyword apiname">exec()</span> functions.
+In the table that follows, you'll see which are POSIX and which aren't.
+Of course, for maximum portability, you'll want to use only the POSIX functions.
+(The <span class="keyword apiname">spawn()</span> and <span class="keyword apiname">spawnp()</span> functions were
+in a POSIX draft, but never made it into the standard.
+The POSIX versions are
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html"><span class="keyword apiname">posix_spawn()</span> and <span class="keyword apiname">posix_spawnp()</span></a>.)
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e174">Spawn</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e177">POSIX?</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e180">Exec</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e183">POSIX?</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "> </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 "> </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html"><span class="keyword apiname">spawnl()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html"><span class="keyword apiname">execl()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html"><span class="keyword apiname">spawnle()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html"><span class="keyword apiname">execle()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html"><span class="keyword apiname">spawnlp()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html"><span class="keyword apiname">execlp()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html"><span class="keyword apiname">spawnlpe()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html"><span class="keyword apiname">execlpe()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">No</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html"><span class="keyword apiname">spawnp()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "> </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 "> </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html"><span class="keyword apiname">spawnv()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html"><span class="keyword apiname">execv()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html"><span class="keyword apiname">spawnve()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html"><span class="keyword apiname">execve()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html"><span class="keyword apiname">spawnvp()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html"><span class="keyword apiname">execvp()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">Yes</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e174 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html"><span class="keyword apiname">spawnvpe()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e177 ">No</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e180 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html"><span class="keyword apiname">execvpe()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e183 ">No</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+While these variants might appear to be overwhelming, there
+<em class="ph i">is</em> a pattern to their suffixes:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e507">A suffix of:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8636e510">Means:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e507 "><strong class="ph b">l</strong> (lowercase <q class="q">L</q>)</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e510 ">The argument list is specified via a list
+    of parameters given in the call itself,
+    terminated by a <span class="keyword const">NULL</span> argument.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e507 "><strong class="ph b">e</strong></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e510 ">An environment is specified.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e507 "><strong class="ph b">p</strong></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e510 ">The <span class="keyword envar">PATH</span> environment variable is used in case
+    the full pathname to the program isn't specified.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e507 "><strong class="ph b">v</strong></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8636e510 ">The argument list is specified via a pointer to an argument vector.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+The argument list is a list of the command-line arguments passed to the program.
+</p>
+
+
+<p class="p">
+Also, note that in the C library,
+<span class="keyword apiname">spawnlp()</span>, <span class="keyword apiname">spawnvp()</span>, and <span class="keyword apiname">spawnlpe()</span>
+all call <span class="keyword apiname">spawnvpe()</span>, which in turn calls <span class="keyword apiname">spawnp()</span>.
+The functions <span class="keyword apiname">spawnle()</span>, <span class="keyword apiname">spawnv()</span>, and <span class="keyword apiname">spawnl()</span>
+all eventually call <span class="keyword apiname">spawnve()</span>, which then calls <span class="keyword apiname">spawn()</span>.
+Finally, <span class="keyword apiname">spawnp()</span> calls <span class="keyword apiname">spawn()</span>.
+So, the root of all spawning functionality is the <span class="keyword apiname">spawn()</span> call.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>How the <span class="keyword apiname">spawn*()</span> functions are related.</span>
+
+<br /><img class="image" src="../images/spawnall.svg" width="624" alt="How the spawn functions are related" /><br />
+</div>
+
+
+<p class="p">
+Let's now take a look at the various <span class="keyword apiname">spawn()</span>
+and <span class="keyword apiname">exec()</span> variants in detail
+so that you can get a feel for the various suffixes used.
+Then, we'll see the <span class="keyword apiname">spawn()</span> call itself.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><q class="q">l</q> suffix</h2>
+
+
+<div class="p">
+
+
+For example, if I want to invoke the <span class="keyword cmdname">ls</span>
+command with the arguments <span class="keyword option">-t</span>, <span class="keyword option">-r</span>, and <span class="keyword option">-l</span>
+(meaning <q class="q">sort the output by time, in reverse order, and show me the long
+version of the output</q>), I could specify it as either:
+
+<pre class="pre codeblock">/* To run ls and keep going: */
+spawnl (P_WAIT, "/bin/ls", "/bin/ls", "-t", "-r", "-l", NULL);
+
+/* To transform into ls: */
+execl ("/bin/ls", "/bin/ls", "-t", "-r", "-l", NULL);
+</pre>
+
+or, using the <tt class="ph tt">v</tt> suffix variant: 
+
+<pre class="pre codeblock">char *argv [] =
+{
+    "/bin/ls",
+    "-t",
+    "-r",
+    "-l",
+    NULL
+};
+
+/* To run ls and keep going: */
+spawnv (P_WAIT, "/bin/ls", argv);
+
+/* To transform into ls: */
+execv ("/bin/ls", argv);
+</pre>
+</div>
+
+
+<p class="p">
+Why the choice?
+It's provided as a convenience.
+You may have a parser already built into your
+program, and it would be convenient to pass around arrays of strings.
+In that case, I'd recommend using the <q class="q"><tt class="ph tt">v</tt></q> suffix variants.
+Or, you may be coding up a call to a program where you know what the
+parameters are.
+In that case, why bother setting up an array of strings when you <em class="ph i">know</em>
+exactly what the arguments are?
+Just pass them to the <q class="q"><tt class="ph tt">l</tt></q> suffix variant.
+</p>
+
+
+<p class="p">
+Note that we passed the actual pathname of the program
+(<span class="ph filepath">/bin/ls</span>) <em class="ph i">and</em> the
+name of the program <em class="ph i">again</em> as the first argument.
+We passed the name twice to support programs that behave differently based on how they're invoked.
+</p>
+
+
+<p class="p"> For example, the toybox compression and decompression utilities (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/gzip-target.html"><span class="keyword cmdname">gzip</span></a> and <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/gunzip-target.html"><span class="keyword cmdname">gunzip</span></a>) are actually links to the same executable. When the
+        executable starts, it looks at <span class="ph codeph">argv[0]</span> (passed to
+        <span class="keyword apiname">main()</span>) and decides whether it should compress or decompress.
+            
+        
+        
+        
+      </p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><q class="q">e</q> suffix</h2>
+
+
+<div class="p">
+The <q class="q">e</q> suffix versions pass an <em class="ph i">environment</em> to the program.
+An environment is just that—a kind of <q class="q">context</q>
+for the program to operate in.
+For example, you may have a spell-checker that has a dictionary of words.
+Instead of specifying the dictionary's location every time on the command
+line, you could provide it in the environment:
+
+<pre class="pre codeblock">$ export DICTIONARY=/home/rk/.dict
+
+$ spellcheck document.1
+</pre>
+</div>
+
+
+<p class="p">
+The <span class="keyword cmdname">export</span> command tells the shell
+to create a new environment variable (in this case, <span class="keyword envar">DICTIONARY</span>),
+and assign it a value (<span class="ph filepath">/home/rk/.dict</span>).
+
+
+
+</p>
+
+
+<div class="p">
+If you ever wanted to use a different dictionary, you'd have to
+alter the environment before running the program.
+This is easy from the shell:
+
+<pre class="pre codeblock">$ export DICTIONARY=/home/rk/.altdict
+
+$ spellcheck document.1
+</pre>
+</div>
+
+
+<div class="p">
+But how can you do this from your own programs?
+To use the <q class="q"><tt class="ph tt">e</tt></q> versions of <span class="keyword apiname">spawn()</span> and
+<span class="keyword apiname">exec()</span>, you specify an array of strings representing the
+environment:
+
+<pre class="pre codeblock">char *env [] =
+{
+    "DICTIONARY=/home/rk/.altdict",
+    NULL
+};
+
+// To start the spell-checker:
+spawnle (P_WAIT, "/usr/bin/spellcheck", "/usr/bin/spellcheck",
+         "document.1", NULL, env);
+
+// To transform into the spell-checker:
+execle ("/usr/bin/spellcheck", "/usr/bin/spellcheck",
+        "document.1", NULL, env);
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><q class="q">p</q> suffix</h2>
+
+
+<div class="p">
+
+The <q class="q">p</q> suffix versions will search the directories in your
+<span class="keyword envar">PATH</span> environment variable to find the executable.
+You've probably noticed that all the above examples have
+a hard-coded location for the executable:
+<span class="ph filepath">/bin/ls</span> and <span class="ph filepath">/usr/bin/spellcheck</span>.
+What about other executables?
+Unless you want to first find out the <em class="ph i">exact</em> path for that particular
+program, it would be best to have the user tell your program all the
+places to search for executables.
+The standard <span class="keyword envar">PATH</span> environment variable does just that.
+Here's the one from a minimal system:
+
+<pre class="pre codeblock">PATH=/proc/boot:/bin
+</pre>
+</div>
+
+
+<p class="p">
+This tells the shell that when I type a command, it should first look
+in the directory <span class="ph filepath">/proc/boot</span>, and if it
+can't find the command there, it should look in the binaries
+directory <span class="ph filepath">/bin</span>.
+<span class="keyword envar">PATH</span> is a colon-separated list of places to look for commands.
+You can add as many elements to <span class="keyword envar">PATH</span> as you
+want, but keep in mind that all pathname components will be searched
+(in order) for the executable.
+</p>
+
+
+<div class="p">
+If you don't know the path to the executable, then you can use the
+<q class="q"><tt class="ph tt">p</tt></q> variants.
+For example:
+
+<pre class="pre codeblock">// Using an explicit path:
+execl ("/bin/ls", "/bin/ls", "-l", "-t", "-r", NULL);
+
+// Search your PATH for the executable:
+execlp ("ls", "ls", "-l", "-t", "-r", NULL);
+</pre>
+</div>
+
+
+<p class="p">
+If <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html"><span class="keyword apiname">execl()</span></a>
+can't find <span class="keyword cmdname">ls</span> in <span class="ph filepath">/bin</span>,
+it returns an error.
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html"><span class="keyword apiname">execlp()</span></a>
+function will search all the directories specified in
+the <span class="keyword envar">PATH</span> for <span class="keyword cmdname">ls</span>, and will return an error only
+if it can't find <span class="keyword cmdname">ls</span> in any of those directories.
+This is also great for multiplatform support—your program doesn't have
+to be coded to know about the different CPU names, it just finds the executable.
+
+
+
+
+</p>
+
+
+<div class="p">
+What if you do something like this?
+
+<pre class="pre codeblock">execlp ("/bin/ls", "ls", "-l", "-t", "-r", NULL);
+</pre>
+</div>
+
+
+<p class="p">
+Does it search the environment?
+No.
+You told <span class="keyword apiname">execlp()</span> to use an <em class="ph i">explicit</em> pathname,
+which overrides the normal <span class="keyword envar">PATH</span> searching rule.
+If it doesn't find <span class="keyword cmdname">ls</span> in <span class="ph filepath">/bin</span>, that's it, no other
+attempts are made (this is identical to the way <span class="keyword apiname">execl()</span> works in this case).
+</p>
+
+
+<p class="p">
+Is it dangerous to mix an explicit path with a plain command name
+(e.g., the path argument <span class="ph filepath">/bin/ls</span> and the
+command name argument <span class="ph filepath">ls</span> instead of <span class="ph filepath">/bin/ls</span>)?
+This is usually pretty safe, because:
+</p>
+
+
+<ul class="ul">
+<li class="li">a large number of programs ignore <span class="ph codeph">argv[0]</span> anyway</li>
+
+
+<li class="li">those that do care usually call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/b/basename.html"><span class="keyword apiname">basename()</span></a>,
+  which strips off the directory portion of <span class="ph codeph">argv[0]</span> and returns
+  just the name.
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The only compelling reason for specifying
+the full pathname for the first argument is that the program
+can display diagnostics including this first argument,
+which can instantly tell you where the program was invoked from.
+This may be important when the program can be found in multiple
+locations along the <span class="keyword envar">PATH</span>.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">spawn()</span> functions all have an extra parameter;
+in all the above examples, I've always specified <span class="keyword const">P_WAIT</span>.
+There are four flags you can pass to <span class="keyword apiname">spawn()</span> to
+change its behavior:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">P_WAIT</span></dt>
+
+<dd class="dd">The calling process (your program) is blocked until the newly created program has run to
+  completion and exited.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">P_NOWAIT</span></dt>
+
+<dd class="dd">The calling program <em class="ph i">doesn't</em> block while the newly created program runs.
+  This allows you to start a program in the background,
+  and continue running while the other program does its thing.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">P_NOWAITO</span></dt>
+
+<dd class="dd">Identical to <span class="keyword const">P_NOWAIT</span>, except that the <span class="keyword const">SPAWN_NOZOMBIE</span>
+  flag is set, meaning that you don't have to worry about doing a
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/waitpid.html"><span class="keyword apiname">waitpid()</span></a>
+  to clear the process's exit code.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">P_OVERLAY</span></dt>
+
+<dd class="dd">This flag turns the <span class="keyword apiname">spawn()</span> call into the corresponding
+  <span class="keyword apiname">exec()</span> call!
+  Your program transforms into the specified program, with no change in process ID.
+  
+
+  <p class="p">
+  It's generally clearer to use the <span class="keyword apiname">exec()</span> call if
+  that's what you meant—it saves the maintainer of the
+  software from having to look up <span class="keyword const">P_OVERLAY</span> in the
+  <cite class="cite">C Library Reference</cite>!
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Plain <span class="keyword apiname">spawn()</span></h2>
+
+
+<div class="p">
+
+As we mentioned above, all <span class="keyword apiname">spawn()</span> functions eventually
+call the plain <span class="keyword apiname">spawn()</span> function.
+Here's the prototype for this function:
+
+<pre class="pre codeblock">#include &lt;spawn.h&gt;
+
+pid_t spawn (const char *<var class="keyword varname">path</var>,
+             int <var class="keyword varname">fd_count</var>,
+             const int <var class="keyword varname">fd_map</var> [],
+             const struct inheritance *<var class="keyword varname">inherit</var>,
+             char * const <var class="keyword varname">argv</var> [],
+             char * const <var class="keyword varname">envp</var> []);
+</pre>
+</div>
+
+
+<p class="p">
+We can immediately dispense with the <var class="keyword varname">path</var>, <var class="keyword varname">argv</var>, and
+<var class="keyword varname">envp</var> parameters—we've already seen those above as representing
+the executable's location (the <var class="keyword varname">path</var> member), the
+argument vector (<var class="keyword varname">argv</var>), and the environment (<var class="keyword varname">envp</var>).
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">fd_count</var> and <var class="keyword varname">fd_map</var> parameters go together.
+If you specify zero for <var class="keyword varname">fd_count</var>, then <var class="keyword varname">fd_map</var> is ignored,
+and it means that all file descriptors (except those modified by
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>'s
+<span class="keyword const">FD_CLOEXEC</span> flag) will be inherited in the newly created process.
+If <var class="keyword varname">fd_count</var> is nonzero, then it indicates the number of file
+descriptors contained in <var class="keyword varname">fd_map</var>; only the specified ones will be inherited.
+
+
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">inherit</var> parameter is a pointer to a structure that contains a
+set of flags, signal masks, and so on.
+For more details, you should consult the <span class="keyword">QNX OS</span>
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/about.html"><em class="ph i">C Library Reference</em></a>.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Starting_process_from_programs.html" title="You don't usually care about the fact that the shell creates processes—this is a basic assumption about the shell. In some application designs, you'll certainly be relying on shell scripts (batches of commands in a file) to do the work for you, but in other cases you'll want to create the processes yourself.">Starting a process from within a program</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html">Process management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html">environ()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html">execle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html">execl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html">execlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html">execlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html">execve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html">execv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html">execvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html">execvp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html">fork()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html">posix_spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html">spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html">spawnle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html">spawnl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html">spawnlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html">spawnlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html">spawnp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html">spawnve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html">spawnv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html">spawnvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html">spawnvp()</a></li></ul></div>
+</div></body>
+</html>

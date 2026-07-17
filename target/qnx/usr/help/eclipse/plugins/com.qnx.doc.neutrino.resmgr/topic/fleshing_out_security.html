@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Security" />
+<meta name="abstract" content="A resource manager is usually a privileged process, so you should be careful not to let a client coerce it into exhausting resources or compromising the system." />
+<meta name="description" content="A resource manager is usually a privileged process, so you should be careful not to let a client coerce it into exhausting resources or compromising the system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="fleshing_out_security" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Security</title>
+</head>
+<body id="fleshing_out_security">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Security</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+A resource manager is usually a privileged process, so you should be careful not to let a client
+coerce it into exhausting resources or compromising the system.
+</p>
+
+
+<p class="p">
+
+When you're designing your resource manager, you should consider the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">The permissions on the resource manager's entry in the pathname space</dt>
+
+<dd class="dd">You specify these permissions as an argument to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_init.html"><span class="keyword apiname">iofunc_attr_init()</span></a>.
+  In general, there isn't a <q class="q">correct</q> set of permissions to use;
+  you should restrict them according to what you want other processes and users to be able to do with your
+  resource manager.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Running as <span class="ph filepath">root</span></dt>
+
+<dd class="dd">A resource manager typically needs to be started by <span class="ph filepath">root</span> in order to attach to the
+  pathname space, but it's a good idea to use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+  to retain the abilities that the resource manager needs, and then run as a non-<span class="ph filepath">root</span> user.
+  For more information, see
+  <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_Privileges.html">Process privileges</a></q>
+  in the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Requests to allocate resources on behalf of a client</dt>
+
+<dd class="dd">If the resource manager isn't a critical process that needs to be free of any resource constraint thresholds,
+  it can simply run in constrained mode (see
+  <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_resource_constraint.html">Resource constraint thresholds</a></q>
+  in the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>).
+  
+  
+
+  <p class="p">
+  If the resource manager is a critical process, 
+  it should keep the <span class="keyword const">PROCMGR_AID_RCONSTRAINT</span> ability (see
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>), but it then needs to ensure that constrained clients don't use it
+  to allocate a resource in excess of the currently defined threshold.
+  Unless the resource manager is managing the resource itself, compliance generally means adopting the
+  client's constraint mode when handling a request, in this way:
+  
+  
+  </p>
+
+
+  <ul class="ul">
+  <li class="li">Automatically, by setting <span class="keyword const">RESMGR_FLAG_RCM</span> in the <span class="keyword dtype">resmgr_attr_t</span> structure
+    (see the entry for
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+    in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>):
+    
+    
+
+<pre class="pre codeblock">resmgr_attr.flags |= RESMGR_FLAG_RCM;
+resmgr_attach(dpp, &amp;resmgr_attr, name, _FTYPE_ANY, 0, &amp;connect_funcs,
+              &amp;io_funcs, &amp;io_attr))
+</pre>
+  </li>
+
+  </ul>
+
+
+  <p class="p">
+  When a resource manager runs as a constrained process or constrains one of its threads,
+  resource allocation requests fail when there are still resources available.
+  It should handle these failures in the same way it would handle a failure caused by
+  complete exhaustion of resources, generally by returning an error to the client.
+  If the resource manager can continue to process messages, it should do so, for the sake of overall system stability.
+  </p>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Checking a client's abilities</dt>
+
+<dd class="dd">You can make sure that a client has the appropriate abilities by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectclientinfoable.html"><span class="keyword apiname">ConnectClientInfoAble()</span></a> or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_client_info_able.html"><span class="keyword apiname">iofunc_client_info_able()</span></a>.
+  Both of these take as an argument a list of abilities;
+  if the client doesn't have all the required abilities, these functions set <span class="keyword const">_NTO_CI_UNABLE</span>
+  in the <var class="keyword varname">flags</var> member of the <span class="keyword dtype">_client_info</span> structure.
+  
+  
+  
+  
+  
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  
+  If you've called one of these functions,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_check_access.html"><span class="keyword apiname">iofunc_check_access()</span></a>
+  returns <span class="keyword const">EACCES</span> if <span class="keyword const">_NTO_CI_UNABLE</span> is set.
+  </div>
+
+
+  <p class="p">
+  
+  Your resource manager can create custom abilities by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability_create.html"><span class="keyword apiname">procmgr_ability_create()</span></a>;
+  a client can get identifiers for them by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability_lookup.html"><span class="keyword apiname">procmgr_ability_lookup()</span></a>, and then call 
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+  to retain them before it switches to a non-<span class="ph filepath">root</span> user ID.
+  For more information, see
+  <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_Ability_creating.html">Creating abilities</a></q>
+  in the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+  When you check a client's abilities, you can include a combination of <span class="keyword const">PROCMGR_AID_*</span> abilities
+  and custom ones.
+  </p>
+
+</dd>
+
+
+</dl>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out.html" title="It's time now to start adding some flesh to the basic bones of the resource manager. We'll look at the types of messages you might have to handle, how to set the resource manager's attributes, how to add functionality, and some security issues you should consider.">Fleshing Out the Skeleton</a></div>
+</div>
+</div></body>
+</html>

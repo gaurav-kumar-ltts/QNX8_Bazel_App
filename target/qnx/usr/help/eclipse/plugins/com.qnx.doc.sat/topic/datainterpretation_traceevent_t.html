@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Simple and combine events, event buffer slots, and the traceevent_t structure" />
+<meta name="abstract" content="A simple event is an event that can be described in a single event buffer slot; a combine event is an event that's larger and can be fully described only in multiple event buffer slots. Both simple and combine events consist of only one kernel event." />
+<meta name="description" content="A simple event is an event that can be described in a single event buffer slot; a combine event is an event that's larger and can be fully described only in multiple event buffer slots. Both simple and combine events consist of only one kernel event." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/datainterpretation_Your_own.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="traceevent_t" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Simple and combine events, event buffer slots, and the traceevent_t structure</title>
+</head>
+<body id="traceevent_t">
+
+<h1 class="title topictitle1" id="ariaid-title1">Simple and combine events, event buffer slots, and the <span class="keyword dtype">traceevent_t</span> structure</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+A <em class="ph i">simple event</em> is an event that can be described in a single event buffer slot;
+a <em class="ph i">combine event</em> is an event that's larger and can be fully described only in multiple event buffer slots.
+Both simple and combine events consist of only <em class="ph i">one</em> kernel event.
+</p>
+
+
+<p class="p">
+
+
+
+
+</p>
+
+
+<div class="p">
+Each event buffer slot is a <span class="keyword dtype">traceevent_t</span> structure:
+
+<pre class="pre codeblock">typedef _Uint32t __traceentry;
+
+typedef struct traceevent {
+	__traceentry header;  /* CPU, event, format */
+	__traceentry data[3]; /* event data         */
+} traceevent_t;</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+The <span class="keyword dtype">traceevent_t</span> structure is partly opaque—although some details are provided,
+you shouldn't access the structure without the <span class="ph filepath">libtraceparser</span> API.
+</div>
+
+
+<p class="p">
+The <span class="keyword dtype">traceevent_t</span> structure is only 16 bytes long, and only half of that describes the event.
+This small size reduces instrumentation overhead and improves granularity.
+This <q class="q">thin</q> protocol doesn't burden the kernel and keeps the <span class="keyword dtype">traceevent_t</span> structure small.
+The trade-off is that it may take many <span class="keyword dtype">traceevent_t</span> structures to represent a single kernel event.
+</p>
+
+
+<p class="p">
+To distinguish simple events from combine events, the <span class="keyword dtype">traceevent_t</span> structure includes a two-bit flag
+that indicates whether the event is a single event or whether it's the first, middle, or last <span class="keyword dtype">traceevent_t</span> structure
+of the event. The flag is also used as a rudimentary integrity check.
+The timestamp element of the combine event is identical in each buffer slot; no other event will have the same timestamp.
+</p>
+
+
+<p class="p">
+The members of the <span class="keyword dtype">traceevent_t</span> structure are as follows:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">header</var></dt>
+
+<dd class="dd">An encoded header that identifies the event, event class, the CPU, and whether this structure represents
+  a simple or combine event.
+  Use the macros described below to extract these pieces.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">data</var></dt>
+
+<dd class="dd">The data associated with the event.
+  The first element of this array holds the least significant bits of the timestamp.
+  The contents of the remaining elements depend on the event; see the
+  <q class="q"><a class="xref" href="kercall_table.html">Current Trace Events and Data</a></q> appendix.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The following macros extract the information from the event header:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword apiname">_NTO_TRACE_GETCPU(h)</span></dt>
+
+<dd class="dd">Get the number of the CPU that the event occurred on.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_NTO_TRACE_GETEVENT(h)</span></dt>
+
+<dd class="dd">Get the type of event.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_NTO_TRACE_GETEVENT_C(h)</span></dt>
+
+<dd class="dd">Get the class.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">_TRACE_GET_STRUCT(h)</span></dt>
+
+<dd class="dd">Get the flag that indicates whether this is a simple or combine event:
+  
+  
+  
+  
+  
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d12305e241">If the flag equals:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d12305e244">The structure is:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e241 "><span class="keyword const">_TRACE_STRUCT_CB</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e244 ">The beginning of a combine event</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e241 "><span class="keyword const">_TRACE_STRUCT_CC</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e244 ">A continuation of a combine event</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e241 "><span class="keyword const">_TRACE_STRUCT_CE</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e244 ">The end of a combine event</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e241 "><span class="keyword const">_TRACE_STRUCT_S</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d12305e244 ">A simple event</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+</dd>
+
+
+
+</dl>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+To save space, the header doesn't use the class and event numbers that we saw in
+<q class="q"><a class="xref" href="events_Classes.html">Classes and events</a></q>
+in the <q class="q">Events and the Kernel</q> chapter.
+Instead the header uses a compact internal representation.
+For more information on this representation, see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/_nto_trace_get.html"><span class="keyword apiname">_NTO_TRACE_GET*()</span>, <span class="keyword apiname">_NTO_TRACE_SET*()</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/datainterpretation_Your_own.html">Building your own parser</a></div>
+</div>
+</div></body>
+</html>

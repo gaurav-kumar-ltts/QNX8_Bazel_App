@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Writing the entire function yourself" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out_Adding_functionality.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="WriteFuncYourself" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Writing the entire function yourself</title>
+</head>
+<body id="WriteFuncYourself">
+
+<h1 class="title topictitle1" id="ariaid-title1">Writing the entire function yourself</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Sometimes a default function will be of no help for your particular resource manager.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+For example,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_default.html"><span class="keyword apiname">iofunc_read_default()</span></a> and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_default.html"><span class="keyword apiname">iofunc_write_default()</span></a>
+functions implement <span class="ph filepath">/dev/null</span>;
+they do all the work of returning <span class="keyword const">0</span> bytes (<span class="keyword const">EOF</span>) or
+swallowing all the message bytes (respectively).
+You'll want to do something in those handlers
+(unless your resource manager doesn't support the <span class="keyword const">_IO_READ</span> or <span class="keyword const">_IO_WRITE</span> messages).
+</p>
+
+
+<p class="p">
+
+
+Note that even in such cases, there are still helper functions you can use, such as
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_verify.html"><span class="keyword apiname">iofunc_read_verify()</span></a> and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_write_verify.html"><span class="keyword apiname">iofunc_write_verify()</span></a>.
+</p>
+
+
+<div class="p">
+Here's a sample skeleton for a typical filesystem, in pseudo-code,
+to illustrate the steps that need to be taken to handle an open
+request for a file:
+
+<pre class="pre codeblock">if the open request is for a path (i.e., multiple directory levels)
+    call iofunc_client_info_ext to get information about client
+    for each directory component
+        call iofunc_check_access to check execute permission for access
+        /*
+         recall that execute permission on a directory is really 
+         the "search" permission for that directory
+        */
+    next
+    /*
+     at this point you have verified access to the target
+    */
+endif
+
+if O_CREAT is set and the file doesn't exist
+    call iofunc_open, passing the attribute of the parent as dattr
+    if the iofunc_open succeeds,
+        do the work to create the new inode, or whatever
+    endif
+else
+    call iofunc_open, passing the attr of the file and NULL for dattr
+endif
+
+/*
+ at this point, check for things like o_trunc, 
+ etc. -- things that you have to do for the attr
+*/
+
+call iofunc_ocb_attach
+return EOK
+</pre>
+</div>
+
+
+<div class="p">
+For a device (i.e., <span class="keyword apiname">resmgr_attach()</span> didn't
+specify that the managed resource is a directory), these steps apply:
+
+<pre class="pre codeblock">/*
+ at startup time (i.e., in the main() of the resource manager)
+*/
+call iofunc_attr_init to initialize an attribute structure
+
+/* in the io_open message handler: */
+call iofunc_open, passing in the attribute of the device and NULL for dattr
+
+call iofunc_ocb_attach
+return EOK
+</pre>
+</div>
+
+
+<p class="p">
+
+
+A resource manager's response to an <span class="keyword apiname">open()</span> request isn't
+always a yes-or-no answer.  It's possible to return
+a connect message indicating that the server would like
+some other action taken.  For example,
+if the open occurs on a path that represents
+a symbolic link to some other path,
+the server could respond using the <span class="keyword apiname">_IO_SET_CONNECT_RET()</span>
+macro and the <span class="keyword const">_IO_CONNECT_RET_LINK</span> value.  
+</p>
+
+
+<div class="p">
+For example, an open handler that only redirects pathnames
+might look something like:
+
+<pre class="pre codeblock">io_open(resmgr_context_t *ctp, io_open_t *msg, 
+        iofunc_attr_t *dattr, void *extra)
+{
+    char *newpath;
+
+    /* Do all the error/access checking ... */
+
+    /* Lookup the redirected path and store the new path in 'newpath' */
+    newpath = get_a_new_path(msg-&gt;connect.path);
+
+    _IO_SET_CONNECT_RET(ctp, _IO_CONNECT_RET_LINK);
+    len = strlen(newpath) + 1;
+
+    msg-&gt;link_reply.eflag = msg-&gt;connect.eflag;
+    msg-&gt;link_reply.nentries = 0;
+    msg-&gt;link_reply.path_len = len;
+    strcpy(_IO_LINK_REPLY_PAYLOAD(msg), newpath);
+
+    len += sizeof(msg-&gt;link_reply);
+
+    return(_RESMGR_PTR(ctp, &amp;msg-&gt;link_reply, len));
+}
+</pre>
+</div>
+
+
+<p class="p">
+In this example, we use the macro <span class="keyword apiname">_IO_SET_CONNECT_RET()</span>
+(defined in <span class="ph filepath">&lt;sys/iomsg.h&gt;</span>) to set the 
+<var class="keyword varname">ctp</var>-&gt;<var class="keyword varname">status</var>
+field to <span class="keyword const">_IO_CONNECT_RET_LINK</span>.  This value indicates
+to the resource-manager framework that the return value isn't
+actually a simple return code, but a new request
+to be processed.
+</p>
+
+
+<p class="p">
+The path for this new request follows directly after
+the <var class="keyword varname">link_reply</var> structure and is <var class="keyword varname">path_len</var> bytes long.
+The final few lines of the code just stuff an IOV
+with the reply message (and the new path to be 
+queried) and return to the resource-manager framework.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out_Adding_functionality.html">Ways of adding functionality to the resource manager</a></div>
+</div>
+</div></body>
+</html>

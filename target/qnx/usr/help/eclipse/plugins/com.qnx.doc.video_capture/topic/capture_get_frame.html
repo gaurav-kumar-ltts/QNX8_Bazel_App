@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="capture_get_frame()" />
+<meta name="abstract" content="Get a frame from the video capture device" />
+<meta name="description" content="Get a frame from the video capture device" />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Video Capture Developer's Guide, API, Programming" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Video Capture Developer's Guide, API, Programming" />
+<meta name="DC.relation" scheme="URI" content="../topic/manual/vc_api.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="capture_get_frame" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>capture_get_frame()</title>
+</head>
+<body id="capture_get_frame">
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">capture_get_frame()</span></h1>
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get a frame from the video capture device</em></p>
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2><pre class="pre codeblock">#include &lt;vcapture/capture.h&gt;</pre><pre class="pre codeblock">int capture_get_frame(capture_context_t context,
+                      uint64_t timeout,
+                      uint32_t flags)</pre></div>
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2><dl class="dl"><dt class="dt dlterm"><var class="keyword varname">context</var></dt>
+<dd class="dd">The pointer to the video capture context. </dd>
+<dt class="dt dlterm"><var class="keyword varname">timeout</var></dt>
+<dd class="dd">The wait before timing out. Set to any of:<ul class="ul"><li class="li">The number of nanoseconds the function should wait for a frame before timing out. The function may return in less time than the period specified by this argument.</li>
+<li class="li"><a class="xref" href="group__capture__properties__video.html" title="The video capture API includes constants that specify the video capture video capture behavior properties.">CAPTURE_TIMEOUT_INFINITE</a> to wait indefinitely for a frame (never time out).</li>
+<li class="li"><a class="xref" href="group__capture__properties__video.html" title="The video capture API includes constants that specify the video capture video capture behavior properties.">CAPTURE_TIMEOUT_NO_WAIT</a> to return immediately, even if there is no frame. </li>
+</ul>
+
+</dd>
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+<dd class="dd">A bitmask to change the behavior of this function. Set to 0 or some combination of the following:<ul class="ul"><li class="li"><a class="xref" href="group__capture__properties__video.html" title="The video capture API includes constants that specify the video capture video capture behavior properties.">CAPTURE_FLAG_LATEST_FRAME</a> to retrieve the latest frame, discarding all the other queued frames (the default behavior is to retrieve all queued frames in sequence).</li>
+<li class="li"><a class="xref" href="group__capture__external__source.html" title="The video capture API includes constants that specify the video capture external source properties.">CAPTURE_FLAG_FREE_BUFFER</a> to retrieve a free buffer instead of a video frame. The <a class="xref" href="capture_get_free_buffer.html" title="Get a free video capture buffer when bringing in video from an external source">capture_get_free_buffer()</a> macro can be used to do the same thing.</li>
+<li class="li"><a class="xref" href="group__capture__video__standards.html" title="The video capture API includes constants that specify the video capture video standard properties.">CAPTURE_FLAG_ALLOW_UNBLOCK</a> to indicate the call should return immediately when some device-specific event occurs, normally with errno set to <span class="ph codeph">EINTR</span>.</li>
+</ul>
+
+</dd>
+</dl>
+</div>
+<div class="section"><h2 class="title sectiontitle">Library:</h2><span class="ph filepath">libcapture</span></div>
+<div class="section"><h2 class="title sectiontitle">Description:</h2><p class="p">This function retrieves frames from the device. If more than one frame is in the queue, depending on the behavior specified by the flags argument, this function will either retrieve the first queued frame in sequence or retrieve only the latest frame, dropping the others.</p>
+<p class="p">The index returned by this function corresponds to the sequence number of the <a class="xref" href="group__capture__frame.html" title="The video capture API includes constants that specify the video capture video frame properties.">CAPTURE_PROPERTY_FRAME_SEQNO</a> property, if this array is provided. The application can use this property and the index returned by this function to calculate the number of frames that have been dropped since the last call to <span class="keyword apiname">capture_get_frame()</span>.</p>
+<p class="p">A thread blocked waiting for <span class="keyword apiname">capture_get_frame()</span> can be unblocked by setting CAPTURE_ENABLE to 0, followed by <a class="xref" href="capture_update.html" title="Apply the capture settings"><span class="keyword apiname">capture_update()</span></a>, in a different thread. When this is done, or if <span class="keyword apiname">capture_get_frame()</span> is called with capture already disabled, the call will fail.</p>
+<div class="p">The buffer used to get a frame is locked for exclusive use by your application until <a class="xref" href="capture_release_frame.html" title="Release a video frame buffer"><span class="keyword apiname">capture_release_frame()</span></a> releases it back to the capture driver. To avoid overwriting a frame before it has been displayed, your application should use at least three capture buffers to:<ol class="ol"><li class="li">Call <span class="keyword apiname">capture_get_frame()</span> to get the index of the captured video frame.</li>
+<li class="li">Hand the frame buffer over for display by a call to a Screen function such as <a class="xref" href="../../com.qnx.doc.screen/topic/screen_post_window.html">screen_post_window()</a>.</li>
+<li class="li">Call <span class="keyword apiname">capture_get_frame()</span> to get another frame.</li>
+<li class="li">When the frame in Step 1 is no longer being displayed, call <a class="xref" href="capture_release_frame.html" title="Release a video frame buffer"><span class="keyword apiname">capture_release_frame()</span></a> to release the buffer for reuse by the capture driver.</li>
+</ol>
+
+</div>
+</div>
+<div class="section"><h2 class="title sectiontitle">Returns:</h2><p class="p">The index of the captured buffer (<a class="xref" href="group__capture__frame.html" title="The video capture API includes constants that specify the video capture video frame properties.">CAPTURE_PROPERTY_FRAME_BUFFERS</a>) if successful; or -1 if an error occurred (<span class="ph codeph">errno</span> is set; refer to <span class="ph codeph">errno.h</span> for more details). The return value and the value that's observed for <span class="ph codeph">errno</span> may vary as they are dependent on the implementation by the library that handles your hardware. </p>
+</div>
+</div>
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/manual/vc_api.html" title="The video capture API includes all the functions, data structures, and constants needed for video capture. It does not handle video display, which should be handled by another component, such as Screen.">Video Capture API (capture.h)</a></div>
+</div>
+</div></body>
+</html>

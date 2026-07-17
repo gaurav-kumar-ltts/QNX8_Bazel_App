@@ -1,0 +1,828 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Window Management" />
+<meta name="abstract" content="Window managers and parents have the responsibility of managing the other windows, which includes handling events from application and child windows accordingly." />
+<meta name="description" content="Window managers and parents have the responsibility of managing the other windows, which includes handling events from application and child windows accordingly." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_windowing.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_windowing-management" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Window Management</title>
+</head>
+<body id="cscreen_windowing-management">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+       Window Management
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Window managers and parents have the responsibility of managing the other windows, which includes handling
+        events from application and child windows accordingly.
+    </p>
+
+        <p class="p">
+            
+            Window managers and parents both receive events for the windows that they are responsible for. They are
+            expected to act accordingly to these events. In most cases, events trigger updates to the visibility, the size,
+            or the position of windows. Window managers and parents are given special privileges to change properties on
+            windows within their group or hierarchy.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Managers</h2>
+            
+            
+            <p class="p">
+                Window managers must be created within a <span class="keyword const">SCREEN_WINDOW_MANAGER_CONTEXT</span> context. This
+                privileged context allows a context to control all windows in the system when new application windows are
+                created or destroyed. This context also receives events when applications create new windows, when
+                existing windows are destroyed, or when certain window properties are changed. Window managers must
+                handle these events to properly manage layout and input.
+            </p>
+
+            <p class="p">
+                The main functionalities of window managers are handling events that are associated with window objects
+                and controlling how windows are shown on the display. Complex window managers may include managing
+                additional functionalities such as input or displays.
+            </p>
+
+            <p class="p">
+                Window managers must handle the following events from the windows that they are managing:
+            </p>
+
+            <ul class="ul">
+                <li class="li"><span class="keyword const">SCREEN_EVENT_CREATE</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_CLOSE</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_POST</span></li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_PROPERTY</span></li>
+
+            </ul>
+
+            <p class="p">
+                For more information on how window managers should handle these events, see the
+                <q class="q"><a class="xref" href="cscreen_windowing-management.html#cscreen_windowing-management__manager_events">Events</a></q> section below.
+            </p>
+
+            <div class="cautiontitle">CAUTION:</div><div class="note caution">
+                When a window manager is present on your system, it controls the layout properties listed below.
+                Applications setting these properties will have no effect.
+                <ul class="ul">
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_CLIP_POSITION</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_CLIP_SIZE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_DISPLAY</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_PIPELINE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_POSITION</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_SIZE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_VISIBLE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_ZORDER</span></li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Parents</h2>
+            
+            <p class="p">
+                Parents don't need to be created within a privileged context. They receive events when child windows
+                join and leave their group, or when certain window properties are changed. Parents must handle
+                these events to properly manage layout.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Groups</h2>
+            
+            
+            <p class="p">
+                Groups are used to organize, display, and control the windows in your application. They're a collection
+                of windows without any implication of hierarchy.
+            </p>
+
+            <p class="p">
+                A group is simply a set of windows that have some sort of association with each other (e.g., related
+                content). Whoever creates the group is the owner of the group.
+                There are certain properties that can be applied to a group, such as
+                <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span>. The group properties are applied to all the
+                members of the group and you can use <span class="keyword apiname">screen_set_group_property_*()</span> and
+                <span class="keyword apiname">screen_get_group_property_*()</span> functions to set and get these types of properties
+                respectively.
+                
+            </p>
+
+            <p class="p">
+                To explicitly create a group, you must:
+            </p>
+
+            <ol class="ol">
+                <li class="li">call <a class="xref" href="../screen_create_group.html" title="Create a group"><span class="keyword apiname">screen_create_group()</span></a></li>
+
+                <li class="li">
+                    (optionally) provide a name (<span class="keyword const">SCREEN_PROPERTY_NAME</span>) for the group and set it using
+                    <a class="xref" href="../screen_set_group_property_cv.html" title="Set the value of the specified group property of type char"><span class="keyword apiname">screen_set_group_property_cv()</span></a>
+                    <div class="note"><span class="notetitle">Note:</span> 
+                        If you don't explicitly provide a name for the group, <span class="keyword">Screen</span>
+                        generates a string for you starting with <span class="ph codeph">__scrn-</span>. You can call
+                        <a class="xref" href="../screen_get_group_property_cv.html" title="Retrieve the current value of the specified group property of type char"><span class="keyword apiname">screen_get_group_property_cv()</span></a>
+                        to retrieve the <span class="keyword const">SCREEN_PROPERTY_NAME</span> property to get the name of a group.
+                    </div>
+
+                </li>
+
+            </ol>
+
+            <p class="p">
+                The name of the group should then be communicated to other functions, threads, or even processes that are
+                responsible for creating the other windows that are to join this group. Any window can join this group
+                as long as it has the associated group name. The owner is notified each time a window joins the group;
+                a window handle is included in the event <span class="keyword const">SCREEN_EVENT_CREATE</span>.
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>
+                    An example of a group
+                </span>
+                
+                <br /><img class="image" src="../../images/groups.svg" width="672" /><br />
+            </div>
+
+            <p class="p">
+                A group member can query its <span class="keyword const">SCREEN_PROPERTY_GROUP</span> property to get either the name of,
+                or the handle to, the group it has joined by calling the functions
+                <a class="xref" href="../screen_get_group_property_cv.html" title="Retrieve the current value of the specified group property of type char"><span class="keyword apiname">screen_get_group_property_cv()</span></a>
+                or
+                <a class="xref" href="../screen_get_group_property_pv.html" title="Retrieve the current value of the specified group property of type void*"><span class="keyword apiname">screen_get_group_property_pv()</span></a>
+                respectively.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Root Windows</h2>
+            
+            
+            <p class="p"> Root windows are consumers because they take their content from other windows that produce it.
+                <span class="keyword">Screen</span> does not take into account any children of root windows when it
+                performs composition.
+            </p>
+
+            <p class="p"> When a window is a root window, the window consumes content from all its children. It's the
+                responsibility of the root window to manage and control the hierarchy and the update rates of its
+                children. You can define any window type as a root by using the <span class="keyword const">SCREEN_ROOT_WINDOW</span> flag
+                when you create the window:
+            </p>
+
+            <pre class="pre codeblock">screen_create_window_type(&amp;screen_window, \
+                          screen_context, \
+                          (SCREEN_APPLICATION_WINDOW | SCREEN_ROOT_WINDOW) );
+            </pre>
+            <p class="p"> A root window has, at minimum, read access to all its children in the hierarchy. A root window receives:</p>
+
+            <ul class="ul">
+                <li class="li"><span class="keyword const">SCREEN_EVENT_CREATE</span> events when you get permission to an object
+                that you didn't create and don't already have permission to. If permission was
+                already granted to the external compositor, it won't receive another
+                <span class="keyword const">SCREEN_EVENT_CREATE</span> event.</li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_CLOSE</span> events when you lose all permission.</li>
+
+                <li class="li"><span class="keyword const">SCREEN_EVENT_POST</span> events at the earliest point between the
+                <span class="keyword const">SCREEN_EVENT_CREATE</span> and <span class="keyword const">SCREEN_EVENT_CLOSE</span> events when
+                a window has content.</li>
+
+            </ul>
+
+            <p class="p">
+                The exception to the above is when a root window's children are consumers themselves. 
+            </p>
+
+            <p class="p">
+                The following sample root window hierarchy is used to describe the behavior of events that are triggered and
+                received by windows:
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span> An example of root windows in a hierarchy</span>
+                
+                <br /><img class="image" src="../../images/window_root-window_hierarchy.svg" width="672" /><br />
+            </div>
+
+            <p class="p">
+                Window-1 receives a <span class="keyword const">SCREEN_EVENT_CREATE</span>
+                event when Window-5 joins the window group. However, Window-1 doesn't receive a <span class="keyword const">SCREEN_EVENT_CREATE</span>
+                when Window-6 joins because Window-4 is a root window. The <span class="keyword const">SCREEN_EVENT_CREATE</span> event from
+                Window-6 goes instead to Window-4 (similarly for Window-7). 
+            </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e381">Window</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e384">Action</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e387">Recipient Window(s)</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e381 ">Window-3</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e384 ">
+                                Calls <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to join Window-1's root window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e387 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e381 ">Window-4</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e384 ">
+                                Calls <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to join Window-1's root window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e387 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e381 ">Window-5</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e384 ">
+                                Calls <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to join Window-3's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e387 ">Window-3 and Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e381 ">Window-6</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e384 ">
+                                Calls <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to join Window-4's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e387 ">Window-4</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e381 ">Window-7</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e384 ">
+                                Calls <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to join Window-4's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e387 ">Window-4</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <p class="p">
+                The behavior for <span class="keyword const">SCREEN_EVENT_CLOSE</span> events is the same as for <span class="keyword const">SCREEN_EVENT_CREATE</span>
+                events. For example: 
+            </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e522">Window</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e525">Action</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e528">Recipient Window(s)</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e522 ">Window-3</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e525 ">
+                                Calls <a class="xref" href="../screen_leave_window_group.html" title="Cause a window to leave a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to leave Window-1's root window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e528 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e522 ">Window-4</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e525 ">
+                                Calls <a class="xref" href="../screen_leave_window_group.html" title="Cause a window to leave a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to leave Window-1's root window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e528 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e522 ">Window-5</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e525 ">
+                                Calls <a class="xref" href="../screen_leave_window_group.html" title="Cause a window to leave a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to leave Window-3's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e528 ">Window-3 and Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e522 ">Window-6</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e525 ">
+                                Calls <a class="xref" href="../screen_leave_window_group.html" title="Cause a window to leave a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to leave Window-4's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e528 ">Window-4</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e522 ">Window-7</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e525 ">
+                                Calls <a class="xref" href="../screen_leave_window_group.html" title="Cause a window to leave a window group"><span class="keyword apiname">screen_join_window_group()</span></a>
+                                to leave Window-4's window group
+                            </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e528 ">Window-4</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <p class="p">
+                Windows that have a root window as their ancestor aren't composited by <span class="keyword">Screen</span>.
+            </p>
+
+            <p class="p"> 
+                Again referring to the example, <span class="keyword">Screen</span> handles the composition of
+                Window-1 only. All other windows have a root window as an ancestor. Window-1 is a consumer of the content
+                of Window-3, Window-4, and Window 5. Window-4 consumes the content of Window-6 and Window-7. When child
+                windows are ready to make their rendered content visible, they each must call
+                <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>. When windows
+                post for their first time, this call triggers a <span class="keyword const">SCREEN_EVENT_POST</span> event to their parent,
+                and to their immediate ancestor root window. For example, when Window-6 or Window-7 posts, Window-4
+                receives a <span class="keyword const">SCREEN_EVENT_POST</span> event. Window-4 performs necessary operations to render
+                and manage the layout of its children, and then in turn calls
+                <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a> when its content
+                is ready. Window-1 receives the <span class="keyword const">SCREEN_EVENT_POST</span> event from Window-4.
+                <span class="keyword const">SCREEN_EVENT_POST</span> events are sent only on the first post. Root windows must track
+                subsequent updates of its children by using streams, or by using asynchronous notifications. In the
+                example below, Window-1 tracks the updates from Window-3, Window-4, and Window-5, before it, in turn,
+                can post.
+            </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e697">Window</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e700">Action</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d80496e703">Recipient Window(s)</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e697 ">Window-3</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e700 ">Calls <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e703 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e697 ">Window-4</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e700 ">Calls <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e703 ">Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e697 ">Window-5</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e700 ">Calls <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e703 ">Window-3 and Window-1</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e697 ">Window-6</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e700 ">Calls <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e703 ">Window-4</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e697 ">Window-7</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e700 ">Calls <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d80496e703 ">Window-4</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <p class="p">Root windows have privileges to set the following properties on its children:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_METRICS</span></dt>
+
+                    <dd class="dd">
+                        <p class="p"> Some counts of a window's metrics (<span class="keyword const">SCREEN_PROPERTY_METRICS</span>) are provided by its consumer. </p>
+
+                        <p class="p">A consumer can set the following window metric counts:</p>
+
+                        <ul class="ul">
+                            <li class="li"><span class="keyword const">SCREEN_WINDOW_METRIC_UPDATE_COUNT</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_WINDOW_METRIC_UPDATE_PIXELS</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_WINDOW_METRIC_UPDATE_READS</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_WINDOW_METRIC_UPDATE_WRITES</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_WINDOW_METRIC_UPDATE_VISIBLE_TIME</span></li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_STATUS</span></dt>
+
+                    <dd class="dd">
+                        <p class="p"> A window's status (<span class="keyword const">SCREEN_PROPERTY_STATUS</span>) is provided by its consumer.</p>
+
+                        <p class="p">A consumer can set the following window statuses:</p>
+
+                        <ul class="ul">
+                            <li class="li"><span class="keyword const">SCREEN_STATUS_CLIPPED</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_STATUS_COVERED</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_STATUS_VISIBLE</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_STATUS_FULLY_VISIBLE</span></li>
+
+                        </ul>
+
+                    </dd>
+
+                
+            </dl>
+
+            <p class="p"> Root windows are used in external compositors. See the <a class="xref" href="cscreen_external_composition.html" title="Screen supports external composition (i.e., the use of a compositor that's not Screen) through the use of root windows and streams.">"External composition"</a> section for more details. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Events</h2>
+            
+            
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_CREATE</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            The event that's received by:
+                        </p>
+
+                        <ul class="ul">
+                            <li class="li">a window manager when an application window gets created</li>
+
+                            <li class="li">a parent when a window joins the parent's window group</li>
+
+                            <li class="li">a group owner when a window joins the group</li>
+
+                            <li class="li">a root window when any window joins its window group</li>
+
+                        </ul>
+
+                        <p class="p">
+                            Application windows may be invisible until the window manager (or parent) makes
+                            them visible. A window may be invisible depending on your configuration in the
+                            graphics configuration file and on how you create the window.
+                        </p>
+
+                        <p class="p">
+                            For example, for both of the following scenarios, the window will be initially invisible:
+                        </p>
+
+                        <ul class="ul">
+                            <li class="li">
+                                you have the following class configuration in your graphics configuration file:
+                                <pre class="pre codeblock">...
+begin class my_win_class
+  ...
+  visible = false
+  ...
+end class
+...
+                                    </pre>
+                                and you call
+                                <a class="xref" href="../screen_create_window_from_class.html" title="Create a new window of a specified type based on a class"><span class="keyword apiname">screen_create_window_from_class()</span></a>
+                                with class named "my_win_class"
+                            </li>
+
+                            <li class="li">
+                                you have the following class configuration in your graphics configuration file:
+                                <pre class="pre codeblock">...
+begin class default
+  ...
+  visible = false
+  ...
+end class
+...
+                                 </pre>
+                                and you call
+                                <a class="xref" href="../screen_create_window.html" title="Create a window that can be used to make graphical content visible on a display"><span class="keyword apiname">screen_create_window()</span></a>
+                            </li>
+
+                        </ul>
+
+                        <p class="p">
+                            When a window manager (or parent) receives a <span class="keyword const">SCREEN_EVENT_CREATE</span> event, it
+                            needs to handle this event by determining whether or not to make this application
+                            window visible.
+                        </p>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_PROPERTY</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            The event that a window manager, parent, or group owner may receive, when a window property
+                            has changed. Window managers receive <span class="keyword const">SCREEN_EVENT_PROPERTY</span> events for properties for
+                            all application windows that it's managing. It's up to the window manager to determine and
+                            track whether it needs to act on these events. Properties that window managers and parents
+                            have specific interest in when they change are:
+                        </p>
+
+                        <ul class="ul">
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_FOCUS</span>
+                                <p class="p">
+                                    This property indicates whether the window currently has keyboard focus.
+                                    This is also of interest for the window manager (or parent) because when this
+                                    property changes on one of the windows it's managing, the window manager may need to change the
+                                    layout of the windows on the display. For example, if the window is gaining keyboard focus,
+                                    the window manager (or parent) may need to make a virtual keyboard visible, or
+                                    bring that window to the foreground of the display. If the window is losing keyboard focus,
+                                    the window manager (or parent) may need to make a virtual keyboard invisible (hidden) and bring the
+                                    window into the background.
+                                </p>
+
+                            </li>
+
+                            <li class="li">the layout-related properties
+                                <div class="p">
+                                    These are the properties that only a window manager or parent can set unless the
+                                    window's <span class="keyword const">SCREEN_PROPERTY_SELF_LAYOUT</span> property is set to true. The
+                                    properties are:
+                                    <ul class="ul">
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_CLIP_POSITION</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_CLIP_SIZE</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_DISPLAY</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_PIPELINE</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_POSITION</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_SIZE</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_VISIBLE</span></li>
+
+                                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_ZORDER</span></li>
+
+                                    </ul>
+
+                                </div>
+
+                            </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_CLOSE</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            This event's received by:
+                        </p>
+
+                        <ul class="ul">
+                            <li class="li">a window manager when an application window gets destroyed</li>
+
+                            <li class="li">a parent when a child window leaves the parent's window group</li>
+
+                            <li class="li">a group owner when a window leaves the group</li>
+
+                            <li class="li">a root window when any child window leaves its window group</li>
+
+                        </ul>
+
+                        <p class="p">
+                            Managers are responsible for destroying the handles to the windows they are managing
+                            upon receipt of close events.
+                        </p>
+
+                        <ol class="ol">
+                            <li class="li">Grab the window's handle from the close event:
+                                <pre class="pre codeblock">screen_window_t screen_win;
+screen_get_event_property_pv(screen_ev, SCREEN_PROPERTY_WINDOW, (void **)&amp;screen_win);
+                                        </pre>
+                            </li>
+
+                            <li class="li">
+                                Call <a class="xref" href="../screen_destroy_window.html" title="Destroy a window and free associated resources"><span class="keyword apiname">screen_destroy_window()</span></a>
+                                to destroy the handle to the child window. This function frees up any resources that were
+                                allocated locally to track this window.
+                                <pre class="pre codeblock">screen_destroy_window(screen_win);
+                                        </pre>
+                            </li>
+
+                        </ol>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_POST</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            The event that a window manager, parent, group owner, or root window receives when a
+                            window that's being managed, or in the group, first posts.
+                        </p>
+
+                        <p class="p">
+                            For example, when a parent receives a post event, it should:
+                        </p>
+
+                        <ol class="ol">
+                            <li class="li">
+                                <p class="p">Grab the posting window's ID and handle from the post event:</p>
+
+                                <pre class="pre codeblock">screen_event_t screen_ev;
+screen_create_event(&amp;screen_ev);
+...
+char window_group_name[64];
+screen_window_t screen_win;
+screen_get_event_property_pv(screen_ev,
+                             SCREEN_PROPERTY_WINDOW,
+                             (void **)&amp;screen_win);
+screen_get_window_property_cv(screen_win,
+                              SCREEN_PROPERTY_ID,
+                              sizeof(window_group_name),
+                              window_group_name );
+                                        </pre>
+                            </li>
+
+                            <li class="li">
+                                Using the ID of the window, the parent can determine which window is
+                                actually posting.
+                            </li>
+
+                            <li class="li">
+                                Implement the layout of the child windows by setting properties such as their
+                                sizes and positions. Finally, make them visible as you see fit. Of course, the
+                                visibility of the child windows is relative to their parent's visibility.
+                                <pre class="pre codeblock">int visible = 1;
+int pos[2], size[2];
+...
+/* Set the position of the child windows. */
+pos[0] = pos[1] = 0;
+screen_set_window_property_iv(screen_child_win1, SCREEN_PROPERTY_POSITION, pos);
+screen_set_window_property_iv(screen_child_win2, SCREEN_PROPERTY_POSITION, pos);
+...
+/* Set sizes of the child windows. */
+size[0] = 10;
+size[1] = 10;
+screen_set_window_property_iv(screen_child_win1, SCREEN_PROPERTY_SIZE, size);
+size[0] = 32;
+size[1] = 10;
+screen_set_window_property_iv(screen_child_win2, SCREEN_PROPERTY_SIZE, size);
+...
+/* Set visibility of child windows */
+screen_set_window_property_iv(screen_hg_win, SCREEN_PROPERTY_VISIBLE, &amp;visible);
+screen_set_window_property_iv(screen_bar_win, SCREEN_PROPERTY_VISIBLE, &amp;visible);
+                                        </pre>
+                            </li>
+
+                            <li class="li">
+                                Once all the requests have been made, they're still batched in a command buffer.
+                                Flush the buffer to apply all the properties that have been set.
+                                <pre class="pre codeblock">screen_flush_context(screen_ctx, SCREEN_WAIT_IDLE);
+                                        </pre>
+                            </li>
+
+                        </ol>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_UNREALIZE</span></dt>
+
+                    <dd class="dd"> The event that a window manager, parent, or group owner receives when a
+                        window  is unrealized (e.g., when the window is destroyed). The time between
+                        when a window first posts and when it's destroyed delineates when a window
+                        can be visible. Therefore, a window manager or parent that's concerned about
+                        layout needs to note these events and make the appropriate adjustments to
+                        the layout as required. </dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">SCREEN_EVENT_IDLE</span></dt>
+
+                    <dd class="dd">
+                        <p class="p"> Group owners and parents receive this event when none of the windows in
+                            their group has received input within the time specified by
+                                <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span>. Receipt of the
+                                <span class="keyword const">SCREEN_EVENT_IDLE</span> event means that the parent's
+                            window group has transitioned either to or out of an idle state. </p>
+
+                        <p class="p">
+                            An example of an action a group owner might take is locking the device if there's
+                            been no input detected on any of its apps for a certain amount of time.
+                        </p>
+
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_windowing.html" title="Windows are used to display content and to combine content produced by different renderers. Each of the different renderers can be in the same process, or in another process or processes.">Windowing</a></div>
+</div>
+</div></body>
+</html>

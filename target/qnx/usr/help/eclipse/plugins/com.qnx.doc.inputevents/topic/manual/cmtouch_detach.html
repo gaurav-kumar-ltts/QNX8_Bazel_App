@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Disconnect from the Input Events library" />
+<meta name="abstract" content="In addition to any device cleanup, you need to disconnect from the Input Events library so that any resources allocated by the framework to support your driver are released." />
+<meta name="description" content="In addition to any device cleanup, you need to disconnect from the Input Events library so that any resources allocated by the framework to support your driver are released." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Input Events Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Input Events Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cmtouch_writing_driver.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cmtouch-detach" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Disconnect from the Input Events library</title>
+</head>
+<body id="cmtouch-detach">
+
+   <h1 class="title topictitle1" id="ariaid-title1">Disconnect from the Input Events library</h1>
+
+ 
+ 
+ <div class="body conbody"><p class="shortdesc">
+    In addition to any device cleanup, you need to disconnect from the Input
+    Events library so that any resources allocated by the framework to support
+    your driver are released.
+ </p>
+
+ <p class="p">
+    At any exit point of your driver, you need to call <span class="keyword apiname">mtouch_driver_detach()</span>
+    to release resources. 
+ </p>
+
+ <p class="p">
+    For example, you will need to call <span class="keyword apiname">mtouch_driver_detach()</span>
+    from your implmentation of <span class="keyword apiname">mtouch_driver_fini()</span>.
+ </p>
+
+  <pre class="pre codeblock">void mtouch_driver_fini(void* dev)
+{
+	touch_dev_t *td = dev;
+
+	pthread_cancel(td-&gt;tp_recv_thread);
+	pthread_join(td-&gt;tp_recv_thread, NULL);
+
+	if (td-&gt;inputevents_hdl) {
+		mtouch_driver_detach(td-&gt;inputevents_hdl);
+		td-&gt;inputevents_hdl = NULL;
+	}
+
+	free(td);
+}
+  </pre>
+ </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cmtouch_writing_driver.html" title="In order for Screen to be able to detect events from your touch controller, you need to provide a driver for your touch controller.">Writing a Touch Driver</a></div>
+</div>
+</div></body>
+</html>

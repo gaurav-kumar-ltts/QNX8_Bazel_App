@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Component responses" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/combine_CombineMsgHandling.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ComponentResponses" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Component responses</title>
+</head>
+<body id="ComponentResponses">
+
+<h1 class="title topictitle1" id="ariaid-title1">Component responses</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+As we've seen, a combine message really consists of a number
+of <q class="q">regular</q> resource manager messages combined
+into one large contiguous message.
+The resource manager library handles
+each component in the combine message separately by
+extracting the individual components and then out calling to
+the handlers you've specified in the connect and I/O
+function tables, as appropriate, for each component.
+</p>
+
+
+<p class="p">
+This generally doesn't present any new wrinkles for the
+message handlers themselves, except in one case.
+Consider the <span class="keyword apiname">readblock()</span> combine message:
+
+
+
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Client call:</dt>
+
+<dd class="dd"><span class="keyword apiname">readblock()</span></dd>
+
+
+
+
+<dt class="dt dlterm">Message(s):</dt>
+
+<dd class="dd"><span class="keyword const">_IO_LSEEK</span> , <span class="keyword const">_IO_READ</span>
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Callouts:</dt>
+
+<dd class="dd"><var class="keyword varname">io_lock_ocb</var>, <var class="keyword varname">io_lseek</var>, <var class="keyword varname">io_read</var>,
+  <var class="keyword varname">io_unlock_ocb</var>
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Ordinarily, after processing the <span class="keyword const">_IO_LSEEK</span>
+message, your handler would return the current position
+within the file. However, the next message (the
+<span class="keyword const">_IO_READ</span>) also returns data. By convention,
+only the last data-returning message within a combine
+message will actually return data. The intermediate messages
+are allowed to return only a pass/fail indication.
+
+
+</p>
+
+
+<p class="p">
+The impact of this is that the <span class="keyword const">_IO_LSEEK</span>
+message handler has to be aware of whether or not it's being
+invoked as part of combine message handling. If it is, it
+should only return either an <span class="keyword const">EOK</span> (indicating
+that the <span class="keyword apiname">lseek()</span> operation succeeded) or an error
+indication to indicate some form of failure.
+
+
+
+</p>
+
+
+<p class="p">
+But if the <span class="keyword const">_IO_LSEEK</span> handler isn't being invoked
+as part of combine message handling, it should return the
+<span class="keyword const">EOK</span> <em class="ph i">and</em> the new offset (or, in case of
+error, an error indication only).
+
+</p>
+
+
+<div class="p">
+Here's a sample of the code for the default iofunc-layer <span class="keyword apiname">lseek()</span> handler:
+
+
+<pre class="pre codeblock">int iofunc_lseek_default (resmgr_context_t *ctp,
+                          io_lseek_t *msg,
+                          iofunc_ocb_t *ocb)
+{
+    /* 
+     *  performs the lseek processing here may "early-out" on error conditions
+     */
+     ...
+
+    /* decision re: combine messages done here */
+    if (msg -&gt; i.combine_len &amp; _IO_COMBINE_FLAG) {
+        return (EOK);
+    }
+
+    msg -&gt; o = offset;
+    return (_RESMGR_PTR (ctp, &amp;msg -&gt; o, sizeof (msg -&gt; o)));
+}
+</pre>
+</div>
+
+
+<div class="p">
+The relevant decision is made in this statement:
+
+<pre class="pre codeblock">if (msg -&gt; i.combine_len &amp; _IO_COMBINE_FLAG)
+</pre>
+</div>
+
+
+<p class="p">
+If the <span class="keyword const">_IO_COMBINE_FLAG</span> bit is set in the
+<var class="keyword varname">combine_len</var> member, this indicates that the
+message is being processed as part of a combine message.
+
+</p>
+
+
+<p class="p">
+When the resource manager library is processing the
+individual components of the combine message, it looks at
+the error return from the individual message handlers. If a
+handler returns anything other than <span class="keyword const">EOK</span>, then
+processing of further combine message components is aborted.
+The error that was returned from the failing component's
+handler is returned to the client.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/combine_CombineMsgHandling.html">The library's combine-message handling</a></div>
+</div>
+</div></body>
+</html>

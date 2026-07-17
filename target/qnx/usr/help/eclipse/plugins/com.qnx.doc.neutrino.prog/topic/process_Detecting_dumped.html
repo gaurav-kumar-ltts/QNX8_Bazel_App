@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Detecting dumped processes" />
+<meta name="abstract" content="As mentioned above, you can run dumper so that when a process dies, dumper writes the state of the process to a file. You can also write your own dumper-type process to run instead of, or as well as, dumper. This way the terminating process doesn't have to be a child of yours." />
+<meta name="description" content="As mentioned above, you can run dumper so that when a process dies, dumper writes the state of the process to a file. You can also write your own dumper-type process to run instead of, or as well as, dumper. This way the terminating process doesn't have to be a child of yours." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_PROCDETECTTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Detecting_dumped" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Detecting dumped processes</title>
+</head>
+<body id="Detecting_dumped">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Detecting dumped processes</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+As mentioned above, you can run <span class="keyword cmdname">dumper</span> so that when a process dies, 
+<span class="keyword cmdname">dumper</span> writes the state of the process to a file.
+You can also write your own dumper-type process to run instead of, or as well as, <span class="keyword cmdname">dumper</span>. 
+This way the terminating process doesn't have to be a child of yours.
+</p>
+
+
+<p class="p">
+
+
+
+To do this, write a resource manager that registers the name,
+<span class="ph filepath">/proc/dumper</span> with type <span class="keyword const">_FTYPE_DUMPER</span>. 
+When a process dies due to one of the appropriate signals, 
+the process manager will open <span class="ph filepath">/proc/dumper</span>
+and write the pid of the process that died—then it'll wait until you reply to the write with
+success and then it'll finish terminating the process.
+</p>
+
+
+<p class="p">
+
+
+It's possible that more than one process will have <span class="ph filepath">/proc/dumper</span> registered at the same time,
+however, the process manager notifies only the process that's at the beginning of its list for that name.
+Undoubtedly, you want both your resource manager and <span class="keyword cmdname">dumper</span> to handle this termination.
+To do this, request the process manager to put you, instead of <span class="keyword cmdname">dumper</span>,
+at the beginning of the <span class="ph filepath">/proc/dumper</span> list by
+passing <span class="keyword const">_RESMGR_FLAG_BEFORE</span> in the <var class="keyword varname">flags</var> argument to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>.
+You must also open <span class="ph filepath">/proc/dumper</span> so that you can communicate with <span class="keyword cmdname">dumper</span> if it's running.
+Whenever your <var class="keyword varname">io_write</var> handler is called, write the pid to <span class="keyword cmdname">dumper</span>
+and do your own handling.  
+Of course this works only when <span class="keyword cmdname">dumper</span> is run before your resource manager;
+otherwise, your open of <span class="ph filepath">/proc/dumper</span> won't work.
+</p>
+
+
+<div class="p">
+The following is a sample process that demonstrates the above:
+
+
+<pre class="pre codeblock">/*
+ *  dumphandler.c
+ *
+ *  This demonstrates how you get notified whenever a process
+ *  dies due to any of the following signals:
+ *  SIGABRT
+ *  SIGBUS
+ *  SIGEMT
+ *  SIGFPE
+ *  SIGILL
+ *  SIGQUIT
+ *  SIGSEGV
+ *  SIGSYS
+ *  SIGTRAP
+ *  SIGXCPU
+ *
+ *  To do so, register the path, /proc/dumper with type
+ *  _FTYPE_DUMPER. When a process dies due to one of the above
+ *  signals, the process manager will open /proc/dumper, and
+ *  write the pid of the process that died - it will wait until
+ *  you reply to the write with success, and then it will finish
+ *  terminating the process.
+ *
+ *  Note that while it is possible for more than one process to
+ *  have /proc/dumper registered at the same time, the process
+ *  manager will notify only the one that is at the beginning of
+ *  its list for that name.
+ *
+ *  But we want both us and dumper to handle this termination.
+ *  To do this, we make sure that we get notified instead of
+ *  dumper by asking the process manager to put us at the
+ *  beginning of its list for /proc/dumper (done by passing
+ *  _RESMGR_FLAG_BEFORE to  resmgr_attach()).  We also open
+ *  /proc/dumper so that we can communicate with dumper if it is
+ *  running.  Whenever our io_write handler is called, we write
+ *  the pid to dumper and do our own handling.  Of course, this
+ *  works only if dumper is run before we are, or else our open
+ *  will not work.
+*/
+
+#include &lt;errno.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/procfs.h&gt;
+#include &lt;sys/stat.h&gt;
+
+int io_write (resmgr_context_t *ctp, io_write_t  *msg,
+              RESMGR_OCB_T *ocb);
+
+static int  dumper_fd;
+
+resmgr_connect_funcs_t  connect_funcs;
+resmgr_io_funcs_t       io_funcs;
+dispatch_t              *dpp;
+resmgr_attr_t           rattr;
+dispatch_context_t      *ctp;
+iofunc_attr_t           ioattr;
+
+char    *progname = "dumphandler";
+
+main(int argc, char **argv)
+{
+    /* find dumper so that we can pass any pids on to it */
+    dumper_fd = open("/proc/dumper", O_WRONLY);
+
+    dpp = dispatch_create();
+
+    memset(&amp;rattr, 0, sizeof(rattr));
+    rattr.msg_max_size = 2048;
+
+    iofunc_func_init(_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs,
+                     _RESMGR_IO_NFUNCS, &amp;io_funcs);
+    io_funcs.write = io_write;
+
+    iofunc_attr_init(&amp;ioattr, S_IFNAM | 0600, NULL, NULL);
+
+    resmgr_attach(dpp, &amp;rattr, "/proc/dumper", _FTYPE_DUMPER,
+                  _RESMGR_FLAG_BEFORE, &amp;connect_funcs,
+                  &amp;io_funcs, &amp;ioattr);
+
+    ctp = dispatch_context_alloc(dpp);
+
+    while (1) {
+        if ((ctp = dispatch_block(ctp)) == NULL) {
+            fprintf(stderr, "%s:  dispatch_block failed: %s\n",
+                             progname, strerror(errno));
+            exit(1);
+        }
+        dispatch_handler(ctp);
+    }
+}
+
+struct dinfo_s {
+    procfs_debuginfo    info;
+    char                pathbuffer[PATH_MAX]; /* 1st byte is
+                                                 info.path[0] */
+};
+
+int display_process_info(pid_t pid)
+{
+    char            buf[PATH_MAX];
+    int             fd, status;
+    struct dinfo_s  dinfo;
+    procfs_greg     reg;
+
+    printf("%s: process %d died\n", progname, pid);
+
+    sprintf(buf, "/proc/%d/ctl", pid);
+
+    if ((fd = open(buf, O_RDONLY|O_NONBLOCK)) == -1)
+        return errno;
+
+    status = devctl(fd, DCMD_PROC_MAPDEBUG_BASE, &amp;dinfo,
+                    sizeof(dinfo), NULL);
+    if (status != EOK) {
+        close(fd);
+        return status;
+    }
+
+    printf("%s: name is %s\n", progname, dinfo.info.path);
+
+    /*
+     * For getting other type of information, see sys/procfs.h,
+     * sys/debug.h, and sys/dcmd_proc.h
+     */
+     
+    close(fd);
+    return EOK;
+}
+
+int io_write(resmgr_context_t *ctp, io_write_t *msg,
+             RESMGR_OCB_T *ocb)
+{
+    char *pstr;
+    int status;
+
+    if ((status = iofunc_write_verify(ctp, msg, ocb, NULL))
+        != EOK)
+        return status;
+
+    if ( (msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE)
+        return ENOSYS;
+
+
+    if (dumper_fd != -1) {
+        /* pass it on to dumper so it can handle it too */
+
+        if (write(dumper_fd, msg+1, msg-&gt;i.nbytes) == -1) {
+            close(dumper_fd);
+            dumper_fd = -1; /* something wrong, no sense in
+                               doing it again later */
+        }
+    }
+
+    /* Proc writes us the pid as a string; get a pointer to the write data */
+    pstr = (char *) (msg+1);
+
+    /* Assume we have room for a null byte at the end of the pid in our
+      (default) 1500 byte receive buffer */
+    pstr[msg-&gt;i.nbytes] = '\0';
+
+    if ((status = display_process_info(atoi(pstr))) != EOK)
+        return status;
+
+    _IO_SET_WRITE_NBYTES(ctp, msg-&gt;i.nbytes);
+
+    return EOK;
+}
+</pre>
+</div>
+
+
+<p class="p">
+For more information about getting process information (including using the
+<a class="xref" href="process_DCMD_PROC_MAPDEBUG_BASE.html" title="Get information about the path for the process associated with the file descriptor."><span class="keyword const">DCMD_PROC_MAPDEBUG_BASE</span></a>
+<span class="keyword apiname">devctl()</span> command), see
+<q class="q"><a class="xref" href="process_proc_filesystem.html" title="Implemented by the Process Manager component of procnto, the /proc virtual filesystem lets you access and control the processes and threads running in the system.">Controlling processes via the <span class="ph filepath">/proc</span> filesystem</a>,</q>
+later in this chapter.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_PROCDETECTTERM.html" title="In an embedded application, it's often important to detect if any process terminates prematurely and, if so, to handle it.">Detecting process termination</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html">Thread life cycle (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html">Threads and processes (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html">struct sigaction</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html">SignalAction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

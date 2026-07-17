@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="/etc/resolv.conf" />
+<meta name="abstract" content="Resolver configuration file" />
+<meta name="description" content="Resolver configuration file" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-r.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/h/hosts.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/n/nsswitch.conf.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/g/gethostname.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="resolv.conf" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>/etc/resolv.conf</title>
+</head>
+<body id="resolv.conf">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">/etc/resolv.conf</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Resolver configuration file</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Name:</h2>
+
+
+<p class="p">
+<span class="ph filepath">/etc/resolv.conf</span>
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The resolver library routines provide access to the Internet
+Domain Name System (DNS). When these routines are first invoked by
+a process, they read information contained in the resolver
+configuration file. This file contains a list of keywords
+with user-specified values that provide various types of resolver information.
+</p>
+
+
+<div class="p">
+This file is optional. If it isn't present:
+
+<ul class="ul">
+<li class="li">the resolver library routines look in <span class="ph filepath">/etc/hosts</span> only to resolve the hostname</li>
+
+<li class="li">the domain name is determined from the hostname</li>
+
+<li class="li">the domain search path is constructed from the domain name</li>
+
+</ul>
+
+</div>
+
+
+<p class="p"><strong class="ph b">Overriding <span class="ph filepath">/etc/resolv.conf</span></strong></p>
+
+
+<div class="p">
+You can use the following
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/confstr.html"><span class="keyword apiname">confstr()</span></a>
+configuration strings to override the data contained in <span class="ph filepath">/etc/resolv.conf</span>:
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">_CS_DOMAIN</span></dt>
+
+<dd class="dd">The domain name, without any keyword.
+  For example:
+  
+  
+  
+  
+
+<pre class="pre codeblock">my.domain
+</pre>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_CS_RESOLVE</span></dt>
+
+<dd class="dd">The contents of the <span class="ph filepath">resolv.conf</span> file, except that the configuration string:
+  
+  
+
+  <ul class="ul">
+  <li class="li">doesn't include the domain name</li>
+
+  <li class="li">can't include spaces; separate the keywords by underscores</li>
+
+  </ul>
+
+
+  <div class="p">  
+  For example:
+
+<pre class="pre codeblock">nameserver_209.226.137.53
+</pre>
+  </div>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+The socket library uses the following search order to locate the resolver data:
+
+<ol class="ol">
+<li class="li"><span class="keyword apiname">confstr()</span> configuration strings</li>
+
+<li class="li"><span class="ph filepath">resolv.conf.</span><var class="keyword varname">hostname</var></li>
+
+<li class="li"><span class="ph filepath">resolv.conf</span></li>
+
+</ol>
+
+</div>
+
+
+<p class="p">
+Utilities such as <a class="xref" href="../d/dhcpcd.html" title="Dynamic Host Configuration Protocol client"><span class="keyword cmdname">dhcpcd</span></a> can optionally set the configuration strings.
+</p>
+
+
+<p class="p"><strong class="ph b">Keywords</strong></p>
+
+
+<p class="p">
+The keyword and its associated value must appear on a single line.
+The line must start with the keyword (e.g., <span class="ph codeph">nameserver</span>) followed by whitespace and the value.
+</p>
+
+
+<p class="p">
+The <span class="ph codeph">domain</span> and <span class="ph codeph">search</span> keywords are mutually exclusive.
+If more than one instance of these keywords is present, the last instance overrides any others.
+</p>
+
+
+<p class="p"><strong class="ph b"><span class="ph codeph">nameserver</span></strong></p>
+
+
+<p class="p">
+The Internet address (in dot notation) of a name
+server that the resolver should query. Up to <span class="keyword const">MAXNS</span>
+(currently 3) name servers may be listed, one per keyword.
+If multiple server entries are present, the resolver library
+queries them in the order listed.  If no server entries are
+present, the default is to use the name server on the local
+machine. (The algorithm used is to try a name server, and if
+the query times out, try the next, until out of name
+servers, then repeat trying all the name servers until a
+maximum number of retries are made.)
+</p>
+
+
+<p class="p"><strong class="ph b"><span class="ph codeph">domain</span></strong></p>
+
+
+<p class="p">
+The local domain. Most queries for names within this
+domain can use short names relative to the local domain. If
+no domain entry is present, the domain is determined from
+the local hostname returned by <span class="keyword apiname">gethostname()</span>;
+the domain part is taken to be everything after the first
+dot. If the hostname doesn't contain a domain part, the
+root domain is assumed.
+</p>
+
+
+<p class="p"><strong class="ph b"><span class="ph codeph">search</span></strong></p>
+
+
+<p class="p">
+The search list used for looking up hostnames. The
+search list is normally determined from the local domain
+name. By default, it begins with the local domain name, then
+with successive parent domains that have at least two components in their names.
+</p>
+
+
+<p class="p">
+You can override the default list by specifying the desired 
+domain search path and by following the <span class="ph codeph">search</span>
+keyword with the names. Most resolver queries are
+attempted using each component of the search path in turn until a match is found. 
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+This process may be slow and generate a lot of network traffic if the servers for the listed domains aren't local.
+Queries time out if no server is available for one of the domains.
+</div>
+
+
+<p class="p">
+The search list is currently limited to six domains with a total of 256 characters.
+</p>
+
+
+<p class="p"><strong class="ph b">nocache</strong></p>
+
+
+<p class="p">
+By default, the <span class="keyword cmdname">resolv.conf</span> data is parsed 
+at application startup only. It is not checked again. 
+Specifying <q class="q">nocache on</q> will cause the 
+<span class="keyword cmdname">resolv.conf</span> data to be parsed at every lookup. 
+If you wish to invalidate the cache at a specific time, it would be
+better to call <span class="keyword apiname">res_init()</span> directly, or turn off
+the <span class="keyword option">_res.options</span> flag <span class="keyword const">RES_INIT</span>.
+</p>
+
+
+<p class="p">
+For more information, see:
+</p>
+
+
+<ul class="ul">
+<li class="li"><cite class="cite">TCP/IP Network Administration</cite>
+</li>
+
+
+<li class="li"><cite class="cite">DNS and BIND</cite> by Paul Albitz and Cricket Liu,
+  O'Reilly &amp; Associates (ISBN 1-56592-010-4)
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-r.html">R</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/h/hosts.html" title="Hostname database (UNIX)">/etc/hosts</a></li>
+<li class="linklist"><a class="link" href="../../topic/n/nsswitch.conf.html" title="Name-service switch configuration file">/etc/nsswitch.conf</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/g/gethostname.html">gethostname() (QNX OS C Library Reference)</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Priority inheritance and messages" />
+<meta name="abstract" content="QNX OS uses message-driven priority inheritance to avoid priority-inversion problems." />
+<meta name="description" content="QNX OS uses message-driven priority inheritance to avoid priority-inversion problems." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc_Server_boost.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Scheduling_priority.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Priority_inheritance_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Priority inheritance and messages</title>
+</head>
+<body id="Priority_inheritance_messages">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Priority inheritance and messages</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+<span class="keyword">QNX OS</span> uses message-driven priority inheritance to avoid
+priority-inversion problems.
+</p>
+
+
+<p class="p">
+A server process receives messages and pulses in priority order.
+As the threads within the server receive requests, each receiving thread then
+inherits the priority (but not the scheduling policy) of the sending thread.
+As a result, the relative priorities
+of the threads requesting work of the server are preserved,
+and the server work will be executed at the appropriate priority.
+</p>
+
+
+<div class="p">
+
+For example, suppose the system includes the following:
+
+<ul class="ul">
+<li class="li">a server thread, at priority 22</li>
+
+<li class="li">a client thread, T1, at priority 13</li>
+
+<li class="li">a client thread, T2, at priority 10</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Without priority inheritance, if T2 sends a message to the server, it's
+effectively getting work done for it at priority 22, so T2's priority has
+been inverted.
+</p>
+
+
+<p class="p">
+What actually happens is that when the server receives a message, its
+effective priority changes to that of the highest-priority sender (restricted as described below).
+In this case, T2's priority is lower than the server's, so the change in the
+server's effective priority takes place when the server <em class="ph i">receives</em>
+the message.
+</p>
+
+
+<p class="p">
+Next, suppose that T1 sends a message to the server while it's still at priority 10.
+Since T1's priority is higher than the server's current priority,
+the change in the server's priority happens when T1 <em class="ph i">sends</em> the message.
+</p>
+
+
+<p class="p">
+The change happens before the server receives the message to avoid another
+case of priority inversion.
+If the server's priority remains unchanged at 10, and another thread, T3,
+starts to run at priority 11, the server has to wait
+until T3 lets it have some CPU time so that it can eventually receive T1's message.
+So, T1 would be delayed by a lower-priority thread, T3.
+</p>
+
+
+<p class="p">
+
+
+If the highest priority among the threads is a privileged priority,
+and the server doesn't have the <span class="keyword const">PROCMGR_AID_PRIORITY</span> ability enabled,
+then the server thread is boosted to the highest unprivileged priority.
+For more information, see
+<q class="q"><a class="xref" href="kernel_Scheduling_priority.html" title="Every thread is assigned a priority. The thread scheduler selects the next thread to run by comparing the priorities of READY threads (i.e., those capable of using a processor).">Scheduling priority</a></q>
+in the <q class="q"><span class="keyword">QNX OS</span> Microkernel</q> chapter and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<p class="p">
+
+
+You can turn off priority inheritance by specifying the
+<span class="keyword const">_NTO_CHF_FIXED_PRIORITY</span> flag when you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html"><span class="keyword apiname">ChannelCreate()</span></a>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/ipc_Server_boost.html">Server boost</a></strong><br />
+Priority inheritance relies on deciding which server thread needs to be boosted when a     high-priority client sends a message. If there are server threads available to receive a message     (i.e., RECEIVE-blocked), then the thread that receives the message is the one that gets boosted.     But if no server threads are available and, thus, the client is left SEND-blocked, it's not     clear which thread should be boosted.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc.html" title="Interprocess Communication (IPC) plays a fundamental role in the transformation of the microkernel from an embedded realtime kernel into a full-scale POSIX operating system. As various service-providing processes are added to the microkernel, IPC is the “glue” that connects those components into a cohesive whole.">Interprocess Communication (IPC)</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/kernel_Scheduling_priority.html" title="Every thread is assigned a priority. The thread scheduler selects the next thread to run by comparing the priorities of READY threads (i.e., those capable of using a processor).">Scheduling priority</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html">ChannelCreate()</a></li></ul></div>
+</div></body>
+</html>

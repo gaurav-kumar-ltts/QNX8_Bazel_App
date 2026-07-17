@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="tp1.c" />
+<meta name="abstract" content="For more information about this program, see “Controlling the number of threads” in the Processes and Threads chapter." />
+<meta name="description" content="For more information about this program, see “Controlling the number of threads” in the Processes and Threads chapter." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Number_of_threads.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tp1.c" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>tp1.c</title>
+</head>
+<body id="tp1.c">
+
+   
+<h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">tp1.c</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+For more information about this program, see
+<q class="q"><a class="xref" href="s1_procs_Number_of_threads.html">Controlling the number of threads</a></q>
+in the Processes and Threads chapter.
+</p>
+
+
+<pre class="pre codeblock">/*
+ *    tp1.c
+ *
+ *    Thread Pool Example (1)
+ *
+*/
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+char *progname = "tp1";
+
+void
+tag (char *name)
+{
+    time_t    t;
+    char    buffer [BUFSIZ];
+
+    time (&amp;t);
+    strftime (buffer, BUFSIZ, "%T ", localtime (&amp;t));
+    printf ("%s %3d %-20.20s:  ", buffer, pthread_self (), name);
+}
+                                         
+THREAD_POOL_PARAM_T *
+blockfunc (THREAD_POOL_PARAM_T *ctp)
+{
+    tag ("blockfunc"); printf ("ctp %p\n", ctp);
+    tag ("blockfunc"); printf ("sleep (%d);\n", 15 * pthread_self ());
+    sleep (pthread_self () * 15);
+    tag ("blockfunc"); printf ("done sleep\n");
+    tag ("blockfunc"); printf ("returning 0x%08X\n", 0x10000000 + pthread_self ());
+    return ((void *) (0x10000000 + pthread_self ()));        // passed to handlerfunc
+}
+
+THREAD_POOL_PARAM_T *
+contextalloc (THREAD_POOL_HANDLE_T *handle)
+{
+    tag ("contextalloc"); printf ("handle %p\n", handle);
+    tag ("contextalloc"); printf ("returning 0x%08X\n", 0x20000000 + pthread_self ());
+    return ((void *) (0x20000000 + pthread_self ()));        // passed to blockfunc
+}
+
+void
+contextfree (THREAD_POOL_PARAM_T *param)
+{
+    tag ("contextfree"); printf ("param %p\n", param);
+}
+
+void
+unblockfunc (THREAD_POOL_PARAM_T *ctp)
+{
+    tag ("unblockfunc"); printf ("ctp %p\n", ctp);
+}
+
+int
+handlerfunc (THREAD_POOL_PARAM_T *ctp)
+{
+    static int i = 0;
+
+    tag ("handlerfunc"); printf ("ctp %p\n", ctp);
+    if (i++ &gt; 15) {
+        tag ("handlerfunc"); printf ("exceeded 15 operations, return 0\n");
+        return (0);
+    }
+    tag ("handlerfunc"); printf ("sleep (%d)\n", pthread_self () * 25);
+    sleep (pthread_self () * 25);
+    tag ("handlerfunc"); printf ("done sleep\n");
+
+/*
+    i = 0;
+    if (i++ &amp; 1) {
+        tag ("handlerfunc"); printf ("returning 0\n");
+        return (0);
+    } else {
+*/
+        tag ("handlerfunc"); printf ("returning 0x%08X\n", 0x30000000 + pthread_self ());
+        return (0x30000000 + pthread_self ());
+/*
+    }
+*/
+}
+
+
+main ()
+{
+    thread_pool_attr_t    tp_attr;
+    void                *tpp;
+
+    memset (&amp;tp_attr, 0, sizeof (tp_attr));
+    tp_attr.handle = (void *) 0x12345678;        // passed to contextalloc
+    tp_attr.block_func = blockfunc;
+    tp_attr.unblock_func = unblockfunc;
+    tp_attr.context_alloc = contextalloc;
+    tp_attr.context_free = contextfree;
+    tp_attr.handler_func = handlerfunc;
+
+    tp_attr.lo_water = 3;
+    tp_attr.hi_water = 7;
+    tp_attr.increment = 2;
+    tp_attr.maximum = 10;
+
+    tpp = thread_pool_create (&amp;tp_attr, POOL_FLAG_USE_SELF);
+    if (tpp == NULL) {
+        fprintf (stderr, 
+                 "%s:  can't thread_pool_create, errno %s\n",
+                 progname, strerror (errno));
+        exit (EXIT_FAILURE);
+    }
+
+    thread_pool_start (tpp);
+
+    fprintf (stderr, "%s:  thread_pool_start returned; errno %s\n",
+             progname, strerror (errno));
+    sleep (3000);
+    exit (EXIT_FAILURE);
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html" title="This appendix contains the complete versions of some of the sample programs discussed in this book.">Sample Programs</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/s1_procs_Number_of_threads.html" title="Let's first look at the “thread pool parameters” to see how you control the number and attributes of threads that will be operating in this thread pool. Keep in mind that we'll be talking about the “blocking operation” and the “processing operation” (when we look at the callout functions, we'll see how these relate to each other).">Controlling the number of threads</a></li></ul></div>
+</div></body>
+</html>

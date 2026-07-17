@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The iofunc_attr_t attributes structure" />
+<meta name="abstract" content="The attributes structure is a per-resource (e.g., device) data structure. You saw that the standard iofunc_ocb_t OCB had a member called attr that's a pointer to the attribute structure. This was done so the OCB has access to information about the device." />
+<meta name="description" content="The attributes structure is a per-resource (e.g., device) data structure. You saw that the standard iofunc_ocb_t OCB had a member called attr that's a pointer to the attribute structure. This was done so the OCB has access to information about the device." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_posixdata.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="iofunc_attr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The iofunc_attr_t attributes structure</title>
+</head>
+<body id="iofunc_attr">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The <span class="keyword dtype">iofunc_attr_t</span> attributes structure</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The attributes structure is a per-resource (e.g., device) data structure.
+You saw that the standard <span class="keyword dtype">iofunc_ocb_t</span> OCB had a member called
+<var class="keyword varname">attr</var> that's a pointer to the attribute structure.
+This was done so the OCB has access to information about the device.
+</p>
+
+<div class="p">
+
+
+
+Let's take a look at the attributes structure (from 
+<span class="ph filepath">&lt;sys/iofunc.h&gt;</span>):
+
+<pre class="pre codeblock">typedef struct _iofunc_attr {
+  IOFUNC_MOUNT_T           *<var class="keyword varname">mount</var>;
+  struct _iofunc_mmap_list *<var class="keyword varname">mmap_list</var>;
+  struct _iofunc_lock_list *<var class="keyword varname">lock_list</var>;
+  void                     *<var class="keyword varname">acl</var>;
+    union {
+        void               *<var class="keyword varname">lockobj</var>;
+        pthread_mutex_t    <var class="keyword varname">lock</var>;
+    };
+  uint32_t                 <var class="keyword varname">flags</var>;
+  uint16_t                 <var class="keyword varname">count</var>;
+  uint16_t                 <var class="keyword varname">rcount</var>;
+  uint16_t                 <var class="keyword varname">wcount</var>;
+  uint16_t                 <var class="keyword varname">rlocks</var>;
+  uint16_t                 <var class="keyword varname">wlocks</var>;
+  SEE_BELOW!!!             <var class="keyword varname">nbytes</var>;
+  SEE_BELOW!!!             <var class="keyword varname">inode</var>;
+  uid_t                    <var class="keyword varname">uid</var>;
+  gid_t                    <var class="keyword varname">gid</var>;
+  time_t                   <var class="keyword varname">mtime</var>;
+  time_t                   <var class="keyword varname">atime</var>;
+  time_t                   <var class="keyword varname">ctime</var>;
+  mode_t                   <var class="keyword varname">mode</var>;
+  nlink_t                  <var class="keyword varname">nlink</var>;
+  dev_t                    <var class="keyword varname">rdev</var>;
+  unsigned                 <var class="keyword varname">mtime_ns</var>;
+  unsigned                 <var class="keyword varname">atime_ns</var>;
+  unsigned                 <var class="keyword varname">ctime_ns</var>;
+} iofunc_attr_t;
+</pre>
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">nbytes</var> and <var class="keyword varname">inode</var> members have the same set of
+<span class="ph codeph">#ifdef</span> conditionals as the <var class="keyword varname">offset</var> member
+of the OCB (see <a class="xref" href="s1_resmgr_iofunc_ocb.html" title="The OCB structure contains information used to track client access to a particular service offered by a resource manager, on a per-open or per-file-descriptor basis. What this means is that when a client performs an open() call and gets back a file descriptor (as opposed to an error indication), the resource manager will have created an OCB and associated it with the client. This OCB will be around for as long as the client has the file descriptor open."><q class="q">The strange case of the <var class="keyword varname">offset</var> member</q></a> above).
+</p>
+
+
+<p class="p">
+Note that some of the fields of the attributes structure are
+useful only to the POSIX helper routines.
+</p>
+
+
+<p class="p">
+Let's look at the fields individually:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">mount</var></dt>
+
+<dd class="dd">A pointer to the optional <span class="keyword dtype">iofunc_mount_t</span> mount
+  structure.  This is used in the same way that the pointer from
+  the OCB to the attribute structure was used, except that this
+  value can be <span class="keyword const">NULL</span> in which case the mount structure
+  defaults are used (see <a class="xref" href="s1_resmgr_iofunc_mount.html" title="The mount structure contains information that's common across multiple attributes structures."><q class="q">The <span class="keyword dtype">iofunc_mount_t</span> mount structure</q></a> below).
+  As mentioned, the mount structure is generally bound <q class="q">by hand</q>
+  into the attributes structure in code that you supply for
+  your resource manager initialization.
+  
+    
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mmap_list</var></dt>
+
+<dd class="dd">Used internally by POSIX
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html"><span class="keyword apiname">iofunc_mmap_default()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html"><span class="keyword apiname">iofunc_mmap_default_ext()</span></a>.
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lock_list</var></dt>
+
+<dd class="dd">Used internally by POSIX
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_lock_default.html"><span class="keyword apiname">iofunc_lock_default()</span></a>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">acl</var></dt>
+
+<dd class="dd">Access control lists.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lockobj</var> and <var class="keyword varname">lock</var></dt>
+
+<dd class="dd">Members of a <span class="keyword dtype">union</span> that provide a way to lock the attribute structure.
+  To support multiple threads in your resource manager,
+  you'll need to lock the attribute structure so that only one
+  thread at a time is allowed to change it. 
+  The attribute structure can be locked recursively.
+  
+  
+
+  <ul class="ul">
+  <li class="li">The default behavior is to use the <var class="keyword varname">lock</var> member, which is a built-in lock mutex.
+  If you use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_init.html"><span class="keyword apiname">iofunc_attr_init()</span></a>
+  to initialize the structure, it initializes the built-in lock mutex (<var class="keyword varname">lock</var>)
+  using a static lock initializer.
+  
+  
+  
+
+  <p class="p">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  The resource manager layer automatically locks the attribute structure (using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_lock.html"><span class="keyword apiname">iofunc_attr_lock()</span></a>)
+  for you when certain handler functions are called (i.e., <span class="keyword const">IO_*</span>).
+  You can lock the attribute structure by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_lock.html"><span class="keyword apiname">iofunc_attr_lock()</span></a>
+  or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_trylock.html"><span class="keyword apiname">iofunc_attr_trylock()</span></a>;
+  you can unlock it by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_attr_unlock.html"><span class="keyword apiname">iofunc_attr_unlock()</span></a>.
+  </p>
+
+  </li>
+
+
+  <li class="li">If you want to use an external lock object, override the built-in lock by pointing the
+    <var class="keyword varname">lockobj</var> member to the external lock object.
+    You also need to provide your own functions to lock and unlock the attribute structure and set the
+    appropriate members of the <var class="keyword varname">funcs</var> structure in the <span class="keyword dtype">iofunc_mount_t</span> structure.
+    For more information, see
+    <q class="q"><a class="xref" href="s1_resmgr_iofunc_mount.html" title="The mount structure contains information that's common across multiple attributes structures.">The <span class="keyword dtype">iofunc_mount_t</span> mount structure</a></q>
+    in this chapter.
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Contains flags that describe the state of other attributes
+  structure fields.  We'll discuss these shortly.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">count</var></dt>
+
+<dd class="dd">Indicates the number of OCBs that have this attributes structure
+  open for any reason.  For example, if one client has an OCB
+  open for read, another client has another OCB open for read/write,
+  and both OCBs point to this attribute structure, then the value of
+  <var class="keyword varname">count</var> would be 2, to indicate that two clients have
+  this resource open.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">rcount</var></dt>
+
+<dd class="dd">Count of readers.
+  In the example given for <var class="keyword varname">count</var>, <var class="keyword varname">rcount</var> would
+  also have the value 2, because two clients have the resource open for reading.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">wcount</var></dt>
+
+<dd class="dd">Count of writers. In the example
+  given for <var class="keyword varname">count</var>, <var class="keyword varname">wcount</var> would have the value 1,
+  because only one of the clients has this resource open for writing.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">rlocks</var></dt>
+
+<dd class="dd">Indicates the number of OCBs that have read locks on the particular resource.
+  If zero, it means there are no read locks, but there may be write locks.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">wlocks</var></dt>
+
+<dd class="dd">Same as <var class="keyword varname">rlocks</var> but for write locks.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes</var></dt>
+
+<dd class="dd">Size of the resource, in bytes.  For example, if this resource
+  described a particular file, and that file was 7756 bytes in size,
+  then the <var class="keyword varname">nbytes</var> member would contain the number 7756.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">inode</var></dt>
+
+<dd class="dd">Contains a file or resource serial number that must be unique
+  per mountpoint.  The <var class="keyword varname">inode</var> should never be zero,
+  because zero traditionally indicates a file that's not in use.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">uid</var></dt>
+
+<dd class="dd">User ID of the owner of this resource.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">gid</var></dt>
+
+<dd class="dd">Group ID of the owner of this resource.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mtime</var></dt>
+
+<dd class="dd">File modification time, updated or at least invalidated whenever a
+  client <span class="keyword apiname">write()</span> is processed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">atime</var></dt>
+
+<dd class="dd">File access time, updated or at least invalidated whenever a client
+  <span class="keyword apiname">read()</span> that returns more than zero bytes is processed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ctime</var></dt>
+
+<dd class="dd">File change time, updated or at least invalidated whenever a client
+  <span class="keyword apiname">write()</span>, <span class="keyword apiname">chown()</span>, or <span class="keyword apiname">chmod()</span>
+  is processed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mode</var></dt>
+
+<dd class="dd">File's mode.  These are the standard <span class="keyword const">S_*</span> values from
+  <span class="ph filepath">&lt;sys/stat.h&gt;</span>, such as <span class="keyword const">S_IFCHR</span>, or in octal
+  representation, such as 0664 to indicate read/write permission for
+  owner and group, and read-only permission for other.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nlink</var></dt>
+
+<dd class="dd">Number of links to the file, returned by the client's <span class="keyword apiname">stat()</span>
+  function call.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">rdev</var></dt>
+
+<dd class="dd">For a character special device, this field consists of a major and
+  minor device code (10 bits minor in the least-significant positions;
+  next 6 bits are the major device number).
+  For other types of devices, it contains the device number.
+  (See below in <a class="xref" href="s1_resmgr_dev_inode_rdev.html" title="The mount structure contains a member called dev. The attributes structure contains two members: inode and rdev. Let's look at their relationships by examining a traditional disk-based filesystem."><q class="q">Of device numbers, inodes, and our friend <var class="keyword varname">rdev</var>,</q></a>
+  for more discussion.)
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mtime_ns</var>, <var class="keyword varname">atime_ns</var>, and <var class="keyword varname">ctime_ns</var></dt>
+
+<dd class="dd">The nanosecond values for the POSIX time members,
+  <var class="keyword varname">mtime</var>, <var class="keyword varname">atime</var>, and <var class="keyword varname">ctime</var>.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+As with the OCB, you can extend the <q class="q">normal</q> attributes structure with your own data.
+See the <a class="xref" href="s1_resmgr_extattr.html" title="You may wish to extend the attributes structure in cases where you need to store additional information about the resource. Since the attributes structure is associated on a “per-resource” basis, any extra information you store there will be accessible to all OCBs that reference that resource (since the OCB contains a pointer to the attributes structure). Often things like serial baud rate are stored in extended attributes structures."><q class="q">Extending the attributes structure</q> section.</a>
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_posixdata.html" title="There are three data structures that relate to the POSIX-layer support routines. As far as the base layer is concerned, you can use any data structures you want; it's the POSIX layer that requires you to conform to a certain content and layout. The benefits delivered by the POSIX layer are well worth this tiny constraint. As we'll see later, you can add your own content to the structures as well.">POSIX-layer data structures</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

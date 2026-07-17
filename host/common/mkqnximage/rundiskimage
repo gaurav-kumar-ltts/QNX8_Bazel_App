@@ -1,0 +1,81 @@
+#!/bin/bash
+# Run diskimage to generate the image file, or in the case of the update operation
+# create the boot sector.
+# Reads parameters from output/di.params
+
+# The following are sometimes not set. Ensure that they're not accidentally set
+# as environment variables
+unset BOOT_PART SYSTEM_PART DATA_PART VMDK_FILE
+
+. output/di.params
+
+PART_SECTORS=$(($BOOT_SECTORS + $SYS_SECTORS + $DATA_SECTORS))
+
+# diskimage layout file requires names in quotes
+if [ -n "$BOOT_PART" ]; then
+   BOOT_PART='"'$BOOT_PART'"'
+fi
+if [ -n "$SYS_PART" ]; then
+   SYS_PART='"'$SYS_PART'"'
+fi
+if [ -n "$DATA_PART" ]; then
+   DATA_PART='"'$DATA_PART'"'
+fi
+
+diskimage_options=(-p -s 163840 -c ${LAYOUT_FILE} -o ${DEST_FILE})
+
+if [ "${IMAGE_TYPE}" = bios ]; then
+	DISK_SECTORS=$(($PART_SECTORS+1))
+	cat >${LAYOUT_FILE} <<EOF
+[sector_size=512 cylinders=${DISK_SECTORS} sectors_per_track=1 heads=1 start_at_cylinder=1]
+[partition=1 boot=true type=177 num_sectors=${BOOT_SECTORS}] ${BOOT_PART}
+[partition=2 boot=false type=${SYS_TYPE}  num_sectors=${SYS_SECTORS}] ${SYS_PART}
+[partition=3 boot=false type=179  num_sectors=${DATA_SECTORS}] ${DATA_PART}
+EOF
+
+	diskimage_options=("${diskimage_options[@]}" -b ${QNX_TARGET}/x86_64/boot/sys/ipl-diskpc1-nomsg)
+elif [ "${IMAGE_TYPE}" = uefi ]; then
+	DISK_SECTORS=$(($PART_SECTORS+100))
+	# Specify start_at_cylinder=34 to avoid diskimage generating warnings
+	cat >${LAYOUT_FILE} <<EOF
+[sector_size=512 cylinders=${DISK_SECTORS} sectors_per_track=1 heads=1 start_at_cylinder=34]
+[partition=1 type_guid="efi" boot=true] ${BOOT_PART}
+[partition=2 boot=false type_guid="${SYS_GUID}"  num_sectors=${SYS_SECTORS}] ${SYS_PART}
+[partition=3 boot=false type_guid="qnx6"  num_sectors=${DATA_SECTORS}] ${DATA_PART}
+EOF
+	diskimage_options=("${diskimage_options[@]}" -g)
+elif [ "${IMAGE_TYPE}" = qemu ]; then
+	DISK_SECTORS=$(($PART_SECTORS+1))
+    cat >${LAYOUT_FILE} <<EOF
+[sector_size=512 cylinders=${DISK_SECTORS} sectors_per_track=1 heads=1 start_at_cylinder=1]
+[partition=1 boot=false type=${SYS_TYPE} num_sectors=${SYS_SECTORS}] ${SYS_PART}
+[partition=2 boot=false type=179  num_sectors=${DATA_SECTORS}] ${DATA_PART}
+EOF
+elif [ "${IMAGE_TYPE}" = other ]; then
+	DISK_SECTORS=$(($PART_SECTORS+4))
+	cat >${LAYOUT_FILE} <<EOF
+[sector_size=512 cylinders=${DISK_SECTORS} sectors_per_track=1 heads=1 start_at_cylinder=4]
+[partition=1 boot=true type=12 num_sectors=${BOOT_SECTORS}]  ${BOOT_PART}
+[partition=2 boot=false type=${SYS_TYPE} num_sectors=${SYS_SECTORS}] ${SYS_PART}
+[partition=3 boot=false type=179 num_sectors=${DATA_SECTORS}] ${DATA_PART}
+EOF
+else
+	echo Unknown IMAGE_TYPE
+	exit 1
+fi
+
+if ! diskimage ${diskimage_options[@]} 2>output/diskimage.out >/dev/null; then
+	grep -v chkqnx6fs output/diskimage.out
+	if grep -q 'Permission denied' output/diskimage.out; then
+		# if diskimage is writing to an SD card, check for the common case of
+		# the SD card being read-only.
+		echo "Perhaps the device is read-only"
+	fi
+	exit 1
+fi
+
+if [ -n "${VMDK_FILE}" ]; then
+	sed -e "s/__DISK_SIZE__/$DISK_SECTORS/" -e "s/__TYPE__/${OPT_TYPE}/" ${TOOL_DIR}/inputs/disk.vmdk >${VMDK_FILE}
+fi
+
+exit 0

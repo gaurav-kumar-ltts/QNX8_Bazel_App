@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="mq_unlink()" />
+<meta name="abstract" content="Remove a queue" />
+<meta name="description" content="Remove a queue" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-m.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Message_queues.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mq_close.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mq_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/u/unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mq_unlink" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>mq_unlink()</title>
+</head>
+<body id="mq_unlink">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">mq_unlink()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Remove a queue</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;mqueue.h&gt;
+
+int mq_unlink( const char* <var class="keyword varname">name</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">name</var></dt>
+
+<dd class="dd">The name of the message queue that you want to unlink.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+  Use the <span class="keyword option">-l c</span> option to
+  <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+  to link against this library.
+  This library is usually included automatically.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+The <span class="keyword apiname">mq_unlink()</span> function removes the queue with the given <var class="keyword varname">name</var>.
+</p>
+
+
+  <div class="note"><span class="notetitle">Note:</span>  The message queue manager needs to be running. For more information, see the entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a> in the <cite class="cite">Utilities Reference</cite>. </div>
+
+
+<p class="p">
+If some process has the queue open when the call to
+<span class="keyword apiname">mq_unlink()</span> is made, then the actual deletion of the queue
+is postponed until it has been closed.  If a queue exists in the
+netherworld between unlinking and the actual removal of the queue,
+then <em class="ph i">all</em> calls to open a queue with the given name fail (even if
+<span class="keyword const">O_CREAT</span> is present in <var class="keyword varname">oflag</var>).  Once the
+queue is deleted, all elements currently on it are freed.  Due to
+the lazy deletion of queues, it's impossible for any process to be
+blocked on the message queue when it's deleted.
+</p>
+
+
+<p class="p">
+Calling
+<a class="xref" href="../u/unlink.html" title="Remove a link to a file"><span class="keyword apiname">unlink()</span></a>
+with a name that resolves to the message queue server's namespace (e.g.,
+<span class="ph filepath">/dev/mqueue/my_queue</span>) is analogous to calling
+<span class="keyword apiname">mq_unlink()</span> with <var class="keyword varname">name</var> set to the last elements
+of the pathname (e.g., <span class="ph filepath">my_queue</span>).
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+-1 if the queue wasn't successfully unlinked 
+(<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+Any other value indicates that the queue was successfully unlinked.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EACCES</span></dt>
+
+<dd class="dd">You don't have permission to unlink the specified queue.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ELOOP</span></dt>
+
+<dd class="dd">Too many levels of symbolic links or prefixes.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENAMETOOLONG</span> </dt>
+
+<dd class="dd">The length of <var class="keyword varname">name</var> exceeds <span class="keyword const">PATH_MAX</span>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOENT</span></dt>
+
+<dd class="dd">The queue <var class="keyword varname">name</var> doesn't exist.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOSYS</span></dt>
+
+<dd class="dd">The message queue manager (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a>) isn't running. </dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1 MSG</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d236506e282">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d236506e284"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e282 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e284 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e282 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e284 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e282 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d236506e284 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-m.html">M</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Message_queues.html">POSIX message queues (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/m/mq_close.html" title="Close a message queue">mq_close()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/mq_open.html" title="Open a message queue">mq_open()</a></li>
+<li class="linklist"><a class="link" href="../../topic/u/unlink.html" title="Remove a link to a file">unlink()</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html">mqueue (Utilities Reference)</a></li></ul></div>
+</div></body>
+</html>

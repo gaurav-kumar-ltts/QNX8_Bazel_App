@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_device_find()" />
+<meta name="abstract" content="Locate a device that matches the specified criteria" />
+<meta name="description" content="Locate a device that matches the specified criteria" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_device_find" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_device_find()</title>
+</head>
+<body id="pci_device_find">
+
+
+  <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_device_find()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Locate a device that matches the specified criteria</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_bdf_t pci_device_find( const uint_t <var class="keyword varname">idx</var>,
+                           const pci_vid_t <var class="keyword varname">vid</var>,
+                           const pci_did_t <var class="keyword varname">did</var>,
+                           const pci_ccode_t <var class="keyword varname">classcode</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">idx</var></dt>
+
+<dd class="dd">The zero-based index of a specific device that you want to find; see below.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">vid</var></dt>
+
+<dd class="dd">The vendor ID you want to match, or <span class="keyword const">PCI_VID_ANY</span>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">did</var></dt>
+
+<dd class="dd">The device ID you want to match, or <span class="keyword const">PCI_DID_ANY</span>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">classcode</var></dt>
+
+<dd class="dd">The class or subclass that you want to match, or <span class="keyword const">PCI_CCODE_ANY</span>.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The pci_device_find() function kets you locate a specific device by specifying any combination of the
+vendor ID <var class="keyword varname">vid</var>, device ID <var class="keyword varname">did</var>, and class (and subclass) code
+<var class="keyword varname">classcode</var> filter parameters.
+Any parameter can be wild-carded by using <span class="keyword const">PCI_VID_ANY</span>, <span class="keyword const">PCI_DID_ANY</span>,
+or <span class="keyword const">PCI_CCODE_ANY</span>, respectively.
+</p>
+
+
+<p class="p">
+
+The class code is of type <span class="keyword dtype">pci_ccode_t</span>, which contains 3 bytes as defined in the PCI specification:
+</p>
+
+
+<pre class="pre">
+MSb                                        LSb
+        0000 0000 CCCC CCCC cccc cccc rrrr rrrr
+
+C - represents the base class
+c - represents the sub class
+r - represents a register level programming interface
+</pre>
+
+
+<p class="p">
+To encode and decode the class code, you can use the macros defined in <span class="ph filepath">&lt;pci/pci_ccode.h&gt;</span>,
+as well as the following macros, defined in <span class="ph filepath">&lt;pci/pci.h&gt;</span>:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">PCI_CCODE_CLASS(_cc_)</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">PCI_CCODE_SUBCLASS(_cc_)</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">PCI_CCODE_REG_IF(_cc_)</span>
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">PCI_CCODE(_C_, _c_, _r_)</span>
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Wildcards for the subclass and register interface let you widen the search for class codes.
+You can use the following values independently or together for the subclass and register
+interface respectively when constructing a classcode to search for:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword const">PCI_CCODE_SUBCLASS_ANY</span></li>
+
+<li class="li"><span class="keyword const">PCI_CCODE_REG_IF_ANY</span></li>
+
+</ul>
+
+
+<p class="p">
+For example:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="ph codeph">PCI_CCODE(<var class="keyword varname">base_class</var>, PCI_CCODE_SUBCLASS_ANY, PCI_CCODE_REG_IF_ANY)</span></li>
+
+<li class="li"><span class="ph codeph">PCI_CCODE(<var class="keyword varname">base_class</var>, <var class="keyword varname">subclass</var>, PCI_CCODE_REG_IF_ANY)</span></li>
+
+</ul>
+
+
+<p class="p">
+You can find the defined vendor IDs in <span class="ph filepath">&lt;pci/pci_id.h&gt;</span>.
+In addition, the <var class="keyword varname">idx</var> parameter lets you select from multiple instances of devices
+meeting the search criteria.
+By calling <span class="keyword apiname">pci_device_find()</span> repeatedly with an incrementing <var class="keyword varname">idx</var> value,
+you can find all instances of a device meeting the search criteria.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <var class="keyword varname">idx</var> parameter has no association with a given device.
+It's used only as an instance token across multiple find calls when the search criteria don't change.
+The same device (as identified by the returned <span class="keyword dtype">pci_bdf_t</span>) could be identified for a
+different <var class="keyword varname">idx</var> value if you use different search criteria.
+If you change the search criteria, reset the starting <var class="keyword varname">idx</var> value to 0,
+or the function might return <span class="keyword const">PCI_ERR_ENODEV</span>.
+</div>
+
+
+<p class="p">
+The search criteria parameters allow the following filter combinations:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d4764e349"><var class="keyword varname">vid</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d4764e353"><var class="keyword varname">did</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d4764e357"><var class="keyword varname">classcode</var></th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d4764e361">Result</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 "><span class="keyword const">PCI_VID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 "><span class="keyword const">PCI_DID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 "><span class="keyword const">PCI_CCODE_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 "><span class="keyword const">PCI_VID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 "><span class="keyword const">PCI_DID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 ">A class code</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices of a specified class</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 "><span class="keyword const">PCI_VID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 ">A device ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 "><span class="keyword const">PCI_CCODE_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices with a specific device ID</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 "><span class="keyword const">PCI_VID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 ">A device ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 ">A class code</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices of a specified class with a specific device ID</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 ">A vendor ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 "><span class="keyword const">PCI_DID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 "><span class="keyword const">PCI_CCODE_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices from a specific vendor</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 ">A vendor ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 "><span class="keyword const">PCI_DID_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 ">A class code</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices of a specified class from a specific vendor</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 ">A vendor ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 ">A device ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 "><span class="keyword const">PCI_CCODE_ANY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices with a specific device ID from a specific vendor</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e349 ">A vendor ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e353 ">A device ID</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e357 ">A class code</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e361 ">All devices of a specified class with a specific device ID from a specific vendor</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+A <span class="keyword dtype">pci_bdf_t</span> value that uniquely identifies a specific device and which you can use to attach
+to the device or to perform various read operations (see <span class="keyword apiname">pci_device_read_*()</span>),
+or <span class="keyword const">PCI_BDF_NONE</span> if a device couldn't be found based on the search criteria.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d4764e546">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d4764e548"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e546 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e548 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e546 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e548 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e546 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d4764e548 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>

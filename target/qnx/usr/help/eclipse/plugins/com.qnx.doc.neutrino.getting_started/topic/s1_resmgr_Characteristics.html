@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Characteristics of resource managers" />
+<meta name="abstract" content="As we saw in our examples (above), the key to the flexibility of the resource managers is that all the functionality of the resource manager is accessed using standard POSIX function calls—we didn't use “special” functions when talking to the serial port. But what if you need to do something “special,” something very device-specific?" />
+<meta name="description" content="As we saw in our examples (above), the key to the flexibility of the resource managers is that all the functionality of the resource manager is accessed using standard POSIX function calls—we didn't use “special” functions when talking to the serial port. But what if you need to do something “special,” something very device-specific?" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_What_is.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Characteristics" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Characteristics of resource managers</title>
+</head>
+<body id="Characteristics">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Characteristics of resource managers</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+As we saw in our examples (above), the key to the flexibility of the resource
+managers is that all the functionality of the resource manager is
+accessed using standard POSIX function calls—we didn't use
+<q class="q">special</q> functions when talking to the serial port.
+But what if you <em class="ph i">need</em> to do something <q class="q">special,</q> something
+<em class="ph i">very</em> device-specific?
+</p>
+
+
+<p class="p">
+
+
+
+For example, setting the baud rate on a serial port is an operation that's
+very specific to the serial port resource manager—it's totally
+meaningless to the filesystem resource manager.
+Likewise, setting the file position via
+<span class="keyword apiname">lseek()</span> is useful in a
+filesystem, but meaningless in a serial port.
+The solution POSIX chose for this is simple.
+Some functions, like <span class="keyword apiname">lseek()</span>, simply return an error code on a
+device that doesn't support them.
+Then there's the <q class="q">catch-all</q> (and non-POSIX) device control function, called
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>,
+that allows device-specific functionality to be provided.
+Devices that don't understand the particular <span class="keyword apiname">devctl()</span> command
+simply return an error, just as devices that don't understand the <span class="keyword apiname">lseek()</span>
+command would.
+</p>
+
+
+<p class="p">
+Since we've mentioned <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">devctl()</span> as two common
+commands, it's worthwhile to note that pretty much <em class="ph i">all</em> file-descriptor
+(or <span class="keyword dtype">FILE *</span> stream) function calls are supported by resource managers.
+
+
+
+
+
+</p>
+
+
+<p class="p">
+This naturally leads us to the conclusion that resource managers will be
+dealing almost exclusively with file-descriptor based function calls.
+Since <span class="keyword">QNX OS</span> is a message-passing operating system,
+it follows that the POSIX functions get translated into messages, which are then
+sent to resource managers.
+It is this <q class="q">POSIX-function to message-passing</q> translation
+trick that lets us decouple clients from resource managers.
+All a resource manager has to do is handle certain well-defined messages.
+All a client has to do is generate the same well-defined
+messages that the resource manager is expecting to receive and handle.
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Since the interaction between clients and resource managers is based
+on message passing, it makes sense to make this <q class="q">translation layer</q>
+as thin as possible.
+For example, when a client does an
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>
+and gets back a
+file descriptor, the <em class="ph i">file descriptor is in fact the connection ID</em>!
+This connection ID (file descriptor) gets used in the client's C library
+functions (such as
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>)
+where a message is created and sent to the resource manager.
+
+
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_What_is.html" title="A resource manager is simply a program with some well-defined characteristics.">What is a resource manager?</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

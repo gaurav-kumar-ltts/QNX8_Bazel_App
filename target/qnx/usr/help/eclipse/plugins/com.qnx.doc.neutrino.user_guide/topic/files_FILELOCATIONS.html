@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Where everything is stored" />
+<meta name="abstract" content="The QNX OS operating system doesn't prescribe a specific layout of the filesystem hierarchy, and a system designer is generally free to structure files in a way that fits the goals of the system." />
+<meta name="description" content="The QNX OS operating system doesn't prescribe a specific layout of the filesystem hierarchy, and a system designer is generally free to structure files in a way that fits the goals of the system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/files.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/c/chgrp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/c/chmod.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/c/chown.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/l/ls-target.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umask.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="FILELOCATIONS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Where everything is stored</title>
+</head>
+<body id="FILELOCATIONS">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Where everything is stored</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The <span class="keyword">QNX OS</span> operating system doesn't prescribe a specific layout of the filesystem hierarchy,
+and a system designer is generally free to structure files in a way that fits the goals of the system.
+</p>
+
+
+<p class="p">
+
+For example, a multiuser system that's built around generic open-source components may benefit from following
+the traditional UNIX filesystem layout (see
+<a class="xref" href="http://www.pathname.com" target="_blank"><span class="ph filepath">http://www.pathname.com</span></a>).
+On the other hand, a secure embedded system may be better off with a layout that avoids union paths
+(i.e., any path serviced by more than one resource manager) and where some files are restricted to read-only,
+verified, and potentially encrypted filesystems.
+</p>
+
+
+<p class="p">
+The layout of files in a <span class="keyword">QNX OS</span> system is primarily determined by the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">the mountpoint of each resource manager (often referred to as the "attach point")</li>
+
+<li class="li">the relative path for each file serviced by the resource manager</li>
+
+</ul>
+
+
+<p class="p">
+
+Filesystem resource managers, including the one that provides the main image filesystem (IFS),
+can be mounted at any point in the path space.
+The IFS is mounted at <span class="ph filepath">/</span> by default and prepends the prefix <span class="ph filepath">proc/boot</span>
+to all objects in the IFS.
+This has the effect that the <tt class="ph tt">procfs</tt> (<span class="ph filepath">/proc</span> resource manager) is always questioned
+first for any file that starts with <span class="ph filepath">/proc/boot</span> from the IFS, which affects performance slightly.
+You can avoid this issue by using the <span class="keyword cmdname">[prefix=""]</span> and <span class="keyword cmdname">[mount="/ifs"]</span>
+options in your
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>
+buildfile to mount the IFS at <span class="ph filepath">/ifs</span> instead.
+</p>
+
+
+<p class="p">
+When you're populating a filesystem that can be mounted anywhere, avoid absolute paths and any assumptions
+as to where the filesystem is mounted.
+For example, the path <span class="ph filepath">lib/libfoo.so</span> in a Power-Safe filesystem can become
+<span class="ph filepath">/lib/libfoo.so</span> if the filesystem is mounted at the root of the path space,
+or <span class="ph filepath">/fs/qnx6/lib/libfoo.so</span> if it's mounted at <span class="ph filepath">/fs/qnx6</span>.
+The system's path manager ensures that requests for this path are routed to the correct resource manager.
+</p>
+
+
+<p class="p">
+Many device-specific resource managers (unlike filesystem resource managers) hard-code their mountpoints,
+typically under <span class="ph filepath">/dev</span>.
+This is rarely a requirement, though, and if you find that a device resource manager conflicts with the layout
+of your system, you may wish to contact the provider of the resource manager so that they can change that
+(or, better yet, let you specify the mountpoint via a command-line option or an environment variable).
+</p>
+
+
+<p class="p">
+Nevertheless, there are a few paths that must exist in a <span class="keyword">QNX OS</span> system:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/lib/ldqnx-64.so.2</span></dt>
+
+<dd class="dd">The runtime linker (also known as the dynamic linker).
+  This path is hard-coded in any <span class="keyword">QNX OS</span> executable.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/.boot</span> (x86_64 only)</dt>
+
+<dd class="dd">A directory that contains any IFS binaries and is required by BIOS-based systems.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The rest of this section describes the <span class="keyword">QNX OS</span> version of the traditional UNIX layout.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/bin</span></h2>
+
+
+<p class="p">
+
+
+The <span class="ph filepath">/bin</span> directory contains binaries of essential utilities,
+such as
+<span class="keyword cmdname">chmod</span>, <span class="keyword cmdname">ls</span>, and <span class="keyword cmdname">ksh</span>.
+</p>
+
+
+<p class="p">
+To display basic utility syntax, type
+<span class="ph codeph">use <var class="keyword varname">utilityname</var></span>
+from the command line.
+For more information, see
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/u/use.html"><span class="keyword cmdname">use</span></a>
+in the <cite class="cite">Utilities Reference</cite>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/dev</span></h2>
+
+
+<p class="p">
+
+The <span class="ph filepath">/dev</span> directory belongs to the process manager and contains device files,
+possibly including:
+
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/cd</span><var class="keyword varname">n</var></dt>
+
+<dd class="dd">CD-ROM block devices; see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a>
+  in the <cite class="cite">Utilities Reference</cite> for driver information.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/con</span><var class="keyword varname">n</var></dt>
+
+<dd class="dd">Text mode console TTY device; see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-con.html"><span class="keyword cmdname">devc-con</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/console</span></dt>
+
+<dd class="dd">The device that's used for diagnostic log messages; on a full x86 system, this
+  is a write-only device managed by the system logger,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/slogger2.html"><span class="keyword cmdname">slogger2</span></a>.
+  Buildfiles for embedded systems may configure a link from this path to
+  another device, such as a serial port. See <span class="keyword cmdname">slogger2</span> in the
+  <cite class="cite">Utilities Reference</cite>.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/hd</span><var class="keyword varname">n</var></dt>
+
+<dd class="dd">Hard disk block devices; data representing an entire drive, spanning all partitions; see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/hd</span><var class="keyword varname">n</var><span class="ph filepath">t</span><var class="keyword varname">n</var></dt>
+
+<dd class="dd">Hard disk partition block devices; the data in these devices is a subset of that
+  represented by the corresponding <span class="ph filepath">hd</span><var class="keyword varname">n</var> file; see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/mqueue</span></dt>
+
+<dd class="dd">A pathname space where entries for message queues appear; for more information, see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/null</span></dt>
+
+<dd class="dd">A <q class="q">bit bucket</q> that you can direct data to. The data is discarded.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/pci</span></dt>
+
+<dd class="dd">Adopted by the PCI server on the machine, this device lets programs communicate
+  with the PCI server. See
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-p.html"><span class="keyword cmdname">pci-*</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/pipe</span></dt>
+
+<dd class="dd">Adopted by the
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pipe.html"><span class="keyword cmdname">pipe</span></a>
+  manager. The presence of this file tells other programs (such as a
+  startup script built into an OS image) that the Pipe manager is successfully running.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/pty[p-zP-T][0-9a-f]</span></dt>
+
+<dd class="dd">The control side of a pseudo-terminal device pair. Pseudo-ttys are named with a
+  letter (p–z or P–T) followed by a hexadecimal digit, making it
+  possible to have up to 256 devices. See
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/devc-pty.html"><span class="keyword cmdname">devc-pty</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/random</span></dt>
+
+<dd class="dd">Read from this device to obtain random data; see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/r/random.html"><span class="keyword cmdname">random</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/sem</span></dt>
+
+<dd class="dd">A pathname space where entries for named semaphores appear.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/ser</span><var class="keyword varname">n</var></dt>
+
+<dd class="dd">Serial ports. See
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/stty.html"><span class="keyword cmdname">stty</span></a>
+  for configuration, and
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devc-ser*</span></a>
+  for driver details in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/shmem/</span></dt>
+
+<dd class="dd">Contains files representing shared memory regions on the system (also sometimes
+  used for generic memory-mapped files). For more information, see the description of the
+  <a class="xref" href="fsystems_RAM.html" title="QNX OS provides a simple RAM-based “filesystem” that allows read/write files to be placed under /dev/shmem.">RAM <q class="q">filesystem</q></a> in Working with Filesystems.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/socket/</span></dt>
+
+<dd class="dd">This directory is owned and managed through the TCP/IP stack, which is included in <span class="keyword cmdname">io-sock</span>.
+  This directory contains pathnames through which applications interact with the stack.
+  For more information, see the <a class="xref" href="tcpip.html" title="The term TCP/IP implies two distinct protocols: TCP and IP. Since these protocols have been used so commonly together, TCP/IP has become a standard terminology in today's Internet. Essentially, TCP/IP refers to network communications where the TCP transport is used to deliver data across IP networks.">TCP/IP Networking</a> chapter in this guide.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/text</span></dt>
+
+<dd class="dd">This file is managed by
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>.
+  Text written to this device is output through debug output routines
+  encoded in the startup code for your system, so the actual result varies from board to board.
+  On a standard PC, the default is to write to the PC console.
+  For more information, see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-s.html"><span class="keyword cmdname">startup-*</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/tty</span></dt>
+
+<dd class="dd">A virtual device owned by the process manager
+  (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>)
+  that resolves to the controlling terminal device associated with the
+  session of any process that opens the file. This is useful for programs that may
+  have closed their standard input, standard output, or standard error, and later
+  wish to write to the terminal device.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/tty[p-zP-T][0-9a-f]</span></dt>
+
+<dd class="dd">The worker side of the corresponding <span class="ph filepath">/dev/pty[p-zP-T][0-9a-f]</span> file.
+  The program being controlled typically uses one of these files for its standard input,
+  standard output, and standard error.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/zero</span></dt>
+
+<dd class="dd">Supplies an endless stream of bytes having a value of zero.
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/etc</span></h2>
+
+
+<p class="p">
+
+The <span class="ph filepath">/etc</span> directory contains host-specific system files and programs used for
+administration and configuration, including:
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/config/</span></dt>
+
+<dd class="dd">A directory that contains system-configuration files.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/default/</span></dt>
+
+<dd class="dd">A directory that contains default configuration files, primarily for TCP/IP facilities.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/dhcpcd.conf</span></dt>
+
+<dd class="dd">Dynamic Host Configuration Protocol client (<span class="keyword cmdname">dhcpcd</span>) configuration file;
+go to <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/dhcpcd.conf.html"><span class="ph filepath">dhcpcd.conf</span></a> in the <cite class="cite">Utilities Reference</cite>.
+
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/group</span></dt>
+
+<dd class="dd">User account group definitions; see
+  <a class="xref" href="accounts.html" title="This chapter explains how user accounts work, how users can change their password by using the passwd utility, and how system administrators can use the passwd utility and edit account database files to create and maintain users' accounts.">Managing User Accounts</a>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/hosts</span></dt>
+
+<dd class="dd">Network hostname lookup database; see also
+  <span class="ph filepath">/etc/nsswitch.conf</span> and
+  <span class="ph filepath">/etc/resolv.conf</span>, below. See
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/h/hosts.html"><span class="ph filepath">/etc/hosts</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/motd</span></dt>
+
+<dd class="dd">Contains an ASCII message of the day that may be displayed when users log in, as
+  long as <span class="ph filepath">/etc/profile</span> is configured to display it.
+  
+  
+
+  <p class="p">
+  
+  
+  The default <span class="ph filepath">/etc/profile</span> displays this
+  file only if the <span class="ph filepath">/etc/motd</span> file is more recent than the
+  time you last logged in to the system, as determined by the time your <span class="ph filepath">
+  <span class="keyword envar">$HOME</span>/.lastlogin</span> file was last modified. For
+  more information, see the description of
+  <a class="xref" href="environment_etc_profile.html" title="The login shell executes /etc/profile if this file exists and is readable. This file does the shell setup that applies to all users, so you'll be interested in it if you're the system administrator; you need to log in as root in order to edit it."><span class="ph filepath">/etc/profile</span></a>
+  in Configuring Your Environment.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/networks</span></dt>
+
+<dd class="dd">Network name database file. For more information, see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/n/networks.html"><span class="ph filepath">/etc/networks</span></a> in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/nsswitch.conf</span></dt>
+
+<dd class="dd">Name-service switch configuration file. For more information, see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/n/nsswitch.conf.html"><span class="ph filepath">/etc/nsswitch.conf</span></a> in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/opasswd</span></dt>
+
+<dd class="dd">Backup of <span class="ph filepath">/etc/passwd</span> file before its last change via the
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/passwd.html"><span class="keyword cmdname">passwd</span></a>
+  utility.
+  See the <a class="xref" href="accounts.html" title="This chapter explains how user accounts work, how users can change their password by using the passwd utility, and how system administrators can use the passwd utility and edit account database files to create and maintain users' accounts.">Managing User Accounts</a> chapter.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/oshadow</span></dt>
+
+<dd class="dd">Backup of <span class="ph filepath">/etc/shadow</span> file before its last change via the
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/passwd.html"><span class="keyword cmdname">passwd</span></a>
+  utility.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/passwd</span></dt>
+
+<dd class="dd">This file defines login accounts.
+  See the chapter
+  <a class="xref" href="login.html" title="QNX OS is a multiuser operating system; it lets multiple users log in and use the system simultaneously, and it protects them from each other through a system of resource ownership and permissions.">Logging In, Logging Out, and Shutting Down</a>, as well as
+  <a class="xref" href="accounts.html" title="This chapter explains how user accounts work, how users can change their password by using the passwd utility, and how system administrators can use the passwd utility and edit account database files to create and maintain users' accounts.">Managing User Accounts</a>
+  for more details; also see
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/passwd.html"><span class="keyword cmdname">passwd</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/login.html"><span class="keyword cmdname">login</span></a>
+  in the <cite class="cite">Utilities Reference</cite>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/profile</span></dt>
+
+<dd class="dd">The startup profile script executed by the shell when you log in; it's executed before
+  <span class="ph filepath"><span class="keyword envar">$HOME</span>/.profile</span>. See
+  <a class="xref" href="environment.html" title="The Building Embedded Systems guide describes what happens when you boot your system, and what you can do to customize it. This chapter describes how you can customize the environment that you get when you log in, and then describes some of the setup you might need to do.">Configuring Your Environment</a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/profile.d/</span></dt>
+
+<dd class="dd">A directory where the default <span class="ph filepath">/etc/profile</span> script looks for
+  scripts to run when any user logs in. The <span class="ph filepath">/etc/profile</span>
+  script runs each script in this directory that matches
+  <span class="ph codeph">*.$(SHELL##*/}</span>. For example, if the value of the
+  <span class="keyword envar">SHELL</span> environment variable is <span class="ph filepath">/bin/sh</span>,
+  the script runs the scripts that match <span class="ph filepath">*.sh</span>.
+  
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/resolv.conf</span></dt>
+
+<dd class="dd">Resolver configuration file; see also <span class="ph filepath">/etc/hosts</span>, above.
+  See <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/r/resolv.conf.html"><span class="ph filepath">/etc/resolv.conf</span></a> in the <cite class="cite">Utilities Reference</cite>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/etc/skel/</span></dt>
+
+<dd class="dd">A directory that holds the default version of <span class="ph filepath">.profile</span>.
+  When you add a new user to the system, this file is copied to the user's home
+  directory. For more information, see the description of
+  <span class="ph filepath">/etc/default/passwd</span> in the documentation for
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/passwd.html"><span class="keyword cmdname">passwd</span></a>,
+  and the description of <a class="xref" href="environment_profile.html" title="The system runs $HOME/.profile whenever you log in, after it runs /etc/profile. If you change your .profile, the changes don't go into effect until you next log in."><span class="ph filepath">.profile</span></a>
+  in Configuring Your Environment.
+  
+  
+</dd>
+
+
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/home</span></h2>
+
+
+<p class="p">
+
+
+The home directories of regular users are found here.
+The name of your home directory is often the same as your user name.
+You can create whatever directory structure you need inside your home directory.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/lib</span></h2>
+
+
+<p class="p">
+
+
+This directory contains essential shared libraries that programs need in order to run
+(<var class="keyword varname">filename</var><span class="ph filepath">.so</span>),
+as well as static libraries used during development.
+See also <span class="ph filepath">/usr/lib</span> and <span class="ph filepath">/usr/local/lib</span>.
+</p>
+
+
+<p class="p">
+The <span class="ph filepath">/lib</span> directory includes:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/lib/dll/</span></dt>
+
+<dd class="dd">Contains additional shared libraries that implement OS drivers and services, such as drivers,
+            filesystem managers, and so on. For some examples of how shared libraries are used for
+            certain types of drivers and services, see <a class="xref" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems</a>and
+              <a class="xref" href="../../com.qnx.doc.neutrino.sys_arch/topic/tcpip.html">TCP/IP Networking</a>
+            in the <cite class="cite">System Architecture</cite> guide. For details about specific shared objects
+            in the <span class="ph filepath">/lib/dll</span> directory, see their respective entries in the
+              <cite class="cite">Utilities Reference</cite>. 
+            
+            
+          </dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/proc</span></h2>
+
+
+<p class="p">
+
+
+
+Owned by the process manager (<span class="keyword cmdname">procnto</span>),
+this virtual directory can give you information about processes and
+pathname-space configuration.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+The <span class="ph filepath">/proc</span> directory contains a subdirectory for each process;
+the process ID is used as the name of the directory.
+Each of these directories contains entries that you can (with the appropriate permission) use to access
+the process's address space, control its threads, and so on.
+Various utilities use this entry to get information about a process.
+For more information, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_proc_filesystem.html">Controlling processes via the <span class="ph filepath">/proc</span> filesystem</a></q>
+in the Processes chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</p>
+
+
+<p class="p">
+The <span class="ph filepath">/proc</span> directory also includes:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/proc/boot/</span></dt>
+
+<dd class="dd">The image filesystem that comprises the boot image.
+  For more information, see
+  <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/os_images/images_about.html">OS Images</a>
+  in <cite class="cite">Building Embedded Systems</cite>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/proc/dumper</span></dt>
+
+<dd class="dd">A special entry that receives notification when a process terminates abnormally.
+  The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/dumper.html"><span class="keyword cmdname">dumper</span></a>
+  utility creates this entry.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/proc/mount/</span></dt>
+
+<dd class="dd">Pathname-space mountpoints.
+  
+  
+
+  <div class="note"><span class="notetitle">Note:</span> 
+    If you list the contents of the <span class="ph filepath">/proc</span> directory,
+    <span class="ph filepath">/proc/mount</span> doesn't show up, but you can list the
+    contents of <span class="ph filepath">/proc/mount</span>.
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/proc/self/</span></dt>
+
+<dd class="dd">The address space for yourself (i.e., for the process that's making the query).
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/root</span></h2>
+
+
+<p class="p">
+
+
+The <span class="ph filepath">/root</span> directory is the home directory for the
+<span class="ph filepath">root</span> user.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/sbin</span></h2>
+
+
+<p class="p">
+
+
+This directory contains essential system binaries, including:
+</p>
+
+
+<ul class="ul">
+<li class="li">drivers (e.g.,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb*</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devc*</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devf*</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devu*</span></a>)
+  
+</li>
+
+
+
+
+<li class="li">initialization programs</li>
+
+
+<li class="li">configuration utilities (e.g.,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/ifconfig.html"><span class="keyword cmdname">ifconfig</span></a>)
+  and repair utilities (e.g.,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chkqnx6fs.html"><span class="keyword cmdname">chkqnx6fs</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chkdosfs.html"><span class="keyword cmdname">chkdosfs</span></a>)
+</li>
+
+
+<li class="li">managers (e.g.,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/io-sock.html"><span class="keyword cmdname">io-sock</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mqueue.html"><span class="keyword cmdname">mqueue</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pipe.html"><span class="keyword cmdname">pipe</span></a>)
+  
+</li>
+
+
+</ul>
+
+
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/tmp</span></h2>
+
+
+<p class="p">
+
+
+
+This directory contains temporary files.
+Programs are supposed to remove their temporary files after using them, 
+but sometimes they don't, either due to poor coding or abnormal termination.
+You can periodically clean out extraneous temporary files when your system is idle.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/usr</span></h2>
+
+
+<p class="p">
+
+The <span class="ph filepath">/usr</span> directory is a secondary file hierarchy that contains shareable, read-only data.
+It might include the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/bin/</span></dt>
+
+<dd class="dd">A directory that contains most user commands.
+  Examples include
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/diff.html"><span class="keyword cmdname">diff</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/e/errno.html"><span class="keyword cmdname">errno</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/w/wc.html"><span class="keyword cmdname">wc</span></a>.
+  
+  
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/lib/</span></dt>
+
+<dd class="dd">Object files, libraries, and internal binaries that you shouldn't execute
+  directly or in scripts. You'll link against these libraries if you write any programs.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/libexec/</span></dt>
+
+<dd class="dd">A directory that could contain system daemons and system utilities; in general,
+  these are run only by other programs.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/local/</span></dt>
+
+<dd class="dd">A directory where the system administrator can install software locally. It's initially empty.
+  
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/sbin/</span></dt>
+
+<dd class="dd">Nonessential system binaries, such as
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/cron.html"><span class="keyword cmdname">cron</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/dumper.html"><span class="keyword cmdname">dumper</span></a>.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/usr/share/</span></dt>
+
+<dd class="dd">Data that's independent of the architecture, such as icons, backdrops, and various
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/g/gawk.html"><span class="keyword cmdname">gawk</span></a> programs.
+  
+  
+  
+</dd>
+
+
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle"><span class="ph filepath">/var</span></h2>
+
+
+<p class="p">
+
+The <span class="ph filepath">/var</span> directory contains variable data files, including cache files, lock files,
+log files, and so on.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/files.html" title="In a QNX OS system, almost everything is a file; devices, data, and even services are all typically represented as files. This lets you work with local and remote resources easily from the command line, or through any program that works with files.">Working with Files</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/fsystems.html" title="The QNX OS provides a variety of filesystems, so that you can easily access DOS, Linux, as well as native Power-Safe disks.">Working with Filesystems</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/c/chgrp.html">chgrp</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/c/chmod.html">chmod</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/c/chown.html">chown</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/l/ls-target.html">ls</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umask.html">umask</a></li></ul></div>
+</div></body>
+</html>

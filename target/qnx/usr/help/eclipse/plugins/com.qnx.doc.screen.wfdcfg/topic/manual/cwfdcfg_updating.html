@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Updating Wfdcfg source (adding extensions)" />
+<meta name="abstract" content="You may want to update your Wfdcfg source if your display supports specific options that you want to control." />
+<meta name="description" content="You may want to update your Wfdcfg source if your display supports specific options that you want to control." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), OpenWF Configuration Developer's Guide, API, Programming" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), OpenWF Configuration Developer's Guide, API, Programming" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="wfdcfg_updating" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Updating Wfdcfg source (adding extensions)</title>
+</head>
+<body id="wfdcfg_updating">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Updating Wfdcfg source (adding extensions)</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        You may want to update your Wfdcfg source if your display supports
+        specific options that you want to control.
+    </p>
+
+        <p class="p">
+            For most part, other than the timing parameters, there's no need to
+            update the Wfdcfg source. However, some displays on some platforms
+            may support specific options that require extensions on the
+            structures or implementation of callbacks. Not all display drivers
+            support the use of callback functions.
+        </p>
+
+        <div class="p">
+            Extensions are added by defining an array of <span class="ph codeph">wfdcfg_keyval</span>
+            structures. Each extension is identified through a name (<span class="ph codeph">key</span>)
+            and data that is associated with it.
+            <pre class="pre codeblock">struct wfdcfg_keyval {
+    const char *key;    /**&lt; Identifier of extension */
+    long i;             /**&lt; Data associated to extension */
+    void *p;            /**&lt; Data associated to extension */
+};
+            </pre>
+        </div>
+
+        <p class="p">
+            Usually, when there are extensions that are platform-specific,
+            these extensions are declared in a separate header file that is
+            not <span class="ph filepath">wfdcfg.h</span>. Conventionally, the header
+            file is named <span class="ph filepath">wfdcfg_<var class="keyword varname">platform</var>.h</span>
+            where <var class="keyword varname">platform</var> refers to the platform of
+            your target hardware.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Declaring extensions</h2>
+            
+            <div class="p">
+                If your display can support additional configuration
+                or settings, then you'll declare these extensions as constants
+                in the source header file. Extensions can be added for:
+                <ul class="ul">
+                    <li class="li">devices (<span class="ph codeph">wfdcfg_device</span>)</li>
+
+                    <li class="li">ports(<span class="ph codeph">wfdcfg_port</span>)</li>
+
+                    <li class="li">modes (<span class="ph codeph">wfdcfg_timing</span>)</li>
+
+                    <li class="li">mode lists (<span class="ph codeph">wfdcfg_mode_list</span>)</li>
+
+                </ul>
+
+            </div>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Callback functions</dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            An extension that provides the display driver a
+                            function to call when appropriate. An extension for
+                            a callback function needs declaration of the
+                            following:
+                        </p>
+
+                        <ul class="ul">
+                            <li class="li">the name of the extension</li>
+
+                            <li class="li">the prototype of the callback function</li>
+
+                        </ul>
+
+                        <p class="p">
+                            For example, the following is a declaration of a
+                            callback function extension. This function initializes
+                            the port and is to be called when the <span class="ph codeph">wfdcfg_port</span>
+                            is created.
+                        </p>
+
+                        <pre class="pre codeblock">/**
+ * Port initialisation.  If this port extension exists, the WFD driver
+ * will call the given function when the port is created.
+ *  .p  (of is a pointer to a function of type wfdcfg_ext_fn_port_init_t
+ *      (which returns EOK on success or another errno code on failure)
+ *  .i must be zero
+ */
+#define WFDCFG_EXT_FN_PORT_INIT "port_init"
+typedef int (wfdcfg_ext_fn_port_init_t)(struct wfdcfg_port*);
+                        </pre>
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Attributes</dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            An extension that provides information for the
+                            configuration of the display hardware.
+                        </p>
+
+                        <p class="p">
+                            The following are examples of such an
+                            extension:
+                        </p>
+
+                        <pre class="pre codeblock">/**
+ *  The HSP clock frequency in kHz.  This is a device extension.
+ *  .p must be NULL
+ *  .i gives the clock speed in kHz.
+ */
+#define WFDCFG_EXT_HSP_CLOCK_KHZ "hsp_clock_kHz"
+
+/**
+ * Specifies the output format.  This is a port extension.
+ *  .p must be NULL
+ *  .i is a value from enum imx5x_output_formats (default: RGB888)
+ */
+#define WFDCFG_EXT_OUTPUT_FORMAT "output_format"
+enum imx5x_output_formats {
+    /* 24 bits (use for 18-bit SPWG too) */
+    WFDCFG_OUTPUT_FORMAT_RGB888 = 24,
+
+    /* 18 bits (parallel LCD panels, not LVDS) */
+    WFDCFG_OUTPUT_FORMAT_RGB666_PACKED = 18,
+
+    /* 18 bits (LVDS) */
+    WFDCFG_OUTPUT_FORMAT_RGB666_SPWG18 = 19,
+
+    /* 16 bits (parallel LCD panels) */
+    WFDCFG_OUTPUT_FORMAT_RGB565 = 16,
+};
+                        </pre>
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Defining extensions</h2>
+            
+            <p class="p">
+                Definitions of the extensions are usually added to the
+                source file <span class="ph filepath">wfdcfg.c</span>. However, you can define
+                them where you see fit, as long as you maintain binary compatibility.
+            </p>
+
+            <p class="p">
+                It's generally expected that there are separate lists for
+                the different types of extensions. That is, you'll have
+                one list for each of device, port, mode, and mode list extensions.
+            </p>
+
+            <p class="p">
+                The following are examples of different extension definitions:
+            </p>
+
+            <pre class="pre codeblock">static const struct wfdcfg_keyval device_exts[] = {
+    { WFDCFG_EXT_HSP_CLOCK_KHZ, .i = 200000 },
+    { NULL },   // marks end of list
+};
+
+static int port_init(struct wfdcfg_port*);
+
+static const struct wfdcfg_keyval port_exts[] = {
+    { WFDCFG_EXT_FN_PORT_INIT, .p = WFDCFG_FNPTR(
+            &amp;port_init, wfdcfg_ext_fn_port_init_t*) },
+    { NULL },   // marks end of list
+};
+
+static int
+port_init(struct wfdcfg_port *port)
+{
+    (void)port;
+    return EOK;
+}
+
+static const struct mode modes[] = {
+    {
+        // 800x480 @ 60.49 Hz
+        .timing = {
+            .pixel_clock_kHz = 32264,
+            .hpixels = 800, .hfp= 60, .hsw=124, .hbp= 32,  // 1016 total
+            .vlines  = 480, .vfp= 33, .vsw=  2, .vbp= 10,  //  525 total
+            .flags = WFDCFG_INVERT_VSYNC | WFDCFG_INVERT_HSYNC,
+            },
+        .ext_list = NULL,
+    },
+    { .timing = { .pixel_clock_kHz = 0 } }  // marks end of list
+};
+            </pre>
+        </div>
+
+    </div>
+
+</body>
+</html>

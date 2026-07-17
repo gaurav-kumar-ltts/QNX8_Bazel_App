@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Access control" />
+<meta name="abstract" content="Access control is the selective restriction of access to a resource. Access controls take many different forms and the sections below describe which ones can be used in QNX OS systems." />
+<meta name="description" content="Access control is the selective restriction of access to a resource. Access controls take many different forms and the sections below describe which ones can be used in QNX OS systems." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="access_control" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Access control</title>
+</head>
+<body id="access_control">
+
+
+	<h1 class="title topictitle1" id="ariaid-title1">Access control</h1>
+
+	
+		
+		<div class="body conbody"><p class="shortdesc">Access control is the selective restriction of access to a resource. Access controls
+		take many different forms and the sections below describe which ones can be used in <span class="keyword">QNX OS</span> systems.</p>
+
+	<div class="section"><h2 class="title sectiontitle"><span class="keyword cmdname">umask</span></h2><p class="p">You can use <span class="keyword cmdname">umask</span> to remove permissions when a file is created and apply this
+				behavior system-wide. For information, see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/u/umask.html"><span class="keyword apiname">umask()</span></a> in the <cite class="cite">C Library
+					Reference</cite> and <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/u/umask.html"><span class="keyword cmdname">umask</span></a> in the <cite class="cite">Utilities
+					Reference</cite>.</p>
+</div>
+
+
+
+			<div class="section"><h2 class="title sectiontitle">POSIX permissions</h2>
+				<p class="p">POSIX permissions are the mechanism by which access permissions can be set on a resource. For
+				example, the owner of a file in POSIX can assign read, write, and execute
+				permissions for themselves, groups, and others accessing the file. POSIX permissions
+				work in conjunction with the process UID and GID values including supplementary GIDs
+				(referred to as SGIDs or groups). POSIX permissions are always present in a <span class="keyword">QNX OS</span> system and are not optional.</p>
+<p class="p">You can view POSIX permissions in the output of the <span class="keyword cmdname">ls -l</span> command on a
+				directory. For example:</p>
+<pre class="pre codeblock"># ls -la / 
+total 1797040
+drwxrwxr-x  12 root      root           4096 Jun 02 16:17 .
+drwxrwxr-x  12 root      root           4096 Jun 02 16:17 ..
+drwx------   2 root      root           4096 Jun 02 16:17 .boot
+drwxrwxr-x   2 root      root           4096 Jun 02 16:17 bin
+dr-xr-xr-x   2 root      root              0 Jun 02 17:11 dev
+drwxr-xr-x   5 root      root           4096 Jun 02 17:00 etc
+drwxr-xr-x   3 root      root           4096 Jun 02 16:17 home
+drwxr-xr-x   3 root      root           4096 Jun 02 16:17 lib
+dr-xr-xr-x   2 root      root      920035328 Jun 02 17:11 proc
+drwx------   2 root      root           4096 Jun 02 16:17 root
+drwxrwxr-x   2 root      root           4096 Jun 02 16:17 sbin
+drwxrwxrwx   2 root      root           4096 Jun 02 16:17 tmp
+drwxr-xr-x   7 root      root           4096 Jun 02 16:17 usr
+drwxr-xr-x   5 root      root           4096 Jun 02 16:17 var</pre>
+			<p class="p">The diagram below explains some of the fields related to POSIX permissions in the output above
+				(mainly columns 1, 3, and 4).</p>
+
+			<br /><img class="image" src="../../images/lsOutputV5.png" width="750" /><br />
+			<p class="p">For more information, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/files_PERMISSIONS.html">File ownership and permissions</a></q> in the <cite class="cite">User's
+				Guide</cite></p>
+
+			<h3 class="title sectiontitle">Access control lists (ACLs)</h3>
+				<p class="p">Access control lists (ACLs) are a form of finer grained and supplementary access control that
+				can be granted on files, directories and other ephemeral system objects like
+				resource manager paths. They can also serve as a way to dynamically apply POSIX
+				permissions based on system settings and control decisions (like granting
+				third-party services and applications access to system resources). This is
+				controlled at runtime using the <span class="keyword cmdname">setfacl</span> utility or
+				programmatically with <span class="keyword apiname">acl_set_file()</span> or
+					<span class="keyword apiname">acl_set_fd()</span>. For example:</p>
+
+			<pre class="pre codeblock"># ls -l ntp.conf 
+-rw-r--r--   1 root      root              0 Feb 06 15:14 ntp.conf
+# setfacl -m user:99:rw- ntp.conf 
+# ls -l
+total 0
+-rw-rw-r--+  1 root      root              0 Feb 06 15:14 ntp.conf</pre>
+			<p class="p">Note that this output has added the Extra bit (‘+’) on the end of the permissions to indicate
+				that there is additional access control information. The Extra bit is a single
+				character that specifies whether an alternate access method applies to the file.
+				When this character is a space, there is no alternate access method. To inspect the
+				information, use <span class="keyword cmdname">getfacl</span>. For example:</p>
+
+			<pre class="pre codeblock"># getfacl ntp.conf
+# file: ntp.conf
+# owner: root
+# group: root
+user::rw-
+user:99:rw-
+group::r--
+mask::rw-
+other::r--</pre>
+			<p class="p">Only <span class="ph filepath">root</span> or the owner of a file can change its ACLs. (For information on
+				setting ACLs for resources, see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/a/acl_set_file.html"><span class="keyword apiname">acl_set_file()</span></a> in the <cite class="cite">C Library
+					Reference</cite> or <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/setfacl.html"><span class="keyword cmdname">setfacl</span></a> in the <cite class="cite">Utilities
+					Reference</cite>.</p>
+
+				<p class="p">
+					ACL support is usually non-persistent; however, the Power-Safe Filesystem (QNX6) and the QNX Compressed
+					Filesystem (QCFS) support persistent ACLs. Some other filesystems that <span class="keyword">QNX OS</span>
+					supports do not have ACL support.
+				</p>
+
+				<div class="p">
+					There are two ways to configure ACLs:<ul class="ul">
+						<li class="li">with pre-configuration on an image</li>
+
+						<li class="li">at runtime</li>
+
+					</ul>
+
+					Read-only filesystems must be pre-configured on an image. Trying to modify them at runtime will 
+					result in an error.
+				</div>
+
+				<h3 class="title sectiontitle">Resource manager mount point permissions</h3>
+			<p class="p">It's important to verify the ownership and permissions of resource manager mount points. These
+				resources are usually paths under <span class="ph filepath">/dev</span>, but they can be
+				anywhere.</p>
+
+			<p class="p">A few resource managers provide command line options to set permissions, but many do
+				not. If resource managers use <span class="keyword apiname">secpol_resmgr_attach()</span> to establish
+				mount points, the permissions and ownership can be set via a security policy. For
+				more information, go to
+				<q class="q"><a class="xref" href="secpol_language.html#secpol_language__mount_point">Setting ownership
+			    and permissions for mount points</a></q> in the <q class="q">Security policy
+			    language</q> section.</p>
+
+			<p class="p">If a system uses security policies, you can use <span class="keyword cmdname">secpolgenerate</span> to
+				identify resource managers that use <span class="keyword apiname">secpol_resmgr_attach()</span>.
+				Although a policy generated by <span class="keyword cmdname">secpolgenerate</span> can't assign
+				permissions and ownership, it does indicate as comments any mount points that can be
+				configured via <span class="keyword apiname">secpol_resmgr_attach()</span>.</p>
+
+			<p class="p">If the resource manager does not provide any method for adjusting ownership or permissions,
+				they might have to be changed manually after starting the resource manager using one
+				or more of the <span class="keyword cmdname">chown</span>, <span class="keyword cmdname">chmod</span>, or
+					<span class="keyword cmdname">setfacl</span> commands.</p>
+
+			
+			</div>
+
+		<div class="section" id="access_control__setuid"><h2 class="title sectiontitle">Setuid and setgid programs</h2>Executables can have the setuid or setgid
+			permission bits set to have them run with the user ID or group ID of the executable’s
+			owner or group. These bits can be a convenient way to allow a process to execute
+			something that requires additional privilege. Setting these bits may also introduce
+			security problems, particularly where an executable is setuid <span class="ph filepath">root</span>.
+			To improve security:<ul class="ul" id="access_control__ul_odq_kqy_4lb">
+				<li class="li">
+					<p class="p">Do not make a program setuid unless it was explicitly designed to be run this
+						way. </p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Consider using pathtrust to prevent setuid programs being run from untrusted
+						file systems. See <q class="q"><a class="xref" href="pathtrust.html" title="The pathtrust feature prevents processes from executing untrusted code. If a process is compromised, pathtrust mitigates the threat of the system being further compromised by an attacker using chained-together exploits.">Pathtrust</a></q>.</p>
+
+				</li>
+
+			</ul>
+</div>
+
+			<div class="section"><h2 class="title sectiontitle">Pluggable authentication modules - OpenPAM</h2>
+			<span class="keyword">QNX OS</span> ships with the OpenPAM framework that allows
+			integration of low-level authentication mechanisms through a high-level programming API.
+			All QNX utilities (<span class="keyword cmdname">su</span>, etc.) use PAM for authentication purposes. To
+			help with PAM system configuration, QNX provides additional <span class="keyword apiname">confstr()</span>
+			extensions to allow you to locate the PAM modules (<span class="keyword const">_CS_PAMLIB</span>) and
+			configuration files (<span class="keyword const">_CS_PAMCONF</span>) in a different location than the
+			standard paths.
+		<p class="p">For more information, see the <q class="q"><a class="xref" href="pam.html" title="Systems that need authentication can use pluggable authentication module (PAM), a configurable standard library.">PAM</a></q> chapter.</p>
+
+			</div>
+
+			<div class="section"><h2 class="title sectiontitle">Identifying abilities added to override incorrect permissions</h2>
+			
+			<p class="p">POSIX permissions can restrict what files a process can read and the directories it can access
+				files in. If these permissions are incorrect, they can prevent a process from
+				opening all the files that it needs access to. On systems that use security
+				policies, the security policies generation process may overcome this problem by
+				giving a process the <tt class="ph tt">iofunc/read</tt> ability (allows read access to all files),
+				the <tt class="ph tt">iofunc/exec</tt> ability (grants search access for all directories), or
+				both. There are very few cases where giving a process this kind of broad access is
+				warranted and it might represent a security issue.</p>
+
+			<p class="p">You can use <span class="ph filepath">secpol-preload.so</span> to help you discover the paths that might
+				generate too-permissive abilities. When this library is loaded, it generates system
+				trace events that indicate that file access requires either <tt class="ph tt">iofunc/read</tt> or
+					<tt class="ph tt">iofunc/exec</tt>.</p>
+
+			<div class="p">To use <span class="ph filepath">secpol-preload.so</span>, it has to be preloaded into all
+				resource managers. Typically this is done early on in the IFS startup script. For
+				example: <pre class="pre codeblock">LD_PRELOAD=secpol-preload.so</pre></div>
+
+			<div class="p">There are two ways to view the trace events:<ul class="ul" id="access_control__ul_nmk_g45_jsb">
+					<li class="li">After running <span class="keyword cmdname">secpolgenerate</span>, the paths are included in the security
+						policy file, error file, or both.</li>
+
+					<li class="li">If security policy generation is not being used, use
+							<span class="keyword cmdname">secpolmonitor</span> with the <span class="keyword option">-O</span>
+						option.</li>
+
+				</ul>
+</div>
+
+			<div class="p">When <span class="keyword cmdname">secpolgenerate</span> or <span class="keyword cmdname">secpolmonitor</span> point out
+				a path that results in the use of <tt class="ph tt">iofunc/read</tt> or <tt class="ph tt">iofunc/exec</tt>, you
+				usually want to change things so that the process can access the file or directory
+				without those abilities. Possible solutions include:<ul class="ul" id="access_control__ul_mj5_4vz_jsb">
+					<li class="li">Loosening up the permissions on the file or directory (see <q class="q"><a class="xref" href="#access_control__posix">POSIX permissions</a></q>)</li>
+
+					<li class="li">Giving the process a supplementary group ID (GID) that has the required access (see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/setgroups.html"><span class="keyword apiname">setgroups()</span></a> in the
+							<cite class="cite">C Library Reference</cite>)</li>
+
+					<li class="li">Adding an ACL that provides the process access (see <q class="q"><a class="xref" href="#access_control__acls">Access control lists (ACLs)</a></q>)</li>
+
+				</ul>
+</div>
+
+			<p class="p">For more information about generating and monitoring security policies, see the <q class="q"><a class="xref" href="security_policies.html">Security Policies</a></q> chapter.</p>
+
+		</div>
+
+		</div>
+
+</body>
+</html>

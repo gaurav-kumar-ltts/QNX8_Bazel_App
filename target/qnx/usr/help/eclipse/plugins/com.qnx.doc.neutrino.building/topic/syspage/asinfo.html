@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="asinfo" />
+<meta name="abstract" content="Array of structures describing different sections of the system memory map (e.g., RAM, SRAM, flash, I/O ranges)" />
+<meta name="description" content="Array of structures describing different sections of the system memory map (e.g., RAM, SRAM, flash, I/O ranges)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="asinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>asinfo</title>
+</head>
+<body id="asinfo">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><var class="keyword varname">asinfo</var></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc"><em class="ph i">Array of structures describing different sections of the system memory map (e.g.,
+			RAM, SRAM, flash, I/O ranges)</em></p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			<div class="p">The <var class="keyword varname">asinfo</var> (Address Space Information) section consists of an
+				array of <span class="keyword dtype">asinfo</span> structures:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><var class="keyword varname">start</var></dt>
+
+						<dd class="dd">The first physical address of the range being described.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">end</var></dt>
+
+						<dd class="dd">The last physical address of the range being described. Note that this
+							is the actual last byte, <em class="ph i">not</em> one beyond the end.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">owner</var></dt>
+
+						<dd class="dd">An offset from the start of the section giving the owner of this entry
+							(its <q class="q">parent</q> in the tree). It's set to <span class="keyword const">AS_NULL_OFF</span>
+							if the entry doesn't have an owner (it's at the <q class="q">root</q> of the
+							address space tree).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">name</var></dt>
+
+						<dd class="dd">An offset from the start of the <var class="keyword varname">strings</var> section of
+							the system page giving the string name of this entry. </dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+						<dd class="dd">A bitfield describing attributes of the address range (see <q class="q"><a class="xref" href="#asinfo__attr">attr</a></q> below).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">priority</var></dt>
+
+						<dd class="dd">Indicates the speed of the memory in the address range. A smaller number
+							means slower memory. The macro <span class="keyword const">AS_PRIORITY_DEFAULT</span> is
+							defined to use a default value for this field (currently defined as 100).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">alloc_checker</var></dt>
+
+						<dd class="dd">Not currently used.</dd>
+
+					
+				</dl>
+</div>
+
+			<p class="p">Each array entry describes the attributes of one address space section on the
+				machine. The memory map has a tree format; that is, an address range can have a
+				parent. The information in the <var class="keyword varname">asinfo</var> structures can be
+				hard-coded from the system memory map, or read in from the memory controller.</p>
+
+			<p class="p">When <span class="keyword cmdname">procnto</span> is managing virtual memory for process address
+				spaces, it uses the information in <var class="keyword varname">asinfo</var> to know from where in
+				RAM it can allocate memory.</p>
+
+		</div>
+
+		<div class="section" id="asinfo__attr"><h2 class="title sectiontitle"><var class="keyword varname">attr</var></h2>
+			
+			
+			
+			<div class="p">The <var class="keyword varname">attr</var> field can have the following bits:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><span class="keyword const">AS_ATTR_KIDS 0x0010</span></dt>
+
+						<dd class="dd">Other entries use this entry as their owner.</dd>
+
+						<dd class="dd ddexpand">The library turns on this bit automatically; you shouldn't specify it
+							when creating the section. </dd>
+
+					
+					
+						<dt class="dt dlterm"><span class="keyword const">AS_ATTR_CONTINUED 0x0020</span></dt>
+
+						<dd class="dd">Multiple entries are used to describe one <q class="q">logical</q> address range.
+							This bit will be on in all but the last entry.</dd>
+
+						<dd class="dd ddexpand">The library turns on this bit and uses it internally; you shouldn't
+							specify it when creating the section. </dd>
+
+					
+				</dl>
+</div>
+
+		</div>
+
+		<div class="section" id="asinfo__trees"><h2 class="title sectiontitle">Address space trees</h2>
+			
+			<p class="p">The <var class="keyword varname">asinfo</var> section contains trees describing address spaces (where
+				RAM, ROM, flash, etc. are located). </p>
+
+			<div class="p">The general hierarchy for address spaces is:
+				<pre class="pre codeblock">/memory/<var class="keyword varname">memclass</var>/...</pre> or:
+				<pre class="pre codeblock">/io/<var class="keyword varname">memclass</var>/...</pre> or:
+				<pre class="pre codeblock">/memory/io/<var class="keyword varname">memclass</var>/...</pre></div>
+
+			<p class="p">The <span class="ph codeph">memory</span> or <span class="ph codeph">io</span> indicates if this entry describes
+				something in the memory or the I/O address space. The third form
+				(<span class="ph codeph">/memory/io/<var class="keyword varname">memclass</var>/...</span>) is used on
+				machines without separate in/out instructions and where everything is
+				memory-mapped.</p>
+
+			<p class="p">The <var class="keyword varname">memclass</var> is something like <span class="ph codeph">ram</span>,
+				<span class="ph codeph">rom</span>, <span class="ph codeph">flash</span>, etc. Below
+				<var class="keyword varname">memclass</var> are further classifications, allowing the process
+				manager to provide typed memory support. </p>
+
+		</div>
+
+		<div class="section" id="asinfo__pidin"><h2 class="title sectiontitle">Understanding <span class="keyword cmdname">pidin</span> <var class="keyword varname">asinfo</var> output</h2>
+			
+			<p class="p">A brief examination of the following sample output from <span class="keyword cmdname">pidin
+				syspage=asinfo</span> (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/pidin.html"><span class="keyword cmdname">pidin</span></a>) may help you understand better the
+				information stored in the in the <span class="keyword dtype">syspage</span>
+				<var class="keyword varname">asinfo</var> array of structures:</p>
+
+<pre class="pre codeblock">Header size=0x00000108, Total Size=0x00000eb8, #Cpu=16, Type=256
+Section:asinfo offset:0x00000818 size:0x00000420 elsize:0x00000020
+0000) 0000000000000000-000000000000ffff o:ffff a:0000 p:100 c:0 n:/io
+0020) 0000000000000000-000fffffffffffff o:ffff a:0010 p:100 c:0 n:/memory
+0040) 0000000000000000-00000000ffffffff o:0020 a:0010 p:100 c:0 n:/memory/below4G
+0060) 0000000000000000-0000000000ffffff o:0020 a:0010 p:100 c:0 n:/memory/isa
+0080) 0000000006000000-00000000ffefffff o:0020 a:0013 p:100 c:0 n:/memory/device
+00a0) 00000000fff00000-00000000ffffffff o:0020 a:0005 p:100 c:0 n:/memory/rom
+00c0) 0000000000000000-000000000009ffff o:0060 a:0017 p:100 c:0 n:/memory/isa/ram
+00e0) 0000000000100000-0000000000ffffff o:0060 a:0037 p:100 c:0 n:/memory/isa/ram
+0100) 0000000001000000-0000000005ffffff o:0040 a:0037 p:100 c:0 n:/memory/below4G/ram
+0120) 0000000006000000-00000000772cafff o:0080 a:0017 p:100 c:0 n:/memory/device/ram
+0140) 00000000772db000-000000007d5e4fff o:0080 a:0017 p:100 c:0 n:/memory/device/ram
+0160) 000000007e0c2000-000000007f7fffff o:0080 a:0017 p:100 c:0 n:/memory/device/ram
+0180) 0000000100000000-000000027fffffff o:0020 a:0017 p:100 c:0 n:/memory/ram
+01a0) 000000007e0f8000-000000007e0f8023 o:0020 a:0007 p:100 c:0 n:/memory/acpi_rsdp
+01c0) 00000000fee00000-00000000fee003ef o:0020 a:0003 p:100 c:0 n:/memory/lapic
+01e0) 000000000142b308-0000000002c1caaf o:0020 a:0005 p:100 c:0 n:/memory/imagefs
+0200) 0000000001400200-000000000142b307 o:0020 a:0007 p:100 c:0 n:/memory/startup
+0220) 000000000142b308-0000000002c1caaf o:0020 a:0007 p:100 c:0 n:/memory/bootram
+0240) 0000000000000000-00000000ffffffff o:ffff a:0010 p:100 c:0 n:/virtual
+0260) ffff800000002000-ffff8000000f3590 o:0240 a:0000 p:100 c:0 n:/virtual/vboot
+0280) 0000000000001000-000000000003efff o:00c0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+02a0) 0000000000040000-000000000009ffff o:00c0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+02c0) 0000000000100000-0000000000107fff o:00e0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+02e0) 000000000010e000-0000000000112fff o:00e0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+0300) 0000000000119000-0000000000243fff o:00e0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+0320) 0000000000245000-0000000000ffffff o:00e0 a:0027 p:100 c:0 n:/memory/isa/ram/sysram
+0340) 0000000001000000-000000000142afff o:0100 a:0007 p:100 c:0 n:/memory/below4G/ram/sysram
+0360) 0000000002c1d000-0000000005ffffff o:0100 a:0027 p:100 c:0 n:/memory/below4G/ram/sysram
+0380) 0000000006000000-00000000772cafff o:0120 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+03a0) 00000000772db000-000000007d5e4fff o:0140 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+03c0) 000000007e0c2000-000000007e0f7fff o:0160 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+03e0) 000000007f240000-000000007f7fffff o:0160 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+0400) 0000000100000000-0000000279fc3fff o:0180 a:0007 p:100 c:0 n:/memory/ram/sysram</pre>
+			<p class="p">The following is information about the system page entry:</p>
+
+<pre class="pre codeblock">Header size=0x00000108, Total Size=0x00000eb8, #Cpu=16, Type=256
+Section:asinfo offset:0x00000818 size:0x00000420 elsize:0x00000020</pre>
+			<p class="p">where the first line describes the system page (see <var class="keyword varname">size</var>,
+					<var class="keyword varname">total_size</var>, <var class="keyword varname">num_cpu</var>, and
+					<var class="keyword varname">type</var> under <q class="q"><a class="xref" href="syspage_about.html" title="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory.">System Page</a></q>); and the
+				second line describes the <var class="keyword varname">asinfo</var> structure array:</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="ph codeph">offset:0x00000818</span></dt>
+
+					<dd class="dd">The offset, in bytes, of the <var class="keyword varname">asinfo</var> structure array in
+						the system page.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">size:0x00000420</span></dt>
+
+					<dd class="dd">The size, in bytes, of the <var class="keyword varname">asinfo</var> structure array.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">elsize:0x00000020</span></dt>
+
+					<dd class="dd">The size, in bytes, of each element in the <var class="keyword varname">asinfo</var>
+						structure array.</dd>
+
+				
+			</dl>
+
+			<p class="p">The above information is followed by a list of the <var class="keyword varname">asinfo</var>
+				elements, each one describing a section of memory on the system. Notice that the
+				number in the first column increments by the size of the element
+				(<span class="ph codeph">0x20</span>).</p>
+
+			<div class="p">If we parse this line and refer to the description of <var class="keyword varname">asinfo</var> above:
+<pre class="pre codeblock">0360) 0000000002c1d000-0000000005ffffff o:0100 a:0027 p:100 c:0 n:/memory/below4G/ram/sysram</pre>
+				we learn the following:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="ph codeph">0360)</span></dt>
+
+					<dd class="dd">This entry's offset (displayed as a hexadecimal value) within the
+							<var class="keyword varname">asinfo</var> structure array.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">0000000002c1d000</span></dt>
+
+					<dd class="dd">The memory region's offset in memory (<var class="keyword varname">start</var>).</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">0000000005ffffff</span></dt>
+
+					<dd class="dd">The offset in memory of the last byte of this memory region
+							(<var class="keyword varname">end</var>).</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">o:0100</span></dt>
+
+					<dd class="dd">The owner of the memory region, displayed as the hexadecimal offset of the
+						parent region.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">a:0027</span></dt>
+
+					<dd class="dd">This memory region's attributes; this value is a bitmap, displayed as a
+						hexadecimal value (<var class="keyword varname">attr</var>)</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph"> p:100</span></dt>
+
+					<dd class="dd">The memory region's priority, displayed as a decimal value
+							(<var class="keyword varname">priority</var>).</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">c:0</span></dt>
+
+					<dd class="dd">Not currently used (<var class="keyword varname">alloc_checker</var>).</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="ph codeph">n:/memory/below4G/ram/sysram</span></dt>
+
+					<dd class="dd">The memory region's descriptive name. Note that this name uses a tree to
+						describe the memory region (<var class="keyword varname">name</var>; see <q class="q"><a class="xref" href="#asinfo__trees">Address space trees</a></q> above).</dd>
+
+				
+			</dl>
+
+			</div>
+
+			<div class="p">For more information about:
+			<ul class="ul">
+				<li class="li">managing memory in a <span class="keyword">QNX OS</span> system —
+					<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/proc_memmgr.html">Memory management</a></q> in the <cite class="cite">System Architecture</cite>
+					<q class="q">Process Manager</q> chapter</li>
+
+				<li class="li">determining the location and size of system RAM and initializing the
+					<var class="keyword varname">asinfo</var> structure in the system page — <a class="xref" href="../startup_lib/init_raminfo.html" title="Determine the location and size of available system RAM and initialize the asinfo structure in the system page."><span class="keyword apiname">init_raminfo()</span></a> in the <q class="q">Startup Library</q>
+					chapter of this guide</li>
+
+				<li class="li">allocating and mapping memory — <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html"><span class="keyword apiname">malloc()</span></a> and <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span>, <span class="keyword apiname">mmap64()</span>,
+							<span class="keyword apiname">mmap_handle()</span></a> in the <cite class="cite">C Library
+						Reference</cite></li>
+
+				<li class="li">memory types (e.g., ram, sysram) — the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory</a></q> chapter in the 
+					<cite class="cite">Programmer's Guide</cite></li>
+
+				<li class="li">Virtual and physical systems — <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__Bootfile">Bootfile</a></q> in the <cite class="cite">Utilities Reference</cite>
+					<span class="keyword cmdname">mkifs</span> entry</li>
+
+			</ul>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

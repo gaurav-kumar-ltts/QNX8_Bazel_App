@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Adding cryptographic primitives" />
+<meta name="abstract" content="The libqcrypto_pluginS.a plugin library and qcrypto/qcrypto_plugin.h header file allow you to create a custom plugin to use with the qcrypto library." />
+<meta name="description" content="The libqcrypto_pluginS.a plugin library and qcrypto/qcrypto_plugin.h header file allow you to create a custom plugin to use with the qcrypto library." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Adding cryptographic primitives</title>
+</head>
+<body id="bluetooth_client_api">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Adding cryptographic primitives</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">The <span class="ph filepath">libqcrypto_pluginS.a</span> plugin library and
+      <span class="ph filepath">qcrypto/qcrypto_plugin.h</span> header file allow you to create a custom plugin
+    to use with the <span class="ph filepath">qcrypto</span> library.</p>
+
+    <p class="p">For detailed information on the plugin API, see <q class="q"><a class="xref" href="../about_qcrypto__plugin_8h.html" title="QNX cryptography library plugin API.">qcrypto_plugin.h</a></q>.</p>
+
+    <p class="p">For information about the plugins that ship with the <span class="ph filepath">qcrypto</span> library,
+      see <q class="q"><a class="xref" href="qcrypto_certicom_plugin.html" title="The qcrypto library Certicom plugin provides support for the Certicom cryptography library.">Certicom plugin</a></q>,  <q class="q"><a class="xref" href="qcrypto_tomcrypt_plugin.html" title="The qcrypto library TomCrypt plugin provides support for the LibTomCrypt cryptographic toolkit.">TomCrypt plugin</a></q>, and <q class="q"><a class="xref" href="qcrypto_openssl_plugin.html" title="The qcrypto library OpenSSL plugin provides support for the OpenSSL cryptography library.">OpenSSL plugin</a></q>.</p>
+
+    <div class="section"><h2 class="title sectiontitle">Linking to <span class="ph filepath">libqcrypto_pluginS.a</span></h2>
+      
+      <p class="p">In your makefile, use <span class="keyword option">-Wl,--whole-archive</span> to link to
+          <span class="ph filepath">libqcrypto_pluginS.a</span>.</p>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Plugin binding and release</h2>The <span class="ph filepath">qcrypto</span> library binds
+      and loads a plugin either when it is initialized (using <span class="keyword apiname">qcrypto_init()</span>) or
+      when a user requests an algorithm from the plugin.<p class="p">When a plugin is loaded, its global
+        initialization function is called, which allows the plugin to initialize its internals and
+        support for the third-party cryptography library (or libraries) that it wraps.</p>
+<p class="p">When a
+        plugin is unbound or unloaded, its global finalization function is called, which allows the
+        plugin to release resources and perform the required cleanup.</p>
+</div>
+
+    <div class="section"><h2 class="title sectiontitle">Algorithm handling</h2>
+      
+      <h3 class="title sectiontitle">Registration</h3>
+      <p class="p">During global plugin initialization (part of the plugin loading process), one of the plugin
+        tasks is to register which algorithms it supports. This registration task allows the QNX
+        cryptography library to query the plugin when a user requests a particular algorithm
+        function.</p>
+
+      <h3 class="title sectiontitle">Requesting an algorithm</h3>
+      <p class="p">When a user requests an algorithm, the <span class="ph filepath">qcrypto</span> library calls the
+        algorithm's initialization function, which causes the plugin to allocate resources, perform
+        other initialization tasks related to providing support for the algorithm (for example,
+        loading a shared object library or allocating memory), or both.</p>
+
+      <h3 class="title sectiontitle">Release</h3>
+      <p class="p">When the <span class="ph filepath">qcrypto</span>
+      library user no longer requires a specific algorithm, it calls a
+        release function that in turn calls the algorithm's un-initialization function. This
+        activity allows the plugin to release resources related to the algorithm, perform cleanup,
+        or both.</p>
+
+      <h3 class="title sectiontitle">Re-use</h3>
+      <p class="p">Algorithm interfaces that support initialization, update, and finalization functions must
+        be re-usable. This requirement means that initializing an algorithm that has already been
+        used restores it to a clean state and it can be used to perform another operation. It
+        minimizes resource shuffling and allows an algorithm context to be used as many times as
+        possible.</p>
+
+      <h3 class="title sectiontitle">Naming</h3>
+      <p class="p">Where possible, algorithm names should be in lowercase letters and follow the NID naming
+        scheme for standard algorithm names. If the name to use is not clear, use the OpenSSL naming
+        convention, which is the one that is most commonly used. Names need to be standardized
+        across implementations to maximize the interoperability of the various plugins. See <q class="q"><a class="xref" href="qcrypto_openssl_plugin.html" title="The qcrypto library OpenSSL plugin provides support for the OpenSSL cryptography library.">OpenSSL plugin</a></q> to see which names are currently used and
+        supported.</p>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Plugin key handling and formats</h2>
+      
+      <p class="p">Key handling and formats are the cornerstone of the <span class="ph filepath">qcrypto</span>
+      library. To ensure
+        interoperability among all the supported plugins, keys and their parameters need to be
+        stored in a standard format internally so that a key generated by one plugin can be used in
+        another plugin algorithm, in a process that is transparent to the user. Plugins should
+        provide full support for generating, exporting, and importing keys to and from any of the
+        standard formats.</p>
+
+      <p class="p">The following table describes how plugins should internally store each type of key. When a
+        key is passed to an algorithm's initialization function, the plugin can make a copy of the
+        key. It can convert the copy into whatever internal format the algorithm requires.</p>
+
+      
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+            <tr class="row">
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d13592e218">Key type</th>
+
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d13592e221">Import format</th>
+
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d13592e224">Export format</th>
+
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d13592e227">Internal key format</th>
+
+            </tr>
+
+          </thead>
+<tbody class="tbody">
+            <tr class="row">
+              <td class="entry cellrowborder" colspan="4" style="vertical-align:top;" headers="d13592e218 d13592e221 d13592e224 d13592e227 "><strong class="ph b">RSA</strong></td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Private keys</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">PKCS#8 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Public keys</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">X.509 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" colspan="4" style="vertical-align:top;" headers="d13592e218 d13592e221 d13592e224 d13592e227 "><strong class="ph b">Elliptic-curve cryptography</strong></td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Private keys</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">PKCS#8 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Public key</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">X.509 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" colspan="4" style="vertical-align:top;" headers="d13592e218 d13592e221 d13592e224 d13592e227 "><strong class="ph b">Digital Signature Algorithm</strong></td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Private keys</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">PKCS#8 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Public key</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">X.509 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" colspan="4" style="vertical-align:top;" headers="d13592e218 d13592e221 d13592e224 d13592e227 "><strong class="ph b">Edwards Elliptic Curve (25519/448)</strong></td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Private keys</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">PKCS#8 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">PKCS#8 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">Public key</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e221 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e224 ">X.509 PEM/DER</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e227 ">X.509 DER</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" colspan="4" style="vertical-align:top;" headers="d13592e218 d13592e221 d13592e224 d13592e227 "><strong class="ph b">Symmetric keys</strong></td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d13592e218 ">All keys</td>
+
+              <td class="entry cellrowborder" colspan="3" style="vertical-align:top;" headers="d13592e221 d13592e224 d13592e227 ">Raw byte sequence</td>
+
+            </tr>
+
+          </tbody>
+</table>
+</div>
+
+    </div>
+
+    </div>
+
+</body>
+</html>

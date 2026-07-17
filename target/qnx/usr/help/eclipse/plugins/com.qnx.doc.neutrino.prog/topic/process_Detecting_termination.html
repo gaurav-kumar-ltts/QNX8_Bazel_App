@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Detecting termination from a starter process" />
+<meta name="abstract" content="If you've created a set of processes using a starter process, then all those processes are children of that process, with the exception of those that have called procmgr_daemon()." />
+<meta name="description" content="If you've created a set of processes using a starter process, then all those processes are children of that process, with the exception of those that have called procmgr_daemon()." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_PROCDETECTTERM.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Detecting_termination" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Detecting termination from a starter process</title>
+</head>
+<body id="Detecting_termination">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Detecting termination from a starter process</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> 
+If you've created a set of processes using a starter process,
+then all those processes are children of that process, with
+the exception of those that have called <span class="keyword apiname">procmgr_daemon()</span>.
+</p>
+
+
+<p class="p">
+If all you want to do is detect that one of those children has terminated, then a loop that blocks on
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/wait.html"><span class="keyword apiname">wait()</span></a>
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html"><span class="keyword apiname">sigwaitinfo()</span></a>
+will suffice.
+Note that when a child process calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_daemon.html"><span class="keyword apiname">procmgr_daemon()</span></a>,
+both <span class="keyword apiname">wait()</span> and <span class="keyword apiname">sigwaitinfo()</span> behave as if the child
+process died, although the child is still running.
+</p>
+
+
+<p class="p">
+
+
+
+
+The <span class="keyword apiname">wait()</span> function will block, waiting until any
+of the caller's child processes terminate. The other <span class="keyword apiname">wait*()</span> functions include
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/waitpid.html"><span class="keyword apiname">waitpid()</span></a>,
+which lets you wait for a specific child process,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/wait3.html"><span class="keyword apiname">wait3()</span></a>,
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/wait4.html"><span class="keyword apiname">wait4()</span></a>.
+Lastly, there is
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/waitid.html"><span class="keyword apiname">waitid()</span></a>,
+which is the lower level of
+all the <span class="keyword apiname">wait*()</span> functions and returns the most information.
+</p>
+
+
+<p class="p">
+
+The <span class="keyword apiname">wait*()</span> functions won't always help, however.
+If a child process was created using one of the
+<span class="keyword apiname">spawn*()</span> family of functions with the mode passed
+as <span class="keyword const">P_NOWAITO</span>, then the <span class="keyword apiname">wait*()</span>
+functions won't be notified of its termination!
+</p>
+
+
+<p class="p">
+What if the child process terminates, but the parent hasn't
+yet called <span class="keyword apiname">wait*()</span>? This would be the case if one
+child had already terminated, so <span class="keyword apiname">wait*()</span>
+returned, but then before the parent got back to the
+<span class="keyword apiname">wait*()</span>, <em class="ph i">a second child terminates</em>. In
+that case, some information would have to be stored away
+about the second child for when the parent does get around
+to its <span class="keyword apiname">wait*()</span>. 
+</p>
+
+
+<p class="p">
+
+This is in fact the case. The second child's
+memory will have been freed up, its files will have been closed, and
+in general the child's resources will have been cleaned up with the
+exception of a few bytes of memory in the process manager that contain
+the child's exit status or other reason that it had terminated and its
+process ID. When the second child is in this state, it's referred
+to as a <em class="ph i">zombie</em>. The child will remain a zombie until the parent either
+terminates or finds out about the child's termination (e.g., the
+parent calls <span class="keyword apiname">wait*()</span>).
+</p>
+
+
+<p class="p">
+
+
+What this means is that if a child has terminated and the parent
+is still alive but doesn't yet know about the terminated
+child (e.g., hasn't called <span class="keyword apiname">wait*()</span>),
+then the zombie will be hanging around. If the parent will
+never care, then you may as well not have the child become a zombie.
+To prevent the child from becoming a zombie when it terminates,
+create the child process using one of the <span class="keyword apiname">spawn*()</span> family
+of functions and pass <span class="keyword const">P_NOWAITO</span> for the <var class="keyword varname">mode</var>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_PROCDETECTTERM.html" title="In an embedded application, it's often important to detect if any process terminates prematurely and, if so, to handle it.">Detecting process termination</a></div>
+</div>
+</div></body>
+</html>

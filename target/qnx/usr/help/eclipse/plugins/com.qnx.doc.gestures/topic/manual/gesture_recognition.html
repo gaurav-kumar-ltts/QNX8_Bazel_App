@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Gesture Recognition" />
+<meta name="abstract" content="Gesture recognition is performed by gesture recognizers that detect gestures through touch events." />
+<meta name="description" content="Gesture recognition is performed by gesture recognizers that detect gestures through touch events." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="gesture-recognition" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Gesture Recognition</title>
+</head>
+<body class="reftable" id="gesture-recognition">
+
+   <h1 class="title topictitle1" id="ariaid-title1">Gesture Recognition</h1>
+
+   
+   
+   <div class="body conbody"><p class="shortdesc">Gesture recognition is performed by gesture recognizers that
+              detect gestures through touch events.</p>
+
+      <p class="p">
+         Applications are responsible for selecting the gestures they're
+         interested in and adding the corresponding gesture recognizers to one or
+         more gesture sets to achieve the desired recognition behavior. When a
+         gesture-recognizer state transition occurs, the gesture set invokes the
+         application callback function for that gesture. Applications can also
+         add their own gesture recognizers if they need specialized or custom
+         gesture recognition.
+      </p>
+
+   <div class="section" id="gesture-recognition__gesture_state_transitions"><h2 class="title sectiontitle">State transitions</h2>
+         
+         <p class="p">It's important to understand the states and valid state transitions of the gesture
+            recognizers. Understanding is especially important when you're defining your own custom
+            gesture recognizer because you need to provide the function to handle these state
+            transitions: </p>
+
+         <pre class="pre codeblock">gesture_state_e (*process_event)(struct contact_id_map* map,
+                                 struct gesture_base* gesture,
+                                 mtouch_event_t* event,
+                                 int* consumed)
+         </pre>
+         <p class="p">
+            Note that composite gestures and discrete gestures go through
+            different state transitions.
+         </p>
+
+         <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span> Gesture-recognizer state transitions for composite gestures</span>
+            
+            <br /><img class="image" src="../../images/composite-sm3.svg" /><br />
+         </div>
+
+         <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>
+               Gesture-recognizer state transitions for discrete gestures
+            </span>
+            
+            <br /><img class="image" src="../../images/discrete-sm3.svg" /><br />
+         </div>
+
+         <div class="note"><span class="notetitle">Note:</span> <span class="keyword const">GESTURE_STATE_RECOGNIZED</span> and
+            <span class="keyword const">GESTURE_STATE_UPDATING</span> aren't valid states for
+            recognizers of discrete gestures; these gesture recognizers
+            transition directly from <span class="keyword const">GESTURE_STATE_UNRECOGNIZED</span>
+            to either <span class="keyword const">GESTURE_STATE_FAILED</span> or
+            <span class="keyword const">GESTURE_STATE_COMPLETE</span>.
+         </div>
+
+         <p class="p">
+            State transitions are specific to the gesture that the recognizer is
+            detecting. Most state transitions are a result of mtouch or timer
+            events that are of interest to the gesture recognizer.
+         </p>
+
+         <dl class="dl">
+            
+               <dt class="dt dlterm">None (<span class="keyword const">GESTURE_STATE_NONE</span>)</dt>
+
+               <dd class="dd">
+                  The initial state of a gesture recognizer; you can intialize
+                  the state to <span class="keyword const">GESTURE_STATE_NONE</span>
+                  by calling <span class="keyword apiname">gesture_base_init()</span>.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm">Unrecognized (<span class="keyword const">GESTURE_STATE_UNRECOGNIZED</span>)</dt>
+
+               <dd class="dd">The state of a gesture recognizer after it has been added to a gesture set; it is
+                  now ready to receive mtouch and timer events. The gesture recognizer returns to
+                  this state after <span class="keyword apiname">reset()</span> is called by the gesture set. </dd>
+
+            
+            
+               <dt class="dt dlterm">Recognized (<span class="keyword const">GESTURE_STATE_RECOGNIZED</span>)</dt>
+
+               <dd class="dd"> The state of a gesture recognizer after it has received one mtouch or timer
+                  event that moves the gesture recognizer to <span class="keyword const">GESTURE_STATE_COMPLETE</span>. </dd>
+
+            
+            
+               <dt class="dt dlterm">Updating (<span class="keyword const">GESTURE_STATE_UPDATING</span>)</dt>
+
+               <dd class="dd"> The state of a gesture recognizer while it's receiving mtouch or timer events
+                  that move the gesture recognizer to <span class="keyword const">GESTURE_STATE_COMPLETE</span>. </dd>
+
+            
+            
+               <dt class="dt dlterm">Complete (<span class="keyword const">GESTURE_STATE_COMPLETE</span>)</dt>
+
+               <dd class="dd"> The state of a gesture recognizer when it has received all mtouch or timer
+                  events that fulfill the requirements of detecting its gesture. </dd>
+
+            
+            
+               <dt class="dt dlterm">Failed (<span class="keyword const">GESTURE_STATE_FAILED</span>)</dt>
+
+               <dd class="dd"> The state of a gesture recognizer when requirements of detecting its gesture
+                  aren't fulfilled. </dd>
+
+            
+         </dl>
+
+   </div>
+
+   <div class="section" id="gesture-recognition__gesture_simultaneous_recognition"><h2 class="title sectiontitle">Simultaneous recognition</h2>
+      
+      <p class="p">Unless there is a failure dependency indicated, each gesture recognizer in a gesture set
+            receives all mtouch events sent to the gestures set; this means your application can
+            simultaneously recognize several gestures. </p>
+
+      <p class="p"> A single mtouch event can result in the invocation of multiple gesture-recognizer callback
+            functions because several gestures can be recognized simultaneously. </p>
+
+   </div>
+
+   <div class="section" id="gesture-recognition__gesture_callback"><h2 class="title sectiontitle">Callback invocation</h2>
+      
+         <p class="p"> The gesture-recognizer callback function is provided by your application. It defines
+            what the application does when a gesture is recognized or updated: </p>
+
+         <pre class="pre codeblock">void(*gesture_callback_f)(struct gesture_base* gesture,
+                          mtouch_event_t* event,
+                          void* param, int async);
+         </pre>
+         <p class="p">
+            The parameter <span class="keyword parmname">gesture</span> contains information
+            about the gesture, <span class="keyword parmname">event</span> contains information
+            about the mtouch event that caused the gesture, and
+            <span class="keyword parmname">async</span> identifies whether this callback was
+            invoked from an mtouch event (<span class="keyword parmname">async</span> = 0) or from
+            a timer event (<span class="keyword parmname">async</span> = 1).
+         </p>
+
+         <p class="p"> This callback function is invoked as a result of either an mtouch or a timer event.
+            Although your gesture callback will be invoked on other state transitions, your
+            application is usually interested only when the gesture has been recognized or not. That
+            is, you would usually implement application behavior based on your gesture recognizer in
+            the <span class="keyword const">GESTURE_STATE_COMPLETE</span>  or the <span class="keyword const">GESTURE_STATE_FAILED</span>
+            state. </p>
+
+      <p class="p">The goal of this callback function is to identify the gesture that is recognized based on
+            mtouch events that are received and to define your application's actions based on the
+            gesture that is recognized. Typically, your application copies information from the
+            incoming mtouch event to a local structure and uses that information accordingly. </p>
+
+   </div>
+
+   <div class="section" id="gesture-recognition__gesture_timer_support"><h2 class="title sectiontitle">Timer support</h2>
+      
+      <p class="p"><strong class="ph b">Events</strong></p>
+
+      <p class="p">A gesture recognizer can change states on timer events. Gesture callback functions are
+            invoked after the invocation of the timer callback from the context of the timer thread.
+            The timer thread doesn't detect mtouch events. </p>
+
+      <p class="p"> Gesture callbacks of gesture recognizers that have timers (e.g.,
+          double tap, triple tap, or long press), can be invoked
+          from both the application thread or the timer thread. The
+          processing performed while in your gesture callback will block either
+          mtouch or timer events, depending on which thread invoked the
+          callback.
+      </p>
+
+      <p class="p"> The following diagrams show that the gesture set is shared between
+          two separate threads. Each of these threads (application and timer)
+          can be blocked by the other thread when accessing the shared data.
+      </p>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>
+            Example of mtouch event-invoked <span class="keyword apiname">gesture_callback_f()</span>
+            blocking a timer event
+         </span>
+         
+         <img class="image" src="../../images/thread-sync.svg" width="700" />
+      </div>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 4. </span>
+            Example of timer event-invoked <span class="keyword apiname">gesture_callback_f()</span>
+            blocking an mtouch event
+         </span>
+         
+         <img class="image" src="../../images/thread-sync-2.svg" width="700" />
+      </div>
+
+      <p class="p"> The Gestures library is thread-safe and assures that any data shared between multiple
+            threads will not be accessed simultaneously. However, you need to consider the
+            possibility of threads blocking, or being blocked. For example, if your gesture callback
+            function performs rendering operations, you are likely blocking important mtouch or
+            timer events from being processed. As a result, the behavior of your application may
+            become unpredictable. </p>
+
+      <p class="p">To help with the synchronization between mtouch-invoked and
+         timer-invoked gesture callback functions, gesture recognizers and
+         gesture sets provide a parameter, <span class="keyword parmname">async</span>, in the
+         <span class="keyword apiname">gesture_callback_f()</span> and
+         <span class="keyword apiname">gestures_set_fail_f()</span> functions. This
+         <span class="keyword apiname">async</span> parameter is set to <span class="keyword const">1</span> when the
+         gesture callback is called from the timer thread.
+      </p>
+
+      <p class="p">Gesture recognizers that don't use timers aren't guaranteed to never have their gesture
+            callback function invoked asynchronously. Your callback functions are synchronous to the
+            thread where <span class="keyword apiname">gestures_set_process_event()</span> is called only when none of
+            the gestures in your gesture set use timers.  If you are using gesture recognizers that
+            are provided by the Gestures Library, note that the double tap, triple tap and long
+            press gesture recognizers use timers.</p>
+
+      <p class="p"><strong class="ph b">Lists</strong></p>
+
+      <p class="p">Timers behave differently, depending on what the application passes:</p>
+
+      <ul class="ul">
+         <li class="li">event list (e.g., <span class="keyword apiname">gestures_set_process_event_list()</span>) or,</li>
+
+         <li class="li">single event (e.g., <span class="keyword apiname">gestures_set_process_event()</span>)</li>
+
+      </ul>
+
+      <p class="p">It doesn't make sense to use the wall clock for timer events
+         when a gesture recognizer set is passed a list of events that occurred
+         in the past. Gesture recognizers will receive events at a much higher
+         rate than when the events come in at real time. For this reason,
+         when processing event lists, the gesture set will cause timers to expire
+         and invoke their callback functions using the event timestamps
+         as the timebase.
+      </p>
+
+      <p class="p">If unexpired timers are left after the event-list processing finishes, they will be
+            converted to realtime timers based on the differences between the current wall clock
+            time and the timestamp of the last event in the list. </p>
+
+      <p class="p">Timer handling for gestures recognizers with failure dependencies
+         behave in the same way.
+      </p>
+
+   </div>
+
+      
+   <div class="section" id="gesture-recognition__gesture_failure_dependencies"><h2 class="title sectiontitle">Failure dependencies</h2>
+      
+      <p class="p">You can define a gesture recognizer to have failure dependencies on
+         other gestures.
+      </p>
+
+      <p class="p"> A failure dependency is when the detection of one gesture recognizer
+          is dependent on the failure of another. That is, if one
+          gesture recognizer moves to <span class="keyword const">GESTURE_STATE_FAILED</span> and
+          it has failure dependents, then the gesture recognizers that are
+          dependent on this failed gesture recognizer will be processed.
+      </p>
+
+      <div class="p">For example, you have an application that has one gesture set. This
+         gesture set includes both tap and double-tap gesture recognizers. Your
+         application need only one of the tap or double-tap gesture to be
+         recognized at a time. Your application sets a failure dependency to
+         indicate that in this gesture set, the tap gesture recognition depends
+         on the failure of the double-tap gesture recognition. To set this
+         failure dependency in your application, you must use the
+         <span class="keyword apiname">gesture_add_mustfail()</span> function. In this particular
+         example, you include the following code in the initialization of your
+         gesture recognizers:
+         <pre class="pre codeblock">...
+gesture_tap_t* tap;
+gesture_double_tap_t double_tap;
+...
+gesture_add_mustfail(&amp;tap-&gt;base, &amp;double_tap-&gt;base);
+         </pre>
+         The above code snippet indicates that when a double-tap gesture fails,
+         the gesture recognizer will try to recognize the mtouch event as a
+         tap gesture.
+      </div>
+
+   </div>
+
+   <div class="section" id="gesture-recognition__gesture_failure_callback"><h2 class="title sectiontitle">Failure notification and event lists</h2>
+      
+      <div class="p">Applications can register gesture sets for failure notifications. These
+         notifications are delivered by the gesture set by a failure callback
+         function that is separate from the gesture recognizer callback function:
+         <pre class="pre codeblock">void(*gestures_set_fail_f)(struct gestures_set* set, struct event_list* list, int async);
+         </pre>
+      </div>
+
+      <p class="p">
+         This failure callback function is invoked only if all gesture
+         recognizers in the gesture set have transitioned to
+         <span class="keyword const">GESTURE_STATE_FAILED</span>. If at least one gesture recognizer
+         is in the <span class="keyword const">GESTURE_STATE_COMPLETE</span> state, the failure
+         notification callback function isn't invoked.
+      </p>
+
+      <p class="p">The <span class="keyword parmname">event_list</span> parameter contains the list of
+         events that were delivered to the gesture set that subsequently caused
+         all gestures to fail. This list of events is passed to the failure
+         callback function of the gesture set. These events can either be
+         processed individually or delivered to another gesture set for further
+         processing.
+      </p>
+
+      <p class="p">Event lists are used to keep copies of events should failure
+         dependencies need to be fulfilled or failure notifications need to be
+         delivered. Event lists can contain up to 1024 events. If
+         more events come in after the list is full, the oldest non-key
+         (mtouch or release) events are dropped from the list.
+      </p>
+
+   </div>
+
+   <div class="section" id="gesture-recognition__gesture_reset"><h2 class="title sectiontitle">Reset</h2>
+      
+      <p class="p">Once a gesture recognizer in a gesture set transitions its state to either
+         <span class="keyword const">GESTURE_STATE_COMPLETE</span> or <span class="keyword const">GESTURE_STATE_FAILED</span>, 
+         it will be reset only when all other gesture recognizers in the same
+         gesture set have also transitioned to either of these states.
+      </p>
+
+      <div class="p">For example, if an application defines a gesture set with tap and
+         double-tap gestures, the application would receive two callbacks:
+         <ul class="ul">
+            <li class="li">single tap after first release</li>
+
+            <li class="li">double tap after second release</li>
+
+         </ul>
+
+         Assuming that no failure dependencies have been configured, the
+         application would not receive two callbacks for two single taps
+         because the completed single tap will already be in the state,
+         <span class="keyword const">GESTURE_STATE_COMPLETE</span>,
+         after the first tap. When the double tap either completes or fails,
+         the gesture set calls
+         </div>
+
+         <pre class="pre codeblock">void (*reset)(struct gesture_base* gesture);
+          </pre>
+         <p class="p"> on each of its gesture recognizers.
+      </p>
+
+   </div>
+
+ </div>
+
+</body>
+</html>

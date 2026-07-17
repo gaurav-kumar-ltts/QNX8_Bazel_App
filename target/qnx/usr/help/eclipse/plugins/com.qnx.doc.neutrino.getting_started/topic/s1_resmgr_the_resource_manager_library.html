@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The resource manager library" />
+<meta name="abstract" content="Before we get too far into all the issues surrounding resource managers, we have to get acquainted with the QNX OS resource manager library." />
+<meta name="description" content="Before we get too far into all the issues surrounding resource managers, we have to get acquainted with the QNX OS resource manager library." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_libisreal.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Behind_scene.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="the_resource_manager_library" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The resource manager library</title>
+</head>
+<body id="the_resource_manager_library">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The resource manager library</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Before we get too far into all the issues surrounding resource
+managers, we have to get acquainted with the <span class="keyword">QNX OS</span> resource manager library.
+</p>
+
+<p class="p">
+
+This <q class="q">library</q> actually consists of several distinct pieces:
+</p>
+
+
+<ul class="ul">
+<li class="li">thread pool functions (which we discussed in the 
+  <a class="xref" href="s1_procs_tpool.html" title="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits.">Processes and Threads chapter under <q class="q">Pools of threads</q></a>)
+</li>
+
+<li class="li">dispatch interface</li>
+
+<li class="li">resource manager functions</li>
+
+<li class="li">POSIX library helper functions</li>
+
+</ul>
+
+
+<p class="p">
+While you certainly <em class="ph i">could</em> write resource managers
+<q class="q">from scratch</q> (as was done in the QNX 4 world),
+that's far more hassle than it's worth.
+</p>
+
+
+<div class="p">
+Just to show you the utility of the library approach, here's
+the source for a single-threaded version of
+<q class="q"><span class="ph filepath">/dev/null</span></q>:
+
+
+
+
+<pre class="pre codeblock">/*
+ *  resmgr1.c
+ *
+ *  /dev/null using the resource manager library
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+int main (int argc, char **argv)
+{
+    dispatch_t              *dpp;
+    resmgr_attr_t           resmgr_attr;
+    dispatch_context_t      *ctp;
+    resmgr_connect_funcs_t  connect_func;
+    resmgr_io_funcs_t       io_func;
+    iofunc_attr_t           attr;
+
+    // create the dispatch structure
+    dpp = dispatch_create_channel ( -1, DISPATCH_FLAG_NOLOCK );
+    if (dpp == NULL) {
+        perror ("Unable to dispatch_create_channel");
+        exit (EXIT_FAILURE);
+    }
+
+    // initialize the various data structures
+    memset (&amp;resmgr_attr, 0, sizeof (resmgr_attr));
+    resmgr_attr.nparts_max = 1;
+    resmgr_attr.msg_max_size = 2048;
+
+    // bind default functions into the outcall tables
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;connect_func,
+                      _RESMGR_IO_NFUNCS, &amp;io_func);
+    iofunc_attr_init (&amp;attr, S_IFNAM | 0666, 0, 0);
+
+    // establish a name in the pathname space
+    if (resmgr_attach (dpp, &amp;resmgr_attr, "/dev/mynull",
+                       _FTYPE_ANY, 0, &amp;connect_func, &amp;io_func,
+                       &amp;attr) == -1) {
+        perror ("Unable to resmgr_attach");
+        exit (EXIT_FAILURE);
+    }
+
+    ctp = dispatch_context_alloc (dpp);
+
+    // wait here forever, handling messages
+    while (1) {
+        if ((ctp = dispatch_block (ctp)) == NULL) {
+            perror ("Unable to dispatch_block");
+            exit (EXIT_FAILURE);
+        }
+        dispatch_handler (ctp);
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+There you have it!
+A complete <span class="ph filepath">/dev/null</span> resource manager implemented in a few function calls!
+</p>
+
+
+<p class="p">
+If you were to write this from scratch, and have it support all the functionality
+that this one does (e.g.,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>
+works,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chown.html"><span class="keyword apiname">chown()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chmod.html"><span class="keyword apiname">chmod()</span></a>
+work, and so on), you'd be looking at many hundreds if not thousands of lines of C code.
+
+
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_libisreal.html">The library really does what we just talked about</a></strong><br />
+ By way of introduction to the library, let's see (briefly) what the calls do in the <span class="ph filepath">/dev/null</span> resource manager. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_resmgr_Behind_scene.html">Behind the scenes at the library</a></strong><br />
+ You've seen that your code is responsible for providing the main message receiving loop. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr.html" title="In this chapter, we'll take a look at what you need to understand in order to write a resource manager. Resource managers are another distintive feature of QNX OS that allow you to access services through standard POSIX calls.">Resource Managers</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Running io-sock with Diagnostic Features" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="diagnostic" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Running io-sock with Diagnostic Features</title>
+</head>
+<body id="diagnostic">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">Running <span class="keyword cmdname">io-sock</span> with Diagnostic Features</h1>
+
+    
+    <div class="body conbody">
+        <p class="p">The <span class="keyword cmdname">io-sock</span> network stack, networking drivers, and modules are also
+            provided in diagnostic versions. They have the same name as the standard version with a
+                <q class="q">-diag</q> suffix: <span class="keyword cmdname">io-sock-diag</span>,
+                <span class="ph filepath">devs-em-diag.so</span>, and so on.</p>
+
+        <p class="p">Use the diagnostic versions of the binaries when you are developing a new
+                <span class="keyword cmdname">io-sock</span> driver or module. They include extra checks and some
+            useful macros and functions are only enabled in the diagnostic versions (e.g., KASSERT,
+            mtx_assert). Because they use significantly more system resources than the standard
+            versions, you shouldn't use them during performance testing or in production
+            systems.</p>
+
+                <div class="section"><h2 class="title sectiontitle">Specifying the diagnostic stack and drivers</h2>
+            
+            <p class="p">When you use the diagnostic versions of <span class="keyword cmdname">io-sock</span> or networking
+                drivers, you also must use diagnostic versions of the driver or stack because the
+                added checks require extra information that is passed between stack and driver.</p>
+
+            <p class="p">When you specify a driver with the <span class="keyword cmdname">io-sock-diag</span> command, the appropriate diagnostic driver is loaded automatically. For example, the following command loads <span class="ph filepath">devs-em-diag.so</span>:</p>
+
+            <pre class="pre codeblock">io-sock-diag -m pci -d em</pre>
+            <p class="p">The diagnostic driver is also automatically loaded when you load a driver using <span class="keyword cmdname">mount</span> and specify the driver using its short name. For example, if <span class="keyword cmdname">io-sock-diag</span> is running, the following command loads <span class="ph filepath">devs-em-diag.so</span> (assuming the driver for PCI bus devices was started earlier):</p>
+
+            <pre class="pre codeblock" id="diagnostic__codeblock_qbn_qc1_r5b">mount -T io-sock em</pre>
+            <p class="p">But if you run <span class="keyword cmdname">io-sock-diag</span> and specify the full name of the driver, make sure you specify the diagnostic driver. For example:</p>
+
+            <pre class="pre codeblock" id="diagnostic__codeblock_cg3_vd1_r5b">mount -T io-sock /lib/dll/devs-em-diag.so</pre>
+                </div>
+
+                    <div class="section"><h2 class="title sectiontitle">Writing diagnostic network drivers</h2>
+            
+            <p class="p">For diagnostic versions of <span class="keyword cmdname">io-sock</span> network drivers, the following defines are set automatically by the <span class="ph filepath">devs.mk</span> file (which is included by the network driver recursive makefile):</p>
+
+                        <pre class="pre codeblock">CCFLAGS+= -DINVARIANTS -DINVARIANT_SUPPORT -DKTR</pre>
+       </div>
+
+        <div class="section"><h2 class="title sectiontitle">Running <span class="keyword cmdname">io-sock-diag</span> in the foreground</h2>
+            
+            <p class="p">Specify <span class="keyword option">-o foreground</span> with <span class="keyword cmdname">io-sock-diag</span> to stop
+                    <span class="keyword cmdname">io-sock</span> from becoming a daemon. This option is valid only
+                with <span class="keyword cmdname">io-sock-diag</span>. As with standard <span class="keyword cmdname">io-sock</span>,
+                all logs are sent to <span class="keyword cmdname">slogger2</span>. You can use <span class="keyword option">-o
+                    foreground</span> in combination with the <span class="keyword envar">DL_DEBUG</span> environment
+                variable to debug library loading issues.</p>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

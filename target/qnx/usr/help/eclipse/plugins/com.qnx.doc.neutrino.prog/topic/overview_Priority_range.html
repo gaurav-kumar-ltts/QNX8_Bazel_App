@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Priority range" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_yield.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Priority_range" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Priority range</title>
+</head>
+<body id="Priority_range">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Priority range</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+Threads can have a scheduling priority ranging from 0 to 255 (the highest
+priority), <em class="ph i">independent of the scheduling policy</em>, but three priorities are
+reserved for system threads:
+<ul class="ul">
+  <li class="li">0 — per-processor idle thread</li>
+
+  <li class="li">254 — per-processor clock IST (but is configurable)</li>
+
+  <li class="li">255 — per-processor IPI IST</li>
+
+</ul>
+
+A thread inherits the priority of its parent thread by default.
+</div>
+
+
+<p class="p">
+
+
+
+Unprivileged threads can have a priority ranging from 1
+to 63 (by default); threads with the <span class="keyword const">PROCMGR_AID_PRIORITY</span> ability enabled (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>)
+are allowed to set priorities above 63.
+You can change the allowed priority range for unprivileged
+processes with the <span class="keyword cmdname">procnto</span> <span class="keyword option">-P</span> option.
+</p>
+
+
+<p class="p">
+The process manager has a set of special <em class="ph i">idle</em> threads (one per available CPU core)
+that have priority 0 and are always ready to run.
+A CPU core is considered to be idle when the idle thread is scheduled to run on that core.
+At any instant, a core is either idle or busy; only by averaging over time can a
+CPU be said to be some percent busy (e.g., 75% CPU usage).
+</p>
+
+
+<p class="p">
+A thread has both a <em class="ph i">real priority</em> and an <em class="ph i">effective priority</em>, 
+and is scheduled in accordance with its effective priority. 
+The thread itself can change both its real and effective priority together,
+but the effective priority may change because of priority inheritance or the scheduling policy. 
+Normally, the effective priority is the same as the real priority.
+
+
+</p>
+
+
+<div class="p">
+ISTs don't have a higher priority than any other thread, as they
+are just regular threads. However, if you're attaching an event rather than an IST, you can set the priority of the
+implicitly created IST by calling <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html"><span class="keyword apiname">InterruptAttachEventPriority()</span></a>
+instead of <span class="keyword apiname">InterruptAttachEvent()</span>.
+
+<ol class="ol">
+<li class="li">Whatever thread was running loses the CPU on the core that's handling the interrupt.
+  On multicore machines this may vary, due to hardware configuration and BSP setup.
+</li>
+
+
+<li class="li">The kernel runs some hardware-specific code supplied by the BSP to identify the interrupt.</li>
+
+
+<li class="li">The kernel masks the interrupt, then posts a semaphore to unblock the appropriate IST.</li>
+
+
+<li class="li">The kernel runs some hardware-specific code supplied by the BSP to do end-of-interrupt processing.</li>
+
+
+</ol>
+
+</div>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Thread priorities range from 0 (lowest) to 255 (highest).</span>
+
+<br /><img class="image" src="../images/priority.svg" alt="Figure showing thread priorities" /><br />
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Out-of-range priority requests</h2>
+
+
+<div class="p">
+As an extension to POSIX, when you're setting a priority, you can wrap it in one these macros
+to specify how to handle out-of-range priority requests:
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_ERROR(priority)</span> — indicate an error
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_SATURATE(priority)</span> — use the maximum allowed priority
+  (reach a <q class="q">maximum saturation point</q>)
+  
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+You can append an <span class="keyword option">s</span> or <span class="keyword option">S</span> to <span class="keyword cmdname">procnto</span>'s <span class="keyword option">-P</span> option
+if you want out-of-range priority requests by default to <q class="q">saturate</q> at the maximum allowed value instead of
+resulting in an error.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview_PRIOR.html" title="Although there's a good discussion of priorities and scheduling policies in the System Architecture manual, it will help to go over that topic here in the context of a programmer's guide.">Priorities and scheduling</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel.html">The QNX OS Microkernel (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html">Processes and Threads (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html">procnto</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_yield.html">sched_yield()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

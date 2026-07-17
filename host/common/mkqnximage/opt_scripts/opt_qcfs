@@ -1,0 +1,70 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--qcfs=[yes|no|lz4hc|zstd]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If not 'no', the system partition is read-only and uses the QNX Compressed Filesystem driver.
+    'yes': use the lz4hc algorithm.
+    'lz4hc': use the lz4hc algorithm.
+    'zstd': use the zstd algorithm.
+
+    The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_QCFS" = yes -o "$OPT_QCFS" = no -o "$OPT_QCFS" = lz4hc -o "$OPT_QCFS" = zstd ]; then
+        exit 0
+    else
+        echo "--qcfs must be set to 'yes', 'no', 'lz4hc' or 'zstd'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_qcfs
+    if [ "$OPT_QCFS" != no ]; then
+        cat >output/option_files/ifs_files.opt_qcfs <<EOF
+#############################################
+### QCFS
+#############################################
+lib/dll/fs-qcfs.so
+EOF
+
+        if [ "$OPT_QCFS" = lz4hc -o "$OPT_QCFS" = yes ]; then
+            echo "usr/lib/__LIBLZ4__" >> output/option_files/ifs_files.opt_qcfs
+            cat >output/option_files/definitions.opt_qcfs <<EOF
+#define __QCFS_COMP__ lz4hc
+#define __QCFS_COMP_LVL__ 12
+EOF
+        else
+            echo "usr/lib/__LIBZSTD__" >> output/option_files/ifs_files.opt_qcfs
+            cat >output/option_files/definitions.opt_qcfs <<EOF
+#define __QCFS_COMP__ zstd
+#define __QCFS_COMP_LVL__ 22
+EOF
+        fi
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+	default)
+		echo no;;
+esac

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Measuring the time to copy from flash to RAM" />
+<meta name="abstract" content="In the IPL and Sstartup stages, code is copied from flash into RAM and then executed." />
+<meta name="description" content="In the IPL and Sstartup stages, code is copied from flash into RAM and then executed." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_measuring_bootup_time.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="measuring_copy_flash_ram" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Measuring the time to copy from flash to RAM</title>
+</head>
+<body id="measuring_copy_flash_ram">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Measuring the time to copy from flash to RAM</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> In the IPL and Sstartup stages, code is copied from flash into RAM and then executed. </p>
+
+        <div class="p">
+            
+            
+            How long this copy takes depends on the speed of the CPU and the speed of the flash chip.
+            To measure the duration of the copy operation, you can use the following code:
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;inttypes.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/syspage.h&gt;
+                                        
+#define MEGABYTE (1024*1024)
+#define BLOCK_SIZE 16384
+#define LOOP_RUNS 10
+                                        
+char *ram_destination;
+char *ram_block;
+char *flash_block;
+unsigned long flash_addr;
+uint64_t cycles_per_sec;
+                                        
+double CopyTest(const char *msg, char *source, char *dest)
+{
+    uint64_t accum = 0, start, stop;
+    double t;
+    int i;
+                                        
+    for (i=0; i&lt;LOOP_RUNS; i++)
+    {
+        start = ClockCycles();
+        memcpy(dest, source, BLOCK_SIZE);
+        stop = ClockCycles();
+        accum += (stop - start);
+    }
+    accum /= LOOP_RUNS;
+                                            
+    t = accum*(MEGABYTE/BLOCK_SIZE); 	// t = cycles per MB
+    t = t / cycles_per_sec;		// t = seconds per 1MB
+                                            
+     printf("\nTo copy %s to RAM takes:\n",msg);
+     printf("   %llu clock cycles for %u bytes\n", accum, BLOCK_SIZE);
+     printf("   %f milliseconds per 1MB bytes\n", t*1000);
+     printf("   %f microseconds per 1KB bytes\n", t*1000);
+     return t;
+}
+                                            
+int main(int argc, char *argv[]) 
+{
+    double flashtime, ramtime;
+                                            
+    if (argc&lt;1) {
+        printf("%s requires address of flash (any 16K block will do)\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+                                            
+    flash_addr = strtoul(argv[1], 0, 16);
+    printf("Using flash physical address at %lx\n", flash_addr);
+                                            
+    ram_block = malloc(BLOCK_SIZE);
+    ram_destination = malloc(BLOCK_SIZE);
+    flash_block = mmap(0, BLOCK_SIZE, PROT_READ,MAP_PHYS|MAP_SHARED, NOFD,flash_addr);
+    if (flash_block == MAP_FAILED) {
+        printf("Unable to map block at %lx\n", flash_addr);
+    }
+
+    cycles_per_sec = SYSPAGE_ENTRY(qtime)-&gt;cycles_per_sec;
+    flashtime = CopyTest("flash", flash_block, ram_destination);
+    ramtime = CopyTest("RAM", ram_block, ram_destination);
+    printf("\nFlash is %f times slower than RAM\n", flashtime/ramtime);
+
+    return EXIT_SUCCESS;
+}
+</pre>
+        </div>
+
+        <p class="p">To get reasonably accurate results, you should run this code either at a high priority
+            (using the <span class="keyword cmdname">on –p</span> command) or when little else is running in the system.</p>
+
+        <p class="p">A key factor that affects flash copy time is the bus interface to the flash. Fast CPUs
+            can lose their advantage to their slower competitors if the system has a slow bus
+            architecture or too many wait states.</p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_measuring_bootup_time.html" title="Before applying any of the techniques described here, always remember to get a stable baseline measurement of system boot speed.">Measuring Boot Times</a></div>
+</div>
+</div></body>
+</html>

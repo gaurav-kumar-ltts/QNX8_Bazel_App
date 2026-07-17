@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Resource Managers that Handle Multiple Devices" />
+<meta name="abstract" content="Resource managers can easily be adapted to handle multiple devices." />
+<meta name="description" content="Resource managers can easily be adapted to handle multiple devices." />
+<meta name="DC.subject" content="device resource managers, handling multiple devices, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="device resource managers, handling multiple devices, QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="TakingOverMoreDevices" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Resource Managers that Handle Multiple Devices</title>
+</head>
+<body id="TakingOverMoreDevices">
+
+<h1 class="title topictitle1" id="ariaid-title1">Resource Managers that Handle Multiple Devices</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Resource managers can easily be adapted to handle multiple devices.
+</p>
+
+
+<p class="p">
+We would simply have our resource manager call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a> for each device name we
+wanted to register. We would also pass in an attributes
+structure that was unique to each registered device, so that
+functions such as <span class="keyword apiname">chmod()</span> could modify
+the attributes associated with the correct resource.
+
+</p>
+
+
+<div class="p">
+Here are the modifications necessary to handle both
+<span class="ph filepath">/dev/sample1</span> and <span class="ph filepath">/dev/sample2</span>:
+
+<pre class="pre codeblock">/* 
+ *  MOD [1]:  allocate multiple attribute structures,
+ *            and fill in a names array (convenience)
+ */
+
+#define NumDevices  2
+iofunc_attr_t     sample_attrs [NumDevices];
+char              *names [NumDevices] =
+{
+    "/dev/sample1",
+    "/dev/sample2"
+};
+
+int main ( void )
+{
+    ...
+    /*
+     *  MOD [2]:  fill in the attribute structure for each device 
+     *            and call resmgr_attach for each device           
+     */
+    for (i = 0; i &lt; NumDevices; i++) {
+        iofunc_attr_init (&amp;sample_attrs [i],
+                          S_IFCHR | 0666, NULL, NULL);
+        pathID = resmgr_attach (dpp, &amp;resmgr_attr, name[i],
+                                 _FTYPE_ANY, 0,
+                                 &amp;my_connect_funcs,
+                                 &amp;my_io_funcs,
+                                 &amp;sample_attrs [i]);
+    }
+    ...
+}
+</pre>
+</div>
+
+
+<p class="p">
+The first modification simply declares an array of
+attributes, so that each device has its own attributes
+structure. As a convenience, we've also declared an array of
+names to simplify passing the name of the device in the
+<var class="keyword varname">for</var> loop. Some resource managers (such as
+<span class="keyword cmdname">devc-ser8250</span>) construct the device names on the fly
+or fetch them from the command line.
+</p>
+
+
+<p class="p">
+The second modification initializes the array of attribute
+structures and then calls
+<span class="keyword apiname">resmgr_attach()</span> multiple times, once for
+each device, passing in a unique name and a unique attribute structure.
+
+</p>
+
+
+<p class="p">
+Those are all the changes required. 
+Nothing in our <var class="keyword varname">io_read</var> or <var class="keyword varname">io_write</var> handlers
+has to change—the iofunc-layer default functions will gracefully handle the multiple devices.
+
+
+</p>
+
+
+</div>
+
+</body>
+</html>

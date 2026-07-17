@@ -1,0 +1,972 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel-call classes: _NTO_TRACE_KERCALLENTER, _NTO_TRACE_KERCALLEXIT, and _NTO_TRACE_KERCALLINT" />
+<meta name="abstract" content="These classes track kernel calls." />
+<meta name="description" content="These classes track kernel calls." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/events_Classes.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Kernel_call_class" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Kernel-call classes: _NTO_TRACE_KERCALLENTER, _NTO_TRACE_KERCALLEXIT, and _NTO_TRACE_KERCALLINT</title>
+</head>
+<body id="Kernel_call_class">
+
+<h1 class="title topictitle1" id="ariaid-title1">Kernel-call classes: <span class="keyword const">_NTO_TRACE_KERCALLENTER</span>, <span class="keyword const">_NTO_TRACE_KERCALLEXIT</span>, and <span class="keyword const">_NTO_TRACE_KERCALLINT</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+These classes track kernel calls.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+
+
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword const">_NTO_TRACE_KERCALLENTER</span> and <span class="keyword const">_NTO_TRACE_KERCALLEXIT</span> track the
+  entrances to and exits from kernel calls.
+</li>
+
+
+<li class="li"><span class="keyword const">_NTO_TRACE_KERCALLINT</span> tracks interrupted kernel calls.
+  When we exit the kernel, we check to see if the kernel call arguments are valid.
+  If so, then we log an <span class="keyword const">_NTO_TRACE_KERCALLEXIT</span> event with the parameters.
+  If not, then we log an <span class="keyword const">_NTO_TRACE_KERCALLINT</span> event with no parameters.
+  
+  If you get an <span class="keyword const">EINTR</span> return code from your kernel call,
+  you'll also see an <span class="keyword const">_NTO_TRACE_KERCALLINT</span> event in the trace log.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+<span class="keyword const">_NTO_TRACE_KERCALL</span> is a pseudo-class that comprises all these classes.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+
+
+
+
+The <span class="keyword cmdname">traceprinter</span> labels for these classes are <span class="ph codeph">KER_CALL</span>,
+<span class="ph codeph">KER_EXIT</span>, and <span class="ph codeph">INT_CALL</span>, followed by
+an uppercase version of the kernel call;
+the IDE labels consist of the kernel call, followed by <span class="ph codeph">Enter</span>,
+<span class="ph codeph">Exit</span>, or <span class="ph codeph">INT</span>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+The event type is ORed with <span class="keyword const">_NTO_TRACE_KERCALL64</span> if the event information includes 64-bit data types.
+For the most part this happens when you're tracing a 64-bit process, but it's possible for a 32-bit process to call
+<span class="keyword apiname">MsgDeliverEvent()</span> with the 64-bit form of a <span class="keyword dtype">struct sigevent</span> (e.g., when a
+64-bit client interacts with a 32-bit server).
+When you're doing a wide-mode trace, the kernel dumps the contents of the <span class="keyword dtype">struct sigevent</span>,
+so <span class="keyword const">_NTO_TRACE_KERCALL64</span> would be ORed into the event type.
+</div>
+
+
+<p class="p">
+Most of the events in these classes correspond in a fairly obvious way to the kernel calls;
+some correspond to internal functions:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8811e294">Event</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8811e297">Kernel call</th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_BAD</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 ">—</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CACHE_CONTROL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/cachecontrol.html"><span class="keyword apiname">CacheControl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CHANNEL_CREATE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html"><span class="keyword apiname">ChannelCreate()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CHANNEL_CTL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelctl.html"> <span class="keyword apiname">ChannelCtl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CHANNEL_DESTROY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channeldestroy.html"><span class="keyword apiname">ChannelDestroy()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CLOCK_ADJUST</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/clockadjust.html"><span class="keyword apiname">ClockAdjust()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CLOCK_ID</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/clockid.html"><span class="keyword apiname">ClockId()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CLOCK_PERIOD</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/clockperiod.html"><span class="keyword apiname">ClockPeriod()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CLOCK_TIME</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/clocktime.html"><span class="keyword apiname">ClockTime()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CONNECT_ATTACH</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectattach.html"><span class="keyword apiname">ConnectAttach()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CONNECT_CLIENT_INFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectclientinfo.html"><span class="keyword apiname">ConnectClientInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CONNECT_DETACH</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectdetach.html"><span class="keyword apiname">ConnectDetach()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CONNECT_FLAGS</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectflags.html"><span class="keyword apiname">ConnectFlags()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_CONNECT_SERVER_INFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/connectserverinfo.html"><span class="keyword apiname">ConnectServerInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_ATTACH</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachthread.html"><span class="keyword apiname">InterruptAttachThread()</span></a>, <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html"><span class="keyword apiname">InterruptAttachEvent()</span></a>
+              
+              
+            </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_DETACH</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html"><span class="keyword apiname">InterruptDetach()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_QUERY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptquery.html"><span class="keyword apiname">InterruptQuery()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_MASK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html"><span class="keyword apiname">InterruptMask()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_UNMASK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html"><span class="keyword apiname">InterruptUnmask()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_INTERRUPT_WAIT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html"><span class="keyword apiname">InterruptWait()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_CURRENT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html"><span class="keyword apiname">MsgCurrent()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_DELIVER_EVENT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html"><span class="keyword apiname">MsgDeliverEvent()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_ERROR</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html"><span class="keyword apiname">MsgError()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_INFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html"><span class="keyword apiname">MsgInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_PAUSE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgpause.html"><span class="keyword apiname">MsgPause()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_QUEUE_CLOSE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgqueueclose.html"><span class="keyword apiname">MsgQueueClose()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_QUEUE_CTL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgqueuectl.html"><span class="keyword apiname">MsgQueueCtl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_QUEUE_OPEN</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgqueueopen.html"><span class="keyword apiname">MsgQueueOpen()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_QUEUE_RECEIVE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgqueuereceive.html"><span class="keyword apiname">MsgQueueReceive()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_QUEUE_SEND</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgqueuesend.html"><span class="keyword apiname">MsgQueueSend()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_READV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html"><span class="keyword apiname">MsgRead()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html"><span class="keyword apiname">MsgReadv()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_RECEIVEPULSEV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html"><span class="keyword apiname">MsgReceivePulse()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_RECEIVEV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceive()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html"><span class="keyword apiname">MsgReceivev()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_REGISTER_EVENT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgregisterevent.html"><span class="keyword apiname">MsgRegisterEvent()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_REPLYV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html"><span class="keyword apiname">MsgReply()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html"><span class="keyword apiname">MsgReplyv()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_SENDV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html"><span class="keyword apiname">MsgSendv()</span></a>,
+        and
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html"><span class="keyword apiname">MsgSendvs()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_SENDVNC</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html"><span class="keyword apiname">MsgSendnc()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html"><span class="keyword apiname">MsgSendvnc()</span></a>,
+        and
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html"><span class="keyword apiname">MsgSendvsnc()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_SEND_PULSE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html"><span class="keyword apiname">MsgSendPulse()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_SEND_PULSEPTR</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulseptr.html"><span class="keyword apiname">MsgSendPulsePtr()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_VERIFY_EVENT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html"><span class="keyword apiname">MsgVerifyEvent()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_MSG_WRITEV</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html"><span class="keyword apiname">MsgWrite()</span></a>,
+        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html"><span class="keyword apiname">MsgWritev()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_NOP</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 ">None; forces a thread into the kernel so that scheduling can take place</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SCHED_CTL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedctl.html"><span class="keyword apiname">SchedCtl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SCHED_GET</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedget.html"><span class="keyword apiname">SchedGet()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SCHED_INFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedinfo.html"><span class="keyword apiname">SchedInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SCHED_SET</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html"><span class="keyword apiname">SchedSet()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SCHED_YIELD</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedyield.html"><span class="keyword apiname">SchedYield()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_ACTION</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html"><span class="keyword apiname">SignalAction()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_KILL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html"><span class="keyword apiname">SignalKill()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_KILL_SIGVAL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkillsigval.html"><span class="keyword apiname">SignalKillSigval()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_PROCMASK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalprocmask.html"><span class="keyword apiname">SignalProcmask()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_RETURN</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><span class="keyword apiname">SignalReturn()</span> (This function is for internal use only)
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_SUSPEND</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalsuspend.html"><span class="keyword apiname">SignalSuspend()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SIGNAL_WAITINFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalwaitinfo.html"><span class="keyword apiname">SignalWaitInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_BARRIER_WAIT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncbarrierwait_r.html"><span class="keyword apiname">SyncBarrierWait_r()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_CONDVAR_SIGNAL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/synccondvarsignal.html"><span class="keyword apiname">SyncCondvarSignal()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_CONDVAR_WAIT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/synccondvarwait.html"><span class="keyword apiname">SyncCondvarWait()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_CREATE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/synctypecreate.html"><span class="keyword apiname">SyncTypeCreate()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_CTL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncctl.html"><span class="keyword apiname">SyncCtl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_DESTROY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncdestroy.html"><span class="keyword apiname">SyncDestroy()</span></a>
+              
+              <div class="note"><span class="notetitle">Note:</span> This event and kernel call are being deprecated in a future release. Use
+                  <span class="keyword const">__KER_SYNC_TYPE_DESTROY</span> and <span class="keyword apiname">SyncTypeDestroy()</span>
+                instead.</div>
+
+            </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_TYPE_DESTROY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/synctypedestroy.html"><span class="keyword apiname">SyncTypeDestroy()</span></a>
+              
+            </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_MUTEX_LOCK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncmutexlock.html"><span class="keyword apiname">SyncMutexLock()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_MUTEX_UNLOCK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncmutexunlock.html"><span class="keyword apiname">SyncMutexUnlock()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_RWLOCK</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncrwlock.html"><span class="keyword apiname">SyncRWLock()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_SEM_POST</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsempost.html"><span class="keyword apiname">SyncSemPost()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYNC_SEM_WAIT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html"><span class="keyword apiname">SyncSemWait()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYS_CPUPAGE_GET</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 ">—</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYS_CPUPAGE_SET</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 ">—</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_SYS_SRANDOM</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syssrandom.html"><span class="keyword apiname">SysSrandom()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_CANCEL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcancel.html"><span class="keyword apiname">ThreadCancel()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_CREATE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html"><span class="keyword apiname">ThreadCreate()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_CTL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html"><span class="keyword apiname">ThreadCtl()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_DESTROY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threaddestroy.html"><span class="keyword apiname">ThreadDestroy()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_DETACH</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threaddetach.html"><span class="keyword apiname">ThreadDetach()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_THREAD_JOIN</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadjoin.html"><span class="keyword apiname">ThreadJoin()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_ALARM</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timeralarm.html"><span class="keyword apiname">TimerAlarm()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_CREATE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timercreate.html"><span class="keyword apiname">TimerCreate()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_DELEGATE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timerdelegate.html"><span class="keyword apiname">TimerDelegate()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_DESTROY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timerdestroy.html"><span class="keyword apiname">TimerDestroy()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_INFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timerinfo.html"><span class="keyword apiname">TimerInfo()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_SETTIME</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timersettime.html"><span class="keyword apiname">TimerSettime()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TIMER_TIMEOUT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timertimeout.html"><span class="keyword apiname">TimerTimeout()</span></a>
+    
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e294 "><span class="keyword const">__KER_TRACE_EVENT</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8811e297 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html"><span class="keyword apiname">TraceEvent()</span></a>
+    
+  </td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/events_Classes.html">Classes and events</a></div>
+</div>
+</div></body>
+</html>

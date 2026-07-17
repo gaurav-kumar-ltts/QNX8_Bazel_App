@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_device_read_cap()" />
+<meta name="abstract" content="Load a capability module" />
+<meta name="description" content="Load a capability module" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_device_read_cap" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_device_read_cap()</title>
+</head>
+<body id="pci_device_read_cap">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_device_read_cap()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Load a capability module</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_err_t pci_device_read_cap( pci_bdf_t <var class="keyword varname">bdf</var>,
+                               pci_cap_t *<var class="keyword varname">cap</var>,
+                               uint_t <var class="keyword varname">idx</var> );
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">bdf</var></dt>
+
+<dd class="dd">The Bus/Device/Function associated with a device.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">cap</var></dt>
+
+<dd class="dd">A pointer to a location where the function can store a pointer to a PCI capabilities structure
+  (note that <span class="keyword dtype">pci_cap_t</span> itself is defined as a pointer to the structure).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">idx</var></dt>
+
+<dd class="dd">The index of the capability that you want to load.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+Once you've found a desired capability index (by using
+<a class="xref" href="pci_device_read_capid.html" title="Get the ID of the nth capability that a device supports"><span class="keyword apiname">pci_device_read_capid()</span></a>
+or
+<a class="xref" href="pci_device_find_capid.html" title="Get the index of a capability for a device"><span class="keyword apiname">pci_device_find_capid()</span></a>),
+you can call <span class="keyword apiname">pci_device_read_cap()</span> using the <var class="keyword varname">idx</var> parameter in order
+to initialize the <var class="keyword varname">cap</var> argument and trigger the loading of the capabilities module.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The first time you call <span class="keyword apiname">pci_device_read_cap()</span> for a given capability <var class="keyword varname">idx</var>,
+initialize the pointer referred to by <var class="keyword varname">cap</var> to <span class="keyword const">NULL</span> (see the example below).
+The function will return <span class="keyword const">PCI_ERR_EINVAL</span> in this case, by design.
+Failure to set <var class="keyword varname">cap</var> to <span class="keyword const">NULL</span> will likely result in a program exception.
+</div>
+
+
+<p class="p">
+Although there's no need to call <span class="keyword apiname">pci_device_read_cap()</span> more than once for each capability,
+you can call it again using the <span class="keyword dtype">pci_cap_t</span> returned on the first successful call.
+</p>
+
+
+<p class="p">
+If the function fails on a subsequent call using the <var class="keyword varname">cap</var> returned
+from an initial call (i.e., with <var class="keyword varname">cap</var> = <span class="keyword const">NULL</span>), the <span class="keyword dtype">pci_cap_t</span>
+initially received is destroyed, and you must make a new call with <var class="keyword varname">cap</var> = <span class="keyword const">NULL</span>.
+</p>
+
+
+<p class="p">
+After a successful call to <span class="keyword apiname">pci_device_read_cap()</span>, you can use the APIs for the capability module
+using the returned <span class="keyword dtype">pci_cap_t</span> argument in order to configure the capability as desired. 
+</p>
+
+
+<p class="p">
+Finally, once the capability has been configured (as applicable), you can enable the capability by calling
+<a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a>.
+If a device supports a capability for which there's no capability module, <span class="keyword apiname">pci_device_read_cap()</span>
+returns an error indicating that the capability can't be used.
+</p>
+
+
+<p class="p">
+When you no longer need the <span class="keyword dtype">pci_cap_t</span> returned from a successful
+<span class="keyword apiname">pci_device_read_cap()</span> call, you can release it with
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html"><span class="keyword apiname">free()</span></a>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_OK</span></dt>
+
+<dd class="dd">Success; <var class="keyword varname">cap</var> refers to a valid <span class="keyword dtype">pci_cap_t</span>, which you can use with
+  the capability APIs.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENOENT</span></dt>
+
+<dd class="dd">The capability at <var class="keyword varname">idx</var> doesn't exist.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EIO</span></dt>
+
+<dd class="dd">A malformed capability <q class="q">next</q> pointer was encountered.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EINVAL</span></dt>
+
+<dd class="dd">The <var class="keyword varname">cap</var> argument was NULL.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_NO_MODULE</span></dt>
+
+<dd class="dd">A capability module doesn't exist (in the capability module search path) for the capability at
+  <var class="keyword varname">idx</var> for the device identified by <var class="keyword varname">bdf</var>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_MODULE_BLACKLISTED</span></dt>
+
+<dd class="dd">The identified capability module is contained in the <span class="keyword envar">PCI_MODULE_BLACKLIST</span> environment variable.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_MODULE_SYM</span></dt>
+
+<dd class="dd">The identified capability module doesn't have a proper initialization function.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_MOD_COMPAT</span></dt>
+
+<dd class="dd">The identified capability module is incompatible with the version of either the <span class="keyword cmdname">pci-server</span>
+  binary or <span class="ph filepath">libpci</span>.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The following internal errors are specifically related to internal resource availability and use, and are atypical:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENOMEM</span></dt>
+
+<dd class="dd">Memory for internal resources couldn't be obtained. This may be a temporary condition.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_LOCK_FAILURE</span></dt>
+
+<dd class="dd">An error occurred that's related to the creation, acquisition or use of a synchronization object.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If any error occurs, you should consider the contents of the <var class="keyword varname">cap</var> argument to be invalid data.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Example:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+#include &lt;pci/cap_pcie.h&gt;
+
+int_t cap_pcie_idx = pci_device_find_capid(bdf, CAPID_PCIe);
+
+if (cap_pcie_idx &gt;= 0)
+{
+        pci_cap_t pcie_cap = NULL;
+        pci_err_t r = pci_device_read_cap(bdf, &amp;pcie_cap, cap_pcie_idx);
+        if (r == PCI_ERR_OK)
+        {
+                /* enable and use the capability */
+
+                /* done with the capability */
+                free(pcie_cap);
+        }
+}
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d11067e462">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d11067e464"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e462 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e464 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e462 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e464 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e462 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d11067e464 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">See also:</h2>
+
+
+<p class="p">
+<a class="xref" href="pci_device_find_capid.html" title="Get the index of a capability for a device"><span class="keyword apiname">pci_device_find_capid()</span></a>,
+<a class="xref" href="pci_device_read_capid.html" title="Get the ID of the nth capability that a device supports"><span class="keyword apiname">pci_device_read_capid()</span></a>
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>

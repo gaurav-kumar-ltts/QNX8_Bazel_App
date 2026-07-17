@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="File ownership and permissions" />
+<meta name="abstract" content="When mkifs includes files, directories, and symbolic links in an OS image, by default these items inherit the development host's permissions, and user ID and group ID are set to 0. You can override these settings through buildfile attributes." />
+<meta name="description" content="When mkifs includes files, directories, and symbolic links in an OS image, by default these items inherit the development host's permissions, and user ID and group ID are set to 0. You can override these settings through buildfile attributes." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ownership_permissions" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>File ownership and permissions</title>
+</head>
+<body id="ownership_permissions">
+
+	<h1 class="title topictitle1" id="ariaid-title1">File ownership and permissions</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">When <span class="keyword cmdname">mkifs</span> includes files, directories, and symbolic links in an OS
+		image, by default these items inherit the development host's permissions, and user ID and group
+		ID are set to 0. You can override these settings through buildfile attributes.</p>
+
+		<div class="note"><span class="notetitle">Note:</span> 
+			<p class="p">Windows neither provides a <span class="keyword cmdname">umask</span> nor properly reflects the file
+				ownership and permissions. On a Windows development host, you should always specify these
+				attributes, to ensure your OS image items have the correct ownership and permissions.</p>
+
+			<p class="p">For some OS image items described below, the different behavior for Windows is summarized
+				but otherwise, the descriptions apply to all development host OSs.</p>
+
+		</div>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			<p class="p">Some items brought into the image don't acquire ownership and permissions in the same way
+				as files, directories, and symbolic links, however:</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm" id="ownership_permissions__inline_files">Inline files</dt>
+
+					<dd class="dd">Unless otherwise specified, the default user ID and group ID are both 0, and the
+						default permissions are <span class="ph codeph">0666</span> (or <span class="ph codeph">0644</span> on 
+						Windows).</dd>
+
+				
+				
+					<dt class="dt dlterm" id="ownership_permissions__directories">Directories with no host equivalent</dt>
+
+					<dd class="dd">There are cases when directories that don't exist on the host will be available on the
+						target:
+						<ul class="ul">
+							<li class="li"><p class="p">When <span class="ph codeph">[type=dir]</span> is specified in front of a filepath in the
+									buildfile; we refer to such directories as <dfn class="term">explicitly created
+										directories</dfn>.</p>
+
+								<p class="p">For these directories, unless otherwise specified, the default user ID, group ID,
+									and permissions are <span class="ph codeph">0:0:0755</span>.</p>
+
+							</li>
+
+							<li class="li"><p class="p">When the image is built with an <span class="keyword cmdname">mkxfs</span> variant other than
+										<span class="keyword cmdname">mkifs</span> and a directory isn't named in the buildfile but is
+									part of the path an explicitly named file. For instance, if
+										<span class="ph filepath">dir/file</span> is specified in the buildfile but
+										<span class="ph filepath">dir</span> isn't, this directory gets created by
+										<span class="keyword cmdname">mkxfs</span>. We refer to such directores as <dfn class="term">implicitly
+										created directories</dfn>.</p>
+
+							</li>
+
+							<li class="li"><p class="p">When the image is built with <span class="keyword cmdname">mkifs</span> and a directory gets
+									emulated by <span class="keyword cmdname">procnto</span> because it's part of the target path for a
+									buildfile item. For example, if <span class="ph filepath">dir/file</span> is specified in the
+									buildfile but <span class="ph filepath">dir</span> isn't, <span class="ph filepath">dir</span> gets
+									emulated at runtime by <span class="keyword cmdname">procnto</span>; we refer to such directories as
+										<dfn class="term">virtual directories</dfn>.</p>
+
+								<p class="p">For these directories, you can't set their ownership and permissions; their
+									settings are chosen by <span class="keyword cmdname">procnto</span>. If you need to assign specific
+									ownership and permissions for such directories in your target image, you must
+									create them explicitly.</p>
+
+							</li>
+
+						</ul>
+
+					</dd>
+
+				
+			</dl>
+
+			<p class="p" id="ownership_permissions__symbol_files"> For symbol files generated from the <span class="ph codeph">[+keeplinked]</span>
+				attribute on bootstrap binaries, the owner is the user running <span class="keyword cmdname">mkifs</span>. The
+				permission bits for these symbol files are inherited from the user's current
+					<span class="keyword cmdname">umask</span>. On Windows, permissions might be dictated by the OS. These files
+				are <em class="ph i">not</em> brought into the target image; they are kept on the host and used for
+				debugging. </p>
+
+			<p class="p"> For all binaries in the bootstrap section (<span class="keyword cmdname">procnto-*</span> etc.), unless
+				otherwise specified in the buildfile, the default user ID and group ID are 0, and the
+				default permissions are those of the host file ORed with <span class="ph codeph">0111</span>. The
+					<span class="keyword cmdname">startup-*</span> bootstrap binary doesn't have file attributes because it
+				precedes the filesystem and thus, isn't part of it. </p>
+
+		</div>
+
+		<div class="section" id="ownership_permissions__change"><h2 class="title sectiontitle">Changing user ID, group ID, and permissions</h2>
+			
+			<div class="p">To change the user ID, group ID, and permissions for files when they are included in the
+				image, prefix the item name with the appropriate attributes in the buildfile. For example:
+<pre class="pre codeblock">[<strong class="ph b">uid</strong>=0 <strong class="ph b">gid</strong>=0 <strong class="ph b">perms</strong>=0666] file1
+[<strong class="ph b">uid</strong>=5 <strong class="ph b">gid</strong>=1 <strong class="ph b">perms</strong>=a+xr] file2
+</pre></div>
+
+			<p class="p">These lines mark the first file (<span class="ph filepath">file1</span>) as owned by
+					<span class="ph filepath">root</span> (the user ID 0), group 0, and readable and writable by all (the
+				mode of octal 666). The second file (<span class="ph filepath">file2</span>) is marked as being owned by
+				user ID 5, group ID 1, and executable and readable by all. </p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p">On a Windows host, <span class="keyword cmdname">mkifs</span> can't get any file attribute except for the
+					write (<span class="ph codeph">w</span>) bit, which is based on Windows' read-only file attribute. Also,
+						<span class="keyword cmdname">mkifs</span> must guess at whether the execute (<span class="ph codeph">x</span>) bit
+					should be set based on whether the file is an ELF file of an appropriate type.</p>
+
+				<p class="p">You need to use the <span class="keyword cmdname">perms</span> attribute to specify the access permissions
+					explicitly. You also need to use the <span class="keyword cmdname">uid</span> and <span class="keyword cmdname">gid</span>
+					attributes to set the ownership correctly. To determine whether or not a utility needs to
+					have the setuid or setgid permission set, see its entry in the <cite class="cite">Utilities
+						Reference</cite>.</p>
+
+				<p class="p">For more information about utilities to control ownership and permissions on target
+					systems, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/files_PERMISSIONS.html">File
+							ownership and permissions</a></q> in the <span class="keyword">QNX OS</span>
+					<cite class="cite">User's Guide</cite>, and the <span class="keyword cmdname">mkifs</span>
+					<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__uid"><span class="keyword cmdname">uid</span></a>, <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__gid"><span class="keyword cmdname">gid</span></a>, and <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__perms"><span class="keyword cmdname">perms</span></a> attributes.</p>
+
+			</div>
+
+			<p class="p">When you combine attributes, place them all inside one set of square brackets, as in the
+				example above: <span class="ph codeph">[uid=0 gid=0 perms=0666] file1</span>. See <q class="q"><a class="xref" href="buildfile_syntax.html#buildfile_syntax" title="The buildfile text may include blank lines and comments. All sections are optional, but not all combinations are permitted.">Buildfile syntax</a></q> for more details about attributes
+				and buildfile syntax.</p>
+
+			<div class="p">If you want to set permission fields for multiple files, you can specify the attributes on
+				a single line, followed by the list of files. For example:
+<pre class="pre codeblock">[uid=5 gid=1 perms=0666]
+file1
+file2
+file3
+file4
+</pre>
+				which is equivalent to:
+<pre class="pre codeblock">[uid=5 gid=1 perms=0666] file1
+[uid=5 gid=1 perms=0666] file2
+[uid=5 gid=1 perms=0666] file3
+[uid=5 gid=1 perms=0666] file4
+</pre></div>
+
+			<div class="p">To set the permissions for a directory, you must use a different attribute:
+<pre class="pre codeblock">[uid=5 gid=1 <strong class="ph b">dperms</strong>=0755] dir1=/some/host/dir
+</pre> Sub-directories are unaffected.</div>
+
+			<div class="note"><span class="notetitle">Note:</span>  On a Windows host, <span class="keyword cmdname">mkifs</span> can't get the execute (<span class="ph codeph">x</span>)
+				bit, sticky bit, read permissions, setuid (<q class="q">set user ID</q>), or setgid (<q class="q">set group
+					ID</q>) permissions from the directory. You need to use the <span class="keyword cmdname">dperms</span>
+				attribute to specify these permissions explicitly and use the <span class="keyword cmdname">uid</span> and
+					<span class="keyword cmdname">gid</span> attributes to set the ownership correctly. For more information,
+				see the <span class="keyword cmdname">mkifs</span>
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__uid"><span class="keyword cmdname">uid</span></a>, <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__gid"><span class="keyword cmdname">gid</span></a>, and <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__dperms"><span class="keyword cmdname">dperms</span></a> attributes. </div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

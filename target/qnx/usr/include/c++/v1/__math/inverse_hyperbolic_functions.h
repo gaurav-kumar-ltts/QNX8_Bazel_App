@@ -1,0 +1,136 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef _LIBCPP___MATH_INVERSE_HYPERBOLIC_FUNCTIONS_H
+#define _LIBCPP___MATH_INVERSE_HYPERBOLIC_FUNCTIONS_H
+
+#include <__config>
+#include <__type_traits/enable_if.h>
+#include <__type_traits/is_integral.h>
+
+#if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
+#  pragma GCC system_header
+#endif
+
+_LIBCPP_BEGIN_NAMESPACE_STD
+
+namespace __math {
+
+// acosh
+
+inline _LIBCPP_HIDE_FROM_ABI float acosh(float __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::acoshf(__x);
+#else
+  return __builtin_acoshf(__x);
+#endif
+}
+
+template <class = int>
+_LIBCPP_HIDE_FROM_ABI double acosh(double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::acosh(__x);
+#else
+  return __builtin_acosh(__x);
+#endif
+}
+
+inline _LIBCPP_HIDE_FROM_ABI long double acosh(long double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::acoshl(__x);
+#else
+  return __builtin_acoshl(__x);
+#endif
+}
+
+template <class _A1, __enable_if_t<is_integral<_A1>::value, int> = 0>
+inline _LIBCPP_HIDE_FROM_ABI double acosh(_A1 __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::acosh((double)__x);
+#else
+  return __builtin_acosh((double)__x);
+#endif
+}
+
+// asinh
+
+inline _LIBCPP_HIDE_FROM_ABI float asinh(float __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::asinhf(__x);
+#else
+  return __builtin_asinhf(__x);
+#endif
+}
+
+template <class = int>
+_LIBCPP_HIDE_FROM_ABI double asinh(double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::asinh(__x);
+#else
+  return __builtin_asinh(__x);
+#endif
+}
+
+inline _LIBCPP_HIDE_FROM_ABI long double asinh(long double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::asinhl(__x);
+#else
+  return __builtin_asinhl(__x);
+#endif
+}
+
+template <class _A1, __enable_if_t<is_integral<_A1>::value, int> = 0>
+inline _LIBCPP_HIDE_FROM_ABI double asinh(_A1 __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::asinh((double)__x);
+#else
+  return __builtin_asinh((double)__x);
+#endif
+}
+
+// atanh
+
+inline _LIBCPP_HIDE_FROM_ABI float atanh(float __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::atanhf(__x);
+#else
+  return __builtin_atanhf(__x);
+#endif
+}
+
+template <class = int>
+_LIBCPP_HIDE_FROM_ABI double atanh(double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::atanh(__x);
+#else
+  return __builtin_atanh(__x);
+#endif
+}
+
+inline _LIBCPP_HIDE_FROM_ABI long double atanh(long double __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::atanhl(__x);
+#else
+  return __builtin_atanhl(__x);
+#endif
+}
+
+template <class _A1, __enable_if_t<is_integral<_A1>::value, int> = 0>
+inline _LIBCPP_HIDE_FROM_ABI double atanh(_A1 __x) _NOEXCEPT {
+#if defined(__QNX__) && !defined(QNX_LIBM_BUILTINS)
+  return ::atanh((double)__x);
+#else
+  return __builtin_atanh((double)__x);
+#endif
+}
+
+} // namespace __math
+
+_LIBCPP_END_NAMESPACE_STD
+
+#endif // _LIBCPP___MATH_INVERSE_HYPERBOLIC_FUNCTIONS_H

@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sporadic scheduling" />
+<meta name="abstract" content="The sporadic scheduling policy is generally used to provide a capped limit on the execution time of a thread within a given period of time." />
+<meta name="description" content="The sporadic scheduling policy is generally used to provide a capped limit on the execution time of a thread within a given period of time." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SchedulingAlgorithms.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Sporadic_scheduling" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sporadic scheduling</title>
+</head>
+<body id="Sporadic_scheduling">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Sporadic scheduling</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The sporadic scheduling policy is generally used to
+provide a capped limit on the execution time of a thread
+<em class="ph i">within a given period of time</em>.
+</p>
+
+<p class="p">
+
+
+
+
+This behavior is essential when Rate Monotonic Analysis (RMA) is being
+performed on a system that services both periodic and
+aperiodic events. Essentially, this algorithm allows a
+thread to service aperiodic events without jeopardizing the
+hard deadlines of other threads or processes in the system.
+</p>
+
+
+<p class="p">
+As in FIFO scheduling, a thread using sporadic scheduling
+continues executing until it blocks or is preempted by a
+higher-priority thread.
+A thread using sporadic scheduling will drop in priority, but
+with this type of scheduling you have much more precise control
+over the thread's behavior.
+</p>
+
+
+<p class="p">
+
+
+
+Under sporadic scheduling, a thread's priority can oscillate
+dynamically between a <em class="ph i">foreground</em> or normal
+priority and a <em class="ph i">background</em> or low priority. Using
+the following parameters, you can control the conditions of
+this sporadic shift:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><em class="ph i">Initial budget (C)</em></dt>
+
+<dd class="dd">The amount of time a thread is allowed to execute at its
+  normal priority (N) before being dropped to its low priority (L).
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">Low priority (L)</em></dt>
+
+<dd class="dd">The priority level to which the thread will drop. The
+  thread executes at this lower priority (L) while in the
+  background, and runs at normal priority (N) while in the foreground.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">Replenishment period (T)</em></dt>
+
+<dd class="dd">The period of time during which a thread is allowed to
+  consume its execution budget. To schedule replenishment
+  operations, the POSIX implementation also uses this value as
+  the offset from the time the thread becomes READY.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">Max number of pending replenishments</em></dt>
+
+<dd class="dd">This value limits the number of replenishment operations
+  that can take place, thereby bounding the amount of system
+  overhead consumed by the sporadic scheduling policy.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  In a poorly configured system, a thread's execution budget may
+  become eroded because of too much blocking—that is, it
+  won't receive enough replenishments.
+  </div>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+As the following diagram shows, the sporadic scheduling
+policy establishes a thread's initial execution budget (C),
+which is consumed by the thread as it runs and is
+replenished periodically (for the amount T). When a thread
+blocks, the amount of the execution budget that's been
+consumed (R) is arranged to be replenished at some later
+time (e.g., at 40 msec) after the thread first became ready
+to run.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A thread's budget is replenished periodically.</span>
+
+<br /><img class="image" src="../images/replenish.svg" width="528" alt="Figure showing sporadic scheduling" /><br />
+</div>
+
+
+<p class="p">
+At its normal priority N, a thread will execute for the
+amount of time defined by its initial execution budget C. As
+soon as this time is exhausted, the priority of the thread
+will drop to its low priority L until the replenishment
+operation occurs.
+</p>
+
+
+<div class="p">
+Assume, for example, a system where the thread never blocks or is never preempted:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>A thread drops in priority until its budget is replenished.</span>
+
+<br /><img class="image" src="../images/lowpriority.svg" width="624" alt="Figure showing sporadic scheduling" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Here the thread will drop to its low-priority (background)
+level, where it may or may not get a chance to run depending
+on the priority of other threads in the system.
+</p>
+
+
+<p class="p">
+Once the replenishment occurs, the thread's priority is
+raised to its original level. This guarantees that within a
+properly configured system, the thread will be given the
+opportunity <em class="ph i">every period T</em> to run for a maximum
+execution time C. This ensures that a thread running at
+priority N will consume at most C/T of the system's CPU resources
+if there are other ready threads with a priority higher than L.
+</p>
+
+
+
+
+
+
+<p class="p">
+The <span class="keyword">QNX OS</span> implementation of the sporadic scheduler differs from the
+POSIX sporadic scheduler in that, for computational reasons, the algorithm allows at most one pending
+replenishment per sporadic server thread.
+At each replenishment, the available budget of the sporadic server thread gets boosted up to its initial budget.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SchedulingAlgorithms.html">Scheduling policies</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

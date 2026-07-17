@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Multicore and..." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/multicore_impact.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Synchronization_primitives" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Multicore and...</title>
+</head>
+<body id="Synchronization_primitives">
+
+<h1 class="title topictitle1" id="ariaid-title1">Multicore and...</h1>
+
+
+<div class="body conbody">
+
+<dl class="dl">
+
+<dt class="dt dlterm">Synchronization primitives</dt>
+
+<dd class="dd">Standard synchronization primitives (barriers, mutexes, condvars, semaphores, and all of their
+          derivatives) are safe to use on a multicore box. You don't have to do anything special
+          here. 
+        </dd>
+
+
+
+
+<dt class="dt dlterm">FIFO scheduling</dt>
+
+<dd class="dd">A common single-processor <q class="q">trick</q> for coordinated access to a shared memory region is to use FIFO
+  scheduling between two threads running at the same priority.
+  The idea is that one thread will access the region and then call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedyield.html"><span class="keyword apiname">SchedYield()</span></a>
+  to give up its use of the processor.
+  Then, the second thread runs and accesses the region.
+  When it's done, the second thread too calls <span class="keyword apiname">SchedYield()</span>, and the first thread runs again.
+  Since there's only one processor, both threads would cooperatively share that processor.
+  
+  
+  
+
+  <p class="p">
+  
+  This FIFO trick won't work on an SMP system, because <em class="ph i">both</em> threads may run simultaneously
+  on different processors.
+  You'll have to use the more <q class="q">proper</q> thread synchronization primitives
+  (e.g., a mutex), or use BMP to tie the threads to specific CPUs.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Atomic operations</dt>
+
+<dd class="dd">Note that if you wish to perform simple atomic operations,
+  such as adding a value to a memory location, it isn't necessary
+  to turn off interrupts to ensure that the operation won't be preempted.
+  Instead, use the functions provided in the C include file
+  <span class="ph filepath">&lt;atomic.h&gt;</span>, which let you perform
+  the following operations with memory locations in an atomic manner:
+  
+  
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:33.33333333333333%" /><col style="width:66.66666666666666%" /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d68048e126">Function</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d68048e129">Operation</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_add.html"><span class="keyword apiname">atomic_add()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Add a number</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_add_value.html"><span class="keyword apiname">atomic_add_value()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Add a number and return the original value of *<var class="keyword varname">loc</var></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_clr.html"><span class="keyword apiname">atomic_clr()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Clear bits</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_clr_value.html"><span class="keyword apiname">atomic_clr_value()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Clear bits and return the original value of *<var class="keyword varname">loc</var></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_set.html"><span class="keyword apiname">atomic_set()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Set bits</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_set_value.html"><span class="keyword apiname">atomic_set_value()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Set bits and return the original value of *<var class="keyword varname">loc</var></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_sub.html"><span class="keyword apiname">atomic_sub()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Subtract a number</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_sub_value.html"><span class="keyword apiname">atomic_sub_value()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Subtract a number and return the original value of *<var class="keyword varname">loc</var></td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_toggle.html"><span class="keyword apiname">atomic_toggle()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Toggle (complement) bits</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e126 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/a/atomic_toggle_value.html"><span class="keyword apiname">atomic_toggle_value()</span></a></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d68048e129 ">Toggle (complement) bits and return the original value of *<var class="keyword varname">loc</var></td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The <span class="keyword apiname">*_value()</span> functions may be slower on some systems, so don't use them unless you really
+  want the return value.
+  </div>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/multicore_impact.html">The impact of multicore</a></div>
+</div>
+</div></body>
+</html>

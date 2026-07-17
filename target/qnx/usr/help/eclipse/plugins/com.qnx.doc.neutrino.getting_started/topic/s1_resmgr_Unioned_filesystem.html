@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Unioned filesystems" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Unioned_filesystem" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Unioned filesystems</title>
+</head>
+<body id="Unioned_filesystem">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Unioned filesystems</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+Take a closer look at the diagram we've been using:
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span><span class="keyword">QNX OS</span>'s namespace.</span>
+
+<br /><img class="image" src="../images/rm1.svg" width="672" alt="Process Manager maintained tree structure" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Notice how <em class="ph i">both</em> <span class="keyword cmdname">fs-qnx6</span> <em class="ph i">and</em> the process
+manager have registered themselves as being responsible for
+<q class="q"><span class="ph filepath">/</span></q>?
+This is fine, and nothing to worry about.
+In fact, there are times when it's a very good idea.
+Let's consider one such case.
+</p>
+
+
+<div class="p">
+Suppose you have a slow network connection and you've mounted a
+networked filesystem over it.
+You notice that you often use certain files and wish they were
+somehow magically <q class="q">cached</q> on your system, but alas, the
+designers of the network filesystem didn't provide a way to do that.
+So, you write a pass-through filesystem (called <span class="keyword cmdname">fs-cache</span>)
+that sits on top of the network filesystem.
+Here's how it looks from the client's point of view:
+
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Overlaid filesystems.</span>
+
+<br /><img class="image" src="../images/rm4.svg" width="672" alt="Overlaid filesystems." /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Both <span class="keyword cmdname">fs-nfs</span> (the network filesystem) and your caching
+filesystem (<span class="keyword cmdname">fs-cache</span>) have registered themselves for the same
+prefix, namely <q class="q"><span class="ph filepath">/nfs</span>.</q>
+As we mentioned above, this is fine, normal, and legal under <span class="keyword">QNX OS</span>.
+</p>
+
+
+<p class="p">
+Let's say that the system just started up and your caching filesystem
+doesn't have anything in it yet.
+A client program tries to open a file, let's say <span class="ph filepath">/nfs/home/rk/abc.txt</span>.
+Your caching filesystem is <q class="q">in front of</q> the network filesystem
+(I'll show you how to do that later, when we discuss resource manager
+implementation).
+</p>
+
+
+<p class="p">
+At this point, the client's <span class="keyword apiname">open()</span> code does the usual steps:
+</p>
+
+
+<ol class="ol">
+<li class="li">Message to the process manager: <q class="q">Whom should I talk to about
+  the filename <span class="ph filepath">/nfs/home/rk/abc.txt</span>?</q>
+</li>
+
+
+<li class="li">Response from the process manager: <q class="q">Talk to <span class="keyword cmdname">fs-cache</span>
+  first, and then <span class="keyword cmdname">fs-nfs</span>.</q>
+</li>
+
+
+</ol>
+
+
+<p class="p">
+Notice here that the process manager returned <em class="ph i">two</em> sets of ND/PID/CHID/handle;
+one for <span class="keyword cmdname">fs-cache</span> and one for <span class="keyword cmdname">fs-nfs</span>.
+This is critical.
+</p>
+
+
+<p class="p">
+Now, the client's <span class="keyword apiname">open()</span> continues:
+</p>
+
+
+<ol class="ol">
+<li class="li">Message to <span class="keyword cmdname">fs-cache</span>: <q class="q">I'd like to open the file
+  <span class="ph filepath">/nfs/home/rk/abc.txt</span> for read, please.</q>
+</li>
+
+
+<li class="li">Response from <span class="keyword cmdname">fs-cache</span>: <q class="q">Sorry, I've never heard
+  of this file.</q>
+</li>
+
+
+</ol>
+
+
+<p class="p">
+At this point, the client's <span class="keyword apiname">open()</span> function is out of luck as far
+as the <span class="keyword cmdname">fs-cache</span> resource manager is concerned.
+The file doesn't exist!
+However, the <span class="keyword apiname">open()</span> function knows that it got a list of <em class="ph i">two</em>
+ND/PID/CHID/handle tuples, so it tries the second one next:
+</p>
+
+
+<ol class="ol">
+<li class="li">Message to <span class="keyword cmdname">fs-nfs</span>: <q class="q">I'd like to open the file
+  <span class="ph filepath">/nfs/home/rk/abc.txt</span> for read, please.</q>
+</li>
+
+
+<li class="li">Response from <span class="keyword cmdname">fs-nfs</span>: <q class="q">Sure, no problem!</q></li>
+
+
+</ol>
+
+
+<p class="p">
+Now that the <span class="keyword apiname">open()</span> function has an <span class="keyword const">EOK</span> (the <q class="q">no problem</q>),
+it returns the file descriptor.
+The client then performs <em class="ph i">all</em> further interactions with the <span class="keyword cmdname">fs-nfs</span> resource manager.
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <em class="ph i">only</em> time that we <q class="q">resolve</q> to a resource manager
+is during the <span class="keyword apiname">open()</span> call.
+This means that once we've successfully opened a particular resource manager,
+we will continue to use that resource manager for all calls that use that file descriptor.
+
+</div>
+
+
+<p class="p">
+So how does our <span class="keyword cmdname">fs-cache</span> caching filesystem come into play?
+Well, eventually, let's say that the user is done reading the file (they've
+loaded it into a text editor).
+Now they want to write it out.
+The same steps happen, with an interesting twist:
+</p>
+
+
+<ol class="ol">
+<li class="li">Message to the process manager: <q class="q">Whom should I talk to about
+  the filename <span class="ph filepath">/nfs/home/rk/abc.txt</span>?</q>
+</li>
+
+
+<li class="li">Response from the process manager: <q class="q">Talk to <span class="keyword cmdname">fs-cache</span>
+  first, and then <span class="keyword cmdname">fs-nfs</span>.</q>
+</li>
+
+
+<li class="li">Message to <span class="keyword cmdname">fs-cache</span>: <q class="q">I'd like to open the file
+  <span class="ph filepath">/nfs/home/rk/abc.txt</span> for <em class="ph i">write</em>, please.</q>
+</li>
+
+
+<li class="li">Response from <span class="keyword cmdname">fs-cache</span>: <q class="q">Sure, no problem.</q></li>
+
+
+</ol>
+
+
+<p class="p">
+Notice that this time, in step 3, we opened the file for <em class="ph i">write</em> and
+not <em class="ph i">read</em> as we did previously.
+It's not surprising, therefore, that <span class="keyword cmdname">fs-cache</span> allowed the operation
+this time (in step 4).
+</p>
+
+
+<p class="p">
+Even more interesting, observe what happens the <em class="ph i">next</em> time we go
+to read the file:
+</p>
+
+
+<ol class="ol">
+<li class="li">Message to the process manager: <q class="q">Whom should I talk to about
+  the filename <span class="ph filepath">/nfs/home/rk/abc.txt</span>?</q>
+</li>
+
+
+<li class="li">Response from the process manager: <q class="q">Talk to <span class="keyword cmdname">fs-cache</span>
+  first, and then <span class="keyword cmdname">fs-nfs</span>.</q>
+</li>
+
+
+<li class="li">Message to <span class="keyword cmdname">fs-cache</span>: <q class="q">I'd like to open the file
+  <span class="ph filepath">/nfs/home/rk/abc.txt</span> for <em class="ph i">read</em>, please.</q>
+</li>
+
+
+<li class="li">Response from <span class="keyword cmdname">fs-cache</span>: <q class="q">Sure, no problem.</q></li>
+
+
+</ol>
+
+
+<p class="p">
+Sure enough, the caching filesystem handled the request for the read this time (in
+step 4)!
+</p>
+
+
+<p class="p">
+Now, we've left out a few details, but these aren't important to getting across
+the basic ideas.
+Obviously, the caching filesystem will need some way of sending the data across
+the network to the <q class="q">real</q> storage medium.
+It should also have some way of verifying that no one else modified the file
+just before it returns the file contents to the client (so that the client doesn't
+get stale data).
+The caching filesystem <em class="ph i">could</em> handle the first read request
+itself, by loading the data from the network filesystem on the first
+read into its cache.
+And so on.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Running more than one pass-through filesystem or resource manager on overlapping pathname spaces
+might cause deadlocks.
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">UFS versus UMP</h2>
+
+
+<p class="p">
+
+
+
+
+A slight terminology digression is in order.
+The primary difference between a <em class="ph i">U</em>nioned <em class="ph i">F</em>ile <em class="ph i">S</em>ystem
+(UFS) and a <em class="ph i">U</em>nioned <em class="ph i">M</em>ount <em class="ph i">P</em>oint (UMP) is that the
+UFS is based on a per-file organization, while the UMP is based on a per-mountpoint
+organization.
+</p>
+
+
+<p class="p">
+In the above cache filesystem example, we showed a UFS, because no matter how
+deep the file was in the tree structure, either resource manager was
+able to service it.
+In our example, consider another resource manager (let's call it <q class="q">foobar</q>) taking over
+<q class="q"><span class="ph filepath">/nfs/other</span>.</q> In a UFS system, the <span class="keyword cmdname">fs-cache</span> process would be able
+to cache files from that as well, just by attaching to <q class="q"><span class="ph filepath">/nfs</span>.</q>
+In a UMP implementation, which is the default in <span class="keyword">QNX OS</span> since it does longest prefix match,
+only the <span class="keyword cmdname">foobar</span> resource manager would get the open requests.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Client_view.html" title="We've already seen a hint of what the client expects. It expects a file-descriptor-based interface, using standard POSIX functions.">The client's view</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

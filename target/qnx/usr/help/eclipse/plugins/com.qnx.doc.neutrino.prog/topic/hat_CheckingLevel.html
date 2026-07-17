@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Controlling the level of checking" />
+<meta name="abstract" content="You can use environment variables or the mallopt() function to enable extra checks within the librcheck library." />
+<meta name="description" content="You can use environment variables or the mallopt() function to enable extra checks within the librcheck library." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_DetectingAndReportingErrors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="CheckingLevel" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Controlling the level of checking</title>
+</head>
+<body id="CheckingLevel">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Controlling the level of checking</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+You can use environment variables or the <span class="keyword apiname">mallopt()</span> function to enable extra checks within the
+<span class="ph filepath">librcheck</span> library.
+</p>
+
+
+<p class="p">
+
+If you decide to use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html"><span class="keyword apiname">mallopt()</span></a>,
+you have to modify your application to enable the additional checks.
+Using environment variables lets you specify options that go into effect from the time the program runs.
+If your program does a lot of allocations before <span class="keyword apiname">main()</span>,
+setting options using <span class="keyword apiname">mallopt()</span> may be too late.
+In such cases, it's better to use environment variables.
+</p>
+
+
+<div class="p">
+The prototype of <span class="keyword apiname">mallopt()</span> is:
+
+<pre class="pre codeblock">int mallopt( int <var class="keyword varname">cmd</var>, intptr_t <var class="keyword varname">value</var> );
+</pre>
+</div>
+
+
+<div class="p">
+The arguments are:
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">cmd</var></dt>
+
+<dd class="dd">The command you want to use.
+  The options used to enable additional checks in the library are:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">MALLOC_CKACCESS</span>
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">MALLOC_CKALLOC</span>
+    
+  </li>
+
+  </ul>
+
+
+  <p class="p">
+  We'll look at some of the other commands later in this chapter.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">value</var></dt>
+
+<dd class="dd">A value corresponding to the command used.
+  For these particular commands, the <var class="keyword varname">value</var> argument can be:
+
+  <ul class="ul">
+  <li class="li">0 to disable the checking (the default for these commands)</li>
+
+  <li class="li">1 to enable it</li>
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+For information about all the commands, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html"><span class="keyword apiname">mallopt()</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+Here are the commands that control the additional checks:
+
+<dl class="dl compact">
+
+<dt class="dt dlterm" id="CheckingLevel__MALLOC_CKACCESSa"><span class="keyword const">MALLOC_CKACCESS</span></dt>
+
+<dd class="dd">Turn on (or off) boundary checking for memory and string operations.
+  
+  
+  
+
+  <p class="p">
+  Environment variable: <span class="keyword envar">MALLOC_CKACCESS</span>
+  </p>
+
+
+  <p class="p">
+  Boundary checking helps to detect buffer overruns and underruns
+  that are a result of memory or string operations. When this is on, each
+  pointer operand to a memory or string operation is checked to see
+  if it's a heap buffer. If it is, the size of the heap buffer is
+  checked, and the information is used to ensure that no assignments
+  are made beyond the bounds of the buffer. If an attempt is
+  made that would assign past the buffer boundary, a diagnostic
+  warning message is printed.
+  </p>
+
+  
+  <div class="p">
+  Here's how you can use this option to find an overrun error:
+  
+<pre class="pre codeblock">...
+char *p;
+int opt;
+opt = 1;
+mallopt(MALLOC_CKACCESS, opt);
+p = malloc(strlen("hello"));
+strcpy(p, "hello, there!");  /* a warning is generated here */
+</pre>
+  </div>
+
+
+  <div class="p">
+  The following sample illustrates how access checking can trap a reference through a stale pointer:
+  
+<pre class="pre codeblock">...
+char *p;
+int opt;
+opt = 1;
+mallopt(MALLOC_CKACCESS, opt);
+p = malloc(30);
+free(p);
+strcpy(p, "hello, there!");
+</pre>
+  </div>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="CheckingLevel__MALLOC_CKALLOCa"><span class="keyword const">MALLOC_CKALLOC</span></dt>
+
+<dd class="dd">Turn on (or off) pointer checking for <span class="keyword apiname">realloc()</span> and <span class="keyword apiname">free()</span>, depending on the
+  <var class="keyword varname">value</var> argument. If this is on, the allocator makes sure that the pointers you pass to these
+  functions point to memory that it manages.
+
+
+<p class="p">
+  Environment variable: <span class="keyword envar">MALLOC_CKALLOC</span>
+</p>
+
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat_DetectingAndReportingErrors.html" title="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time.">Detecting and reporting errors</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

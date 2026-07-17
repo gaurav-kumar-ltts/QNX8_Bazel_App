@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="resmgr_io_funcs_t I/O table" />
+<meta name="abstract" content="The I/O table is very similar in spirit to the connect functions table shown above." />
+<meta name="description" content="The I/O table is very similar in spirit to the connect functions table shown above." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_datastruct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="resmgr_io" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>resmgr_io_funcs_t I/O table</title>
+</head>
+<body id="resmgr_io">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">resmgr_io_funcs_t</span> I/O table</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The I/O table is very similar in spirit to the connect functions table shown above.
+</p>
+
+
+<div class="p">
+
+
+
+Here it is, from <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>:
+
+<pre class="pre codeblock">typedef struct _resmgr_io_funcs {
+   unsigned   nfuncs;
+   int (*read)       (ctp, io_read_t *msg, ocb);
+   int (*write)      (ctp, io_write_t *msg, ocb);
+   int (*close_ocb)  (ctp, void *reserved, ocb);
+   int (*stat)       (ctp, io_stat_t *msg, ocb);
+   int (*notify)     (ctp, io_notify_t *msg, ocb);
+   int (*devctl)     (ctp, io_devctl_t *msg, ocb);
+   int (*unblock)    (ctp, io_pulse_t *msg, ocb);
+   int (*pathconf)   (ctp, io_pathconf_t *msg, ocb);
+   int (*lseek)      (ctp, io_lseek_t *msg, ocb);
+   int (*chmod)      (ctp, io_chmod_t *msg, ocb);
+   int (*chown)      (ctp, io_chown_t *msg, ocb);
+   int (*utime)      (ctp, io_utime_t *msg, ocb);
+   int (*openfd)     (ctp, io_openfd_t *msg, ocb);
+   int (*fdinfo)     (ctp, io_fdinfo_t *msg, ocb);
+   int (*lock)       (ctp, io_lock_t *msg, ocb);
+   int (*space)      (ctp, io_space_t *msg, ocb);
+   int (*shutdown)   (ctp, io_shutdown_t *msg, ocb);
+   int (*mmap)       (ctp, io_mmap_t *msg, ocb);
+   int (*msg)        (ctp, io_msg_t *msg, ocb);
+   int (*reserved)   (ctp, void *msg, ocb);
+   int (*dup)        (ctp, io_dup_t *msg, ocb);
+   int (*close_dup)  (ctp, io_close_t *msg, ocb);
+   int (*lock_ocb)   (ctp, void *reserved, ocb);
+   int (*unlock_ocb) (ctp, void *reserved, ocb);
+   int (*sync)       (ctp, io_sync_t *msg, ocb);
+   int (*power)      (ctp, io_power_t *msg, ocb);
+   int (*acl)        (ctp, io_acl_t *msg, ocb);
+   int (*pause)      (ctp, void *reserved, ocb);
+   int (*unpause)    (ctp, io_pulse_t *msg, ocb);
+   int (*read64)     (ctp, io_read_t *msg, ocb);
+   int (*write64)    (ctp, io_write_t *msg, ocb);
+   int (*notify64)   (ctp, io_notify_t *msg, ocb);
+   int (*utime64)    (ctp, io_utime_t *msg, ocb);
+} resmgr_io_funcs_t;
+</pre>
+</div>
+
+
+<div class="p">
+For this structure as well, I've shortened the prototype by removing the type
+of the <var class="keyword varname">ctp</var> member (<span class="keyword dtype">resmgr_context_t *</span>) and the
+last member (<var class="keyword varname">ocb</var>, of type <span class="keyword dtype">RESMGR_OCB_T *</span>).
+For example, the full prototype for <var class="keyword varname">read</var> is really:
+
+
+
+
+
+<pre class="pre codeblock">int (*<var class="keyword varname">read</var>) (resmgr_context_t *<var class="keyword varname">ctp</var>,
+            io_read_t *<var class="keyword varname">msg</var>,
+            RESMGR_OCB_T *<var class="keyword varname">ocb</var>);
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+In order to correctly define <span class="keyword dtype">RESMGR_OCB_T</span>, <span class="ph codeph">#include</span>
+<span class="ph filepath">&lt;sys/iofunc.h&gt;</span> before <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>.
+</div>
+
+
+<p class="p">
+The very first member of the structure (<var class="keyword varname">nfuncs</var>) indicates how big
+the structure is (how many members it contains).
+The proper manifest constant for initialization is <span class="keyword const">_RESMGR_IO_NFUNCS</span>.
+
+
+</p>
+
+
+<p class="p">
+Note that the parameter list in the I/O table is also very regular.
+The first parameter is the <var class="keyword varname">ctp</var>, and the second parameter is the
+<var class="keyword varname">msg</var>, just as they were in the connect table handlers.
+</p>
+
+
+<p class="p">
+The third parameter is different, however.
+It's an <var class="keyword varname">ocb</var>, which stands
+for <q class="q">Open Context Block.</q>
+It holds the context that was bound by the connect message handler (e.g.,
+as a result of the client's <span class="keyword apiname">open()</span> call), and is available to the I/O functions.
+
+
+</p>
+
+
+<p class="p">
+As discussed above, when it comes
+time to fill in the two tables, we recommend
+that you use the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a>
+function to load up the
+tables with the POSIX-layer default handler routines.
+Then, if you need to override some of the functionality of particular
+message handlers, you'd simply assign your own handler function instead
+of the default routine.
+We'll see this in the section
+<a class="xref" href="s1_resmgr_your_functions.html" title="When designing your very first resource manager, you'll most likely want to take an incremental design approach. It can be very frustrating to write thousands of lines of code only to run into a fundamental misunderstanding and then having to make the ugly decision of whether to try to kludge (er, I mean “fix”) all that code, or scrap it and start from scratch."><q class="q">Putting in your own functions.</q></a>
+
+
+
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_datastruct.html" title="The first thing we need to understand is the data structures used to control the operation of the library.">Data structures</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

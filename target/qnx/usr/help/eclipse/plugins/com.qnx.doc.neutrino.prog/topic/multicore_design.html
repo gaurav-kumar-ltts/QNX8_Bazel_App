@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Designing with multiprocessing in mind" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/multicore.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DESIGN" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Designing with multiprocessing in mind</title>
+</head>
+<body id="DESIGN">
+
+<h1 class="title topictitle1" id="ariaid-title1">Designing with multiprocessing in mind</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+This section contains some general tips on how to design programs so that
+they can scale to <var class="keyword varname">N</var> processors.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Use the multicore primitives</h2>
+
+
+<p class="p">
+
+
+Don't assume that your program will run only on one processor.
+This means staying away from the FIFO synchronization trick mentioned above.
+Also, you should use the multicore-aware
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html"><span class="keyword apiname">InterruptLock()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html"><span class="keyword apiname">InterruptUnlock()</span></a>
+functions.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Assume that threads <em class="ph i">really do</em> run concurrently</h2>
+
+
+<p class="p">
+
+As mentioned above, it isn't merely a useful <q class="q">programming abstraction</q> to pretend that
+threads run simultaneously; you should design as if they really do.
+That way, when you move to a multicore system, you won't have any nasty surprises
+(but you can use BMP if you have problems and don't want to modify the code).
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Break the problem down</h2>
+
+
+<div class="p">
+
+Most problems can be broken down into independent, parallel
+tasks. Some are easy to break down, some are hard, and some
+are impossible. Generally, you want to look at the data flow
+going through a particular problem. If the data flows are
+<em class="ph i">independent</em> (i.e., one flow doesn't rely on the
+results of another), this can be a good candidate for
+parallelization within the process by starting multiple
+threads. Consider the following graphics program snippet:
+
+<pre class="pre codeblock">do_graphics ()
+{
+    int     x;
+
+    for (x = 0; x &lt; XRESOLUTION; x++) {
+        do_one_line (x);
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+In the above example, we're doing ray-tracing. We've looked
+at the problem and decided that the function
+<span class="keyword apiname">do_one_line()</span> only generates output to the screen—it
+doesn't rely on the results from any other
+invocation of <span class="keyword apiname">do_one_line()</span>.
+</p>
+
+
+<p class="p">
+To make optimal use of a multicore system, you would start
+multiple threads, each running on one processor.
+</p>
+
+
+<p class="p">
+The question then becomes how many threads to start.
+Obviously, starting <span class="keyword const">XRESOLUTION</span> threads
+(where <span class="keyword const">XRESOLUTION</span> is far greater than the
+number of processors, perhaps 1024 to 4) isn't a particularly good idea—you're
+creating a lot of threads, all of which will consume
+stack resources and kernel resources as they compete for the
+limited pool of CPUs.
+</p>
+
+
+<div class="p">
+
+
+A simple solution would be to find out the number of CPUs
+that you have available to you (via the system page pointer)
+and divide the work up that way:
+
+<pre class="pre codeblock">#include &lt;sys/syspage.h&gt;
+
+int     num_x_per_cpu;
+
+do_graphics ()
+{
+    int     num_cpus;
+    int     i;
+    pthread_t *tids;
+
+    // figure out how many CPUs there are...
+    num_cpus = _syspage_ptr -&gt; num_cpu;
+
+    // allocate storage for the thread IDs
+    tids = malloc (num_cpus * sizeof (pthread_t));
+
+    // figure out how many X lines each CPU can do
+    num_x_per_cpu = XRESOLUTION / num_cpus;
+
+    // start up one thread per CPU, passing it the ID
+    for (i = 0; i &lt; num_cpus; i++) {
+        pthread_create (&amp;tids[i], NULL, do_lines, (void *) i);
+    }
+
+    // now all the "do_lines" are off running on the processors
+
+    // we need to wait for their termination
+    for (i = 0; i &lt; num_cpus; i++) {
+        pthread_join (tids[i], NULL);
+    }
+
+    // now they are all done
+}
+
+void *
+do_lines (void *arg)
+{
+    int    cpunum = (int) arg;  // convert void * to an integer
+    int    x;
+
+    for (x = cpunum * num_x_per_cpu; x &lt; (cpunum + 1) * 
+          num_x_per_cpu; x++) { do_line (x);
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+The above approach lets the maximum number of threads
+run simultaneously on the multicore system. There's no point
+creating more threads than there are CPUs, because they'll
+simply compete with each other for CPU time.
+</p>
+
+
+<p class="p">
+Note that in this example, we didn't specify which processor to run
+each thread on.
+We don't need to in this case, because the READY thread with the highest
+priority always runs on the next available processor.
+The threads will tend to run on different processors (depending on what
+else is running in the system).
+You typically use the same priority for all the worker threads if they're
+doing similar work.
+</p>
+
+
+<p class="p">
+An alternative approach is to use a semaphore. You could
+preload the semaphore with the count of available CPUs.
+Then, you create threads whenever the semaphore indicates
+that a CPU is available. This is conceptually simpler, but
+involves the overhead of creating and destroying threads for each iteration.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/multicore.html" title="Multiprocessing systems, whether discrete or multicore, can greatly improve your applications' performance.">Multicore Processing</a></div>
+</div>
+</div></body>
+</html>

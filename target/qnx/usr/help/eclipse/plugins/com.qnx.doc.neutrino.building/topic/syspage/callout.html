@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="callout" />
+<meta name="abstract" content="Information for kernel callouts" />
+<meta name="description" content="Information for kernel callouts" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>callout</title>
+</head>
+<body id="callout">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><var class="keyword varname">callout</var></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc"><em class="ph i">Information for kernel callouts</em></p>
+
+		<div class="section">
+			
+			
+			
+
+			<div class="p">The <var class="keyword varname">callout</var> area is CPU-independent. It is defined by the
+					<span class="keyword dtype">callout_entry</span> data structure, which includes the following members:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">reboot</var></dt>
+
+					<dd class="dd">A pointer to the reboot callout function. This callout function is invoked in two scenarios:
+						<ul class="ul">
+							<li class="li">A <q class="q">normal</q> termination, which is done based on a user request
+								(e.g., through <span class="keyword apiname">sysmgr_reboot()</span>) and is therefore expected</li>
+
+							<li class="li">An <q class="q">abnormal</q> termination, which is done to recover from an unexpected system failure
+								and is therefore unexpected. Reasons for an abnormal termination include: <ul class="ul">
+									<li class="li">the kernel detects internal inconsistencies</li>
+
+									<li class="li">the kernel runs out of memory doing work that is guaranteed to succeed</li>
+
+									<li class="li">a critical process terminates</li>
+
+								</ul>
+</li>
+
+						</ul>
+
+						<div class="note"><span class="notetitle">Note:</span> If the behavior of the system cannot be guaranteed to meet all requirements, the safest course of action is
+							to return system control to the startup program so that it can, in a board-specific way, put the system into
+							a known good state (e.g., by rebooting).</div>
+
+						<p class="p">For more details and a code sample, see <q class="q"><a class="xref" href="../callouts/callout_reset.html" title="The kernel invokes the reboot() callout to reboot the system.">System reboot</a></q>.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">power</var></dt>
+
+					<dd class="dd">Deprecated. This field is set to <span class="keyword const">NULL</span>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">timer_load</var></dt>
+
+					<dd class="dd">A pointer to a callout that sets the period for the system tick timer and enables it.
+						The callout is called first during <span class="keyword cmdname">procnto</span> initialization to make
+						the timer start generating system ticks. It is also called when the system tick period
+						is changed (via <span class="keyword apiname">ClockPeriod()</span>), when entering or leaving tickless
+						operations, and by high-resolution software timers.
+						<p class="p">For details on what exactly this function does, see the
+							<a class="xref" href="../callouts/callout_timer.html#callout_timer__timer_load"><span class="keyword apiname">timer_load()</span> description</a> in <q class="q">Timer and clock</q>.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">timer_reload</var></dt>
+
+					<dd class="dd">A pointer to a callout used to manually reload the timer with the same period for the
+						next fire. If a new period needs to be set, <span class="keyword apiname">timer_load()</span> will be used 
+						instead.
+						<p class="p">For more information, see the
+							<a class="xref" href="../callouts/callout_timer.html#callout_timer__timer_reload"><span class="keyword apiname">timer_reload()</span> description</a> in <q class="q">Timer and clock</q>.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">timer_value</var></dt>
+
+					<dd class="dd">A pointer to a callout that is used to determine when the next interrupt is expected.
+						It's a count-up value from 0 (since <q class="q">the last interrupt</q>) to the current time,
+						to tell how far the timer has gone.
+						<p class="p">For examples of using this callout, see the
+							<a class="xref" href="../callouts/callout_timer.html#callout_timer__timer_value"><span class="keyword apiname">timer_value()</span> description</a> in <q class="q">Timer and clock</q>.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">debug</var></dt>
+
+					<dd class="dd">This field is an array that has two entries:
+						<ul class="ul">
+							<li class="li"><tt class="ph tt">debug[0]</tt> — used for informational purposes</li>
+
+							<li class="li"><tt class="ph tt">debug[1]</tt> — currently unused; set this field to <span class="keyword const">NULL</span></li>
+
+						</ul>
+
+						<p class="p">Only the first entry is discussed in this guide. This entry points to a callout that prints out internal debugging
+							information to a device. For information about the specific types of kernel debug callouts, see the
+							<q class="q"><a class="xref" href="../callouts/callout_debug.html" title="The kernel uses the debug callouts when it needs to print out some internal debugging information or encounters a fault.">Kernel debug</a></q> entry in the <q class="q">Kernel Callouts</q> chapter.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">debug_watchdog</var></dt>
+
+					<dd class="dd">Not used. This field is set to <span class="keyword const">NULL</span>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">custom</var></dt>
+
+					<dd class="dd">This field must be either: <ul class="ul">
+						<li class="li"><span class="keyword const">NULL</span>, indicating that no custom kernel call callout is provided</li>
+
+						<li class="li">non-<span class="keyword const">NULL</span>, and pointing to valid code provided by the startup program, indicating that
+							a custom kernel call callout is provided. For information about the signature and a code sample for a custom callout,
+							see the <q class="q"><a class="xref" href="../callouts/callout_custom.html" title="You can use the custom() callout to define a function to be invoked synchronously when a kernel call with the value __KER_SYS_CUSTOM (defined in &lt;sys/kercalls.h&gt;) is invoked by a process.">Custom</a></q> entry in the <q class="q">Kernel Callouts</q> chapter.</li>
+
+						</ul>
+</dd>
+
+				
+			</dl>
+</div>
+
+			
+		</div>
+
+	</div>
+
+</body>
+</html>

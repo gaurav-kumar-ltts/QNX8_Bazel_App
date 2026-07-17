@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Patching the kernel callout code" />
+<meta name="abstract" content="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code." />
+<meta name="description" content="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_patch" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Patching the kernel callout code</title>
+</head>
+<body id="callout_patch">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Patching the kernel callout code</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">If a device for which you are writing a kernel callout can appear in different
+		locations on different boards, a patch routine is required to add the addresses of the
+		registers to the kernel callout code.</p>
+
+		<div class="section">
+			
+			
+			<div class="p">There are two reasons why kernel callouts may not know what addresses the registers
+				occupy:
+				<dl class="dl">
+					
+						<dt class="dt dlterm">Design</dt>
+
+						<dd class="dd">The kernel callout code is part of the startup library, and has therefore
+							been designed to be flexible; it doesn't hard-code the register addresses
+							but instead assumes that the addresses are patched in.</dd>
+
+						<dd class="dd ddexpand">These addresses come from the board-specific code; that is, the addresses
+							are found in code in a board's directory, <em class="ph i">not</em> in the startup library
+							code, which is designed to be as board-independent as possible.</dd>
+
+					
+					
+						<dt class="dt dlterm">Address conversion</dt>
+
+						<dd class="dd">A physical-to-virtual address conversion is required, which means the
+							kernel callout can’t know the virtual address where the register is mapped
+							in until after the kernel has copied the callouts into system memory.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> If the only registers that the callout code accesses are CPU registers, patching
+				isn't needed.</div>
+
+		</div>
+
+		<div class="section" id="callout_patch__proto"><h2 class="title sectiontitle">Patcher routines</h2>
+			
+			
+			
+			
+			
+			<p class="p">When it starts up, the <span class="keyword cmdname">procnto</span> kernel and process manager runs any
+				patchers that are present. The third argument of the <span class="keyword const">CALLOUT_START</span> macro
+				can be either 0 (nothing to do), or the address of a patcher routine.</p>
+
+			<div class="p">Patcher routines have the following prototype:
+<pre class="pre codeblock">void patcher( paddr_t <var class="keyword varname">paddr</var>, 
+	paddr_t <var class="keyword varname">vaddr</var>, 
+	unsigned <var class="keyword varname">rtn_offset</var>,
+	unsigned <var class="keyword varname">rw_offset</var>,
+	void *<var class="keyword varname">data</var>,
+	struct callout_rtn *<var class="keyword varname">src</var> );</pre></div>
+
+			<div class="p">A patcher routine is invoked immediately after the callout has been copied to
+				its final location. Its arguments are:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><var class="keyword varname">paddr</var></dt>
+
+						<dd class="dd">The physical address of the start of the system page.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">vaddr</var></dt>
+
+						<dd class="dd">The virtual address of the system page that allows read/write access
+							(usable only by the kernel).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">rtn_offset</var></dt>
+
+						<dd class="dd">The offset from the start of the system page to the start of the kernel
+							callout's code.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">rw_offset</var></dt>
+
+						<dd class="dd">The offset from the start of the system page to a location of read/write
+							storage, which can be shared by all kernel callouts that have the same value
+							in their <span class="keyword const">CALLOUT_START</span> macro's second argument (see <q class="q"><a class="xref" href="callout_rwstorage.html" title="In some cases, kernel callouts need access to static read/write storage, in particular to share information with other kernel callouts.">Allocating read/write storage</a></q> in this chapter).</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">data</var></dt>
+
+						<dd class="dd">A pointer to arbitrary data registered by <a class="xref" href="../startup_lib/callout_register_data.html"><span class="keyword apiname">callout_register_data()</span></a>.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">src</var></dt>
+
+						<dd class="dd">A pointer to the <span class="keyword dtype">callout_rtn</span> structure that's being copied
+							into place.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<p class="p">Patcher routines don't have to be written in assembly. They are usually written in
+				assembly, however, so they can be kept in the same source file as the code that
+				they patch.</p>
+
+			<p class="p">If you arrange the first instructions in a group of related callouts in the same
+				way (e.g. <span class="keyword apiname">debug_char_*()</span>, <span class="keyword apiname">poll_key_*()</span>,
+				<span class="keyword apiname">break_detect_*()</span>), you can use the same patcher routine for
+				these callouts.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Example patcher routine</h2>
+			
+			
+			
+			<p class="p">Here's an example of a patcher routine for an x86 processor. We assume that the
+				<span class="keyword apiname">display_char_8250()</span> routine has been copied to its permanent
+				location in memory before we invoke our patcher.</p>
+
+			<div class="p">The <span class="keyword apiname">patch_debug_8250()</span> modifies the constants in the first two
+				instructions to the I/O port location and register spacing required for the board:
+<pre class="pre codeblock">patch_debug_8250:
+    movl    0x4(%esp),%eax              // get paddr of routine
+    addl    0xc(%esp),%eax              // ...
+    movl    0x14(%esp),%edx             // get base info
+
+    movl    DDI_BASE(%edx),%ecx         // patch code with real serial port
+    movl    %ecx,0x1(%eax)
+    movl    DDI_SHIFT(%edx),%ecx        // patch code with register shift
+    movl    $REG_LS,%edx
+    shll    %cl,%edx
+    movl    %edx,0x6(%eax)
+    ret
+
+CALLOUT_START(display_char_8250, 0, patch_debug_8250)
+    movl      $0x12345678,%edx          // get serial port base (patched)
+    movl      $0x12345678,%ecx          // get serial port shift (patched)
+		....
+CALLOUT_END(display_char_8250)
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using multiple consoles" />
+<meta name="abstract" content="If your system supports multiple consoles or multiple serial ports, you can run the shell on each console and serial port." />
+<meta name="description" content="If your system supports multiple consoles or multiple serial ports, you can run the shell on each console and serial port." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="multiple_consoles" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Using multiple consoles</title>
+</head>
+<body id="multiple_consoles">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Using multiple consoles</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">If your system supports multiple consoles or multiple serial ports, you can run the
+		shell on each console and serial port.</p>
+
+		<div class="section"><h2 class="title sectiontitle">Running multiple shell instances</h2>
+			
+			
+			
+			
+			
+			
+			<div class="p">To run the shell on every console and serial port on your system:
+				<ol class="ol">
+					<li class="li">Start the console driver with the <span class="keyword option">-n</span> option to ask for more than
+						one console (in this case, we asked for four virtual consoles).</li>
+
+					<li class="li">Redirect standard input, output, and error to each of the consoles in turn.</li>
+
+					<li class="li">Start the shell on each console.</li>
+
+				</ol>
+
+			</div>
+
+<pre class="pre codeblock">[+script] .script = {
+    # start any other drivers you need here
+    devc-con -e -n4 &amp;
+    reopen /dev/con1
+    [+session] esh &amp;
+    reopen /dev/con2
+    [+session] esh &amp;
+    ...
+</pre>
+			<div class="note"><span class="notetitle">Note:</span> Run the shell in the background (using the ampersand character <q class="q">&amp;</q> at the
+				end of the line). If you don't instruct the shell to run in the background, then
+				the interpretation of the script will suspend <em class="ph i">until the shell exits</em>.</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Starting other programs on consoles</h2>
+			
+			
+			
+			
+			<div class="p">To run other programs on different consoles, you can use the same method you use to
+				start the shell on multiple consoles. For instance, to start multiple serial ports:
+				<ol class="ol">
+					<li class="li">Start the appropriate serial driver (e.g., <span class="keyword cmdname">devc-ser8250</span>).</li>
+
+					<li class="li">Redirect standard input, output, and error for each port
+						(e.g., <span class="ph filepath">/dev/ser1</span>, <span class="ph filepath">/dev/ser2</span>).</li>
+
+					<li class="li">Run the appropriate executable (in the background) after the redirection
+						(see <q class="q"><a class="xref" href="#multiple_consoles__redir">Redirection</a></q> below).</li>
+
+				</ol>
+
+			</div>
+
+			<p class="p">The <span class="keyword cmdname">[+session]</span> attribute makes the program the session leader
+				(as per POSIX); not all programs require this attribute.</p>
+
+		</div>
+
+		<div class="section" id="multiple_consoles__redir"><h2 class="title sectiontitle">Redirection</h2>
+			
+			
+			<div class="p">You perform a <span class="keyword cmdname">reopen</span> on any device as many times as you want.
+				You would do this, for example, to start a program on <span class="ph filepath">/dev/con1</span>,
+				then start the shell on <span class="ph filepath">/dev/con2</span>, and then start another program
+				on <span class="ph filepath">/dev/con1</span> again.
+				For example:
+<pre class="pre codeblock">[+script] .script = {
+    ...
+    reopen /dev/con1
+    prog1 &amp;
+    reopen /dev/con2
+    [+session] esh &amp;
+    reopen /dev/con1
+    prog2 &amp;
+    ...
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

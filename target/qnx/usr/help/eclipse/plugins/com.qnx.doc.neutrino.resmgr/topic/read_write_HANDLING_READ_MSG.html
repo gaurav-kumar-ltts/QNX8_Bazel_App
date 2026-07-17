@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling the _IO_READ message" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_Sample_IO_READ.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_READ_MSG" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling the _IO_READ message</title>
+</head>
+<body id="HANDLING_READ_MSG">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling the <span class="keyword const">_IO_READ</span> message</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+The <var class="keyword varname">io_read</var> handler is responsible for returning data bytes to the
+client after receiving an <span class="keyword const">_IO_READ</span> message.
+Examples of functions that send this message are 
+<span class="keyword apiname">read()</span>,
+<span class="keyword apiname">readdir()</span>, 
+<span class="keyword apiname">fread()</span>, and 
+<span class="keyword apiname">fgetc()</span>.
+Let's start by looking at the format of the message itself:
+
+
+
+
+
+
+
+
+
+<pre class="pre codeblock">struct _io_read {
+    uint16_t            type;
+    uint16_t            combine_len;
+    uint32_t            nbytes;
+    uint32_t            xtype;
+    uint32_t            zero;
+};
+
+struct _io_read64 {
+    uint16_t            type;
+    uint16_t            combine_len;
+    uint32_t            nbytes;
+    uint32_t            xtype;
+    uint32_t            nbytes_hi;
+};
+
+typedef union {
+    struct _io_read     i;
+    struct _io_read     i64;
+    /* unsigned char    data[nbytes];    */
+    /* nbytes is returned with MsgReply  */
+} io_read_t;
+</pre>
+</div>
+
+
+<p class="p">
+
+As with all resource manager messages, 
+we've defined a <span class="keyword dtype">union</span> that contains the input
+(coming into the resource manager) structure and
+a reply or output (going back to the client) structure.
+The <var class="keyword varname">io_read</var> handler is prototyped with an argument of
+<span class="keyword dtype">io_read_t *</span><var class="keyword varname">msg</var>—that's the pointer to the union containing the message.
+</p>
+
+
+<p class="p">
+
+Since this is a <span class="keyword apiname">read()</span>, 
+the <var class="keyword varname">type</var> member has the value <span class="keyword const">_IO_READ</span> or <span class="keyword const">_IO_READ64</span>.
+The client library uses the <span class="keyword const">_IO_READ64</span> form only when the length is greater than 4 GB.
+The items of interest in the input structure are:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">combine_len</var></dt>
+
+<dd class="dd">This field has meaning for a combine message—see the 
+  <a class="xref" href="combine.html" title="To conserve bandwidth and to support atomic operations, combine messages are supported. A combine message is constructed by the client's C library and consists of multiple I/O and/or connect messages packaged together into one.">Combine Messages</a>
+  chapter. 
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes</var></dt>
+
+<dd class="dd">How many bytes the client is expecting.
+  For an <span class="keyword const">_IO_READ64</span> message, the high 32 bits of the length are in <var class="keyword varname">nbytes_hi</var>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">xtype</var></dt>
+
+<dd class="dd">A per-message override, if your resource manager supports it.
+  Even if your resource manager doesn't support it, you should still examine this member.
+  More on the <var class="keyword varname">xtype</var> later (see the
+  <q class="q"><a class="xref" href="read_write_XTYPE.html">Handling the <var class="keyword varname">xtype</var> member</a></q>
+  section).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes_hi</var></dt>
+
+<dd class="dd">(<span class="keyword const">_IO_READ64</span> only) The high 32 bits of the length.</dd>
+
+
+
+</dl>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+You can use the <span class="keyword apiname">_IO_READ_GET_NBYTES()</span> macro (defined in <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>)
+to determine the number of bytes.
+You pass it a pointer to the message:
+
+<pre class="pre codeblock">num_bytes = _IO_READ_GET_NBYTES(msg);
+</pre>
+</div>
+
+
+<p class="p">
+We'll create an <var class="keyword varname">io_read</var> handler
+that actually returns some data (the fixed string 
+<span class="ph codeph">"Hello, world\n"</span>). 
+We'll use the OCB to keep track of our position within the buffer that we're returning to the client.
+</p>
+
+
+<div class="p">
+When we get the <span class="keyword const">_IO_READ</span> message, 
+the <var class="keyword varname">nbytes</var> member tells us exactly how many bytes the client wants to read. 
+Suppose that the client issues:
+
+
+<pre class="pre codeblock">read (fd, buf, 4096);
+</pre>
+</div>
+
+
+<p class="p">
+In this case, it's a simple matter to return our entire
+<span class="ph codeph">"Hello, world\n"</span> string in the output buffer
+and tell the client that we're returning 13 bytes, i.e., the size of the string. 
+</p>
+
+
+<div class="p">
+However, consider the case where the client is performing the following:
+
+<pre class="pre codeblock">while (read (fd, &amp;character, 1) != EOF) {
+    printf ("Got a character \"%c\"\n", character);
+}
+</pre>
+</div>
+
+
+<p class="p">
+Granted, this isn't a terribly efficient way for the client to perform reads! 
+In this case, we would get <span class="ph codeph">msg-&gt;i.nbytes</span> set to 1
+(the size of the buffer that the client wants to get). 
+We can't simply return the entire string all at once to the client—we have to hand it out
+one character at a time. 
+This is where the OCB's <var class="keyword varname">offset</var> member comes into play.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/read_write_Sample_IO_READ.html">Sample code for handling _IO_READ messages</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write.html" title="A resource manager must define routines or handlers to process requests by the client to receive data (read) or send data to the underlying device (write). Here, we give detailed examples of such handlers.">Handling Read and Write Messages</a></div>
+</div>
+</div></body>
+</html>

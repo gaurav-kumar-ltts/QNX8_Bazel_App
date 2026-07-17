@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="screen_create_window_group()" />
+<meta name="abstract" content="Create a window group that other windows can join" />
+<meta name="description" content="Create a window group that other windows can join" />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../topic/manual/cscreen_windows.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="screen_create_window_group" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>screen_create_window_group()</title>
+</head>
+<body id="screen_create_window_group">
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">screen_create_window_group()</span></h1>
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Create a window group that other windows can join</em></p>
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2><pre class="pre codeblock">#include &lt;screen/screen.h&gt;</pre><pre class="pre codeblock">int screen_create_window_group(screen_window_t win,
+                               const char *name)</pre></div>
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2><dl class="dl"><dt class="dt dlterm"><var class="keyword varname">win</var></dt>
+<dd class="dd">The handle of the window for which the group is created. This window must have been created with <a class="xref" href="screen_create_window_type.html" title="Create a new window of a specified type"><span class="keyword apiname">screen_create_window_type()</span></a> with a type of <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_APPLICATION_WINDOW"><span class="keyword const">SCREEN_APPLICATION_WINDOW</span></a> or <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_CHILD_WINDOW"><span class="keyword const">SCREEN_CHILD_WINDOW</span></a>. </dd>
+<dt class="dt dlterm"><var class="keyword varname">name</var></dt>
+<dd class="dd">A unique string that is used to identify the window group. This name must be communicated to any window that wants to join the group as a child of <var class="keyword varname">win</var>. Lower case and special characters are permitted in the string. However, the string must be unique within your system and must not start with <span class="ph codeph">__scrn-</span>. If <var class="keyword varname">name</var> is a NULL pointer, or an empty string, then Screen generates a string for you starting with <span class="ph codeph">__scrn-</span>. It is recommended that, unless a static name is explicitly required, you should call this function with <var class="keyword varname">name</var> as NULL (or an empty string) so that a unique group name is automatically generated. You can use <a class="xref" href="screen_get_window_property_cv.html" title="Retrieve the current value of the specified window property of type char"><span class="keyword apiname">screen_get_window_property_cv()</span></a> with <a class="xref" href="screen_8h_1Screen_Property_Types.html#at_2__SCREEN_PROPERTY_GROUP"><span class="keyword const">SCREEN_PROPERTY_GROUP</span></a> as the property to retrieve the name of the window group.</dd>
+</dl>
+</div>
+<div class="section"><h2 class="title sectiontitle">Library:</h2><span class="ph filepath">libscreen</span></div>
+<div class="section"><h2 class="title sectiontitle">Description:</h2><p class="p"><strong class="ph b">Function Type:</strong> <a class="xref" href="manual/rscreen_delayed_execution.html" title="Delayed execution functions queue the command so that it can be batch-processed later.">Delayed Execution</a></p>
+<p class="p">This function creates a window group and assigns it to the specified window. The group is identified by the name string, which must be unique. The request fails if another group was previously created with the same name.</p>
+<p class="p">Windows can parent only one group. Therefore, <span class="keyword apiname">screen_create_window_group()</span> can be called successfully only once for any given window. Additionally, only windows of certain types can parent a group of windows. Windows with a type of <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_APPLICATION_WINDOW"><span class="keyword const">SCREEN_APPLICATION_WINDOW</span></a> can parent windows of type <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_CHILD_WINDOW"><span class="keyword const">SCREEN_CHILD_WINDOW</span></a> and <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_EMBEDDED_WINDOW"><span class="keyword const">SCREEN_EMBEDDED_WINDOW</span></a>. Windows with a type of <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_CHILD_WINDOW"><span class="keyword const">SCREEN_CHILD_WINDOW</span></a> can also create a group and parent windows of type <a class="xref" href="group__screen__windows_1Screen_Window_Types.html#at_1__SCREEN_EMBEDDED_WINDOW"><span class="keyword const">SCREEN_EMBEDDED_WINDOW</span></a>.</p>
+<p class="p">Once a group is created, it exists until the window that parents the group is destroyed. When a parent window is destroyed, all children are orphaned and made invisible. Destroying a child has no effect on the group other than removing the window from the group.</p>
+<p class="p">Group owners have privileged access to the windows that they parent. When windows join the group, the parent receives a <a class="xref" href="group__screen__events_1Screen_Event_Types.html#at_22__SCREEN_EVENT_CREATE"><span class="keyword const">SCREEN_EVENT_CREATE</span></a> event that contains a handle to the child window that can be used by the parent to set properties or send events. Conversely, the parent gets notified when a child window gets destroyed. The parent window is expected to destroy its local copy of the window handle when one of its children is destroyed.</p>
+<p class="p">Call <a class="xref" href="screen_destroy_group.html" title="Destroy a group"><span class="keyword apiname">screen_destroy_group()</span></a> when you no longer need the window group. Note that the screen_group_t handle required by <a class="xref" href="screen_destroy_group.html" title="Destroy a group"><span class="keyword apiname">screen_destroy_group()</span></a> can be obtained by calling <a class="xref" href="screen_get_window_property_pv.html" title="Retrieve the current value of the specified window property of type void*"><span class="keyword apiname">screen_get_window_property_pv()</span></a>.</p>
+</div>
+<div class="section"><h2 class="title sectiontitle">Returns:</h2><p class="p"><span class="ph codeph">0</span> if successful, or <span class="ph codeph">-1</span> if an error occurred (<span class="ph codeph">errno</span> is set; refer to <span class="ph codeph">errno.h</span> for more details). </p>
+</div>
+</div>
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/manual/cscreen_windows.html" title="A window represents a drawing surface whose content is targeted to a display. There are multiple types of windows (e.g, application, child, embedded) to accommodate the organization of the content for display.">Windows (screen.h)</a></div>
+</div>
+</div></body>
+</html>

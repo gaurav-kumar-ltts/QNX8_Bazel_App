@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Process starvation" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples_Thread_heartbeat.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="STARVE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Process starvation</title>
+</head>
+<body id="STARVE">
+
+<h1 class="title topictitle1" id="ariaid-title1">Process starvation</h1>
+
+
+<div class="body conbody">
+
+<p class="p">We can demonstrate this condition by showing a simple
+process containing two threads that use mutual exclusion
+locks to manage a critical section. Thread 1 runs at a high
+priority, while Thread 2 runs at a lower priority.
+Essentially, each thread runs through a segment of code that
+looks like this:
+
+
+
+</p>
+
+<pre class="pre codeblock">Thread1                              Thread 2
+
+...                                  ...
+(Run at high priority)               (Run at low priority)
+while true                           while true
+do                                   do
+    obtain lock a                        obtain lock a
+        (compute section1)                   (compute section1)
+    release lock a                       release lock a
+done                                 done
+...                                  ...
+</pre>
+
+<p class="p">The code segments for each thread is shown below; the only
+difference being the priorities of the two threads. Upon
+execution, Thread 2 eventually starves.
+
+</p>
+
+<pre class="pre codeblock">/* mutexstarvation.c */
+
+#include &lt;errno.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;process.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/procfs.h&gt;
+#include &lt;sys/procmgr.h&gt;
+#include &lt;ha/ham.h&gt;
+
+pthread_mutex_t mutex_a = PTHREAD_MUTEX_INITIALIZER;
+
+FILE *logfile;
+int doheartbeat=0;
+
+#define COMPUTE_DELAY 900
+
+void *func1(void *arg)
+{
+    int id;
+
+    id = pthread_self();
+    while (1) {
+        pthread_mutex_lock(&amp;mutex_a);
+        fprintf(logfile, "Thread 1: Locking lock a\n");
+        delay(rand()%COMPUTE_DELAY+50); /* delay for computation */
+        fprintf(logfile, "Thread 1: Unlocking lock a\n");
+        pthread_mutex_unlock(&amp;mutex_a);
+    }
+    return(NULL);
+}
+
+void *func2(void *arg)
+{
+    
+    int id;
+
+    id = pthread_self();
+    while (1) {
+        pthread_mutex_lock(&amp;mutex_a);
+        fprintf(logfile, "\tThread 2: Locking lock a\n");
+        if (doheartbeat)
+            ham_heartbeat();
+        delay(rand()%COMPUTE_DELAY+50); /* delay for computation */
+        fprintf(logfile, "\tThread 2: Unlocking lock a\n");
+        pthread_mutex_unlock(&amp;mutex_a);
+    }
+    return(NULL);
+}
+
+int main(int argc, char *argv[])
+{
+    pthread_attr_t attrib;
+    struct sched_param param;
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+    int i=0;
+    char c;
+    pthread_attr_t attrib2;
+    struct sched_param param2;
+    pthread_t  threadID;
+    pthread_t  threadID2;
+    
+    logfile = stderr;
+    while ((c = getopt(argc, argv, "f:l" )) != -1 ) {
+        switch(c) {
+            case 'f': /* log file */
+                logfile = fopen(optarg, "w");
+                break;
+            case 'l': /* do liveness heartbeating */
+                if (access("/proc/ham",F_OK) == 0)
+                    doheartbeat=1;
+                break;
+         }
+    }
+
+    setbuf(logfile, NULL);
+    srand(time(NULL));
+    fprintf(logfile, "Creating separate competing compute thread\n");    
+
+    if (doheartbeat) {
+        /* attach to ham */
+        ehdl = ham_attach_self("mutex-starvation",1000000000UL, 5, 5, 0);
+        chdl = ham_condition(ehdl, CONDHBEATMISSEDHIGH, "heartbeat-missed-high", 0);
+        ahdl = ham_action_execute(chdl, "terminate", 
+                               "/proc/boot/mutex-starvation-heartbeat.sh", 0);
+    }
+    /* create competitor thread */
+    pthread_attr_init (&amp;attrib2);
+    pthread_attr_setinheritsched (&amp;attrib2, PTHREAD_EXPLICIT_SCHED);
+    pthread_attr_setschedpolicy (&amp;attrib2, SCHED_RR);
+    param2.sched_priority = sched_get_priority_min(SCHED_RR);
+    pthread_attr_setschedparam (&amp;attrib2, &amp;param2);
+
+    pthread_create (&amp;threadID2, &amp;attrib2, func2, NULL);
+    
+    delay(3000); /* let the other thread go on for a while... */
+
+    pthread_attr_init (&amp;attrib);
+    pthread_attr_setinheritsched (&amp;attrib, PTHREAD_EXPLICIT_SCHED);
+    pthread_attr_setschedpolicy (&amp;attrib, SCHED_RR);
+    param.sched_priority = sched_get_priority_max(SCHED_RR);
+    pthread_attr_setschedparam (&amp;attrib, &amp;param);
+
+    pthread_create (&amp;threadID, &amp;attrib, func1, NULL);
+    
+    pthread_join(threadID, NULL);
+    pthread_join(threadID2, NULL);
+    exit(0);
+}
+</pre>
+
+<p class="p">Upon execution, here's what we see:
+
+</p>
+
+<ol class="ol">
+<li class="li">Starting two-threaded process.
+    
+<p class="p">The threads will execute as described earlier, but
+eventually Thread 2 will starve. We'll wait for a reasonable
+amount of time (some seconds) until Thread 2 ends up
+starving. The threads write a simple execution log in
+<span class="ph filepath">/dev/shmem/mutex-starvation.log</span>.
+
+
+
+</p>
+</li>
+
+<li class="li">Waiting for them to run for a while.  
+
+<p class="p">Here's the current state of the threads in process 622610:</p>
+<pre class="pre codeblock">    
+     pid tid name               prio STATE       Blocked
+  622610   1 t/mutex-starvation  10r JOIN        3
+  622610   2 t/mutex-starvation   1r MUTEX       622610-03 #-2147
+  622610   3 t/mutex-starvation  63r NANOSLEEP
+</pre>
+
+
+<p class="p">And here's the tail from the threads' log file:
+    </p>
+<pre class="pre codeblock">Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+Thread 1: Unlocking lock a
+Thread 1: Locking lock a
+</pre>
+
+
+</li>
+
+<li class="li">Extracting core current process information:
+    
+<pre class="pre codeblock">/tmp/mutex-starvation.core:
+ processor=ARM num_cpus=2
+  cpu 1 cpu=602370 name=604e speed=299
+   flags=0xc0000001 FPU MMU EAR
+  cpu 2 cpu=602370 name=604e speed=299
+   flags=0xc0000001 FPU MMU EAR
+ cyc/sec=16666666 tod_adj=999522656000000000 nsec=5561011550640 inc=999960   
+ boot=999522656 epoch=1970 intr=-2147483648
+ rate=600000024 scale=-16 load=16666
+   MACHINE="mtx604-smp" HOSTNAME="localhost"
+ hwflags=0x000004  
+ pretend_cpu=0 init_msr=36866
+ pid=622610 parent=598033 child=0 pgrp=622610 sid=1
+ flags=0x000300 umask=0 base_addr=0x48040000 init_stack=0x4803fa10
+ ruid=0 euid=0 suid=0  rgid=0 egid=0 sgid=0
+ ign=0000000006801000 queue=ff00000000000000 pending=0000000000000000
+ fds=4 threads=3 timers=0 chans=1
+ thread 1 REQUESTED
+  ip=0xfe32f8c8 sp=0x4803f8a0 stkbase=0x47fbf000 stksize=528384  
+  state=JOIN flags=0 last_cpu=1 timeout=00000000
+  pri=10 realpri=10 policy=RR
+ thread 2
+  ip=0xfe32f838 sp=0x47fbef80 stkbase=0x47f9e000 stksize=135168
+  state=MUTEX flags=4000000 last_cpu=2 timeout=00000000
+  pri=1 realpri=1 policy=RR
+ thread 3
+  ip=0xfe32f9a0 sp=0x47f9df20 stkbase=0x47f7d000 stksize=135168
+  state=NANOSLEEP flags=4000000 last_cpu=2 timeout=0x1001000
+  pri=63 realpri=63 policy=RR
+</pre>
+</li>
+
+</ol>
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/examples_Thread_heartbeat.html">Thread 2 is made to heartbeat</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

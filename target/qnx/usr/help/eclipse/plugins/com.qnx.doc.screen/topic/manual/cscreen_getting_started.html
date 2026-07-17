@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Getting started" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_appDevelopment.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_getting_started" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Getting started</title>
+</head>
+<body id="cscreen_getting_started">
+
+	<h1 class="title topictitle1" id="ariaid-title1"> Getting started </h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc"></p>
+
+		<p class="p">
+			 QNX <span class="keyword">Screen Graphics Subsystem</span> is a
+			graphics framework, and so, applications that you develop using this framework can vary
+			greatly in complexity and functionality. That said, most <span class="keyword">Screen</span> applications, when simplified, perform some sort of
+			rendering with the intention to show the resultant image on a display. To develop a
+			basic <span class="keyword">Screen</span> application, you should follow these steps: </p>
+
+		<ol class="ol">
+			<li class="li">Create a <span class="keyword">Screen</span> context.</li>
+
+			<li class="li">Create a render target.</li>
+
+			<li class="li">Set the appropriate properties of your render target.</li>
+
+			<li class="li">Create buffer(s) for your render target.</li>
+
+			<li class="li">Render to your target.</li>
+
+			<li class="li">Post your image.</li>
+
+			<li class="li">Handle <span class="keyword">Screen</span> events.</li>
+
+		</ol>
+
+
+		<div class="section"><h2 class="title sectiontitle">Create a <span class="keyword">Screen</span> context</h2>
+			
+			<p class="p">
+				
+				 Create a <span class="keyword">Screen</span> context
+				by calling <a class="xref" href="../screen_create_context.html" title="Establish a connection with Screen"><span class="keyword apiname">screen_create_context()</span></a>. For example: </p>
+
+			<pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_create_context(&amp;screen_ctx, SCREEN_APPLICATION_CONTEXT);
+...
+            </pre>
+			<p class="p"> Most of your application's interaction with <span class="keyword">Screen</span> is
+				within the scope of this context. You identify and gain access to <a class="xref" href="cscreen_appDevelopment.html#cscreen_appDevelopment__screenapi"><span class="keyword">Screen API</span></a> objects through this context. </p>
+
+			<p class="p"> You must create a context with the appropriate privileges for your application. The
+				type of privileges that your application needs may be based on its functionality.
+				See <q class="q"><a class="xref" href="../group__screen__contexts_1Screen_Context_Types.html" title="The types of context masks">Screen context types</a></q>. </p>
+
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Create a render target</h2>
+			
+			<p class="p">
+				 This is what holds the buffer or buffers that your application will
+				render to. A render target can be a stream, a pixmap or a window. You can also use a
+				combination of these targets, depending on your application. See <q class="q"><a class="xref" href="cscreen_rendering-targets.html" title="A render target is a specially created surface into which your rendering can be directed.">Render Targets</a></q>. For example: </p>
+
+			<pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_window_t screen_win;
+...
+screen_create_window(&amp;screen_win, screen_ctx);
+...
+            </pre>
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Set the appropriate properties of your render target</h2>
+			
+			<p class="p">
+				 Now that you've created your target, you must set the appropriate
+				properties on the target. At a minimum, you should set the usage property
+					(<span class="keyword const">SCREEN_PROPERTY_USAGE</span>). For example: </p>
+
+			<pre class="pre codeblock">...
+int usage = SCREEN_USAGE_NATIVE;
+...
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_USAGE, &amp;usage);
+...
+            </pre>
+			<p class="p"> Among other factors, the type of rendering that your application performs can affect
+				which properties on your render target you need to set. See <q class="q"><a class="xref" href="cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></q>. </p>
+
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Create buffer(s) for your render target</h2>
+			
+			<p class="p">
+				 You need to create one, or more, buffers for your render target. For
+				example: </p>
+
+			<pre class="pre codeblock">...
+/*  Use a double-buffered window. This allows your application to work on a frame while
+ *  Screen is updating the framebuffer with previous changes.
+ */
+int nbuffers = 2;
+...
+screen_create_window_buffers(screen_win, nbuffers);
+...
+            </pre>
+			<p class="p"> The number of buffers that you can create depends on your render target. See
+						<q class="q"><a class="xref" href="cscreen_rendering-targets.html" title="A render target is a specially created surface into which your rendering can be directed.">Render Targets</a></q>. </p>
+
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Render to your target</h2>
+			
+			
+			<p class="p"> In the rendering loop of your <span class="keyword">Screen</span> application, you
+				need to access the buffer(s) of your render target, draw to the buffer(s), and post
+				your image. </p>
+
+			<p class="p"> Each time before you can render to your target, you'll need access to the buffer(s)
+				of your render target. These are the areas that you'll be copying from, and writing
+				to. You'll want to retrieve the <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> of
+				your render target. This property will give you the handle to the buffers that are
+				available for rendering. For example: </p>
+
+			<pre class="pre codeblock">...
+    while (1) {
+        ...
+        screen_buffer_t screen_buf[2];
+        screen_get_window_property_pv(screen_win,
+                                      SCREEN_PROPERTY_RENDER_BUFFERS,
+                                      (void **)screen_buf);
+        ...
+     }
+...
+            </pre>
+			<p class="p"> At this point, you can use different ways of rendering to draw to your buffer(s).
+				For example, you can use <a class="xref" href="../screen_fill.html" title="Fill an area of a specified buffer"><span class="keyword apiname">screen_fill()</span></a> to request pixel copying. </p>
+
+			<pre class="pre codeblock">...
+    while (1) {
+        ...
+        screen_buffer_t screen_buf[2];
+        screen_get_window_property_pv(screen_win,
+                                      SCREEN_PROPERTY_RENDER_BUFFERS,
+                                      (void **)screen_buf);
+        ...
+        int win_background[] = { SCREEN_BLIT_COLOR, 0xffffff00, SCREEN_BLIT_END };
+        screen_fill(screen_ctx, screen_buf[0], win_background);
+        ...
+    }
+...
+            </pre>
+			<p class="p"> For information on different ways of rendering, see <q class="q"><a class="xref" href="cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></q>. </p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Post your image</h2>
+			
+			<p class="p">
+				 Up until this point, you've rendered to your target, or
+				requested operations (e.g., fill), but you need to trigger <span class="keyword">Screen</span> to put the image to the display. How you do this may
+				depend on how your application is rendering to the buffer. See <q class="q"><a class="xref" href="cscreen_rendering.html" title="Rendering refers to the generation of an image.">Rendering</a></q>. For example, if you are rendering to a
+				window, you call <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>: </p>
+
+			<pre class="pre codeblock">...
+    while (1) {
+        screen_buffer_t screen_buf[2];
+        screen_get_window_property_pv(screen_win,
+                                      SCREEN_PROPERTY_RENDER_BUFFERS,
+                                      (void **)screen_buf);
+        ...
+        int win_background[] = { SCREEN_BLIT_COLOR, 0xffffff00, SCREEN_BLIT_END };
+        screen_fill(screen_ctx, screen_buf[0], win_background);
+        ...
+        screen_post_window(screen_win, screen_buf[0], 0, NULL, 0);
+        ...
+     }
+...
+            </pre>
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Handle <span class="keyword">Screen</span> events</h2>
+			
+			<p class="p">
+				
+				
+				<span class="keyword">Screen</span> events, which include both input and general
+				events, are associated with your application's context and can be handled in your
+				rendering loop. See <q class="q"><a class="xref" href="cscreen_event-handling.html" title="Screen events, which include both input and general events, are associated with a given context and are generally handled in your main application's loop.">Event Handling</a></q>. For example: </p>
+
+			<pre class="pre codeblock">...
+int val;
+...
+    while (1) {
+        while (!screen_get_event(screen_ctx, screen_ev, 0)) {
+            screen_get_event_property_iv(screen_ev, SCREEN_PROPERTY_TYPE, &amp;val);
+            switch (val) {
+                case SCREEN_EVENT_KEYBOARD:
+                    screen_get_event_property_iv(screen_ev, SCREEN_PROPERTY_FLAGS, &amp;val);
+                    if (val &amp; KEY_DOWN) {
+                        screen_get_event_property_iv(screen_ev, SCREEN_PROPERTY_SYM, &amp;val);
+                        switch (val) {
+                            case KEYCODE_ESCAPE:
+                            {
+                                /* clean up resources */
+                                return EXIT_SUCCESS;
+                            }
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+               ...
+            }
+         }
+        ...
+        screen_buffer_t screen_buf[2];
+        screen_get_window_property_pv(screen_win,
+                                      SCREEN_PROPERTY_RENDER_BUFFERS,
+                                      (void **)screen_buf);
+        ...
+        int win_background[] = { SCREEN_BLIT_COLOR, 0xffffff00, SCREEN_BLIT_END };
+        screen_fill(screen_ctx, screen_buf[0], win_background);
+        ...
+        screen_post_window(screen_win, screen_buf[0], 0, NULL, 0);
+        ...
+    }
+...
+            </pre>
+			<p class="p"> You choose which type of events that your application will handle. See <q class="q"><a class="xref" href="../group__screen__events_1Screen_Event_Types.html" title="Types of events">Screen event types</a></q> for all the
+				events that <span class="keyword">Screen</span> may send to your application. </p>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_appDevelopment.html" title="The Screen Graphics Subsystem is based on a client/server model where an application is a client that's requesting graphics services from the server (Screen). It includes a composited windowing system as one of these services, which means all application rendering is performed on off-screen buffers, which then can be later used to update the display.">Application Development</a></div>
+</div>
+</div></body>
+</html>

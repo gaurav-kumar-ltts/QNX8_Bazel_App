@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="FIFO" />
+<meta name="abstract" content="In the FIFO scheduling policy, a thread is allowed to consume CPU for as long as it wants. This means that if that thread is doing a very long mathematical calculation, and no other thread of a higher priority is ready, that thread could potentially run forever. What about threads of the same priority? They're locked out as well. (It should be obvious that threads of a lower priority are locked out too.)" />
+<meta name="description" content="In the FIFO scheduling policy, a thread is allowed to consume CPU for as long as it wants. This means that if that thread is doing a very long mathematical calculation, and no other thread of a higher priority is ready, that thread could potentially run forever. What about threads of the same priority? They're locked out as well. (It should be obvious that threads of a lower priority are locked out too.)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="FIFO" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>FIFO</title>
+</head>
+<body id="FIFO">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">FIFO</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In the FIFO scheduling policy, a thread is allowed to consume CPU for as long
+as it wants.
+This means that if that thread is doing a very long mathematical calculation, and
+no other thread of a higher priority is ready, that thread could potentially
+run <em class="ph i">forever</em>.
+What about threads of the same priority?
+They're locked out as well.
+(It should be obvious that threads of a lower priority are locked out too.)
+</p>
+
+
+<p class="p">
+If the running thread quits or voluntarily gives up the CPU, <em class="ph i">then</em>
+the kernel looks for other threads at the same priority that are capable of
+using the CPU.
+If there are no such threads, <em class="ph i">then</em> the kernel looks for lower-priority
+threads capable of using the CPU.
+Note that the term <q class="q">voluntarily gives up the CPU</q> can mean one of
+two things.
+If the thread goes to sleep, or blocks on a semaphore, etc., then yes, a lower-priority thread could run (as described above).
+But there's also a <q class="q">special</q> call,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_yield.html"><span class="keyword apiname">sched_yield()</span></a>
+(based on the kernel call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedyield.html"><span class="keyword apiname">SchedYield()</span></a>),
+which gives up CPU <em class="ph i">only</em> to another thread of the same priority—a
+lower-priority thread would never be given a chance to run if a higher-priority was ready to run.
+If a thread does in fact call <span class="keyword apiname">sched_yield()</span>, and no other thread at
+the same priority is ready to run, the original thread continues running.
+Effectively, <span class="keyword apiname">sched_yield()</span> is used to give another thread of the <em class="ph i">same priority</em> a crack at the CPU.
+
+
+
+
+</p>
+
+
+<p class="p">
+In the diagram below, we see three threads operating in two different processes:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Three threads in two different processes.</span>
+
+<br /><img class="image" src="../images/dpt12a.svg" width="288" alt="Three threads" /><br />
+</div>
+
+
+<p class="p">
+If we assume that threads <q class="q">A</q> and <q class="q">B</q> are READY, and that
+thread <q class="q">C</q> is blocked (perhaps waiting for a mutex), and that thread
+<q class="q">D</q> (not shown) is currently executing, then this is what a portion
+of the READY queue that the <span class="keyword">microkernel</span> maintains will look like:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Two threads on the READY queue, one blocked, one running.</span>
+
+<br /><img class="image" src="../images/dpt12b.svg" width="384" alt="The READY queue" /><br />
+</div>
+
+
+<p class="p">
+This shows the kernel's internal READY queue, which the kernel uses to decide
+what to schedule next.  Note that thread <q class="q">C</q> is not on the READY
+queue, because it's blocked, and thread <q class="q">D</q> isn't on the READY
+queue either because it's running.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Kernel_as_arbiter.html" title="So who decides which thread is going to run at any given instant in time? That's the kernel's job.">The kernel as arbiter</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html">Thread scheduling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

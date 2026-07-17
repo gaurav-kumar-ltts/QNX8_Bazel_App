@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using C library APIs to calculate memory reservations" />
+<meta name="abstract" content="You can use the code snippets in this section to calculate how much private and shared memory your process is using." />
+<meta name="description" content="You can use the code snippets in this section to calculate how much private and shared memory your process is using." />
+<meta name="DC.subject" content="memory, reservation, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="memory, reservation, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/memory_accounting.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="vmcalc_code" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using C library APIs to calculate memory reservations</title>
+</head>
+<body id="vmcalc_code">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Using C library APIs to calculate memory reservations</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">You can use the code snippets in this section to calculate how much private and shared memory your process is using.
+    </p>
+
+        <div class="section"><h2 class="title sectiontitle">Calculating private memory reservations</h2>
+            <p class="p">Set up a notification that reads the value of the private memory of your process when
+                the notification is triggered. In the code snippet below, <var class="keyword varname">rsv</var>
+                contains the private memory reservation of the process with the Process ID specified
+                by the <span class="keyword parmname">pid</span> parameter (in bytes). Return checks have been
+                omitted for simplicity. </p>
+
+<pre class="pre codeblock">int ev_id;
+struct sigevent sev;
+uint64_t rsv;
+SIGEV_NONE_INIT(&amp;sev);
+ev_id = procmgr_value_notify_add(PROCMGR_VALUE_PRIVATE_MEM, pid, 0, &amp;sev);
+rsv = procmgr_value_current(ev_id);
+procmgr_event_notify_delete(ev_id);
+</pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Calculating shared memory usage</h2>
+            
+            <p class="p"> Collect page data for the process for which
+                    <span class="ph filepath">/proc/</span><var class="keyword varname">pid</var><span class="ph filepath">/ctl</span> was
+                opened. In this example, <var class="keyword varname">fd</var> is <var class="keyword varname">proc_fd</var>. The
+                first call to <span class="keyword apiname">devctl</span>(<span class="keyword const">DCMD_PROC_PAGEDATA</span>) returns
+                the number of entries present in <span class="ph codeph">nentries</span>. This value is used to
+                determine the amount of space to allocate for the data in the next step. The space
+                is then populated in the third step. You can use this data to calculate shared
+                memory usage. Return checks have been omitted for simplicity. </p>
+
+<pre class="pre codeblock">#include &lt;sys/procfs.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;sys/mman.h&gt;
+
+uint64_t get_pagedata(const int proc_fd,
+                      procfs_mapinfo **mapinfo_buf,
+                      int *entries_num)
+{
+    /* get the number of entries for this process: */
+    int nentries;
+    devctl(proc_fd, DCMD_PROC_PAGEDATA, NULL, 0, &amp;nentries);
+
+    /* allocate storage */
+    procfs_mapinfo *mi_new = calloc(nentries, sizeof(*mi_new));
+
+    /* read data */
+    int dummy;
+    devctl(proc_fd, DCMD_PROC_PAGEDATA, mi_new,
+            sizeof (*mi_new) * nentries, &amp;dummy);
+
+    *entries_num = nentries;
+    *mapinfo_buf = mi_new;
+
+    // example of how caller can use values.
+    // printf( "Number of page entries read: %d \n", *entries_num);
+
+    uint64_t total_map_shared = 0;
+
+    /* example usage: calculate shared memory for this process */
+    for(int i = 0; i &lt; *entries_num; i++) {
+        if((mapinfo_buf[i]-&gt;flags &amp; (PG_HWMAPPED|MAP_SYSRAM)) ==
+                (PG_HWMAPPED| MAP_SYSRAM)) {
+            if((mapinfo_buf[i]-&gt;flags &amp; MAP_TYPE) == MAP_SHARED) {
+                total_map_shared += mapinfo_buf[i]-&gt;size;
+            }
+        }
+    }
+    return total_map_shared;
+}
+</pre>
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/memory_accounting.html" title="Accounting for the memory used by your system and processes can be useful, especially when debugging. This section covers examples of how to read memory-related files and calculate reserved memory.">Memory accounting</a></div>
+</div>
+</div></body>
+</html>

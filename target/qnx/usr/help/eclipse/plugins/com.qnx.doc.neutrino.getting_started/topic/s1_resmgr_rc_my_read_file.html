@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="my_read_file()" />
+<meta name="abstract" content="In my_read_file(), we see much the same code as we saw in the simple read example above. The only strange thing we're doing is we “know” there's only one byte of data being returned, so if nbytes is nonzero, then it must be one (and nothing else). So, we can construct the data to be returned to the client by stuffing the character variable string directly." />
+<meta name="description" content="In my_read_file(), we see much the same code as we saw in the simple read example above. The only strange thing we're doing is we “know” there's only one byte of data being returned, so if nbytes is nonzero, then it must be one (and nothing else). So, we can construct the data to be returned to the client by stuffing the character variable string directly." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_complex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rc_my_read_file" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>my_read_file()</title>
+</head>
+<body id="rc_my_read_file">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">my_read_file()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In <span class="keyword apiname">my_read_file()</span>, we see much the same code as we saw in the
+simple read example above.
+The only strange thing we're doing is we <q class="q">know</q>
+there's only one byte of data being returned, so if <var class="keyword varname">nbytes</var>
+is nonzero, then it must be one (and nothing else).
+So, we can construct the data to be returned to the client by stuffing the character
+variable <var class="keyword varname">string</var> directly.
+</p>
+
+
+<p class="p">
+Notice how we used the <var class="keyword varname">inode</var> member of the attribute structure
+as the basis of which data to return.
+This is a common trick used in resource managers that must deal with multiple resources.
+Another trick would be to extend the attributes structure (as discussed above in
+<q class="q">Extending the attributes structure</q>) and have either the data stored there directly or a
+pointer to it.
+</p>
+
+
+<pre class="pre codeblock">static int
+my_read_file (resmgr_context_t *ctp, io_read_t *msg,
+              iofunc_ocb_t *ocb)
+{
+    size_t  nbytes;
+    size_t  nleft;
+    char    string;
+
+    // we don't do any xtypes here...
+    if ((msg -&gt; i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE) {
+        return (ENOSYS);
+    }
+
+    // figure out how many bytes are left
+    nleft = ocb -&gt; attr -&gt; nbytes - ocb -&gt; offset;
+
+    // and how many we can return to the client
+    nbytes = min (nleft, _IO_READ_GET_NBYTES(msg));
+
+    if (nbytes) {
+        // create the output string
+        string = ocb -&gt; attr -&gt; inode - 1 + 'A';
+
+        // return it to the client
+        MsgReply (ctp -&gt; rcvid, nbytes, 
+                  &amp;string + ocb -&gt; offset, nbytes);
+
+        // update flags and offset
+        ocb -&gt; attr -&gt; flags |= IOFUNC_ATTR_ATIME
+                             | IOFUNC_ATTR_DIRTY_TIME;
+        ocb -&gt; offset += nbytes;
+    } else {
+        /* nothing to return, reply with the status (the 2nd argument) 
+        set to 0 causing read() to return 0 indicating End Of File */
+        MsgReply (ctp -&gt; rcvid, 0, NULL, 0);
+    }
+
+    // already done the reply ourselves
+    return (_RESMGR_NOREPLY);
+}
+</pre>
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_complex.html" title="In this example, we're going to create a resource manager called /dev/atoz that will be a directory resource manager. It's going to manifest the “files” /dev/atoz/a through to dev/atoz/z, with a cat of any of the files returning the uppercase letter corresponding to the filename.">Example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

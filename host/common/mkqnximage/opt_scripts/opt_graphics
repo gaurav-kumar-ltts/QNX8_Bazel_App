@@ -1,0 +1,203 @@
+#!/bin/bash
+
+. $TOOL_DIR/functions
+
+function brief()
+{
+    echo "--graphics=[yes|no]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    Include graphics related libraries and binaries.  This will also start screen on boot.
+
+    The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_GRAPHICS" = yes -o "$OPT_GRAPHICS" = no ]; then
+        status=0
+        if [ "$OPT_GRAPHICS" = yes ]; then
+            if ! check_dependency sbin/screen '--graphics=yes requires the "Screen Base Graphics" package'; then
+                status=1
+            fi
+            if ! check_dependency bin/screencmd '--graphics=yes requires the "Screen Utilities" package'; then
+                status=1
+            fi
+        fi
+        exit $status
+    else
+        echo "--graphics must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_graphics
+    if [ "$OPT_GRAPHICS" != no ]; then
+        cat >output/option_files/system_files.opt_graphics <<EOF
+
+
+######################################################
+### Common Graphics Files
+######################################################
+/etc/system/config/img.conf=etc/system/config/img.conf
+
+######################################################
+### Fonts
+######################################################
+[perms=0444] fonts=usr/share/fonts
+[perms=0444] etc/fontconfig/fonts.conf=${TOOL_DIR}/inputs/fonts.conf
+bin/fc-cache=bin/fc-cache
+
+######################################################
+### Graphics - Screen
+######################################################
+/bin/screen=sbin/screen
+/bin/screencmd=bin/screencmd
+/bin/screeninfo=bin/screeninfo
+/bin/hidview=sbin/hidview
+
+/bin/gles2-gears=usr/bin/gles2-gears
+/bin/sw-vsync=usr/bin/sw-vsync
+
+########################################
+## libraries
+########################################
+/lib/libgestures.so.1=lib/libgestures.so.1
+/lib/libscrmem.so.1=lib/libscrmem.so.1
+/lib/libmemobj.so.1=lib/libmemobj.so.1
+/lib/libinputevents.so.1=lib/libinputevents.so.1
+/lib/libkalman.so.1=lib/libkalman.so.1
+/lib/libimg.so.1=lib/libimg.so.1
+
+########################################
+## DLLs
+########################################
+/lib/dll/screen-debug.so=lib/dll/screen-debug.so
+/lib/dll/screen-gles2blt.so=lib/dll/screen-gles2blt.so
+/lib/dll/screen-sw.so=lib/dll/screen-sw.so
+/lib/dll/screen-stdbuf.so=lib/dll/screen-stdbuf.so
+
+#########################################
+## more libraries
+#########################################
+/lib/libGLESv2.so.1=usr/lib/libGLESv2.so.1
+/lib/libEGL.so.1=usr/lib/libEGL.so.1
+/lib/libscreen.so.1=usr/lib/libscreen.so.1
+/lib/libswblit.so.1=usr/lib/libswblit.so.1
+[type=link] /lib/libswblit.so=libswblit.so.1
+/lib/libWFD.so.1=usr/lib/libWFD.so.1
+/lib/__LIBFREETYPE__=usr/lib/__LIBFREETYPE__
+/lib/libfontconfig.so.1=usr/lib/libfontconfig.so.1
+/lib/__LIBPNG16__=usr/lib/__LIBPNG16__
+
+#############################################
+### Image Loading
+#############################################
+/lib/dll/img_codec_bmp.so=lib/dll/img_codec_bmp.so
+/lib/dll/img_codec_gif.so=lib/dll/img_codec_gif.so
+/lib/dll/img_codec_jpg.so=lib/dll/img_codec_jpg.so
+/lib/dll/img_codec_png.so=lib/dll/img_codec_png.so
+/lib/dll/img_codec_sgi.so=lib/dll/img_codec_sgi.so
+/lib/dll/img_codec_tga.so=lib/dll/img_codec_tga.so
+/lib/dll/img_codec_tif.so=lib/dll/img_codec_tif.so
+
+
+#############################################
+### Input
+#############################################
+/lib/libhiddi.so.1=lib/libhiddi.so.1
+[type=link] /lib/libhiddi.so=libhiddi.so.1
+/lib/dll/devh-ps2ser.so=lib/dll/devh-ps2ser.so
+/lib/dll/devh-ps2ser-vm.so=lib/dll/devh-ps2ser-vm.so
+/lib/libvmmouse.so.1=lib/libvmmouse.so.1
+/bin/io-hid=sbin/io-hid
+/graphics/keyboard/en_US_101.kbd=usr/share/keyboard/en_US_101.kbd
+
+#if defined(__GRAPHICS_VMWGFX_DRM__)
+#include "inputs/system_files_vmwgfx-drm"
+#endif
+#if defined(__GRAPHICS_VIRTIO_DRM__)
+#include "inputs/system_files_virtio-drm"
+#endif
+EOF
+
+        # Currently there exists two versions of libdrm.so and it is hard to
+        # know which is needed.
+        if check_dependency usr/lib/libdrm.so.1; then
+            cat >>output/option_files/system_files.opt_graphics <<EOF
+/lib/libdrm.so.1=usr/lib/libdrm.so.1
+EOF
+        fi
+        if check_dependency usr/lib/libdrm.so.2; then
+            cat >>output/option_files/system_files.opt_graphics <<EOF
+/lib/libdrm.so.2=usr/lib/libdrm.so.2
+EOF
+        fi
+
+        cat >>output/option_files/data_files.opt_graphics <<EOF
+[type=dir perms=0755] var/fontconfig
+EOF
+
+        if [ "$OPT_SLM" = no ]; then
+            cat >output/option_files/post_start.opt_graphics <<EOF
+
+echo "---> Starting graphics"
+if [ ! -e /data/var/fontconfig/CACHEDIR.TAG ]; then
+   FONTCONFIG_FILE=/system/etc/fontconfig/fonts.conf fc-cache &
+fi
+START_P(screent_t) screen -c /system/graphics/driver/graphics.conf DROPROOT_SCREEN(__SCREEN_ID__)
+waitfor /dev/screen
+echo drop_privileges >/dev/screen/command
+EOF
+        else
+            rm -f output/option_files/post_start.opt_graphics
+            cat >output/option_files/slm.opt_graphics <<EOF
+  <SLM:component name="io-hid">
+    <SLM:depend>root-fs</SLM:depend>
+    <SLM:command>io-hid</SLM:command>
+    <SLM:args>io-hid DROPROOT_P(__IO_HID_ID__) -dps2ser-vm kbd:kbddev:vmware:mousedev</SLM:args>
+    <SLM:waitfor wait="pathname">/dev/io-hid/io-hid</SLM:waitfor>
+    SLMTYPE_P(iohid_t)
+  </SLM:component>
+  <SLM:component name="screen">
+    <SLM:depend>io-hid</SLM:depend>
+    <SLM:command>screen</SLM:command>
+    <SLM:args>DROPROOT_SCREEN(__SCREEN_ID__) -c /system/graphics/driver/graphics.conf</SLM:args>
+    <SLM:waitfor wait="pathname">/dev/screen</SLM:waitfor>
+    SLMTYPE_P(screen_t)
+  </SLM:component>
+  <SLM:component name="screen-drop-priv">
+    <SLM:depend>screen</SLM:depend>
+    <SLM:command>echo</SLM:command>
+    <SLM:args>drop_privileges</SLM:args>
+    <SLM:stdout>/dev/screen/command</SLM:stdout>
+    SLMTYPE_P(slm_t)
+    <SLM:waitfor wait="exit" />
+  </SLM:component>
+EOF
+        fi
+
+        echo export FONTCONFIG_FILE=/system/etc/fontconfig/fonts.conf >>output/option_files/profile.opt_graphics
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+    default)
+        echo no;;
+esac

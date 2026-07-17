@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="mkefs and its buildfile" />
+<meta name="abstract" content="The mkefs utility uses instructions in its buildfile to build a flash filesystem image file." />
+<meta name="description" content="The mkefs utility uses instructions in its buildfile to build a flash filesystem image file." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="using_mkefs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>mkefs and its buildfile</title>
+</head>
+<body id="using_mkefs">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">mkefs</span> and its buildfile</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The <span class="keyword cmdname">mkefs</span> utility uses instructions in its buildfile to build a
+		flash filesystem image file.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The buildfile used by
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkefs.html"><span class="keyword cmdname">mkefs</span></a> is similar to the one
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a> uses.
+				A <span class="keyword cmdname">mkefs</span> buildfile is a list of attributes and files to be
+				included in the filesystem. Its syntax is similar to the <span class="keyword cmdname">mkifs</span>
+				buildfile syntax (see <q class="q">
+					<a class="xref" href="../buildfiles/buildfile_syntax.html" title="The buildfile text may include blank lines and comments. All sections are optional, but not all combinations are permitted.">Buildfile syntax</a></q>). However,
+					<span class="keyword cmdname">mkefs</span> supports a different set of attributes, including the
+				following:</p>
+
+			<dl class="dl compact">
+				
+					<dt class="dt dlterm"><tt class="ph tt">block_size=</tt><var class="keyword varname">bsize</var></dt>
+
+					<dd class="dd">Specifies the block size of the flash device being used; defaults to 64 KB.
+						See<q class="q"><a class="xref" href="#using_mkefs__block">Block size</a></q> below for a discussion of
+						interleave considerations for flash devices.</dd>
+
+				
+				
+					<dt class="dt dlterm"><tt class="ph tt">max_size=</tt><var class="keyword varname">msize</var></dt>
+
+					<dd class="dd">Specifies the maximum size of the flash device; is used to check for
+						overflows. The default is 4 Gbytes.</dd>
+
+				
+				
+					<dt class="dt dlterm"><tt class="ph tt">spare_blocks=</tt><var class="keyword varname">sblocks</var></dt>
+
+					<dd class="dd">Specifies the number of spare blocks to set aside for the flash filesystem;
+						see <q class="q"><a class="xref" href="#using_mkefs__spare_blocks">Spare blocks</a></q> below.</dd>
+
+				
+				
+					<dt class="dt dlterm"><tt class="ph tt">min_size=</tt><var class="keyword varname">tsize</var></dt>
+
+					<dd class="dd">Specifies the minimum size of the filesystem. If the resultant image is
+						smaller than <var class="keyword varname">tsize</var>, the image is padded out to
+						<var class="keyword varname">tsize</var> bytes. This padding creates a flash filesystem
+						partition with room for additional files. The default is unspecified,
+						meaning that the image won't be padded.</dd>
+
+				
+			</dl>
+
+			<div class="note"><span class="notetitle">Note:</span> For a complete description of the <span class="keyword cmdname">mkefs</span> buildfile syntax and
+				supported attributes, see the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkefs.html"><span class="keyword cmdname">mkefs</span></a>
+				documentation in the <cite class="cite">Utilities Reference</cite>.</div>
+
+			<div class="p">Here's a very simple example of an <span class="keyword cmdname">mkefs</span> buildfile:
+<pre class="pre codeblock">[block_size=128k spare_blocks=1]
+/home/ejm/products/sp1/callp/imagedir
+</pre></div>
+
+			<p class="p">In this example, the attributes specify:</p>
+
+			<ul class="ul">
+				<li class="li">that the flash devices have a block size of 128 KB</li>
+
+				<li class="li">that there should be one spare block</li>
+
+				<li class="li">a single directory; as with <span class="keyword cmdname">mkifs</span>, when a directory is
+					specified, all files and subdirectories beneath it are included in the resulting image</li>
+
+			</ul>
+
+		</div>
+
+		<div class="section" id="using_mkefs__block"><h2 class="title sectiontitle">Block size</h2>
+			
+			
+			
+			<p class="p">The only information you need to provide about the flash devices used in your system
+				is the block size, which you specify withe the <span class="ph codeph">block_size</span>
+				attribute.</p>
+
+			<p class="p">The value you should specify for the <span class="ph codeph">block_size</span> attribute depends on
+				the physical block size of the flash device (see the manufacturer's data sheet), and
+				on how the flash device is configured in your hardware (specifically the
+				interleave).</p>
+
+			<p class="p">Use the following formula determine the value you should set for 
+				<span class="ph codeph">block_size</span>:
+				<img class="image" src="../../images/block_size.svg" width="624" alt="Width of flash interface (in bits)/ Width of device (in bits) x Device block size (in KB) = block_size (in KB)" /></p>
+
+			<p class="p">For example, if you have a 16-bit flash interface, and are using a 16-bit flash
+				device with a 64 KB block size, you should set <span class="ph codeph">block_size</span> to
+				64000 (16 / 16 × 64000 = 64000).</p>
+
+		</div>
+
+		<div class="section" id="using_mkefs__spare_blocks"><h2 class="title sectiontitle">Spare blocks</h2>
+			
+			
+			
+			
+			<p class="p">The <tt class="ph tt">spare_blocks</tt> attribute indicates how many blocks should be left as
+				spare. A value of 0 indicates a <q class="q">read/write</q> (or <q class="q">write-once</q>) flash
+				filesystem, whereas a value greater than 0 indicates a
+				<q class="q">read/write/reclaim</q> filesystem.</p>
+
+			<p class="p">The default is 1 (one), but the number of spare blocks you'll need depends on the
+				amount of writing you'll do. You should specify an odd number of spare blocks,
+				usually 1 or 3. <span class="keyword">QNX OS</span> allocates and recovers blocks two
+				at a time. Specifying an odd number of spare blocks ensures that read and write
+				activity is properly distributed across blocks.</p>
+
+			<div class="dangertitle">DANGER</div><div class="note danger">
+				<ul class="ul">
+					<li class="li">If you don't set aside at least one spare block (i.e. the
+						<tt class="ph tt">spare_blocks</tt> attribute is 0), then the flash filesystem driver
+						won't be able to reclaim space, and will eventually fill up.</li>
+
+					<li class="li">Flash memory has an upper limit to the number of reads and writes it can
+						handle during its life span. Specifying an even number of blocks can cause
+						continuous spikes of activity on specific blocks, which may shorten the
+						expected life span of the flash device.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">The filesystem doesn't use a spare block until it's time to perform a reclaim
+				operation. A non-spare block is then selected for <q class="q">reclamation</q>, and the data
+				contained in that block is coalesced into one contiguous region in the spare block.
+				The non-spare block is then erased and becomes the new spare block. The former spare
+				block takes the place of the reclaimed block.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

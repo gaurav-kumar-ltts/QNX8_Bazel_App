@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling interrupts" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_inter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/inthandler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachthread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Handling" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling interrupts</title>
+</head>
+<body id="Handling">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">Handling interrupts</h1>
+
+    
+    <div class="body conbody">
+        <p class="p">In QNX-based systems, device drivers that are stand-alone user processes handle most
+            interrupts. Exceptions include inter-process interrupts (IPIs) and per-processor clock
+            interrupts, which the kernel handles. In any handling case, each interrupt is associated
+            with a thread, known as an Interrupt Service Thread (IST). You can see the IPI and clock
+            IST for each core in <span class="keyword cmdname">pidin</span> when looking at the kernel process.</p>
+
+        <p class="p">One method to handle interrupts is to call <span class="keyword apiname">InterruptAttachThread()</span>,
+            which attaches the calling thread to an interrupt source ID. This thread becomes an IST
+            and is dedicated to the handling of the interrupt. The IST can invoke
+                <span class="keyword apiname">InterruptWait()</span> to block until the interrupt occurs. If the call
+            returns without an error, the kernel masks the interrupt. To unmask the interrupt, once
+            it's finished processing, you can call <span class="keyword apiname">InterruptUnmask()</span> or pass the
+                <span class="keyword const">_NTO_INTR_WAIT_FLAGS_UNMASK</span> flag to
+                <span class="keyword apiname">InterruptWait()</span>. Doing the latter unmasks the interrupt and then
+            blocks, which saves on the number of kernel calls required to handle an interrupt. </p>
+
+        <div class="p">The following code snippet shows the typical structure of an interrupt handling loop in
+            an IST:
+<pre class="pre codeblock">int const id = InterruptAttachThread (interrupt_number, _NTO_INTR_FLAGS_NO_UNMASK);
+
+for (;;) {
+     if (InterruptWait (_NTO_INTR_WAIT_FLAGS_UNMASK, NULL) != -1) {
+         //Service interrupt
+     } else {
+         // Handle errors
+     }
+}
+</pre></div>
+
+        <p class="p">Because the interrupt handling loop above uses the shortcut flag
+                <span class="keyword const">_NTO_INTR_WAIT_FLAGS_UNMASK</span> for unmasking an interrupt before
+            blocking, the prior call to <span class="keyword apiname">InterruptAttachThread()</span> shouldn't unmask
+            the interrupt itself (and thus, should use the <span class="keyword const">_NTO_INTR_FLAGS_NO_UNMASK</span>
+            flag as in this example).
+            The kernel tracks the number of times these calls mask and unmask an
+            interrupt and returns an error if the interrupt has been unmasked too many times.</p>
+
+
+        <p class="p">Another method to handle interrupts is to call <span class="keyword apiname">InterruptAttachEvent()</span>,
+            which associates an interrupt ID with an event by first creating a thread that calls
+                <span class="keyword apiname">InterruptAttachThread()</span>. Using events with interrupts provides
+            the same functionality that ISTs do. However, ISTs provide lower overhead and better
+            control for interrupt handling. The purpose of the
+                <span class="keyword apiname">InterruptAttachEvent*()</span> calls is to allow for easy migration of
+            code from QNX SDP 7.x to QNX SDP 8.0. After calling
+                <span class="keyword apiname">InterruptAttachEvent()</span>, the newly created thread runs a loop
+            while the device driver waits for the event. Once <span class="keyword apiname">InterruptWait()</span>
+            returns, the thread dispatches the event, and the device driver processes the interrupt;
+            you should only associate pulse and semaphore events with interrupts. </p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_inter.html" title="In this chapter, we'll take a look at interrupts, how we deal with them under QNX OS, their impact on scheduling and realtime, and some interrupt-management strategies.">Interrupts</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html">Interrupt handling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/inthandler.html">Handling Hardware Interrupts (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html">InterruptAttachEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachthread.html">InterruptAttachThread()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html">InterruptDetach()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html">InterruptDisable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html">InterruptEnable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html">InterruptLock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html">InterruptMask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html">InterruptUnlock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html">InterruptUnmask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li></ul></div>
+</div></body>
+</html>

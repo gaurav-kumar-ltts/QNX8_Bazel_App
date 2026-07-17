@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Starting a process with the fork() call" />
+<meta name="abstract" content="Suppose you want to create a new process that's identical to the current process and have it run concurrently. You could approach this with a spawn() (and the P_NOWAIT parameter), giving the newly created process enough state information so it could set itself up. However, this can be extremely complicated; describing the “current state” of the current process can involve lots of data." />
+<meta name="description" content="Suppose you want to create a new process that's identical to the current process and have it run concurrently. You could approach this with a spawn() (and the P_NOWAIT parameter), giving the newly created process enough state information so it could set itself up. However, this can be extremely complicated; describing the “current state” of the current process can involve lots of data." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Starting_process_from_programs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Starting_with_fork" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Starting a process with the fork() call</title>
+</head>
+<body id="Starting_with_fork">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Starting a process with the <span class="keyword apiname">fork()</span> call</h1>
+
+
+
+
+<div class="body conbody ignore"><p class="shortdesc">
+Suppose you want to create a new process that's identical to the current process and have it run
+concurrently.
+You could approach this with a <span class="keyword apiname">spawn()</span> (and the <span class="keyword const">P_NOWAIT</span>
+parameter), giving the newly created process enough state information so it could set itself up.
+However, this can be extremely complicated; describing the <q class="q">current state</q> of the current
+process can involve lots of data.
+</p>
+
+
+<p class="p">
+
+
+
+
+There is an easier way—the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>
+function, which duplicates the current process.
+All the code is the same, and the data is the same as the
+creating (or <em class="ph i">parent</em>) process's data.
+</p>
+
+
+<p class="p">
+
+Of course, it's impossible to create a process that's
+<em class="ph i">identical in every way</em> to the parent process.
+Why?
+The most obvious difference between these two processes is going
+to be the process ID—we can't create two processes with the same
+process ID.
+If you look at <span class="keyword apiname">fork()</span>'s documentation in the
+<span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>,
+you'll see that there is a list of differences between
+the two processes.  You should read this list to be sure that you know
+these differences if you plan to use <span class="keyword apiname">fork()</span>.
+</p>
+
+
+<div class="p">
+If both sides of a <span class="keyword apiname">fork()</span> look alike, how do you tell them apart?
+When you call <span class="keyword apiname">fork()</span>, you create another process executing
+the same code at the same location (i.e., both
+are about to return from the <span class="keyword apiname">fork()</span> call) as the parent process.
+Let's look at some sample code:
+
+<pre class="pre codeblock">int main (int argc, char **argv)
+{
+    int retval;
+
+    printf ("This is most definitely the parent process\n");
+    fflush (stdout);
+    retval = fork ();
+    printf ("Which process printed this?\n");
+
+    return (EXIT_SUCCESS);
+}
+</pre>
+</div>
+
+
+<div class="p">
+After the <span class="keyword apiname">fork()</span> call, <em class="ph i">both</em>
+processes are going to execute the second <span class="keyword apiname">printf()</span> call!
+If you run this program, it prints something like this:
+
+<pre class="pre codeblock">This is most definitely the parent process
+Which process printed this?
+Which process printed this?
+</pre>
+</div>
+
+
+<p class="p">
+Both processes print the second line.
+</p>
+
+
+<p class="p">
+The only way to tell the two processes apart is the <span class="keyword apiname">fork()</span>
+return value in <var class="keyword varname">retval</var>.
+In the newly created <em class="ph i">child</em> process, <var class="keyword varname">retval</var> is zero;
+in the parent process, <var class="keyword varname">retval</var> is the child's process ID.
+
+
+</p>
+
+
+<div class="p">
+Clear as mud?  Here's another code snippet to clarify:
+
+<pre class="pre codeblock">printf ("The parent is pid %d\n", getpid ());
+fflush (stdout);
+
+if (child_pid = fork ()) {
+    printf ("This is the parent, child pid is %d\n", child_pid);
+} else {
+    printf ("This is the child, pid is %d\n", getpid ());
+}
+</pre>
+</div>
+
+
+<div class="p">
+This program will print something like:
+
+<pre class="pre codeblock">The parent is pid 4496
+This is the parent, child pid is 8197
+This is the child, pid is 8197
+</pre>
+</div>
+
+
+<p class="p">
+You can tell which process you are (the parent or the child) after the
+<span class="keyword apiname">fork()</span> by looking at the function's return value.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Starting_process_from_programs.html" title="You don't usually care about the fact that the shell creates processes—this is a basic assumption about the shell. In some application designs, you'll certainly be relying on shell scripts (batches of commands in a file) to do the work for you, but in other cases you'll want to create the processes yourself.">Starting a process from within a program</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PROCMAN.html">Process management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/environ.html">environ()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html">execle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html">execl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html">execlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html">execlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html">execve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html">execv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html">execvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html">execvp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html">fork()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html">posix_spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html">spawn()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html">spawnle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html">spawnl()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html">spawnlpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html">spawnlp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html">spawnp()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html">spawnve()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html">spawnv()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html">spawnvpe()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html">spawnvp()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread Local Storage (TLS)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="thread_local_storage" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread Local Storage (TLS)</title>
+</head>
+<body id="thread_local_storage">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Thread Local Storage (TLS)</h1>
+
+    
+    <div class="body conbody">
+        <div class="p">In multithreaded processes, all of the threads in the process share the same static and
+            global variables. Thread local storage (TLS) allows each thread in a process to store
+            its own copy of static or global memory. When using TLS, memory for the unique data is
+            allocated when the thread starts and deallocated when it ends. Any pointers to variables
+            in threads using TLS become invalid when the thread ends. You can declare the following
+            keywords with a variable to provide it with TLS duration: <ul class="ul">
+                <li class="li"><span class="keyword dtype">_Thread_local</span> (in C11 and later)</li>
+
+                <li class="li"><span class="keyword dtype">thread_local</span> (in C++11 and later)</li>
+
+                <li class="li"><span class="keyword dtype">__thread</span> (a GCC extension)</li>
+
+            </ul>
+
+            <div class="note"><span class="notetitle">Note:</span> 
+                <ul class="ul">
+                    <li class="li">In C11 and later, the <span class="ph filepath">&lt;threads.h&gt;</span> header file
+                        defines <span class="keyword dtype">thread_local</span> as a macro to use as an alias for the
+                            <span class="keyword dtype">_Thread_local</span> keyword.</li>
+
+                    <li class="li">For better code portability, avoid using the <span class="keyword dtype">__thread</span>
+                        keyword, as it's a GCC extension and may not be supported on all
+                        systems.</li>
+
+                </ul>
+
+            </div>
+You can set these keywords with the following variable types:<ul class="ul">
+                <li class="li">global</li>
+
+                <li class="li">file-scoped static</li>
+
+                <li class="li">function-scoped static</li>
+
+            </ul>
+However, you can't set them on block-scoped automatic, or non-static data members. These
+            keywords can be used in library code and the executable. For example, use the
+                <span class="keyword dtype">thread_local</span> keyword to declare a global variable:
+            <pre class="pre codeblock">thread_local unsigned global_x;</pre> Use the
+                <span class="keyword dtype">thread_local</span> keyword to declare a file-scoped static variable:
+            <pre class="pre codeblock">static thread_local unsigned file_x;</pre> Use the
+                <span class="keyword dtype">thread_local</span> keyword to declare a function-scoped static variable:
+            <pre class="pre codeblock">unsigned update_thread_count(unsigned value) {
+    static thread_local unsigned count;
+    count += value; /* Each thread will have its own value for count */
+    return count;
+}</pre>
+        </div>
+
+
+        <p class="p">TLS functionality isn't equivalent to using thread-specific calls, such as
+                <span class="keyword apiname">pthread_setspecific()</span>, which use thread-specific data instead.
+            These calls are less efficient in the way that they store and access data.
+            Thread-specific calls take more work to set up because a combination of these calls is
+            required for every thread that needs data. For more information on thread-specific data,
+            refer to the <a class="xref" href="kernel_Thread_attributes.html" title="Although threads within a process share everything within the process's address space, each thread still has some “private” data. Some of this private data is protected within the kernel (e.g., the tid or thread ID), while other private data resides unprotected in the process's address space (e.g., each thread has a stack for its own use).">"Thread attributes"</a>
+            page.</p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_THREADSANDPRO.html" title="When building an application (realtime, embedded, graphical, or otherwise), the developer may want several algorithms within the application to execute concurrently. This concurrency is achieved by using the POSIX thread model, which defines a process as containing one or more threads of execution.">Threads and processes</a></div>
+</div>
+</div></body>
+</html>

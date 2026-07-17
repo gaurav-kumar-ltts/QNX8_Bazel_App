@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Snapshots" />
+<meta name="abstract" content="A snapshot is a committed stable view of a Power-Safe filesystem. Each mounted filesystem has one stable snapshot and one working view (in which copy-on-write modifications to the stable snapshot are being made)." />
+<meta name="description" content="A snapshot is a committed stable view of a Power-Safe filesystem. Each mounted filesystem has one stable snapshot and one working view (in which copy-on-write modifications to the stable snapshot are being made)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="QNX6_snapshots" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Snapshots</title>
+</head>
+<body id="QNX6_snapshots">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Snapshots</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+A <em class="ph i">snapshot</em> is a committed stable view of a Power-Safe filesystem.
+Each mounted filesystem has one stable snapshot and one working view (in
+which copy-on-write modifications to the stable snapshot are
+being made).
+</p>
+
+
+<p class="p">
+
+Whenever a new snapshot is made, filesystem activity is suspended (to give
+a stable system), the bitmaps are updated, all dirty blocks are forced to
+disk, and the alternate filesystem superblock is written (with a higher
+sequence number).
+Then filesystem activity is resumed, and another working view is constructed
+on the old superblock.
+When a filesystem is remounted after
+an unclean power failure, it restores the last stable snapshot.
+</p>
+
+
+<p class="p">
+Snapshots are made:
+</p>
+
+
+<ul class="ul">
+<li class="li">explicitly, when a global
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sync.html"><span class="keyword apiname">sync()</span></a>
+  of all filesystems is performed
+  
+</li>
+
+
+<li class="li">explicitly, when
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fsync.html"><span class="keyword apiname">fsync()</span></a>
+  is called for any file in the Power-Safe filesystem
+  
+</li>
+
+
+<li class="li">explicitly, when switching to read-only mode with <span class="keyword cmdname">mount -ur</span>
+  
+</li>
+
+
+<li class="li">periodically, from the timer specified to the <span class="keyword option">snapshot=</span>
+  option to the
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a>
+  command (the default is 10 seconds).
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+
+You can disable snapshots on a filesystem at a global or local level.
+When disabled, a new superblock isn't written, and an attempt to make a
+snapshot fails with an <var class="keyword varname">errno</var> of <span class="keyword const">EAGAIN</span>
+(or silently, for the <span class="keyword apiname">sync()</span> or timer cases).
+If snapshots are still disabled when the filesystem is unmounted (implicitly
+or at a power failure), any pending modifications are discarded (lost).
+</p>
+
+
+<p class="p">
+Snapshots are also permanently disabled automatically after an unrecoverable
+error that would result in an inconsistent filesystem.
+An example is running out of memory for caching bitmap
+modifications, or a disk I/O error while writing a snapshot.
+In this case, the filesystem is forced to be read-only, and the current and
+all future snapshot processing is omitted; the aim being to ensure that
+the last stable snapshot remains undisturbed and available for reloading
+at the next mount/startup (i.e., the filesystem always has a guaranteed
+stable state, even if slightly stale).
+This is only for certain serious error situations, and generally shouldn't
+happen.
+</p>
+
+
+<p class="p">
+Manually disabling snapshots can be used to encapsulate a higher-level
+sequence of operations that must either all succeed or none occur (e.g.,
+should power be lost during this sequence).
+Possible applications include software updates or filesystem defragmentation.
+</p>
+
+
+<div class="p">
+
+
+
+To disable snapshots at the global level, clear the
+<span class="keyword const">FS_FLAGS_COMMITTING</span> flag on the filesystem, using the
+<a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/fsys/dcmd_fsys_file_flags.html"><span class="keyword const">DCMD_FSYS_FILE_FLAGS</span></a>
+command to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>:
+
+<pre class="pre codeblock">struct fs_fileflags  flags;
+ 
+memset( &amp;flags, 0, sizeof(struct fs_fileflags));
+flags.mask[FS_FLAGS_GENERIC] = FS_FLAGS_COMMITTING;
+flags.bits[FS_FLAGS_GENERIC] = disable ? 0 : FS_FLAGS_COMMITTING;
+devctl( fd, DCMD_FSYS_FILE_FLAGS, &amp;flags,
+        sizeof(struct fs_fileflags), NULL);
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+This is a single flag for the entire filesystem, and
+can be set or cleared by any superuser client;
+thus applications must coordinate the use of this flag among themselves.
+</div>
+
+
+<div class="p">
+
+Alternatively, you can use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chattr.html"><span class="keyword cmdname">chattr</span></a>
+utility (as a convenient front-end to the above <span class="keyword apiname">devctl()</span> command):
+
+<pre class="pre codeblock"># chattr -snapshot /fs/qnx6
+/fs/qnx6: -snapshot
+...
+# chattr +snapshot /fs/qnx6
+/fs/qnx6: +snapshot
+</pre>
+</div>
+
+
+<p class="p">
+
+To disable snapshots at a local level, adjust the
+<span class="keyword const">QNX6FS_SNAPSHOT_HOLD</span> count on a per-file-descriptor basis,
+again using the <span class="keyword const">DCMD_FSYS_FILE_FLAGS</span> command to
+<span class="keyword apiname">devctl()</span>.
+Each open file has its own hold count, and the sum of all local hold counts
+is a global hold count that disables snapshots if nonzero.
+Thus if any client sets a hold count, snapshots are disabled until all
+clients clear their hold counts.
+</p>
+
+
+<div class="p">
+The hold count is a 32-bit value, and can be incremented more than once
+(and must be balanced by the appropriate number of decrements).
+If a file descriptor is closed, or the process terminates,
+then any local holds it contributed are automatically undone.
+The advantage of this scheme is that it requires no special coordination
+between clients; each can encapsulate its own sequence of
+atomic operations using its independent hold count:
+
+<pre class="pre codeblock">struct fs_fileflags  flags;
+ 
+memset( &amp;flags, 0, sizeof(struct fs_fileflags));
+flags.mask[FS_FLAGS_FSYS] = QNX6FS_SNAPSHOT_HOLD;
+flags.bits[FS_FLAGS_FSYS] = QNX6FS_SNAPSHOT_HOLD;
+devctl( fd, DCMD_FSYS_FILE_FLAGS, &amp;flags,
+        sizeof(struct fs_fileflags), NULL);
+...
+memset( &amp;flags, 0, sizeof(struct fs_fileflags));
+flags.mask[FS_FLAGS_FSYS] = QNX6FS_SNAPSHOT_HOLD;
+flags.bits[FS_FLAGS_FSYS] = 0;
+devctl( fd, DCMD_FSYS_FILE_FLAGS, &amp;flags,
+        sizeof(struct fs_fileflags), NULL);
+</pre>
+</div>
+
+
+<div class="p">
+In this case, <span class="keyword cmdname">chattr</span> isn't particularly useful to manipulate
+the state, as the hold count is immediately reset once the utility
+terminates (as its file descriptor is closed).
+However, it is convenient to report on the current status of the filesystem,
+as it will display both the global and local flags as separate states:
+
+<pre class="pre codeblock"># chattr /fs/qnx6
+/fs/qnx6: +snapshot +contiguous +used +hold
+</pre>
+</div>
+
+
+<p class="p">
+If <span class="ph codeph">+snapshot</span> isn't displayed, then snapshots have been disabled
+via the global flag.
+If <span class="ph codeph">+hold</span> is displayed, then snapshots have been disabled due to
+a global nonzero hold count (by an unspecified number of clients).
+If <span class="ph codeph">+dirty</span> is permanently displayed (even after a
+<span class="keyword apiname">sync()</span>), then either snapshots have been disabled due to a
+potentially fatal error, or the disk hardware doesn't support full data
+synchronization (track cache flush).
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Enabling snapshots doesn't in itself cause a snapshot to be made;
+you should do this with an explicit <span class="keyword apiname">fsync()</span> if required.
+It's often a good idea to <span class="keyword apiname">fsync()</span> both before disabling and
+after enabling snapshots (the <span class="keyword cmdname">chattr</span> utility does this).
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems_QNX6_filesystem.html" title="The Power-Safe filesystem, supported by the fs-qnx6.so shared object, is a reliable disk filesystem that can withstand power failures without losing or corrupting data.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The kernel as arbiter" />
+<meta name="abstract" content="So who decides which thread is going to run at any given instant in time? That's the kernel's job." />
+<meta name="description" content="So who decides which thread is going to run at any given instant in time? That's the kernel's job." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Kernel_role.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Prioritization.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Scheduling_policies.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_FIFO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Round_Robin.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Scheduling_rules.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Kernel_as_arbiter" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The kernel as arbiter</title>
+</head>
+<body id="Kernel_as_arbiter">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The kernel as arbiter</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+So who decides which thread is going to run at any given instant in time?
+That's the kernel's job.
+</p>
+
+
+<p class="p">
+
+The kernel determines which thread should be using the CPU at a particular moment,
+and <em class="ph i">switches context</em> to that thread.
+Let's examine what the kernel does with the CPU.
+
+
+
+</p>
+
+
+<p class="p">
+The CPU has a number of registers (the exact number depends on the processor family (e.g., x86 versus
+ARM), and the specific family member).
+When the thread is running, information is stored in those registers (e.g.,
+the current program location).
+</p>
+
+
+<p class="p">
+When the kernel decides that another thread should run, it needs to:
+</p>
+
+
+<ol class="ol">
+<li class="li">save the currently running thread's registers and other context information</li>
+
+<li class="li">load the new thread's registers and context into the CPU</li>
+
+</ol>
+
+
+<p class="p">
+But how does the kernel decide that another thread should run?
+It looks at whether or not a particular thread is capable of
+using the CPU at this point.
+When we talked about mutexes, for example, we introduced a blocking
+state (this occurred when one thread owned the mutex, and another
+thread wanted to acquire it as well; the second thread would be blocked).
+</p>
+
+
+<p class="p">
+From the kernel's perspective, therefore, we have one thread that <em class="ph i">can</em> consume
+CPU, and one that <em class="ph i">can't</em>, because it's blocked, waiting for a mutex.
+In this case, the kernel lets the thread that can run consume CPU,
+and puts the other thread into an internal list (so that the kernel
+can track its request for the mutex).
+
+
+</p>
+
+
+<p class="p">
+Obviously, that's not a very interesting situation.
+Suppose that a number of threads <em class="ph i">can</em> use the CPU.
+Remember that we delegated access to the mutex based on priority and length of wait?
+The kernel uses a similar scheme to determine which thread is going to run next.
+There are two factors: priority and scheduling policy, evaluated in that order.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Prioritization.html">Prioritization</a></strong><br />
+ Consider two threads capable of using the CPU. If these threads have different priorities, then the answer is really quite simple; the kernel gives the CPU to the highest priority thread. <span class="keyword">QNX OS</span>'s priorities go from one (the lowest usable) and up, as we mentioned when we talked about obtaining mutexes. Note that priority zero is reserved for the idle thread—you can't use it. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Scheduling_policies.html">Scheduling policies</a></strong><br />
+ Now, suppose that two threads are capable of using the CPU and have the exact same priority. Let's assume that one of the threads is currently using the CPU. We'll examine the rules that the kernel uses to decide when to context-switch in this case. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_FIFO.html">FIFO</a></strong><br />
+ In the FIFO scheduling policy, a thread is allowed to consume CPU for as long as it wants. This means that if that thread is doing a very long mathematical calculation, and no other thread of a higher priority is ready, that thread could potentially run <em class="ph i">forever</em>. What about threads of the same priority? They're locked out as well. (It should be obvious that threads of a lower priority are locked out too.) </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Round_Robin.html">Round Robin (RR)</a></strong><br />
+ The RR scheduling policy is identical to FIFO, <em class="ph i">except</em> that the thread will not run forever <em class="ph i">if</em> there's another thread at the same priority. It runs only for a system-defined <em class="ph i">timeslice</em> whose value you can determine by using the function <span class="keyword apiname">sched_rr_get_interval()</span>. The timeslice is usually 4 ms, but it's actually 4 times the <em class="ph i">ticksize</em>, which you can query or set with <span class="keyword apiname">ClockPeriod()</span>. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Scheduling_rules.html">The rules</a></strong><br />
+Let's summarize the scheduling rules (for a single CPU), in order of importance.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_Kernel_role.html" title="The house analogy is excellent for getting across the concept of synchronization, but it falls down in one major area. In our house, we had many threads running simultaneously. However in a single-processor system, only one “thing” can run at once.">The kernel's role</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SCHEDULING.html">Thread scheduling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

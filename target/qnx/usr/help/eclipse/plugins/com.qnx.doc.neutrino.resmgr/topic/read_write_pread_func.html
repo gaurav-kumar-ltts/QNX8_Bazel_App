@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sample code for handling _IO_READ messages in pread*()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_Handlingpread.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pread_func" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sample code for handling _IO_READ messages in pread*()</title>
+</head>
+<body id="pread_func">
+
+<h1 class="title topictitle1" id="ariaid-title1">Sample code for handling <span class="keyword const">_IO_READ</span> messages in <span class="keyword apiname">pread*()</span></h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+The following sample code demonstrates how to handle
+<span class="keyword const">_IO_READ</span> for the case where the client calls one
+of the <span class="keyword apiname">pread*()</span> functions.
+
+<pre class="pre codeblock">/* we are defining io_pread_t here to make the code below simple */
+typedef struct {
+    struct _io_read         read;
+    struct _xtype_offset    offset;
+} io_pread_t;
+
+int io_read (resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb)
+{
+    off64_t offset; /* where to read from */
+    int     status;
+
+    if ((status = iofunc_read_verify(ctp, msg, ocb, NULL)) != EOK) {
+        return(status);
+    }
+    
+    switch(msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) {
+    case _IO_XTYPE_NONE:
+        offset = ocb-&gt;offset;
+        break;
+    case _IO_XTYPE_OFFSET:
+        /*
+         *  io_pread_t is defined above.
+         *  Client is doing a one-shot read to this offset by
+         *  calling one of the pread*() functions
+         */
+        offset = ((io_pread_t *) msg)-&gt;offset.offset;
+        break;
+    default:
+        return(ENOSYS);
+    }
+    ...
+}
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write_Handlingpread.html">Handling pread*() and pwrite*()</a></div>
+</div>
+</div></body>
+</html>

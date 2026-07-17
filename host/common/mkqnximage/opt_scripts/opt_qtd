@@ -1,0 +1,66 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--qtd=[yes|no]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If yes, the system partition is read-only and protected by wrapping in a QTD container.  This
+    is a good idea for a released system but may be inconvenient in cases where security is not
+    important.
+
+    The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_QTD" = yes -o "$OPT_QTD" = no ]; then
+        if [ "$OPT_QTD" = yes ] && ! which openssl &> /dev/null; then
+            echo "--qtd requires the openssl command line tool"
+            exit 1
+        fi
+        exit 0
+    else
+        echo "--qtd must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_qtd
+    # Put QTD files in IFS unconditionally. This is for real systems where
+    # it is possible that QTD will be turned on without updating the IFS.
+    cat >output/option_files/ifs_files.opt_qtd <<EOF
+#############################################
+### QTD
+#############################################
+qtd_public_key.pem=local/misc_files/qtd_public_key.pem
+fs-qtd.so=lib/dll/fs-qtd.so
+EOF
+    if [ ! -e local/misc_files/qtd_public_key.pem -o ! -e local/misc_files/qtd_private_key.pem ]; then
+        # Of course for a real system, you'd take care to keep your private
+        # key private
+        openssl genpkey -algorithm ed448 -outform PEM -out local/misc_files/qtd_private_key.pem
+        openssl pkey -in local/misc_files/qtd_private_key.pem -pubout -out local/misc_files/qtd_public_key.pem
+    fi
+
+    exit 0
+}
+
+case "$1" in
+    brief)
+        brief;;
+    help)
+        help;;
+    validate)
+        validate;;
+    configure)
+        configure;;
+    default)
+        echo no;;
+esac

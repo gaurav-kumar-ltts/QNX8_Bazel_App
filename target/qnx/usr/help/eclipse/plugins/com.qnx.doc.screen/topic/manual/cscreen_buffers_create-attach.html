@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Buffers" />
+<meta name="abstract" content="A buffer is an area of memory that stores pixel data. Multiple buffers can be associated with a window or stream, but only one buffer can be associated with a pixmap." />
+<meta name="description" content="A buffer is an area of memory that stores pixel data. Multiple buffers can be associated with a window or stream, but only one buffer can be associated with a pixmap." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_buffers_create-attach" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Buffers</title>
+</head>
+<body id="cscreen_buffers_create-attach">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Buffers
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        A buffer is an area of memory that stores pixel data. Multiple buffers can be associated with a window or
+        stream, but only one buffer can be associated with a pixmap.
+    </p>
+
+        <div class="section"><h2 class="title sectiontitle">Creating buffers</h2>
+            
+            <p class="p">
+                
+                The buffers that you can create are:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">internal buffers</dt>
+
+                    <dd class="dd">
+                        
+                        Internal buffers are those that were created by calling one of the following <span class="keyword">Screen API</span> functions:
+                        <ul class="ul">
+                            <li class="li"><a class="xref" href="../screen_create_pixmap_buffer.html" title="Send a request to Screen to create a new buffer for a pixmap"><span class="keyword apiname">screen_create_pixmap_buffer()</span></a></li>
+
+                            <li class="li"><a class="xref" href="../screen_create_window_buffers.html" title="Allocate new buffers for a window"><span class="keyword apiname">screen_create_window_buffers()</span></a></li>
+
+                            <li class="li"><a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a></li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">external buffers</dt>
+
+                    <dd class="dd">
+                        
+                        External buffers are those that were created by calling
+                        <a class="xref" href="../screen_create_buffer.html" title="Create a buffer handle that can later be attached to a window or a pixmap"><span class="keyword apiname">screen_create_buffer()</span></a> and
+                        whose memory was allocated by applications. You can use (e.g. render into) an external
+                        buffer only after you've attached it to one of a pixmap, window, or stream.
+                    </dd>
+
+                
+            </dl>
+
+            <h3 class="title sectiontitle">Internal buffers</h3>
+            <p class="p">
+                
+                You can create buffers for pixmaps, streams, and windows by calling one of the following
+                <span class="keyword">Screen API</span> functions.
+            </p>
+
+            <ul class="ul">
+                <li class="li"><a class="xref" href="../screen_create_pixmap_buffer.html" title="Send a request to Screen to create a new buffer for a pixmap"><span class="keyword apiname">screen_create_pixmap_buffer()</span></a></li>
+
+                <li class="li"><a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a></li>
+
+                <li class="li"><a class="xref" href="../screen_create_window_buffers.html" title="Allocate new buffers for a window"><span class="keyword apiname">screen_create_window_buffers()</span></a></li>
+
+            </ul>
+
+            <p class="p">
+                You may set the <span class="keyword const">SCREEN_PROPERTY_USAGE</span> on the <span class="keyword">Screen API</span> object
+                before you create its buffer if <span class="keyword const">SCREEN_USAGE_READ</span> or <span class="keyword const">SCREEN_USAGE_WRITE</span>
+                is insufficient for your intended usage of the buffer. Otherwise, simply create the buffer
+                for the <span class="keyword">Screen API</span> object by calling the appropriate function. For example,
+                to create buffers for a window:
+            </p>
+
+            <pre class="pre codeblock">...
+screen_context_t ctx;                      
+screen_window_t win;
+int num_bufs = 2;
+...
+screen_create_window(&amp;win, ctx);
+screen_create_window_buffers(win, num_bufs);
+...
+            </pre>
+            <p class="p">
+                You can now proceed to use the buffer. See <a class="xref" href="cscreen_buffers_create-attach.html#cscreen_buffers_create-attach__using"><q class="q">Using buffers</q></a>.
+            </p>
+
+            <h3 class="title sectiontitle">External buffers</h3>
+            <p class="p">
+                
+                Applications such as drivers may have a requirement to allocate their own buffers because of
+                memory location, or a buffer size requirement. These applications must ensure that all usage
+                constraints are met when allocating the buffers to enable <span class="keyword">Screen</span>
+                to successfully attach the buffers. Failure to meet the usage constraints may also result in
+                artifacts and system instability.
+            </p>
+
+            <p class="p">
+                Applications that create their own buffers and allocate their memory must:
+            </p>
+
+            <ol class="ol">
+                <li class="li">
+                    Create the the buffer of type <a class="xref" href="../screen_buffer_t.html" title="A handle to a Screen buffer"><span class="keyword dtype">screen_buffer_t</span></a>
+                    by calling <a class="xref" href="../screen_create_buffer.html" title="Create a buffer handle that can later be attached to a window or a pixmap"><span class="keyword apiname">screen_create_buffer()</span></a>.
+                    For example:
+                    <pre class="pre codeblock">...
+screen_buffer_t created_buf = NULL;
+...
+screen_create_buffer(&amp;created_buf);
+...
+                    </pre>
+                </li>
+
+                <li class="li">
+                    Set the buffer properties.
+                    <p class="p">
+                        At a minimum, you must set the following properties for the buffer that your application
+                        allocates:
+                    </p>
+
+                    <ul class="ul">
+                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_FORMAT</span></li>
+
+                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFER_SIZE</span></li>
+
+                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_SIZE</span></li>
+
+                        <li class="li"><span class="keyword const">SCREEN_PROPERTY_STRIDE</span></li>
+
+                    </ul>
+
+                    <p class="p">
+                        If you're using one of the planar YUV formats, then you should also set the
+                        <span class="keyword const">SCREEN_PROPERTY_PLANAR_OFFSETS</span> property.
+                    </p>
+
+                    <p class="p">For example for a buffer of format <span class="keyword const">SCREEN_FORMAT_NV12</span>:</p>
+
+                    <pre class="pre codeblock">...
+const int width=1024, height=64, stride=4096;
+const int nbytes = stride*height + stride*(height/2);
+...
+screen_set_buffer_property_iv(created_buf,SCREEN_PROPERTY_FORMAT,(const int[]){SCREEN_FORMAT_NV12});
+screen_set_buffer_property_iv(created_buf,SCREEN_PROPERTY_BUFFER_SIZE,(const int[]){width, height});
+screen_set_buffer_property_iv(created_buf,SCREEN_PROPERTY_SIZE,(const int[]){nbytes});
+screen_set_buffer_property_iv(created_buf,SCREEN_PROPERTY_STRIDE,(const int[]){stride});
+screen_set_buffer_property_iv(created_buf,SCREEN_PROPERTY_PLANAR_OFFSETS,(const int[]){0,(height*stride),-1});
+...
+                    </pre>
+                </li>
+
+                <li class="li">
+                    Allocate the memory for the buffer and assign access to it.
+                    <p class="p">
+                        You can use either the <span class="keyword const">SCREEN_PROPERTY_POINTER</span> property or the <span class="keyword const">SCREEN_PROPERTY_FD</span> property
+                        to assign memory. However, note that you may need to set different attributes on the memory depending
+                        on which property you use:
+                    </p>
+
+                    <dl class="dl">
+                        
+                            <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_POINTER</span></dt>
+
+                            <dd class="dd">
+                                <ol class="ol" type="a">
+                                    <li class="li">
+                                        Allocate the memory for the buffer.
+                                        <p class="p">
+                                            Allocate some memory for the buffer. How and from where the memory is allocated is up to the
+                                            application; it can be statically allocated (mapped from a fixed address) or allocated from a shared memory object.
+                                            For example:
+                                        </p>
+
+                                        <pre class="pre codeblock">...
+int fd;
+uint32_t *mmap_ptr;
+...
+fd = shm_open(SHM_ANON, O_CREAT|O_EXCL|O_RDWR, 0400);
+
+shm_ctl(fd, SHMCTL_ANON, 0, nbytes);
+
+mmap_ptr = mmap(NULL, nbytes , PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+...
+                    </pre>
+                                    </li>
+
+                                    <li class="li">
+                                        Assign the pointer to the buffer.
+                                        <p class="p">
+                                            You must set the <span class="keyword const">SCREEN_PROPERTY_POINTER</span> property to point to the memory
+                                            that's been allocated for this buffer. For example:
+                                        </p>
+
+                                        <pre class="pre codeblock">...
+screen_set_buffer_property_pv(created_buf, SCREEN_PROPERTY_POINTER, (void**)&amp;mmap_ptr);
+...
+                                        </pre>
+                                    </li>
+
+                                </ol>
+
+                            </dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword const">SCREEN_PROPERTY_FD</span></dt>
+
+                            <dd class="dd">
+                                <ol class="ol" type="a">
+                                    <li class="li">
+                                        Allocate the memory for the buffer.
+                                        <p class="p">
+                                            How and from where the memory is allocated is up to the application; it can be statically allocated
+                                            (mapped from a fixed address) or allocated from a shared memory object.
+                                            For example:
+                                        </p>
+
+                                        <pre class="pre codeblock">...
+int fd;
+...
+fd = shm_open(SHM_ANON, O_CREAT|O_EXCL|O_RDWR, 0400);
+...
+
+/* Seal the memory so it can't be modified */
+if (0 != shm_ctl(shm_fd, SHMCTL_SEAL, 0, 0)){
+		/* error */
+		...
+	}
+...
+                    </pre>
+                                        <div class="note"><span class="notetitle">Note:</span> 
+                                            When you're using the <span class="keyword const">SCREEN_PROPERTY_FD</span> property to indicate memory, you
+                                            must ensure that you:
+                                            <ul class="ul">
+                                                <li class="li">
+                                                    call <span class="keyword apiname">shm_ctl()</span> to set the <span class="keyword const">SHMCTL_SEAL</span> flag to
+                                                    prevent the shared memory object from being modified.
+                                                </li>
+
+                                                <li class="li">
+                                                    ensure that the <span class="keyword const">SHMCTL_REVOCABLE</span> flag is <strong class="ph b">NOT</strong> set on your
+                                                    shared memory object. You can call <span class="keyword apiname">shm_ctl()</span> with the
+                                                    <span class="keyword const">SHMCTL_GET_FLAGS</span> flag to verify which flags have been set on
+                                                    the object that you're using. If the <span class="keyword const">SHMCTL_REVOCABLE</span> flag
+                                                    has been set, you can't associate this object with your buffer.
+                                                </li>
+
+                                            </ul>
+
+                                        </div>
+
+                                    </li>
+
+                                    <li class="li">
+                                        Assign the file descriptor to the buffer.
+                                        <p class="p">
+                                            You must set the <span class="keyword const">SCREEN_PROPERTY_FD</span> property to point to the memory
+                                            that's been allocated for this buffer. For example:
+                                        </p>
+
+                                        <pre class="pre codeblock">...
+screen_set_buffer_property_iv(created_buf, SCREEN_PROPERTY_FD, &amp;fd);
+...
+                                        </pre>
+                                    </li>
+
+                                </ol>
+
+                            </dd>
+
+                        
+                    </dl>
+
+                </li>
+
+                <li class="li">
+                    Attach the external buffer to a pixmap, window, or stream before you can use it.
+                    See <a class="xref" href="cscreen_buffers_create-attach.html#cscreen_buffers_create-attach__attaching"><q class="q">Attaching buffers</q></a>.
+                    <div class="p">
+                        <div class="note"><span class="notetitle">Note:</span> 
+                            <p class="p">
+                                You must be using a privileged <span class="keyword">Screen</span>
+                                context that includes <span class="keyword const">SCREEN_BUFFER_PROVIDER_CONTEXT</span> in its type to
+                                attach the buffer. For example:
+                            </p>
+
+                            <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+...
+screen_create_context(&amp;screen_ctx,
+                      (SCREEN_APPLICATION_CONTEXT | SCREEN_BUFFER_PROVIDER_CONTEXT));
+...
+                       </pre>
+                        </div>
+
+                    </div>
+
+                </li>
+
+            </ol>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Attaching buffers</h2>
+            
+            <p class="p">
+                
+            </p>
+
+            <p class="p">
+                You can attach a buffer (of type <a class="xref" href="../screen_buffer_t.html" title="A handle to a Screen buffer"><span class="keyword dtype">screen_buffer_t</span></a>)
+                to associate it with a pixmap, stream, or window by calling the following 
+                functions respectively:
+            </p>
+
+            <ul class="ul">
+                <li class="li"><a class="xref" href="../screen_attach_pixmap_buffer.html" title="Associate a buffer with a pixmap"><span class="keyword apiname">screen_attach_pixmap_buffer()</span></a></li>
+
+                <li class="li"><a class="xref" href="../screen_attach_stream_buffers.html" title="Associate buffers with a stream"><span class="keyword apiname">screen_attach_stream_buffers()</span></a></li>
+
+                <li class="li"><a class="xref" href="../screen_attach_window_buffers.html" title="Associate buffers with a window"><span class="keyword apiname">screen_attach_window_buffers()</span></a></li>
+
+            </ul>
+
+            <p class="p">
+                To attach buffers:
+            </p>
+
+            <ol class="ol">
+                <li class="li">
+                    Get a <a class="xref" href="../screen_buffer_t.html" title="A handle to a Screen buffer"><span class="keyword dtype">screen_buffer_t</span></a>.
+                    <p class="p">
+                        To get access to a buffer, you can retrieve any of the following:
+                    </p>
+
+                    <ul class="ul">
+                        <li class="li">
+                            an external buffer (i.e., one that was created by calling
+                            <a class="xref" href="../screen_create_buffer.html" title="Create a buffer handle that can later be attached to a window or a pixmap"><span class="keyword apiname">screen_create_buffer()</span></a>
+                            and has memory allocated to it)
+                        </li>
+
+                        <li class="li">
+                            a buffer from a stream by calling the
+                            <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>
+                            function. For example:
+                            <pre class="pre codeblock">screen_stream_t astream = NULL;
+screen_buffer_t buffer = NULL;
+...
+screen_acquire_buffer(&amp;buffer, astream, NULL, NULL, NULL, SCREEN_ACQUIRE_DONT_BLOCK);
+...
+                            </pre>
+                        </li>
+
+                        <li class="li">
+                            a buffer from a pixmap, stream or window by calling
+                            the <span class="keyword apiname">screen_get_*_property_pv()</span> function with one of its valid properties
+                            that returns a buffer
+                            <dl class="dl">
+                                
+                                    <dt class="dt dlterm">pixmap</dt>
+
+                                    <dd class="dd">
+                                        Call <a class="xref" href="../screen_get_pixmap_property_pv.html" title="Retrieve the current value of the specified pixmap property of type void*"><span class="keyword apiname">screen_get_pixmap_property_pv()</span></a>
+                                        with one of the following properties:
+                                        <ul class="ul">
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                                        </ul>
+
+                                    </dd>
+
+                                
+                                
+                                    <dt class="dt dlterm">stream</dt>
+
+                                    <dd class="dd">
+                                        Call <a class="xref" href="../screen_get_stream_property_pv.html" title="Retrieve the current value of the specified stream property of type void*"><span class="keyword apiname">screen_get_stream_property_pv()</span></a>
+                                        with one of the following properties:
+                                        <ul class="ul">
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_FRONT_BUFFERS</span></li>
+
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                                        </ul>
+
+                                    </dd>
+
+                                
+                                
+                                    <dt class="dt dlterm">window</dt>
+
+                                    <dd class="dd">
+                                        Call <a class="xref" href="../screen_get_window_property_pv.html" title="Retrieve the current value of the specified window property of type void*"><span class="keyword apiname">screen_get_window_property_pv()</span></a>
+                                        with one of the following properties:
+                                        <ul class="ul">
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_FRONT_BUFFER</span></li>
+
+                                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                                        </ul>
+
+                                    </dd>
+
+                                
+                            </dl>
+
+                            For example:
+                            <pre class="pre codeblock">...
+screen_buffer_t *win_buf;
+win_buf = calloc((size_t)num_bufs, sizeof(screen_buffer_t));
+...
+screen_get_window_property_pv(win, SCREEN_PROPERTY_RENDER_BUFFERS, (void**)win_buf));
+...
+                            </pre>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+                <li class="li">
+                    Set the <span class="keyword const">SCREEN_PROPERTY_USAGE</span> on the <span class="keyword">Screen API</span> object
+                    (i.e., pixmap, stream, or window) that you're attaching the buffer to.
+                    <p class="p">
+                        From the pixmap, stream, or window, you should indicate the intended usage of the buffer
+                        <em class="ph i">before</em> you attach it because if the usage isn't set appropriately,
+                        <span class="keyword">Screen</span> may prevent access to the buffer. 
+                    </p>
+
+                    <pre class="pre codeblock">...
+screen_window_t a_win;
+...
+int usage = SCREEN_USAGE_NATIVE | SCREEN_USAGE_READ | SCREEN_USAGE_WRITE;
+screen_set_window_property_iv(a_win, SCREEN_PROPERTY_USAGE, &amp;usage);
+...
+                    </pre>      
+                    <div class="note"><span class="notetitle">Note:</span> 
+                        If the intended usage that you set on the <span class="keyword">Screen API</span> object that you're
+                        attaching the buffer to isn't compatible with the buffer's usage that is was originally
+                        created with, then <span class="keyword">Screen</span> may fail to attach the buffer or the
+                        buffer may not be usable for your intended purpose.
+                    </div>
+
+                </li>
+
+                <li class="li">
+                    Attach the buffer to a valid <span class="keyword">Screen API</span> object by calling the appropriate
+                    <span class="keyword">Screen API</span> function.
+                    <p class="p">
+                        For example:
+                    </p>
+
+                    <pre class="pre codeblock">...
+screen_attach_window_buffers(a_win, num_bufs, win_buf);
+...
+                    </pre>
+                    <div class="note"><span class="notetitle">Note:</span> 
+                        Unlike pixmaps and windows, you can't attach buffers to streams that already have buffers associated with
+                        them without first calling <a class="xref" href="../screen_destroy_stream_buffers.html" title="Send a request to Screen to destroy the buffers of the specified stream"><span class="keyword apiname">screen_destroy_stream_buffers()</span></a>.
+                    </div>
+
+                </li>
+
+            </ol>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Using buffers</h2>
+            
+            <p class="p">
+                
+            </p>
+
+            <p class="p">
+                To use a buffer that's associated with a <span class="keyword">Screen API</span> object, you must retrieve it from
+                the object. The following are ways that you can retrieve a buffer that's valid for use
+                (e.g., for blitting or rendering purposes):
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">pixmap</dt>
+
+                    <dd class="dd">
+                        Call <a class="xref" href="../screen_get_pixmap_property_pv.html" title="Retrieve the current value of the specified pixmap property of type void*"><span class="keyword apiname">screen_get_pixmap_property_pv()</span></a>
+                        with one of the following properties:
+                        <ul class="ul">
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                        </ul>
+
+                        For example:
+                        <pre class="pre codeblock">...
+screen_context context;
+screen_pixmap_t screen_pix = NULL;
+screen_buffer_t pix_buf;
+uint32_t *pix_ptr;
+...
+screen_get_pixmap_property_pv(pixmap, SCREEN_PROPERTY_RENDER_BUFFERS, (void**)&amp;pix_buf);
+screen_get_buffer_property_pv(pix_buf, SCREEN_PROPERTY_POINTER, (void**)&amp;pix_ptr);
+...
+screen_fill(context, pix_buf, (const int[]){SCREEN_BLIT_COLOR, 0xabcd, SCREEN_BLIT_END});
+...
+             </pre>
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">stream</dt>
+
+                    <dd class="dd">
+                        <ul class="ul">
+                            <li class="li">
+                                Call <a class="xref" href="../screen_get_stream_property_pv.html" title="Retrieve the current value of the specified stream property of type void*"><span class="keyword apiname">screen_get_stream_property_pv()</span></a>
+                                with one of the following properties:
+                                <ul class="ul">
+                                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_FRONT_BUFFERS</span></li>
+
+                                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                                </ul>
+
+                                For example:
+                                <pre class="pre codeblock">...
+int num_bufs = 0;
+screen_buffer_t *stream_buf = NULL;
+screen_get_stream_property_iv(stream, SCREEN_PROPERTY_RENDER_BUFFER_COUNT, &amp;num_bufs);
+a_stream_buf = calloc((size_t)num_bufs, sizeof(screen_buffer_t));
+...
+screen_get_stream_property_pv(stream, SCREEN_PROPERTY_RENDER_BUFFERS, (void**)stream_buf);
+...
+screen_post_stream(stream, stream_buf[0], 0, NULL, 0);
+...
+             </pre>
+                            </li>
+
+                            <li class="li">
+                                Call <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>
+                                function. For example:
+                                <pre class="pre codeblock">...
+screen_context ctx;
+screen_stream_t a_stream;
+screen_buffer_t buffer, dest_buffer;
+...
+screen_acquire_buffer(&amp;buffer, a_stream, NULL, NULL, NULL, SCREEN_ACQUIRE_DONT_BLOCK);
+...
+screen_blit(ctx, buffer, dest_buffer, (const int[]){SCREEN_BLIT_COLOR, 0xabcd, SCREEN_BLIT_END});
+...
+                            </pre>
+                            </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">window</dt>
+
+                    <dd class="dd">
+                        Call <a class="xref" href="../screen_get_window_property_pv.html" title="Retrieve the current value of the specified window property of type void*"><span class="keyword apiname">screen_get_window_property_pv()</span></a>
+                        with one of the following properties:
+                        <ul class="ul">
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFERS</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_FRONT_BUFFER</span></li>
+
+                            <li class="li"><span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span></li>
+
+                        </ul>
+
+                        For example:
+                        <pre class="pre codeblock">...
+int num_bufs = 0;
+screen_buffer_t *win_buf = NULL;
+screen_get_window_property_iv(win, SCREEN_PROPERTY_RENDER_BUFFER_COUNT, &amp;num_bufs);
+other_win_buf = calloc((size_t)num_bufs, sizeof(screen_buffer_t));
+...
+screen_get_window_property_pv(win, SCREEN_PROPERTY_RENDER_BUFFERS, (void**)win_buf);
+...
+screen_post_window(win, win_buf[0], 0, NULL, 0);
+...
+             </pre>
+                    </dd>
+
+                
+            </dl>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

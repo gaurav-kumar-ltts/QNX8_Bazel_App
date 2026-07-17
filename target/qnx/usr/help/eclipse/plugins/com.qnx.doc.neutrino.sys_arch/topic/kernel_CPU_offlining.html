@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="CPU offlining" />
+<meta name="abstract" content="The CPU offlining feature allows a privileged application to stop procnto from using a CPU for scheduling threads." />
+<meta name="description" content="The CPU offlining feature allows a privileged application to stop procnto from using a CPU for scheduling threads." />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="offlining" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>CPU offlining</title>
+</head>
+<body id="offlining">
+
+    <h1 class="title topictitle1" id="ariaid-title1">CPU offlining</h1>
+
+    
+    <div class="body conbody"><p class="shortdesc">The CPU offlining feature allows a privileged application to stop
+            <span class="keyword cmdname">procnto</span> from using a CPU for scheduling threads.</p>
+
+        <div class="note"><span class="notetitle">Note:</span> Currently, the offlining and onlining scheduling feature is experimental.</div>
+
+        <p class="p">This feature is useful for the following:</p>
+
+
+        <div class="p">
+            <ul class="ul">
+                <li class="li">Powering down a CPU (e.g., for lower workloads).</li>
+
+                <li class="li">Temporarily running software outside of the QNX OS (e.g., CPU diagnostics).</li>
+
+                <li class="li">Putting the system to sleep.</li>
+
+            </ul>
+
+        </div>
+
+        <p class="p"> The privileged application runs a high priority thread (that can't be preempted) and
+            tells <span class="keyword cmdname">procnto</span> to stop using the CPU. This allows the thread to do its
+            work outside of the QNX OS. Note that, when <span class="keyword cmdname">procnto</span> isn't using the
+            CPU, OS functionalities aren't available because any action that may cause the thread to
+            context switch can make the system unstable. </p>
+
+        <p class="p"> To take a CPU offline, you must use <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>'s <span class="keyword option">-C</span> option to
+            lower the clock IST to a maximum of 253. You need to leave a gap between the priorities
+            of the clock IST and the IPI IST, which is 255.</p>
+
+        <div class="p">The following steps describe the process of taking a CPU offline: <ol class="ol">
+                <li class="li">Assign the <span class="keyword const">SCHED_OFFLINING</span> scheduling policy to a thread via the
+                        <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html"><span class="keyword apiname">SchedSet()</span></a> call. The
+                    application must have the <span class="keyword const">PROCMGR_AID_RUNSTATE</span> ability enabled to
+                    set the policy. <div class="note"><span class="notetitle">Note:</span> An application needs a thread with the
+                            <span class="keyword const">SCHED_OFFLINING</span> policy set for every CPU being taken
+                        offline.</div>
+<p class="p">The thread then increases its priority over that of the
+                        clock IST. The thread must also set its runmask to the one representing the
+                        CPU that it will take offline.</p>
+</li>
+
+                <li class="li">Offload the software timers queued on the CPU being taken offline to another CPU
+                    via a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timerdelegate.html"><span class="keyword apiname">TimerDelegate()</span></a> call
+                    with the <span class="keyword const">_NTO_TIMER_DELEGATE</span> action set. The application must
+                    delegate its timers to another CPU that isn't offline.<div class="note"><span class="notetitle">Note:</span> Some software timers
+                        may be ticking away on a queue owned by the CPU that you want to take
+                        offline. Therefore, they must be handed off to another CPU during the CPU
+                        offlining.</div>
+</li>
+
+                <li class="li">Instruct the scheduler to stop scheduling other threads on the CPU being taken
+                    offline via a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedctl.html"><span class="keyword apiname">SchedCtl()</span></a> call with the
+                        <span class="keyword const">SCHED_PROCESSOR_OFFLINE</span> command set.</li>
+
+            </ol>
+ Once these steps are complete, the thread can run software outside of the QNX
+            OS.</div>
+
+        <div class="p">When the application is ready to give back the CPU to <span class="keyword cmdname">procnto</span>, it
+            needs to do the following: <ol class="ol">
+                <li class="li">Reclaim its timers via a <span class="keyword apiname">TimerDelegate()</span> call with the
+                        <span class="keyword const">_NTO_TIMER_RECLAIM</span> action set.</li>
+
+                <li class="li">Mark the CPU as <em class="ph i">online</em> via a <span class="keyword apiname">SchedCtl()</span> call with the
+                        <span class="keyword const">SCHED_PROCESSOR_ONLINE</span> command set.</li>
+
+            </ol>
+ Once these steps are complete, you can use the thread as usual and even use it to
+            offline another CPU.</div>
+
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel.html" title="The microkernel implements the core POSIX features used in embedded realtime systems, along with the fundamental QNX OS message-passing services.">The QNX OS Microkernel</a></div>
+</div>
+</div></body>
+</html>

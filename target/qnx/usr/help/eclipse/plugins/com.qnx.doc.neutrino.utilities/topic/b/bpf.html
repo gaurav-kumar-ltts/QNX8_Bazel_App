@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="bpf" />
+<meta name="abstract" content="Berkeley Packet Filter" />
+<meta name="description" content="Berkeley Packet Filter" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-b.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bpf" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>bpf</title>
+</head>
+<body id="bpf">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">bpf</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Berkeley Packet Filter</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Name:</h2>
+
+<span class="ph filepath">/dev/bpf</span>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">The <span class="ph filepath">bpf</span> device represents the Berkley Packet Filter mechanism ported to <span class="keyword">QNX OS</span> from FreeBSD. For more information,
+see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.io_sock/topic/overview_Filtering.html">Packet Filtering</a></q> in
+the <cite class="cite">High-Performance Networking Stack User's Guide</cite>, and the FreeBSD documentation (<a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=bpf&amp;sektion=4&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=bpf&amp;sektion=4&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>).</p>
+
+            <p class="p">For more information on <span class="keyword">QNX OS</span> packet filtering, go to
+                        <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.io_sock/topic/overview_Filtering.html">Packet Filtering</a></q> in the <cite class="cite">High-Performance Networking Stack
+                    User's Guide</cite>.</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Sending multiple packets on BPF</h2>
+    
+            <p class="p">QNX has extended <span class="ph filepath">bpf</span> to support multi-packet writes, which you
+                can configure with the <span class="keyword apiname">ioctl()</span> commands
+                <span class="keyword const">BIOCSMMWRITE</span> and <span class="keyword const">BIOCGMMWRITE</span> (go to the
+                <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.devctl/topic/bioc/BIOCSMMWRITE.html">BIOCSMMWRITE</a></q>
+                and <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.devctl/topic/bioc/BIOCGMMWRITE.html">BIOCGMMWRITE</a></q>
+                entries in the <span class="keyword">QNX OS</span> <cite class="cite">Devctl and Ioctl Commands</cite> reference).</p>
+
+            <p class="p"> When you use <span class="keyword const">BIOCSMMWRITE</span> to send multiple packets in a single write,
+                you must prepend a <span class="keyword dtype">bpf_whdr</span> structure to each packet. For
+                example:</p>
+
+            <pre class="pre codeblock">#include &lt;net/bpf.h&gt;
+
+/* used for multi-packet sends */
+struct bpf_whdr {
+    uint32_t    bh_hdrlen;
+    uint32_t    bh_datalen; /* original length of packet */
+};</pre>
+            <p class="p">Packets to be sent should be padded the same way as when they are read, with padding
+                immediately after <span class="keyword dtype">bpf_whdr</span>.</p>
+
+    <p class="p">The following example code constructs the packet as expected by <span class="ph filepath">bpf</span> with
+                multi-write enabled. It is constructed the same way as for a regular
+                    <span class="keyword cmdname">bpf</span> write, except it is an IOV array and has the required
+                prepend of a <span class="keyword dtype">bpf_whdr</span>. The <span class="keyword apiname">get_whdr()</span> function
+                constructs the header and adds it to the IOV array. This action includes setting
+                both the <var class="keyword varname">bh_hdrlen</var> argument of the <span class="keyword dtype">bpf_whdr</span> to the
+                size of the header plus added alignment padding, and the length of the actual
+                packet. The <span class="keyword apiname">main()</span> function constructs multiple packets as part
+                of an IOV array, then calls a single write with <span class="keyword apiname">writev()</span>.</p>
+
+
+    <pre class="pre codeblock">#include &lt;sys/types.h&gt;
+#include &lt;string.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+
+#include &lt;sys/ioctl.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;sys/uio.h&gt;
+
+#include &lt;arpa/inet.h&gt;
+#include &lt;net/bpf.h&gt;
+#include &lt;net/if.h&gt;
+#include &lt;net/ethernet.h&gt;
+#include &lt;netinet/in.h&gt;
+
+/* Convenience macros */
+#define FAIL_EQ(ret, eq, fmt)                       \
+    if (ret == eq) {                                \
+        printf("%s : %s\n", fmt, strerror(errno));  \
+        return -1;                                  \
+    }
+
+#define FAIL_LT(ret, eq, fmt)                       \
+    if (ret &lt; eq) {                                 \
+        printf("%s : %s\n", fmt, strerror(errno));  \
+        return -1;                                  \
+    }
+
+#define DEFAULT_BPF_PATH    "/dev/bpf"
+#define DEFAULT_BPF_IF      "vtnet0"
+#define NUM_PACKETS         5
+
+/* Holds the bpf init data */
+struct bpf_ctx {
+    int         bpf_fd;
+    char        *bpf_path;
+    char        *bpf_ifname;
+    char        inp_dmac[512];
+    uint16_t    inp_sport;
+    uint16_t    inp_dport;
+};
+
+/* Set up bpf file, the same as bpf(4) */
+static int
+bpf_init (struct bpf_ctx *bpf)
+{
+    int ret = 0;
+    int multi_write = 1;
+    struct ifreq ifr = { 0 };
+
+    bpf-&gt;bpf_path = DEFAULT_BPF_PATH;
+    bpf-&gt;bpf_ifname = DEFAULT_BPF_IF;
+
+    bpf-&gt;bpf_fd = open(bpf-&gt;bpf_path, O_RDWR);
+    FAIL_EQ(bpf-&gt;bpf_fd, -1, "Failed to open BPF file");
+
+    /* BIOCSMMWRITE must be set before BIOCSETIF */
+    ret = ioctl(bpf-&gt;bpf_fd, BIOCSMMWRITE, &amp;multi_write);
+    FAIL_EQ(ret, -1, "Failed to set BPF mmwrite");
+
+    strlcpy(ifr.ifr_name, bpf-&gt;bpf_ifname, sizeof(ifr.ifr_name));
+    ret = ioctl(bpf-&gt;bpf_fd, BIOCSETIF, &amp;ifr);
+    FAIL_EQ(ret, -1, "Failed to set BPF interface");
+
+    /* Set destination MAC */
+    bpf-&gt;inp_dmac[0] = 0x02; /* local */
+    bpf-&gt;inp_dmac[1] = 0xde;
+    bpf-&gt;inp_dmac[2] = 0xad;
+    bpf-&gt;inp_dmac[3] = 0xbe;
+    bpf-&gt;inp_dmac[4] = 0xef;
+    bpf-&gt;inp_dmac[5] = 0x00;
+
+    bpf-&gt;inp_sport = 0;
+    bpf-&gt;inp_dport = 42557;
+
+    return 0;
+}
+
+/* Create pseudo packet for demonstration */
+static int
+get_ethhdr(struct bpf_ctx *bpf, iov_t *iov)
+{
+    struct ether_header *eh;
+
+    eh = malloc(sizeof(struct ether_header));
+    FAIL_EQ(eh, NULL, "Failed to allocate ether_header memory");
+
+    /* bpf fills ether_shost if BIOCSHDRCMPLT isn't set */
+    memcpy(eh-&gt;ether_dhost, bpf-&gt;inp_dmac, sizeof(eh-&gt;ether_dhost));
+    eh-&gt;ether_type = htons(ETHERTYPE_LOOPBACK);
+
+    /* Set as part of the packet */
+    SETIOV(iov, eh, sizeof(struct ether_header));
+
+    return 0;
+}
+
+/* Populate the bpf_whdr for a packet */
+static int
+get_whdr(iov_t *iov, int data_size)
+{
+    int ret = 0;
+    int padding;
+    struct bpf_whdr *wh;
+
+    /*
+     * bpf multi-write assumes that the packets are aligned the same
+     * way they are returned on read. For example, with a UDP packet:
+     * | whdr | pad | ethhdr | iphdr | udphdr | app |
+     *
+     * The padding being: BPF_WORDALIGN(packetlen) - packetlen
+     * This helps with performance
+     */
+    padding = BPF_WORDALIGN(data_size) - data_size;
+
+    /* Size of the header + padding, in the above comment */
+    wh = malloc(sizeof(*wh) + padding);
+    FAIL_EQ(wh, NULL, "Failed to allow bpf_whdr memory");
+
+    /* Include padding in bh_hdrlen. The actual packet size is bh_ datalen */
+    wh-&gt;bh_hdrlen = sizeof(*wh) + padding;
+    wh-&gt;bh_datalen = data_size;
+
+    /* Set before the rest of the packet */
+    SETIOV(iov, wh, wh-&gt;bh_hdrlen);
+
+    return 0;
+}
+
+int
+main (void)
+{
+    int i, j;
+    int ret = 0;
+    int num_iov = NUM_PACKETS * 2;
+
+    iov_t iov[100] = {0};
+    iov_t *t_iov;
+
+    struct bpf_ctx bpf;
+
+    ret = bpf_init(&amp;bpf);
+    FAIL_EQ(ret, -1, "Failed to initialize BPF ctx");
+
+    /*
+     * Setup X packets to send in a single write. Each layer can be in 
+     * their own iov or grouped together, as long as the header is separate.
+     * For example:
+     *
+     * |   iov[0]   | iov[1] | iov[2] | iov[3] | iov[4] |
+     * | whdr | pad | ethhdr | iphdr  | udphdr |  app   |
+     *
+     *                       OR
+     *
+     * |   iov[0]   |               iov[1]              |
+     * | whdr | pad | ethhdr | iphdr  | udphdr |  app   |
+     *
+     * As long as bh_datalen is the size of the entire packet
+     */
+    for (i = 0, j = 0; j &lt; NUM_PACKETS; i += 2, j++) {
+        /* As above, first set the eth header */
+        t_iov = &amp;iov[i+1];
+        ret = get_ethhdr(&amp;bpf, t_iov);
+        FAIL_EQ(ret, -1, "Failed to get ethhdr");
+
+        /* And then set the bpf multi-write header */
+        t_iov = &amp;iov[i + 0];
+        ret = get_whdr(t_iov, iov[i+1].iov_len);
+        FAIL_EQ(ret, -1, "Failed to get whdr");
+
+        /*
+         * Where this gives us:
+         * |   iov[i]   | iov[i+1] |
+         * | whdr | pad |  ethhdr  |
+         */
+    }
+
+    /* The packets that were built are malformed as they're just an eth hdr */
+    ret = writev(bpf.bpf_fd, iov, num_iov);
+    FAIL_EQ(ret, -1, "Write failed");
+
+    printf("Packets sent: %i\n", NUM_PACKETS);
+    printf("Bytes written: %i\n", ret);
+}</pre>
+
+                <p class="p">For additional <span class="keyword apiname">ioctl()</span> command codes, go to the FreeBSD
+                    documentation (<a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=bpf&amp;sektion=4&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=bpf&amp;sektion=4&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>).</p>
+
+</div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-b.html">B</a></div>
+</div>
+</div></body>
+</html>

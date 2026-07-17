@@ -1,0 +1,807 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Encryption" />
+<meta name="abstract" content="The Power-Safe filesystem can provide data at rest encryption to all or part of its content." />
+<meta name="description" content="The Power-Safe filesystem can provide data at rest encryption to all or part of its content." />
+<meta name="DC.subject" content="Power-Safe (, fs-qnx6.so, encryption, filesystems, data at rest encryption, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="Power-Safe (, fs-qnx6.so, encryption, filesystems, data at rest encryption, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fsencrypt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_check.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_add.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_change.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_check.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_size.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_query.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_remove.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_unlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable_option.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_get_domain.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_set_domain.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_key_gen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_control.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_path.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_status.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_tag.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_set_logging.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="fsys_encryption" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Encryption</title>
+</head>
+<body id="fsys_encryption">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Encryption</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The Power-Safe filesystem can provide <dfn class="term">data at rest</dfn> encryption to all or part of its content.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">When you use an encrypted filesystem, read/write throughput rates and performance are lower
+  and CPU usage is higher than when you use a nonencrypted filesystem.
+</li>
+
+<li class="li">You can't mount a partition that contains encrypted files unless
+    <span class="ph filepath">/dev/random</span> is running. If <span class="keyword cmdname">random</span> is using an
+  entropy file that is stored on an encrypted filesystem, make sure that you start
+    <span class="keyword cmdname">random</span> with <span class="keyword option">-S</span>.</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+You might need to encrypt different parts of the filesystem with different keys, and you might not need to
+encrypt some parts, so the Power-Safe filesystem lets you create multiple <em class="ph i">encryption domains</em>, which
+you can lock or unlock as needed.
+</p>
+
+
+<p class="p">
+A domain can contain any number of files or directories, but a file or directory can belong to at most one domain.
+If you assign a domain to a directory, all files subsequently created in that directory are encrypted
+and inherit that domain.
+Assigning a domain to a directory doesn't introduce encryption to any files or directories that are already in it.
+</p>
+
+
+<p class="p">
+You can simply assign a domain to a directory or an empty file; the filesystem treats them in the same way because
+they don't have any content to encrypt.
+If you want to encrypt a file that isn't empty, you must make it <em class="ph i">migrate</em> to a domain
+because the filesystem needs to decrypt the file, assign the new domain to it, and then encrypt the file again.
+</p>
+
+
+<p class="p">
+Files that are assigned to a domain are encrypted on disk, and the files' contents are available only
+when the associated domain is unlocked.
+When a domain is unlocked, all its files and directories—regardless of their locations in
+the volume—are unlocked as well, and are therefore accessible (as per basic file permissions).
+When a domain is locked, any access to file content belonging to that domain is denied.
+This design offers <dfn class="term">data at rest</dfn> encryption, meaning that file content is always
+encrypted before being written to disk.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Locking and unlocking operations apply to an entire domain, not to specific files or directories.
+</div>
+
+
+<p class="p">
+Domain 0 (<span class="keyword const">FS_CRYPTO_UNASSIGNED_DOMAIN</span>) is always unlocked, and its contents are unencrypted;
+you can design your system to use any other domains.
+Valid domain numbers are 0–119.
+</p>
+
+
+<p class="p">
+
+
+
+To use encryption, you must set the <span class="keyword option">crypto=</span> option for
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="ph filepath">fs-qnx6.so</span></a>.
+You can then use
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fsencrypt.html"><span class="keyword cmdname">fsencrypt</span></a>
+to manage the encryption.
+The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/c/chkqnx6fs.html"><span class="keyword cmdname">chkqnx6fs</span></a>
+utility automatically identifies the encryption format and verifies the integrity of the
+encryption data. 
+It's also possible for you to use <span class="keyword cmdname">fsencrypt</span> to enable encryption after you've formatted
+the volume and added content, but you must have set the <span class="keyword option">crypto=</span> option when you started
+<span class="ph filepath">fs-qnx6.so</span>.
+</p>
+
+
+<p class="p"><strong class="ph b">Key types</strong></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e196">Key type</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e199">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e196 ">File key</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e199 ">Private and randomly generated at the time the file is created (if the file is assigned to a domain).
+    Holds some information about the file to ensure integrity between a file and its key.
+    Used to encrypt file data, and is encrypted by a domain key.
+    Keys are managed by the filesystem and are hidden from the user.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e196 ">Domain key</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e199 ">Private and randomly generated at the time the domain is created.
+     Used to encrypt all the file keys that belong to its domain, and is encrypted by a domain master key.
+     Keys are managed by the filesystem and are hidden from the user.
+</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e196 ">Master key</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e199 ">Optionally public, as it is supplied and managed by a third party (not the filesystem).
+    Used to encrypt the domain key, required on domain creation and subsequent unlock requests.
+    
+</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+
+
+<p class="p"><strong class="ph b">Encryption types</strong></p>
+
+
+<p class="p">
+
+The Power-Safe filesystem supports the following types of encryption:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e256">Domain-encryption type</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e259">Constant</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e262">Description</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e265">Key length</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e256 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e259 "><span class="keyword const">FS_CRYPTO_TYPE_NONE</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e262 ">No encryption</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e265 ">—</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e256 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e259 "><span class="keyword const">FS_CRYPTO_TYPE_XTS</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e262 ">AES-256, in XTS mode.  The two keys are randomly generated.</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e265 ">512 bits</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e256 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e259 "><span class="keyword const">FS_CRYPTO_TYPE_CBC</span>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e262 ">AES-256, in CBC mode</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e265 ">256 bits</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e256 ">3–99</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e259 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e262 ">Reserved for future use</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e265 ">—</td>
+
+</tr>
+
+
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p"><strong class="ph b">Interface usage</strong></p>
+
+
+<p class="p">
+
+To manage encryption from the command line, use
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fsencrypt.html"><span class="keyword cmdname">fsencrypt</span></a>;
+its <span class="keyword option">-c</span> option lets you specify the command to run.
+From your code, use the <span class="ph filepath">fscrypto</span> library. 
+You need to include both the <span class="ph filepath">&lt;fs_crypto_api.h&gt;</span> and
+<span class="ph filepath">&lt;sys/fs_crypto.h&gt;</span> header files.
+
+Many of the APIs return <span class="keyword const">EOK</span> on success and have a reply argument that provides more information.
+</p>
+
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:28.57142857142857%" /><col style="width:14.285714285714285%" /><col style="width:57.14285714285714%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e395">API</th>
+
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e398"><span class="keyword cmdname">fsencrypt</span> command</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e403">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_check.html"><span class="keyword apiname">fs_crypto_check()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">check</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Determine if the underlying filesystem supports encryption</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_add.html"><span class="keyword apiname">fs_crypto_domain_add()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">create</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Create the given domain/type if it doesn't already exist.
+     You need to provide a 64-bit encryption key.
+     From a program, you can create a locked or unlocked domain; <span class="keyword cmdname">fsencrypt</span> always creates
+     an unlocked domain.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_add_flags.html"><span class="keyword apiname">fs_crypto_domain_add_flags()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">create</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Create the given domain/type if it doesn't already exist, with the given locked state and flags for new file and domain keys.
+     You need to provide a 64-bit encryption key.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_hard_lock.html"><span class="keyword apiname">fs_crypto_domain_hard_lock()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">lock</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Lock a domain, preventing access to the original contents of any file belonging to it.
+    With this function, the lock behavior is controlled by the <span class="keyword const">FS_CRYPTO_HARD_LOCK_ACTION_ENFORCE</span> flag.
+    If this flag is <em class="ph i">not</em> set, access is limited to clients that appear on a whitelist. If this flag is set, no clients have access.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_change.html"><span class="keyword apiname">fs_crypto_domain_key_change()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">change-key</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Change the master domain key used to encrypt the domain key</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_check.html"><span class="keyword apiname">fs_crypto_domain_key_check()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">check-key</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Determine if a given domain key is valid</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_size.html"><span class="keyword apiname">fs_crypto_domain_key_size()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Return the size of keys needed for filesystem encryption</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_lock.html"><span class="keyword apiname">fs_crypto_domain_lock()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">lock</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Lock a domain, preventing access to the original contents of any file belonging to it.
+    You must be in the group that owns the filesystem's mountpoint to lock a domain.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_query.html"><span class="keyword apiname">fs_crypto_domain_query()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">query</span>, <span class="keyword cmdname">query-all</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Get status information for a domain</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_remove.html"><span class="keyword apiname">fs_crypto_domain_remove()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">destroy</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Destroy a domain.
+    You must be in the group that owns the filesystem's mountpoint.
+    It isn't possible to retrieve any files in the domain after it's been destroyed.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_unlock.html"><span class="keyword apiname">fs_crypto_domain_unlock()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">unlock</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Unlock a domain, given the appropriate key data</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_configure.html"><span class="keyword apiname">fs_crypto_domain_whitelist_configure()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Perform whitelist configuration for a domain whitelist</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_ctrl.html"><span class="keyword apiname">fs_crypto_domain_whitelist_ctrl()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Perform a control action for a domain whitelist</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_ctrl_access_grant.html"><span class="keyword apiname">fs_crypto_domain_whitelist_ctrl_access_grant()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Grant a client access to a domain</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_ctrl_access_revoke.html"><span class="keyword apiname">fs_crypto_domain_whitelist_ctrl_access_revoke()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Revoke a client's access to a domain</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_get_flags.html"><span class="keyword apiname">fs_crypto_domain_whitelist_get_flags()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Get the flags for a domain whitelist</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_whitelist_set_flags.html"><span class="keyword apiname">fs_crypto_domain_whitelist_set_flags()</span></a>
+    
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Set the flags for a domain whitelist.
+    Whitelists are effective only when you're using a hard lock and you've not set the <span class="keyword const">FS_CRYPTO_HARD_LOCK_ACTION_ENFORCE</span>
+    flag; for more details, see <span class="keyword apiname">fs_crypto_domain_hard_lock()</span> above.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable.html"><span class="keyword apiname">fs_crypto_enable()</span></a>,
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable_option.html"><span class="keyword apiname">fs_crypto_enable_option()</span></a>
+    
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">enable</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Enable encryption support on a volume that wasn't set up for it at formatting time</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_get_domain.html"><span class="keyword apiname">fs_crypto_file_get_domain()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">get</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Return the domain of a file or directory, if assigned</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_set_domain.html"><span class="keyword apiname">fs_crypto_file_set_domain()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword cmdname">set</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Assign a given domain to the path (a regular file or a directory).
+    Regular files must have a length of zero.
+    The domain replaces any domain previously assigned to the path.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_key_gen.html"><span class="keyword apiname">fs_crypto_key_gen()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword option">-K</span> or <span class="keyword option">-k</span> option</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Generate an encryption key from a password</td>
+
+</tr>
+
+
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e395 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_set_logging.html"><span class="keyword apiname">fs_crypto_set_logging()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e398 "><span class="keyword option">-l</span> and <span class="keyword option">-v</span> options</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e403 ">Set the logging destination and verbosity</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+The library also includes some functions that you can use to move existing files and directories into
+an encryption domain.
+To do this, you unlock the source and destination domains, tag the files and directories that you want to move,
+and then start the migration, which the
+filesystem does in the background.
+These functions include:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:25%" /><col style="width:50%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e924">API</th>
+
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e927"><span class="keyword cmdname">fsencrypt</span> commands</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d8400e932">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e924 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_control.html"><span class="keyword apiname">fs_crypto_migrate_control()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e927 "><span class="keyword cmdname">migrate-start</span>, <span class="keyword cmdname">migrate-stop</span>, <span class="keyword cmdname">migrate-delay</span>,
+    <span class="keyword cmdname">migrate-units</span>
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e932 ">Control encryption migration within the filesystem</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e924 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_path.html"><span class="keyword apiname">fs_crypto_migrate_path()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e927 "><span class="keyword cmdname">migrate-path</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e932 ">Mark an entire directory for migration into an encryption domain</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e924 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_status.html"><span class="keyword apiname">fs_crypto_migrate_status()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e927 "><span class="keyword cmdname">migrate-status</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e932 ">Get the status of migration in the filesystem</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e924 "><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_tag.html"><span class="keyword apiname">fs_crypto_migrate_tag()</span></a>
+    
+  </td>
+
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e927 "><span class="keyword cmdname">migrate-tag</span>, <span class="keyword cmdname">tag</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d8400e932 ">Mark a file for migration into an encryption domain</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+
+
+<p class="p"><strong class="ph b">Examples</strong></p>
+
+
+<p class="p">
+Here are some examples of the way you can use <span class="keyword cmdname">fsencrypt</span> to manage filesystem encryption:
+</p>
+
+
+<ul class="ul">
+<li class="li"><div class="p">Determine if encryption is supported or enabled:
+
+<pre class="pre codeblock">$ fsencrypt -vc check -p /
+ENCRYPTION_CHECK(Path:'/') FAILED: (18) - 'No support'
+</pre></div>
+
+</li>
+
+
+<li class="li"><div class="p">Enable encryption on an existing filesystem:
+
+<pre class="pre codeblock">$ fsencrypt -vc enable -p / 
+ENCRYPTION_CHECK(Path:'/') SUCCESS
+$ fsencrypt -vc check -p /
+ENCRYPTION_CHECK(Path:'/') NOTICE: Encryption is SUPPORTED)
+</pre></div>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  This change is irreversible and forces two consecutive disk transactions to rewrite some data
+  in the superblocks.
+  </div>
+
+</li>
+
+
+<li class="li"><div class="p">Determine if a file is encrypted.
+  Files with the domain number of 0 aren't encrypted.
+  A nonzero value means the file is assigned to a domain.
+  Access to the file's original contents is determined by the status of the domain.
+  The example below shows that the named file is assigned to domain 10:
+
+<pre class="pre codeblock">$ fsencrypt -vcget -p /accounts/1000/secure/testfile
+GET_DOMAIN(Path:'/accounts/1000/secure/testfile') = 10 SUCCESS
+</pre></div>
+
+</li>
+
+
+<li class="li"><div class="p">Determine if a domain is locked.
+  If a domain is locked, reading the files within that domain yields encrypted data;
+  unlocked domains yield the original file contents.
+  <q class="q">Unused</q> domains are ones that haven't yet been created.
+  In the example below, domain 11 hasn't yet been created, and domain 10 is currently unlocked:
+
+<pre class="pre codeblock">$ fsencrypt -vc query -p/ -d11
+QUERY_DOMAIN(Path:'/', Domain:11) NOTICE: Domain is UNUSED
+$ fsencrypt -vc query -p/ -d10
+QUERY_DOMAIN(Path:'/', Domain:10) NOTICE: Domain is UNLOCKED
+</pre></div>
+
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys_QNX6_filesystem.html" title="The Power-Safe filesystem is a reliable disk filesystem that can withstand power failures without corruption.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fsencrypt.html">fsencrypt</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html">mkqnx6fs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_check.html">fs_crypto_check()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_add.html">fs_crypto_domain_add()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_change.html">fs_crypto_domain_key_change()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_check.html">fs_crypto_domain_key_check()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_key_size.html">fs_crypto_domain_key_size()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_lock.html">fs_crypto_domain_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_query.html">fs_crypto_domain_query()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_remove.html">fs_crypto_domain_remove()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_domain_unlock.html">fs_crypto_domain_unlock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable_option.html">fs_crypto_enable_option()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_enable.html">fs_crypto_enable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_get_domain.html">fs_crypto_file_get_domain()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_file_set_domain.html">fs_crypto_file_set_domain()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_key_gen.html">fs_crypto_key_gen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_control.html">fs_crypto_migrate_control()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_path.html">fs_crypto_migrate_path()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_status.html">fs_crypto_migrate_status()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_migrate_tag.html">fs_crypto_migrate_tag()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fs_crypto_set_logging.html">fs_crypto_set_logging()</a></li></ul></div>
+</div></body>
+</html>

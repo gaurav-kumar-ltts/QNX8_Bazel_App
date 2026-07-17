@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Optimize the boot script" />
+<meta name="abstract" content="With the QNX OS and its microkernel architecture, you can modify the script section in the buildfile to start services or applications earlier to take advantage of any idle time on the CPU." />
+<meta name="description" content="With the QNX OS and its microkernel architecture, you can modify the script section in the buildfile to start services or applications earlier to take advantage of any idle time on the CPU." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_optimizing-startup_configure_buildscript" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Optimize the boot script</title>
+</head>
+<body id="cscreen_optimizing-startup_configure_buildscript">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Optimize the boot script</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        With the <span class="keyword">QNX OS</span> and its microkernel architecture, you can modify the <tt class="ph tt">script</tt> section
+        in the buildfile to start services or applications earlier to take advantage of any idle time on the CPU.
+    </p>
+
+        <p class="p">
+            This flexibility lets you start certain components in your system earlier.
+            The <tt class="ph tt">script</tt> section is used to generate the <em class="ph i">boot script</em> for a system.
+        </p>
+
+        <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Optimize the script section in the buildfile.</span>
+            
+            <br /><img class="image" src="../images/bootup_timeline_screen_areathree.svg" width="624" /><br />
+        </div>
+
+        <div class="p">
+            You can start applications before starting some device drivers—if it's sensible for your system and
+            the hardware platform permits you to start device drivers as required. For example, if your system requires
+            network connectivity, you would need to start a network driver, but because the splash screen application
+            doesn't require network connectivity, you could, in fact launch your splash screen application before you
+            start the network driver. This way, the system can show the content on the display more quickly because
+            it won't need to wait for the network driver to start.
+            <div class="cautiontitle">CAUTION:</div><div class="note caution">
+                This technique requires that you have a good understanding of the configuration of your buildfile. If
+                any file is missing in the configuration, your system may fail to boot.
+            </div>
+
+            <div class="note"><span class="notetitle">Note:</span> 
+                Some hardware platforms require that all devices drivers be started at one time. For those platforms,
+                you might not be able to use this technique to start applications before some of the device drivers.
+            </div>
+
+        </div>
+
+        <div class="p"> Typically, the default boot script that comes with your BSP
+            (see the QNX Software Center for the BSPs)
+            has <span class="keyword">Screen</span> configured to start as one of the last services. We recommend that
+            you start the following services in this order as soon as you can:
+            <ol class="ol" id="cscreen_optimizing-startup_configure_buildscript__ol_um5_msb_xt">
+                <li class="li">
+                    The <span class="keyword">Screen</span> service (<span class="keyword cmdname">screen</span>)
+                    <div class="note"><span class="notetitle">Note:</span> 
+                        Don't use the an "&amp;" (ampersand) to start <span class="keyword cmdname">screen</span> in the background because the
+                        <span class="keyword">Screen</span> service automatically puts itself into background when it
+                        starts. If you specify the "&amp;", a <span class="keyword cmdname">waitfor</span> may be executed, which may increase
+                        the time it takes to show content on the display. For more information, see
+                        <a class="xref" href="fb_consider_waitfor_placement.html" title="The waitfor statements in the boot script aren't group for optimal performance.">Consider the placement of waitfor statements</a>.
+                    </div>
+
+                </li>
+
+                <li class="li">Your <span class="keyword">Screen</span> application(s) (e.g. <em class="ph i">the splash screen application</em>)</li>
+
+            </ol>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Other boot script considerations</h2>
+            
+            <p class="p">
+                In some situations, you might want to start some services, such as <span class="keyword cmdname">slogger2</span> early so that
+                you can debug your system. This practice is useful in the early stages of the development process. Later, when your system is ready for production you might disable <span class="keyword cmdname">slogger2</span>. Nonetheless, in some cases, you might
+                find it useful to keep services such as <span class="keyword cmdname">slogger2</span> enabled, because they can help customer
+                support troubleshoot issues in production systems.
+            </p>
+
+            
+            <p class="p">
+                For applications that use hardware rendering (OpenGL ES, OpenVG, blitting, etc.), you can choose
+                to start the hardware-rendering application at the same time as the splash screen application. Running the
+                applications in parallel won’t increase the time it takes to show content on the display, despite the fact
+                that the hardware rendering application may cause device drivers to start, unless there’s CPU or disk
+                contention.
+            </p>
+
+            <div class="p">
+                However, if during the startup sequence or during the transition from one application to another a
+                framebuffer gets created, there’s potential for the following to occur in the splash screen application:
+                <ul class="ul">
+                    <li class="li">
+                        if the content has been shown, animation (such as a video feed) the display may experience momentary
+                        pausing or stutter
+                    </li>
+
+                    <li class="li">if the content hasn't been shown, the time required to show the content may increase</li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

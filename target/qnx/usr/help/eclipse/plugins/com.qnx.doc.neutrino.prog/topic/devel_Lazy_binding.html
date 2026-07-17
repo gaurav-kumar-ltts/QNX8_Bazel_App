@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Lazy binding" />
+<meta name="abstract" content="Lazy binding (also known as lazy linking or on-demand symbol resolution) is the process by which symbol resolution isn't done until a symbol is actually used. Functions can be bound on-demand, but data references can't." />
+<meta name="description" content="Lazy binding (also known as lazy linking or on-demand symbol resolution) is the process by which symbol resolution isn't done until a symbol is actually used. Functions can be bound on-demand, but data references can't." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Optimizing_linker.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Lazy_binding" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Lazy binding</title>
+</head>
+<body id="Lazy_binding">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Lazy binding</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Lazy binding (also known as lazy linking or on-demand symbol resolution)
+is the process by which symbol resolution isn't done until a symbol is
+actually used.
+Functions can be bound on-demand, but data references can't.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+
+
+All dynamically resolved functions are called via a Procedure Linkage Table (PLT) stub.
+A PLT stub uses relative addressing, using the Global Offset Table (GOT) to retrieve the offset.
+The PLT knows where the GOT is, and uses the offset to this table
+(determined at program linking time) to read the destination function's
+address and make a jump to it.
+</p>
+
+
+<p class="p">
+To be able to do that, the GOT must be populated with the appropriate addresses.
+Lazy binding is implemented by providing some stub code that gets
+called the first time a function call to a lazy-resolved symbol is made.
+This stub is responsible for setting up the necessary information for a
+binding function that the runtime linker provides.
+The stub code then jumps to it.
+</p>
+
+
+<p class="p">
+The binding function sets up the arguments for the resolving function,
+calls it, and then jumps to the address returned from resolving function.
+The next time that user code calls this function, the PLT stub jumps
+directly to the resolved address, since the resolved value is now in the GOT.
+(The GOT is initially populated with the address of this special stub;
+the runtime linker does only a simple relocation for the load base.)
+</p>
+
+
+<div class="p">
+
+The semantics of lazy-bound (on-demand) and now-bound (at load time) programs are the same:
+
+<ul class="ul">
+<li class="li">In the bind-now case, the application fails to load if a symbol couldn't be resolved.</li>
+
+
+<li class="li">In the lazy-bound case, it doesn't
+  fail right away (since it didn't check to see if it could resolve all
+  the symbols) but still fails on the first call to an unresolved symbol.
+  This doesn't change even if the application later calls
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a>
+  to load an object that defines that symbol, because
+  the application can't change the resolution scope.
+  The only exceptions to this rule are objects loaded using <span class="keyword apiname">dlopen()</span>
+  with the
+  <a class="xref" href="devel_RTLD_LAZY.html" title="RTLD_LAZY is a flag that you can pass to dlopen() when you load a shared object."><span class="keyword const">RTLD_LAZY</span></a>
+  flag (see below).
+</li>
+
+
+</ul>
+
+</div>
+
+
+
+
+<div class="p">
+Lazy binding is controlled by the <span class="keyword option">-z</span> option to the linker,
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html"><span class="keyword cmdname">ld</span></a>.
+This option takes keywords as an argument; the keywords include (among others):
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph codeph">lazy</span></dt>
+
+<dd class="dd">When generating an executable or shared library, mark it to tell
+  the runtime linker to defer function-call resolution to the point
+  when the function is called (lazy binding), rather than at load
+  time.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph codeph">now</span></dt>
+
+<dd class="dd">When generating an executable or shared library, mark it to tell
+  the runtime linker to resolve all symbols when the program is started,
+  or when the shared library is linked to using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a>,
+  instead of deferring function-call resolution to the point when the
+  function is first called.
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+In this release, <q class="q">now</q> binding is  because it's more secure than lazy binding.
+If you're using
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+(as we recommend), use the <span class="keyword option">-W</span> option to pass the <span class="keyword option">-z</span>
+option to <span class="keyword cmdname">ld</span>.
+For example, specify <span class="keyword option">-Wl,-zlazy</span> or <span class="keyword option">-Wl,-znow</span>.
+</p>
+
+
+
+
+<div class="p">
+To see if a binary was built with <span class="keyword option">-znow</span>, use the appropriate variant of
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/r/readelf.html"><span class="keyword cmdname">readelf</span></a>.
+For example:
+<pre class="pre codeblock">ntox86_64-readelf -d <var class="keyword varname">my_binary</var></pre>
+</div>
+
+
+<p class="p">
+The output includes the <span class="ph codeph">BIND_NOW</span> dynamic tag if
+<span class="keyword option">-znow</span> was used when linking.
+</p>
+
+
+<p class="p">
+
+
+You can use the <span class="keyword envar">DL_DEBUG</span> environment variable to get the
+runtime linker to display some debugging information.
+For more information, see
+<q class="q"><a class="xref" href="devel_Linker_diagnostics.html" title="When you're developing a complex application, it may become difficult to understand how the runtime linker lays out the internal link maps and scopes of resolution. To help determine what exactly the runtime linker is doing, you can use the DL_DEBUG environment variable to make the linker display diagnostic messages.">Diagnostics and debugging</a></q>
+and
+<q class="q"><a class="xref" href="devel_Linker_envars.html">Environment variables</a>,</q>
+later in this chapter.
+</p>
+
+
+<p class="p">
+Applications with many symbols—typically C++ applications—benefit the most from lazy binding.
+For many C applications, the difference is negligible.
+</p>
+
+
+<div class="p">
+Lazy binding does introduce some overhead; it takes longer
+to resolve <var class="keyword varname">N</var> symbols using lazy binding than with
+immediate resolution.
+There are two aspects that potentially save time or at least 
+improve the user's perception of system performance:
+
+<ul class="ul">
+<li class="li">When you start an application, the runtime linker doesn't resolve
+  all symbols, so you may expect to see the initial screen sooner,
+  providing your initialization prior to displaying the screen doesn't end 
+  up calling most of the symbols anyway.
+</li>
+
+
+<li class="li">When the application is running, many symbols won't be used and 
+  thus they aren't looked up.
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Both of the above are typically true for C++ applications.
+</p>
+
+
+<p class="p">
+Lazy binding could affect realtime performance because there's a delay the
+first time you access each unresolved symbol, but this delay is likely
+insignificant, especially on fast machines.
+If this delay is a problem, use <span class="keyword option">-znow</span>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+It isn't sufficient to use <span class="keyword option">-znow</span> on the shared object that has
+a function definition for handling something critical;
+the whole process must be resolved <q class="q">now</q>.
+For example, you should probably link driver executables with <span class="keyword option">-znow</span>
+or run drivers with <span class="keyword envar">LD_BIND_NOW</span>.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel_Optimizing_linker.html">Optimizing the runtime linker</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html">gdb</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html">ld</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html">pdebug</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li></ul></div>
+</div></body>
+</html>

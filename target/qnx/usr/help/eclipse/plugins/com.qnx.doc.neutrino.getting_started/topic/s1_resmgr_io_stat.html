@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="stat I/O function handler" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_alphalist.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="io_stat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>stat I/O function handler</title>
+</head>
+<body id="io_stat">
+
+   
+<h1 class="title topictitle1" id="ariaid-title1">stat I/O function handler</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="section"><h2 class="title sectiontitle">Prototype:</h2><pre class="pre codeblock">int (*<var class="keyword varname">stat</var>) ( resmgr_context_t *<var class="keyword varname">ctp</var>,
+              io_stat_t *<var class="keyword varname">msg</var>,
+              RESMGR_OCB_T *<var class="keyword varname">ocb</var> ) 
+</pre></div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+
+ I/O </div>
+
+
+<div class="section"><h2 class="title sectiontitle">Default handler:</h2>
+
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat_default.html"><span class="keyword apiname">iofunc_stat_default()</span></a>
+
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Helper functions:</h2>
+
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat.html"><span class="keyword apiname">iofunc_stat()</span>, <span class="keyword apiname">iofunc_stat_format()</span></a>
+
+
+
+
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Client functions:</h2>
+
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lstat.html"><span class="keyword apiname">lstat()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fstat.html"><span class="keyword apiname">fstat()</span></a>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Messages:</h2>
+  <span class="keyword const">_IO_STAT</span>
+
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Data structure:</h2>
+
+
+
+
+
+
+
+
+<pre class="pre codeblock">struct _io_stat {
+    uint16_t                    type;
+    uint16_t                    combine_len;
+    union {
+       uint32_t                 zero;
+       uint32_t                 format;
+    };
+};
+
+typedef union {
+    struct _io_stat             i;
+    struct __stat_t32_2001      o_t32_2001;
+    struct __stat_t32_2008      o_t32_2008;
+    struct __stat_t64_2008      o_t64_2008;
+    struct stat                 o;
+} io_stat_t;
+</pre>
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+Handles the message that requests information about the resource associated
+with the passed OCB.
+Note that the attributes structure contains all the information required
+to fulfill the <span class="keyword apiname">stat()</span> request; the helper function <span class="keyword apiname">iofunc_stat_format()</span> fills a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a>
+structure based on the attributes structure.
+Also, the helper function modifies the stored <var class="keyword varname">dev</var>/<var class="keyword varname">rdev</var>
+members to be unique from a single node's point of view (useful for performing
+<span class="keyword apiname">stat()</span> calls to files over a network).
+There's almost no reason to write your own handler for this function.
+
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+The format of the information via the helper macro <span class="keyword apiname">_RESMGR_STATUS()</span>, and the
+<span class="keyword dtype">struct stat</span> via message reply.
+
+
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Referenced by:</h2>
+ <a class="xref" href="s1_resmgr_resmgr_io.html" title="The I/O table is very similar in spirit to the connect functions table shown above.">resmgr_io_funcs_t I/O table</a>
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Permission checking:</h2>
+<p class="p">The default implementation <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat_default.html"><span class="keyword apiname">iofunc_stat_default()</span></a> is
+expected to work on files opened without either read or write permission. The helper
+function <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat.html"><span class="keyword apiname">iofunc_stat()</span></a> does not do
+any permission checking. No additional permission checking is required.</p>
+ <p class="p">If you
+are implementing a resource manager that deals with user input, be careful not to
+leak timing data through the last accessed or last modified timestamps. Similarly,
+do not use the size parameter to keep track of bytes sent or received over serial
+ports or other potentially sensitive information that should not be
+observable.</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_alphalist.html" title="This section gives an alphabetical listing of the connect and I/O function entry points that you can fill in (the two tables passed to resmgr_attach()). Remember that if you simply call iofunc_func_init(), all these entries will be filled in with the appropriate defaults; you'd want to modify a particular entry only if you wish to handle that particular message. In the “Examples” section, below, you'll see some examples of the common functions.">Alphabetical listing of connect and I/O functions</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

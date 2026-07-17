@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="At runtime" />
+<meta name="abstract" content="Issues that arise when clients are running are the most difficult to pinpoint." />
+<meta name="description" content="Issues that arise when clients are running are the most difficult to pinpoint." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_screen-debugging.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_debugging-app" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>At runtime</title>
+</head>
+<body id="cscreen_debugging-app">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        At runtime
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Issues that arise when clients are running are the most difficult to pinpoint.
+    </p>
+
+        <p class="p">
+            Some of these issues can be:
+        </p>
+
+        <ul class="ul">
+            <li class="li">the application sending the wrong request</li>
+
+            <li class="li">the application sending no request</li>
+
+            <li class="li">the drivers</li>
+
+        	<li class="li">OpenGL function calls</li>
+
+        </ul>
+
+        <p class="p">
+            There are tools that allow you to investigate all of the above without having to instrument the client.
+            You can also check
+            <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/slog2info.html"><span class="keyword cmdname">slog2info</span></a>
+            for possible errors.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Requests</h2>
+            
+            <p class="p">
+                You can figure out the requests that are sent from the clients to the server by dumping the contents of the
+                <span class="ph filepath">/dev/screen/requests</span> file. This file may not be there if it's been disabled in
+                <span class="ph filepath">graphics.conf</span>, or if it has been explicitly disabled in the configuration file.
+                There might be a lot of requests in that file. The requests logsize is usually set to 64 KB. You can
+                change this number to be greater if you can't get to the file before requests of interest are flushed out.
+                See <a class="xref" href="cscreen_config_intro.html#screen_winmgr_globals" title="The globals subsection specifies the configuration to apply globally to Screen.">Configure <tt class="ph tt">globals</tt> subsection</a> of
+                <a class="xref" href="cscreen_technote_intro.html">Configuring <span class="keyword">Screen</span></a> for
+                more details.
+            </p>
+
+            <p class="p">
+                The <span class="ph filepath">/dev/screen/requests</span> file is in binary format. It actually points to a ring buffer
+                where messages are saved as they are received. To make sense of this binary format, you can use the
+                <span class="keyword cmdname">screeninfo</span> tool. See <a class="xref" href="rscreen_screeninfo.html" title="Decode contents of binary files in /dev/screen for debugging"><span class="keyword cmdname">screeninfo</span></a>
+                under <a class="xref" href="cscreen_utilities.html" title="Screen includes some utilities and binaries to help with calibration, debugging, and demonstrating features."><span class="keyword">Screen</span> Utilities</a> for more
+                details.
+            </p>
+
+            <p class="p">
+                Here's the command you'd use:
+            </p>
+
+            <pre class="pre codeblock"># screeninfo /dev/screen/requests
+            </pre>
+            <p class="p">
+                and here's what you could see:
+            </p>
+
+            <pre class="pre codeblock">context=15;subtype=WIN_GET_EVENT;timeout=-1 [EOK]
+context=14;subtype=WIN_GET_EVENT;timeout=-1 [EOK]
+context=5;subtype=WIN_GET_EVENT;timeout=-1 [EOK]
+context=13;subtype=WIN_TRANSACT;parts={
+  subtype=WIN_SET_PROPERTY;win-14;SCREEN_PROPERTY_VISIBLE=1 [EOK]
+  subtype=WIN_SET_PROPERTY;win-14;SCREEN_PROPERTY_ZORDER=1000 [EOK]
+  subtype=WIN_SET_PROPERTY;win-17;SCREEN_PROPERTY_VISIBLE=0 [EOK]
+  subtype=WIN_SET_PROPERTY;win-17;SCREEN_PROPERTY_ZORDER=0 [EOK]
+  subtype=WIN_SET_PROPERTY;win-20;SCREEN_PROPERTY_VISIBLE=0 [EOK]
+  subtype=WIN_SET_PROPERTY;win-20;SCREEN_PROPERTY_ZORDER=0 [EOK]
+  subtype=WIN_FLUSH;blits=0;wait_idle=0 [EOK]
+} [EOK]
+context=13;subtype=WIN_GET_EVENT;timeout=-1 [EOK]
+context=13;subtype=WIN_TRANSACT;parts={
+  subtype=WIN_GET_PROPERTY;dpy-1;pname=SCREEN_PROPERTY_FOCUS [EOK]
+} [EOK]
+context=6;subtype=WIN_GET_EVENT;timeout=-1 [EOK]
+context=10;subtype=WIN_TRANSACT;parts={
+  subtype=WIN_GET_PROPERTY;ssn-51;pname=SCREEN_PROPERTY_MODE [EOK]
+} [EOK]
+            </pre>
+            <p class="p">
+                All the requests that come from all the different contexts currently connected to <span class="keyword">Screen</span>
+                are shown in <span class="ph filepath">/dev/screen/requests</span>. The context that makes a request is identified
+                before each request (e.g., <span class="ph codeph">context=15;subtype=WIN_GET_EVENT;</span>). You'll see that some
+                requests go out on their own while others are items in an atomic transaction. This is because
+                some <span class="keyword">Screen API</span> functions are immediate, delayed, or flushing. See
+                "<a class="xref" href="cscreen_execution.html" title="Function execution timeliness essentially refers to whether or not the operations performed by Screen are immediate or delayed.">Function execution types</a>".
+                You'll also see that for each request, you can get an error status (e.g., <span class="ph codeph">[EOK]</span>). If a
+                client process is complaining that it's getting errors from its <span class="keyword">Screen API</span> calls, you
+                can certainly refer to this error status to figure out the offending function call.
+            </p>
+
+            <p class="p">
+                If you spot an error in one of the requests, you'll know which request caused the error. However, the
+                contents of <span class="ph filepath">/dev/screen/requests</span> will not necessarily tell you <em class="ph i">why</em> there was
+                an error. In many cases you can figure it out just by looking at the request. In other cases, you'll have
+                to dig some more.
+            </p>
+
+            <p class="p">
+                If you're looking for a request that's not there, most likely the application hasn't made
+                the call, or it's deferred and waiting to be flushed. You'd be surprised how often this is the case.
+                When debugging an error in your application, it's a good idea to call
+                <a class="xref" href="../screen_flush_context.html" title="Flush a context, given a context and a set of flags"><span class="keyword apiname">screen_flush_context()</span></a> after any API
+                function which is of the type: <a class="xref" href="rscreen_delayed_execution.html" title="Delayed execution functions queue the command so that it can be batch-processed later.">delayed execution</a>.
+                Calling <a class="xref" href="../screen_flush_context.html" title="Flush a context, given a context and a set of flags"><span class="keyword apiname">screen_flush_context()</span></a>
+                helps you to determine the exact function call that caused the error.
+            </p>
+
+            
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Context</h2>
+            
+            <p class="p">
+                Client errors are not logged in the system log; they're returned to the clients. You can check the last
+                error that was reported to a context by looking at the corresponding context file under
+                <span class="ph filepath">/dev/screen</span>. This is also a binary file, so you'll need to use the
+                <span class="keyword cmdname">screeninfo</span> utility to make sense of it:
+            </p>
+
+            <pre class="pre codeblock"># screeninfo /dev/screen/<var class="keyword varname">pid</var>/ctx-<var class="keyword varname">context-id</var>
+            </pre>
+            <p class="p">
+                where <var class="keyword varname">pid</var> is the application's process ID and <var class="keyword varname">context-id</var> is
+                the ID of the context where the error occurred.
+            </p>
+
+            <p class="p">
+                Here's what you could see:
+            </p>
+
+            <pre class="pre codeblock">ctx-7/6799484(winmgr)
+=================================================
+id = screen-ctx-7-00000025-b18c4795d6b74be7bd5cec2fa6b999e6
+id string = 
+permissions = rwxrwxrwx--x--x--x--x---
+display = dpy-1
+status = CREATED
+process group id = 6799484
+user id = 0
+group id = 0
+inject allowed = 1
+flags = SCREEN_WINDOW_MANAGER_CONTEXT SCREEN_INPUT_PROVIDER_CONTEXT SCREEN_DISPLAY_MANAGER_CONTEXT
+queue size = 100
+last activity = 1429793855189
+touch focus =
+error log =
+In transaction item 1 out of 1:
+  screen_get_window_property(win-16, pname=44) [48]
+    The request is currently not supported, or not supported for that 
+    object type, or for that object in its current state.
+            </pre>
+            <p class="p">
+                From here, we can see that the request <span class="ph codeph">screen_get_window_property_iv(win-16, SCREEN_PROPERTY_STRIDE, ...)</span>
+                caused a ENOTSUP error. This error happened because the application was trying get a property that didn't belong
+                to a window; windows don't have strides, buffers do.
+            </p>
+
+            <p class="p"> From a context file, you can also see the list of events that have already been sent
+                to the context. For example: </p>
+
+            <pre class="pre codeblock"># screeninfo /dev/screen/1495071/ctx-2
+ctx-2/1495071(sw-vsync)
+=================================================
+id = screen-ctx-2-00000010-e43907dd7f89e872b5c43c8849526d70
+id string =
+permissions = rwx--x--x--x--x--x--x---
+acl = (empty)
+display = dpy-2
+status = CREATED
+process group id = 1495071
+user id = 0
+group id = 0
+inject allowed = 1
+flags = SCREEN_APPLICATION_CONTEXT
+queue size = 20
+last activity = 1450383443524
+touch focus =
+<strong class="ph b">SCREEN_EVENT_PROPERTY;timestamp=1450383175349;win-0;pname=SCREEN_PROPERTY_FOCUS
+SCREEN_EVENT_PROPERTY;timestamp=1450383175349;win-0;pname=SCREEN_PROPERTY_STATUS
+SCREEN_EVENT_DEVICE;timestamp=1450383585914;dev-0;attached
+SCREEN_EVENT_DEVICE;timestamp=1450383637260;dev-0;detached
+SCREEN_EVENT_DEVICE;timestamp=1450383638457;dev-0;attached
+SCREEN_EVENT_DEVICE;timestamp=1450383638700;dev-0;detached</strong>
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Windows</h2>
+            
+            <p class="p">
+                If it looks like it's the contents of a window that are wrong, there are ways to inspect the content of
+                each buffer of every window. This service is provided as a BMP file under the folder that exists for
+                each pixmap or stream that was created by each context.
+            </p>
+
+            <p class="p">
+                Find the window that contains the error, and then find the stream that the window is using. Once you
+                find the stream, have a look at its front buffer. First you have to figure
+                out which is the front buffer for that window. To do this, you need to see the contents of the
+                text file associated with the window.
+            </p>
+
+            <p class="p">
+                The <span class="ph filepath">win-<var class="keyword varname">window_id</var></span> file in
+                <span class="ph filepath">/dev/screen/<var class="keyword varname">pid</var>/win-<var class="keyword varname">window_id</var></span>
+                shows the values of the window parameters that <span class="keyword">Screen</span>'s currently using.
+                When you have an application running, <span class="keyword">Screen</span> creates a directory for each
+                application window, and each of these directories contains files associated with the window.
+            </p>
+
+            <p class="p">
+                For example, for process <tt class="ph tt">1495071</tt> with only one application window, you can use this command from your
+                shell:
+            </p>
+
+            <pre class="pre codeblock"># cat /dev/screen/1495071/win-0
+            </pre>
+            <p class="p">
+                Here's part of the file you may see:
+            </p>
+
+            <pre class="pre codeblock">win-0/ctx-2/1495071(sw-vsync)
+=================================================
+id = screen-win-0-00000011-dd6ba1aeacf03bc1755f9950f5aaad1c
+id string = sw-vsync
+permissions = rwx--x--x--x--x--x--x---
+acl = (empty)
+display = dpy-2
+status = FULLY VISIBLE
+type = SCREEN_APPLICATION_WINDOW
+autonomous = 0
+references = 1
+window manager string =
+pipeline id = 1
+parent = (none)
+children = (none)
+window above = (none)
+window below = (none)
+alternate window = (none)
+root window = (none)
+shadow = (none)
+reclip = 0
+updates = 0
+locked = 0
+valid = 0x00000018
+class =
+flags = WIN_FLAG_VISIBLE WIN_FLAG_FLOATING
+buffer size = 1280x720
+format = SCREEN_FORMAT_RGBX8888
+color space = SCREEN_COLOR_SPACE_UNCORRECTED
+usage = SCREEN_USAGE_NATIVE
+order = 0
+swap interval = 1
+default = ssn-0
+sessions = *ssn-0
+<strong class="ph b">streams = str-0</strong>
+holes = (none)
+...
+            </pre>
+           <p class="p">
+               From the above window example, you can see that the window has a stream, <span class="ph filepath">str-0</span>. You
+               can look under the <span class="ph filepath">str-0</span> directory to see associated information on the stream.
+               For example:
+           </p>
+
+           <pre class="pre codeblock"># ls /dev/screen/1495071/str-0
+str-0            <strong class="ph b">str-0-1.bmp</strong>
+# cat /dev/screen/1495071/str-0/str-0
+str-0/ctx-2/1495071(sw-vsync)
+=================================================
+id = screen-str-0-00000013-4ce1a81eab75c607b80e317b90e26509
+id string =
+permissions = rwx--x--x--x--x--x--x---
+acl = (empty)
+display = dpy-2
+status = INVISIBLE
+autonomous = 0
+mode = (SCREEN_STREAM_MODE_FIFO)
+buffer count = 1
+flags = (none)
+buffer size = 1280x720
+format = SCREEN_FORMAT_RGBX8888
+color space = SCREEN_COLOR_SPACE_UNCORRECTED
+usage = SCREEN_USAGE_NATIVE
+swap interval = 1
+protection requested = (none)
+protection enabled = (none)
+owner = win-0/ctx-2/1495071(sw-vsync)
+refs = (self)
+<strong class="ph b">front = 0</strong>
+index=0 flags=0x0001 dirty=(880,0;881,720)
+back = [ 0 ]
+rcvids = (none)
+buffers =
+str-0-1 gd=0 nbytes=4194304 usage=0x0008 flags=0x8240 paddr=0x00000000 vaddr=0x40400000
+        cvaddr=0x00000000 dvaddr=0x00000001 wfd=0x00000000 cm=0x08893350 egl=0x00000000 native=0x080a95b0
+metrics.cpu = 8589934590
+metrics.gpu = 0
+metrics.objcnt = 0
+metrics.apicnt = 0
+metrics.drawcnt = 0
+metrics.tricnt = 0
+metrics.vtxcnt = 0
+metrics.teximg = 0
+metrics.subdata = 0
+metrics.blits.count = 23588
+metrics.blits.pixels = 19 Mpixels
+metrics.blits.reads = 0 bytes
+metrics.blits.writes = 76 Mbytes
+metrics.posts.count = 11794
+metrics.posts.pixels = 0 pixels
+           </pre>
+            <p class="p">
+                The above example tells us the stream's front buffer is index 0. The image to look for is one called
+                <span class="ph filepath">str-0-1.bmp</span>. It's important to keep in mind that the system is still running while
+                you do all these operations. You can check the front buffer and then moments later it will be different. That's why it's
+                a good idea to copy all of them. It's also possible for an application to render into the buffer while
+                you're reading or copying it, which can cause tearing artifacts. Therefore, looking at the
+                bitmaps isn't the best way to investigate tearing on the display.
+            </p>
+
+            <p class="p">
+                If there are no issues with the buffer contents, or the problem isn't the contents but the position of the window on
+                the screen, or it's the visibility, you can check the display file that we looked at before in
+                the "<a class="xref" href="cscreen_screen-debugging-init.html" title="Issues at initialization time can be a result of problems in the drivers, or your graphics configuration.">At initialization</a>" section. Pay special
+                attention to the <tt class="ph tt">scene</tt> description to try to figure out what might be wrong.
+            </p>
+
+            <pre class="pre codeblock">dpy-2/ctx-0/0(screen)
+=================================================
+...
+modifiers = (none)
+<strong class="ph b">scene =
+  win-2   ctx-3   ssn-1   pid=1622052(sw-vsync)             order=0          FULLY VISIBLE sw-vsync
+  win-0   ctx-2   ssn-0   pid=1609762(gles2-gears)          order=0          FULLY VISIBLE gles2-gears
+</strong>
+strategy = WIN_RENDER_CM
+bypass = 0
+dirty = (none)
+<strong class="ph b">windows = win-0 win-2</strong>
+sessions =
+ *ssn-1   win-2   ctx-3   pid=1622052(sw-vsync)              type=NONE     order=0      mode=default    SCREEN_SENSITIVITY_TEST
+ *ssn-0   win-0   ctx-2   pid=1609762(gles2-gears)           type=NONE     order=0      mode=default    SCREEN_SENSITIVITY_TEST
+background = (none)
+holes = (none)
+...
+
+            </pre>
+            <p class="p">
+                The scene tells you all the windows that are marked as visible on the display. In the above example,
+                there are 2 visible windows on the display (two applications displaying one window each). Windows that
+                aren't realized or haven't posted a front buffer yet aren't in the scene. The list is sorted in descending
+                order. The windows with higher z-order are listed first. The windows at the bottom of the list are
+                lower in z-order. If your window isn't there, check that it:
+            </p>
+
+        	<ul class="ul">
+        		<li class="li">has buffers</li>
+
+        		<li class="li">isn't marked as invisible</li>
+
+        		<li class="li">isn't parented by an invisible window</li>
+
+        	</ul>
+
+        	     
+            <p class="p">
+            	Note that covered windows are part of the scene. The windows list enumerates all the windows that are composited
+            	to a framebuffer (<span class="ph codeph">windows = win-0 win-2</span>). If a window isn't there, it's because it's going straight
+            	to a pipeline, or it's invisible because it's covered by another window, or the window is clipped, or the
+                window's transparency is <span class="keyword const">SCREEN_TRANSPARENCY_DISCARD</span>. Don't forget that windows are drawn
+                from bottom to top, so this is the order in which the windows are presented in the windows list. You can
+                check the pipelines to see which windows might be showing on a pipeline.
+            </p>
+
+            <p class="p">
+                Now, let's say we position the window of one of the applications (<span class="keyword cmdname">sw-vsync</span>) to be
+                outside the bounds of the display. Here's an example what the scene could look like: 
+            </p>
+
+            <pre class="pre codeblock">dpy-2/ctx-0/0(screen)
+=================================================
+...
+modifiers = (none)
+<strong class="ph b">scene =
+    win-2   ctx-3   ssn-1   pid=1622052(sw-vsync)             order=0          CLIPPED       sw-vsync
+    win-0   ctx-2   ssn-0   pid=1609762(gles2-gears)          order=0          FULLY VISIBLE gles2-gears</strong>
+strategy = WIN_RENDER_CM
+bypass = 0
+dirty = (none)
+<strong class="ph b">windows = win-0</strong>
+sessions =
+ *ssn-1   win-2   ctx-3   pid=1622052(sw-vsync)              type=NONE     order=0      mode=default    SCREEN_SENSITIVITY_TEST
+ *ssn-0   win-0   ctx-2   pid=1609762(gles2-gears)           type=NONE     order=0      mode=default    SCREEN_SENSITIVITY_TEST
+background = (none)
+holes = (none)
+...
+            </pre>
+            <p class="p">
+                In this second example of a scene, you can see that there are still 2 windows in the scene. However,
+                one window is clipped (i.e., not visible). The clipped window is still a valid render target,
+                but it isn't visible on the display. Therefore, the clipped window isn't composited to the framebuffer,
+                and that's why it isn't in the windows list (<span class="ph codeph">windows = win-0</span>).
+            </p>
+
+            <p class="p">
+                When we look at a scene, most of this state is controlled by the properties of the various windows.
+                If something's not right, the next thing to do is go look at the relevant windows and see what their
+                properties are. The files associated with the windows provide values for the different properties and
+                they also provides the internal state of the windows.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Framebuffers</h2>
+            
+            <p class="p">
+                If everything from the windows perspective looks good, the problem may first appear in the framebuffer
+                (i.e., the problem may be compositing into the framebuffer). You can
+                look at the buffers of the framebuffer. Because the framebuffer is a window just like any other window,
+                you can use all the tools and files we've discussed in the earlier sections to check the framebuffer.
+                If the contents of the framebuffer don't look quite right, you can dig into all the operations that
+                went into generating the contents of the framebuffer. The <span class="ph filepath">/dev/screen/0/blt-[id]</span> file
+                contains all the operations performed on the framebuffer for a display. This is a binary ring buffer,
+                so you must use <span class="keyword cmdname">screeninfo</span> to decipher it:
+            </p>
+
+            <pre class="pre codeblock"># screeninfo /dev/screen/0/blt-1
+            </pre>
+            <p class="p">
+                and here's what you could see:
+            </p>
+
+            <pre class="pre codeblock">4252&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4252&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4253&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4253&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4253&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4253&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4254&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4254&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4254&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4254&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4255&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4255&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4255&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4255&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4256&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4256&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4256&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4256&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4257&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4257&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4257&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+4257&gt; blit[source,nonpre,33](win-6, (0, 0, 50, 10), (718, 50, 50, 10)) [ok]
+4258&gt; fill[255](0, 0, 768, 60, #ff000000) [ok]
+4258&gt; blit[source,premult,255](win-2, (0, 0, 768, 60), (0, 0, 768, 60)) [ok]
+4258&gt; blit[source,nonpre,33](win-5, (0, 0, 50, 10), (0, 50, 50, 10)) [ok]
+            </pre>
+            <p class="p">
+                Each line starts with a frame number, so you can see which series of operations belong to the same
+                update. Just like for the requests, there is an error status. In some rare cases, you'll see an error,
+                which explains why the display isn't showing the right thing. In most cases, errors in this
+                file will also have corresponding messages in the system log, which may provide additional information.
+            </p>
+
+            <p class="p">
+                Similar to the requests file, this file can be disabled, so you must ensure that <span class="ph filepath">graphics.conf</span>
+                doesn't set its size to zero if you need it. Normally, a size of 4 KB to 8 KB is sufficient to
+                capture several hundreds of operations. If you need to look further back in time, you can make it bigger.
+                See <a class="xref" href="cscreen_config_intro.html#screen_winmgr_globals" title="The globals subsection specifies the configuration to apply globally to Screen.">Configure <tt class="ph tt">globals</tt> subsection</a> of
+                <a class="xref" href="cscreen_technote_intro.html">Configuring <span class="keyword">Screen</span></a> for
+                more details.
+            </p>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Composition time</h2>
+            
+            <p class="p">               
+                You can view the composition time for each display.
+                When composition is active, its duration is averaged over the last 1, 2, and 5 seconds. It can be 
+                queried in the <span class="ph filepath">/dev/screen/0/dpy-*</span> files.  
+                For example, for the display <span class="keyword parmname">dpy-2</span>, your output may look like this:
+            </p>
+
+            <pre class="pre codeblock"># cat /dev/screen/0/dpy-2 | grep ms
+vendor = QNX Software Systems
+composition duration = 1.9 ms (average over last 1 s)
+                       1.9 ms (average over last 3 s)
+                       1.8 ms (average over last 5 s)                
+            </pre>  
+            <p class="p">
+                In some cases, composition is bypassed. If composition is not active, your output will 
+                indicate that it is not available. 
+                See the <a class="xref" href="cscreen_composition.html" title="Composition is the process of combining multiple content sources together into a single image.">Composition</a> section for more details. 
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Global configuration</h2>
+            
+            <p class="p">
+                You can check the configuration of the <a class="xref" href="cscreen_config_intro.html#screen_winmgr_globals" title="The globals subsection specifies the configuration to apply globally to Screen."><span class="ph codeph">globals</span></a> 
+                subsection of the <a class="xref" href="cscreen_config_intro.html#screen_winmgr_section" title="The winmgr section specifies the parameters related to Screen."><span class="ph codeph">winmgr</span></a> section at anytime.
+                The configuration parameters and their associated values are stored in the <span class="ph filepath">/dev/screen/0/globals</span> file. 
+                The file will always contain the most recent configuration, even if the values were updated.
+                For example, your configuration may look like this:
+            </p>
+
+            <pre class="pre codeblock">                # cat /dev/screen/0/globals                              
+                =================================================
+                alloc-config =
+                blit-config = vivante
+                blit-defer = True
+                blits[0]-logsize = 4080
+                default-display = 2
+                gesture-logsize = (none)
+                idle-timeout = (none)
+                input = keyboard mouse gamepad joystick
+                input-logsize = 8K
+                joystick-logsize = (none)
+                keyboard-logsize = (none)
+                keymap = /usr/share/keyboard/en_US_101
+                pointer-logsize = (none)
+                queue-start_size = 200
+                requests-logsize = 64K
+                shortcuts = (none)
+                stack-size = (none)
+                touch-logsize = (none)
+                winmgr-mode = (none)
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Snapshot of <span class="ph filepath">/dev/screen/</span></h2>
+            
+            <p class="p">A snapshot of all values found in <span class="ph filepath">/dev/screen/</span> is available as
+                an automatically generated tar archive, <span class="ph filepath">/dev/screen/state.tar</span>.
+                You need the <span class="keyword">Screen</span> debug module
+                    (<span class="keyword cmdname">screen-debug.so</span>) to use this feature. The debug module
+                ensures atomicity in <span class="keyword">Screen</span> when creating the archive.
+                The result is an archive that is a true snapshot of a single point in time.</p>
+
+            <p class="p">Copy and extract the <span class="ph filepath">state.tar</span> file to a location of your choice. Since this file is large, we recommend you
+            copy it to a location with enough space. For example:
+            </p>
+
+<pre class="pre codeblock">cp /dev/screen/state.tar /tmp/
+</pre>
+            <p class="p">Where <span class="ph filepath">/tmp/</span> is a location with enough space to extract the <span class="ph filepath">state.tar</span> file.
+            After extracting, you can navigate through the extracted folder as you would through <span class="ph filepath">/dev/screen/</span>.</p>
+
+            <p class="p">
+            Symbolic links that are available in <span class="ph filepath">/dev/screen/</span> are not present in <span class="ph filepath">state.tar</span>.</p>
+
+        </div>
+
+        
+    	<div class="section"><h2 class="title sectiontitle">OpenGL function calls</h2>
+    		
+    		<p class="p">
+    			You can use the <span class="keyword cmdname">gltracelogger</span> utility to capture a log of OpenGL function calls made by
+    			your <span class="keyword">Screen</span> applications. You can start this utility to capture the trace at any time.
+    			See <a class="xref" href="gltracelogger.html" title="Record all OpenGL calls made by the target application"><span class="keyword cmdname">gltracelogger</span></a>. 
+    		</p>
+
+    		<p class="p">
+    			Once you've captured a log of OpenGL function calls, use the <span class="keyword cmdname">gltraceprinter</span> utility
+    			to print the trace file to console or to file for analysis. See <a class="xref" href="gltraceprinter.html" title="A readable print of the trace (log) file generated from gltracelogger"><span class="keyword cmdname">gltraceprinter</span></a>.
+    		</p>
+
+    		<h3 class="title sectiontitle"><span class="keyword cmdname">apitrace</span></h3>
+    		<p class="p">
+    			You can also use <span class="keyword cmdname">apitrace</span>, a set of open-source tools, to directly analyze the trace files (output from
+    			<span class="keyword cmdname">gltracelogger</span>). The set of tools that <span class="keyword cmdname">apitrace</span> provides
+    			can be used on various hosts (e.g., Windows, Linux, or MacOS). See
+    			<a class="xref" href="https://github.com/apitrace/apitrace" target="_blank"><span class="ph filepath">https://github.com/apitrace/apitrace</span></a>
+    			for more information.
+    		</p>
+
+    		<p class="p">
+    			Before you can use <span class="keyword cmdname">apitrace</span>'s tools to analyze your trace files, you must first capture a trace
+    			file that includes <strong class="ph b">all</strong> OpenGL calls from the launch of your <span class="keyword">Screen</span> application
+    			(i.e., from before the application renders the first frame). To start tracing the application from the beginning,
+    			you'll need to set the <span class="keyword envar">GLTRACE_WAIT_FOR_CLIENT</span> environment variable that forces the
+    			application to wait for the <span class="keyword cmdname">gltracelogger</span> to start. See <a class="xref" href="gltracelogger.html" title="Record all OpenGL calls made by the target application"><span class="keyword cmdname">gltracelogger</span></a>
+    			for more information on how to set this variable.
+    		</p>
+
+    		<p class="p">
+    			Although <span class="keyword cmdname">apitrace</span> tools can't be used to capture any tracing (e.g., <span class="keyword cmdname">apitrace trace</span>, export <span class="keyword envar">APITRACE_BACKTRACE</span>),
+    			they can be used to analyze an existing trace file that you've captured with <span class="keyword cmdname">gltracelogger</span>. These other tools
+    			you can use for analysis include:
+    		</p>
+
+    		<ul class="ul">
+    			<li class="li"><span class="keyword cmdname">dump</span></li>
+
+    			<li class="li"><span class="keyword cmdname">replay</span></li>
+
+    			<li class="li"><span class="keyword cmdname">trim</span></li>
+
+    			<li class="li"><span class="keyword cmdname">leaks</span></li>
+
+    			<li class="li"><span class="keyword cmdname">diff</span></li>
+
+    			<li class="li"><span class="keyword cmdname">qapitrace</span></li>
+
+    		</ul>
+
+    		<p class="p">
+    			See
+    			<a class="xref" href="https://github.com/apitrace/apitrace/blob/master/docs/USAGE.markdown" target="_blank">
+    				<span class="ph filepath">https://github.com/apitrace/apitrace/blob/master/docs/USAGE.markdown</span>
+    			</a>
+    			for more information.
+    		</p>
+
+    	    <div class="note"><span class="notetitle">Note:</span> 
+    	        Using <span class="keyword cmdname">apitrace replay</span> with <span class="ph filepath">.glev</span> files may fail if your host system is not
+    	        compatible with the target system.
+    	    </div>
+
+    	</div>
+
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_screen-debugging.html" title="Debugging graphics isn't easy. Figuring out where the problem is can be challenging because of the many aspects and components when it comes to graphics. The goal of this chapter is to show the tools and techniques that you can use to help with your investigation.">Debugging</a></div>
+</div>
+</div></body>
+</html>

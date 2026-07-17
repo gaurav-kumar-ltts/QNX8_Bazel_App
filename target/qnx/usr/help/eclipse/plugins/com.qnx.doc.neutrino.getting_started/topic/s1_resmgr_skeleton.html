@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The basic skeleton of a resource manager" />
+<meta name="abstract" content="The following can be used as a template for a resource manager with multiple threads." />
+<meta name="description" content="The following can be used as a template for a resource manager with multiple threads." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_examples.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="skeleton" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The basic skeleton of a resource manager</title>
+</head>
+<body id="skeleton">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The basic skeleton of a resource manager</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The following can be used as a template for a resource manager with multiple threads.
+</p>
+
+
+<p class="p">
+
+
+We've already seen a template that can be used for one with a single thread,
+above in <q class="q">The resource manager library,</q>
+when we discussed a <span class="ph filepath">/dev/null</span> resource manager.
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+#include &lt;string.h&gt;
+
+static resmgr_connect_funcs_t   connect_func;
+static resmgr_io_funcs_t        io_func;
+static iofunc_attr_t            attr;
+
+int main (int argc, char **argv)
+{
+    thread_pool_attr_t    pool_attr;
+    thread_pool_t         *tpp;
+    dispatch_t            *dpp;
+    resmgr_attr_t         resmgr_attr;
+    int                   id;
+
+    if ((dpp = dispatch_create ()) == NULL) {
+        fprintf (stderr,
+                 "%s:  Unable to allocate dispatch context.\n",
+                 argv [0]);
+        return (EXIT_FAILURE);
+    }
+
+    memset (&amp;pool_attr, 0, sizeof (pool_attr));
+    pool_attr.handle = dpp;
+    pool_attr.context_alloc = (void *) dispatch_context_alloc;
+    pool_attr.block_func    = (void *) dispatch_block;
+    pool_attr.handler_func  = (void *) dispatch_handler;
+    pool_attr.context_free  = (void *) dispatch_context_free;
+
+    // 1) set up the number of threads that you want
+    pool_attr.lo_water = 2;
+    pool_attr.hi_water = 4;
+    pool_attr.increment = 1;
+    pool_attr.maximum = 50;
+
+    if ((tpp = thread_pool_create (&amp;pool_attr,
+                                   POOL_FLAG_EXIT_SELF)) == NULL) {
+        fprintf (stderr,
+                 "%s:  Unable to initialize thread pool.\n",
+                 argv [0]);
+        return (EXIT_FAILURE);
+    }
+
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;connect_func,
+                      _RESMGR_IO_NFUNCS, &amp;io_func);
+    iofunc_attr_init (&amp;attr, S_IFNAM | 0777, 0, 0);
+
+    // 2) override functions in "connect_func" and "io_func" as
+    // required here
+
+    memset (&amp;resmgr_attr, 0, sizeof (resmgr_attr));
+    resmgr_attr.nparts_max = 1;
+    resmgr_attr.msg_max_size = 2048;
+
+    // 3) replace "/dev/whatever" with your device name
+    if ((id = resmgr_attach (dpp, &amp;resmgr_attr, "/dev/whatever",
+                _FTYPE_ANY, 0, &amp;connect_func, &amp;io_func, &amp;attr)) == -1) {
+        fprintf (stderr, "%s:  Unable to attach name.\n", argv [0]);
+        return (EXIT_FAILURE);
+    }
+
+    // Never returns
+    thread_pool_start (tpp);
+    
+    return (EXIT_SUCCESS);
+}
+</pre>
+
+<p class="p">
+For more information about the dispatch interface (i.e., the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dispatch_create.html"><span class="keyword apiname">dispatch_create()</span></a>
+function), see the documentation in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+
+
+
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Step 1</dt>
+
+<dd class="dd">Here you'd use the thread pool functions to create a pool of threads
+  that will be able to service messages in your resource manager.
+  Generally, I recommend that you start off with a
+  single-threaded resource manager, as
+  we did with the <span class="ph filepath">/dev/null</span> example mentioned above.
+  Once you have the basic functionality running, you can <em class="ph i">then</em> add threads.
+  You'd modify the <var class="keyword varname">lo_water</var>, <var class="keyword varname">hi_water</var>,
+  <var class="keyword varname">increment</var>, and <var class="keyword varname">maximum</var>
+  members of the <span class="keyword dtype">pool_attr</span> structure as described in the
+  <a class="xref" href="s1_procs.html" title="This chapter explains the concepts behind processes and threads, and the challenges of synchronization and scheduling. A thread is a flow of execution, and a process is a collection of threads. In the QNX OS, the schedulable entity is a thread, not a process.">Threads &amp; Processes</a>
+  chapter where we discuss the thread pool functions.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 2</dt>
+
+<dd class="dd">Here you'd add whatever functions <em class="ph i">you</em> want to supply. These are the outcalls we just
+  discussed (e.g., read I/O function handler, device control I/O function handler.) For
+  example, to add your own handler for the <span class="keyword const">_IO_READ</span> message that points to a
+  function supplied by you called <span class="keyword apiname">my_io_read()</span>, you'd add the following
+  line of code:
+  
+  
+  
+<pre class="pre codeblock">io_func.io_read = my_io_read;
+</pre>
+  <p class="p"> This overrides the POSIX-layer default function that got put into the table by <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a> with a pointer to your function,
+      <span class="keyword apiname">my_io_read()</span>.
+    
+    
+    
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 3</dt>
+
+<dd class="dd">You probably don't want your resource manager to be called
+  <span class="ph filepath">/dev/whatever</span>, so you should select an appropriate name.
+  Note that the <span class="keyword apiname">resmgr_attach()</span>
+  function is where you bind the attributes structure (the
+  <var class="keyword varname">attr</var> parameter) to the name—if you wish to have
+  multiple devices handled by your resource manager, you'd
+  call <span class="keyword apiname">resmgr_attach()</span> multiple times, with different
+  attributes structures (so that you could tell
+  the different registered names apart at runtime).
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_examples.html" title="I'm now going to show you a number of “cookbook” examples you can cut and paste into your code, to use as a basis for your projects. These aren't complete resource managers—you'll need to add the thread pool and dispatch “skeleton” shown immediately below, and ensure that your versions of the I/O functions are placed into the I/O functions table after you've done the iofunc_func_init(), in order to override the defaults!">Examples</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

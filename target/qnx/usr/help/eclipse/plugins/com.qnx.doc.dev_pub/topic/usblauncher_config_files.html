@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Configuration files" />
+<meta name="abstract" content="The USB launcher service configuration files contain instructions for processing attached devices based on their properties, as well as descriptors to expose to USB hosts when the USB server is running in device mode." />
+<meta name="description" content="The USB launcher service configuration files contain instructions for processing attached devices based on their properties, as well as descriptors to expose to USB hosts when the USB server is running in device mode." />
+<meta name="DC.subject" content=", usblauncher_otg, configuration, default file, configuration, Lua language, configuration file, rules.lua, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="keywords" content=", usblauncher_otg, configuration, default file, configuration, Lua language, configuration file, rules.lua, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="DC.relation" scheme="URI" content="../topic/usblauncher_otg.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="usblauncher_config_files" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Configuration files</title>
+</head>
+<body id="usblauncher_config_files">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Configuration files</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> The USB launcher service configuration files contain instructions for processing
+        attached devices based on their properties, as well as descriptors to expose to USB hosts
+        when the USB server is running in device mode.</p>
+
+        <p class="p">The service interprets the configuration files as Lua scripts (see the <a class="xref" href="http://www.lua.org" target="_blank">Lua project homepage</a> for
+            information on the Lua language). By default, the service reads the file at
+                <span class="ph filepath">/etc/usblauncher/rules.lua</span>, but you can specify a custom
+            configuration file by using the <span class="keyword option">-c</span> command-line option.</p>
+
+        <p class="p">You can name only one configuration file, but this file can use the <tt class="ph tt">dofile()</tt>
+            command to include other Lua files. For example, the configuration files shipped with
+            the QNX SDP installers store the USB device mode descriptors in separate Lua files that
+            are included in the main file. This way, the USB launcher service can override the
+            default descriptors when the server runs in device mode instead of host mode.</p>
+
+        <div class="section"><h2 class="title sectiontitle">USB matching rules</h2>
+            
+            
+            
+            
+            <p class="p"> The USB matching rules in the configuration files tell the USB launcher service how
+                to process specific types of devices when they're attached through a USB port. </p>
+
+            <p class="p"> The matching rules specify device properties (vendor ID, device ID, USB class, etc.)
+                that the service compares against the device descriptors provided by the USB server.
+                When the service finds a rule with properties matching those of a newly attached
+                device, it executes the commands listed in that rule. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Matching rule levels</h2>
+            
+            
+            <div class="p">Matching rules are expressed in a hierarchy that defines different levels at which to
+                match device descriptors. Each level of depth is more specific than the last,
+                meaning that its rules match a more restricted set of devices. Here are the five
+                levels of device specification rules: <ol class="ol">
+                    <li class="li"><tt class="ph tt">device</tt></li>
+
+                    <li class="li"><tt class="ph tt">configuration</tt></li>
+
+                    <li class="li"><tt class="ph tt">interface</tt></li>
+
+                    <li class="li"><tt class="ph tt">class</tt></li>
+
+                    <li class="li"><tt class="ph tt">ms_desc</tt></li>
+
+                </ol>
+
+            </div>
+
+            <p class="p">When an outer (more general) rule matches a device, the USB launcher service compares
+                the inner (more specific) rules in a depth-first search order. You can omit some or
+                all of the inner rules if you don't need to match any descriptors at those levels.
+                For rules at the same level, the service applies the rule listed earliest. You can
+                verify the search order by calling <tt class="ph tt">show_config()</tt> at the end of your
+                configuration file. </p>
+
+        </div>
+
+        <div class="section" id="usblauncher_config_files__rule_args"><h2 class="title sectiontitle">Matching rule arguments</h2>
+            
+            
+            <div class="p">The matching rules take variable numbers of arguments so that they may be as specific
+                as necessary. The following table outlines the descriptors matched and rule syntaxes
+                supported at each level. 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:23%" /><col style="width:27%" /><col style="width:50%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d6585e191">Level</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d6585e194">Descriptors matched</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d6585e197">Rule syntax</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">device</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Vendor ID, device ID, earliest revision, latest
+                                    revision</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">device(<var class="keyword varname">vid, did, rev_low, rev_high</var>)
+device(<var class="keyword varname">vid, did, rev_low</var>)
+device(<var class="keyword varname">vid, did</var>)
+device()</pre>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">product</tt>
+                                    <p class="p">(same as <tt class="ph tt">device</tt> rule except you can specify a range
+                                        of device IDs) </p>
+</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Vendor ID, lowest device ID, highest device ID</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">product(<var class="keyword varname">vid, did_low, did_high</var>)
+product(<var class="keyword varname">vid, did_low</var>)
+product(<var class="keyword varname">vid</var>)
+product()</pre>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">configuration</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Configuration number</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">configuration(<var class="keyword varname">num</var>)
+configuration()</pre>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">interface</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Interface number or range indicated by lowest and highest
+                                    numbers</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">interface(<var class="keyword varname">num_low, num_high</var>)
+interface(<var class="keyword varname">num</var>)
+interface()</pre>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">class</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Interface class, subclass, and protocol</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">class(<var class="keyword varname">class, subclass, protocol</var>)
+class(<var class="keyword varname">class, subclass</var>)
+class(<var class="keyword varname">class</var>)
+class()</pre>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e191 "><tt class="ph tt">ms_desc</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e194 ">Microsoft descriptor</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d6585e197 ">
+                                    <pre class="pre">ms_desc(<var class="keyword varname">compatibleID, subcompatibleID, vendorID</var>)
+ms_desc(<var class="keyword varname">compatibleID, subcompatibleID</var>)
+ms_desc(<var class="keyword varname">compatibleID</var>)
+ms_desc()</pre>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+
+            </div>
+
+            <p class="p">The device specification example below shows three levels of matching rules. The
+                driver command line is enclosed in double quotes and prefixed with the
+                    <tt class="ph tt">driver</tt> keyword. The names of macro variables in this command line are
+                the same as the attribute names in RMPS device information objects. </p>
+
+            <pre class="pre">device(<var class="keyword varname">vid</var>, <var class="keyword varname">did</var>, <var class="keyword varname">rev_low</var>, <var class="keyword varname">rev_high</var>) {
+    configuration(1) {
+        class(<var class="keyword varname">class</var>, <var class="keyword varname">subclass</var>, <var class="keyword varname">protocol</var>) {
+            driver"io-fs-media -dxxx,device=$(busno):$(devno):$(interface)";
+        };
+    };
+};
+</pre>
+
+        </div>
+
+        <div class="section" id="usblauncher_config_files__variables"><h2 class="title sectiontitle">Variables</h2>
+            
+            
+            <div class="p">You can define variables to store values so you can use them in matching rules listed
+                later in the configuration file. Here are some sample definitions: <pre class="pre">
+USB_CLASS_HID = 0x03
+    USB_HID_SUBCLASS_NONE = 0x00
+        USB_HID_PROTOCOL_NONE = 0x00
+        USB_HID_PROTOCOL_KEYBOARD = 0x01
+        USB_HID_PROTOCOL_MOUSE = 0x02
+    USB_HID_SUBCLASS_BOOTINTERFACE = 0x01
+</pre>
+
+            </div>
+
+            <div class="p">The matching rule below demonstrates the use of variables. This specification matches
+                any device that has a Human Interface Device (HID) class, for the given vendor and
+                product IDs: <pre class="pre">
+device(0x2996, 0x0123) {
+    class(<strong class="ph b">USB_CLASS_HID</strong>) {
+        driver"io-hid -dusb verbose=3 priority=$(hid_drvr_prio)\z
+                upath=/dev/usb/io-usb-otg &amp;"
+    };
+}
+</pre>
+
+            </div>
+
+            <p class="p">Note that variables can be defined within a rule and used in the driver commands.
+                When searching for variable definitions, the service searches from the innermost to
+                the outermost scope. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Flags</h2>
+            
+            
+            <p class="p">You can use flags to change the range of devices matched and the actions subsequently
+                performed. </p>
+
+            <h3 class="title sectiontitle"><tt class="ph tt">Ignore</tt> flag</h3>
+            <p class="p">At the <tt class="ph tt">device</tt> level, the <tt class="ph tt">Ignore</tt> flag tells the USB launcher service
+                to ignore the device by not attaching to it or reading its descriptors. Here, no
+                RMPS objects are published and no driver is launched.</p>
+
+            <div class="p">Consider the following example: <pre class="pre">device(0x0e0f, 0x0003) {
+    Ignore;  -- don't even attach to this device
+}
+</pre>
+</div>
+
+            <p class="p">Because it performs the <tt class="ph tt">Ignore</tt> check before attaching to the device, the USB
+                launcher service doesn't have any device descriptors to match against. As a result,
+                it can look at only the vendor ID and device ID supplied by the server when the
+                device was physically attached to the target system. Therefore, the <tt class="ph tt">device</tt>
+                rule can't be made more specific about ignoring devices with certain revisions. </p>
+
+            <p class="p">For rules at inner levels, the service performs the <tt class="ph tt">Ignore</tt> check after
+                retrieving device descriptors, so you can make these rules more specific. At any
+                inner level, the <tt class="ph tt">Ignore</tt> flag stops the service from launching a driver and
+                from matching the device with any subsequent rules. </p>
+
+            <pre class="pre">product(0x05AC) {
+    class(USB_CLASS_AUDIO, USB_AUDIO_SUBCLASS_CONTROL) {
+        driver"io-audio -dipod busno=$(busno),devno=$(devno),\z
+                cap_name=ipod-$(busno)-$(devno)";
+    };
+    class(USB_CLASS_HID) {
+        driver"io-fs-media -dipod,$(IPOD_OPTS)";
+    };
+    class(USB_CLASS_MASS_STORAGE) {
+        <strong class="ph b">Ignore;</strong>
+    };
+};
+</pre>
+
+            <h3 class="title sectiontitle"><tt class="ph tt">Default</tt> flag</h3>
+            <div class="p">You can include the <tt class="ph tt">Default</tt> flag in a <tt class="ph tt">configuration</tt> rule to limit
+                driver matching to the device's default configuration, as shown here:
+                <pre class="pre">configuration(1) {
+    <strong class="ph b">Default;</strong>
+    driver"io-fs-media -dipod,$(IPOD_OPTS)";
+}
+</pre>
+</div>
+
+            <h3 class="title sectiontitle"><tt class="ph tt">Never</tt> flag</h3>
+            <p class="p">The <tt class="ph tt">Never</tt> flag means no device is matched, which lets you temporarily
+                disable a rule. The device can match another rule specified later in the
+                configuration file and have an alternative driver launched. </p>
+
+            <h3 class="title sectiontitle"><tt class="ph tt">Always</tt> flag</h3>
+            <div class="p">The <tt class="ph tt">Always</tt> flag means any device is matched, if it hasn't been matched with
+                another rule already. In the following example, the nested <tt class="ph tt">class</tt> rule
+                indicates an interface class of 8, but the outer rule matches devices of any class
+                because of the flag: <pre class="pre">device() {
+    class(8) {
+        <strong class="ph b">Always;</strong>
+        start"echo this is busno=$(busno) devno=$(devno) inserted";
+     };
+};
+</pre>
+</div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Multiple interface classes</h2>
+            
+            
+            <div class="p">You can specify multiple interface classes for a device or product rule, as shown
+                here: <pre class="pre">
+product(0x05AC, 0x1200, 0x12FF) {
+    class(USB_CLASS_AUDIO, USB_AUDIO_SUBCLASS_CONTROL) {
+        driver"io-audio -dipod busno=$(busno),devno=$(devno),\z
+               cap_name=ipod-$(busno)-$(devno)";
+    };
+    class(USB_CLASS_HID) {
+        driver"io-fs-media -dipod,transport=usb:busno=$(busno):\z
+               devno=$(devno):audio=/dev/snd/ipod-$(busno)-$(devno),\z
+               darates=+8000:11025:12000:16000:22050:24000,\z
+               playback,acp=i2c:addr=0x11:path=/dev/i2c99,\z
+               fnames=short,config=/etc/mm/ipod.cfg";
+    };
+    class(USB_CLASS_MASS_STORAGE) {
+        Never;
+    };
+};
+</pre>
+
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle"><tt class="ph tt">foreach</tt> rule</h2>
+            
+            
+            <div class="p">The <tt class="ph tt">foreach</tt> rule lets you launch a certain driver for any device in a list.
+                This rule saves you from having to specify many product or device rules that differ
+                only by their device or vendor IDs: <pre class="pre">char_devices = {
+    device(0x0557, 0x2008);  -- ATEN_232A/GUC_232A
+    device(0x2478, 0x2008);  -- TRIPP LITE U2009-000-R
+    device(0x9710, 0x7720);  -- MOSCHIP 7720
+    device(0x0403, 0x6001);  -- FTDI 8U232AM
+    device(0x1199, 0x0120);  -- Sierra AirCard U595
+    device(0x0681, 0x0040);  -- Siemens HC25
+    device(0x1bc7, 0x1003);  -- Telit UC864E
+    device(0x067b, 0x2303);  -- Prolific
+}
+
+foreach (char_devices) {
+    driver" devc-serusb -d vid=$(vendor_id),did=$(product_id),\z
+            busno=$(busno),devno=$(devno)";
+}
+</pre>
+
+            </div>
+
+            <p class="p">The <tt class="ph tt">foreach</tt> rule also works with rules of inner scopes such as
+                    <tt class="ph tt">configuration</tt> or <tt class="ph tt">interface</tt>. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle"><tt class="ph tt">driver</tt> versus <tt class="ph tt">start</tt> functions</h2>
+            
+            
+            <div class="p">You can specify a driver with either of the <tt class="ph tt">driver</tt> or <tt class="ph tt">start</tt>
+                functions. The difference is that <tt class="ph tt">driver</tt> is used to launch programs that
+                are expected to run as long as the device is attached. These programs are usually
+                daemons. Consider the following rule for launching a daemon:
+                <pre class="pre">device() {
+    class(USB_CLASS_MASS_STORAGE) {
+        <strong class="ph b">driver</strong>"<strong class="ph b">devb-umass</strong> $(DISK_OPTS) $(UMASS_OPTS),\z
+                vid=$(vendor_id),did=$(product_id),busno=$(busno),\z
+                devno=$(devno),interface=$(interface)";
+    };
+};
+</pre>
+
+            </div>
+
+            <div class="p">You can use the <tt class="ph tt">start</tt> function and its corresponding <tt class="ph tt">removal</tt>
+                function to execute short, simple scripts that mount or unmount a network DLL. You
+                can also use these functions to launch short-lived commands, such as <tt class="ph tt">echo</tt>
+                commands, as shown here: <pre class="pre">device() {
+    class(USB_CLASS_MASS_STORAGE) {
+        <strong class="ph b">start</strong>"echo Device busno=$(busno) devno=$(devno) inserted";
+        <strong class="ph b">removal</strong>"echo Device busno=$(busno) devno=$(devno) removed";
+    };
+};
+</pre>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/usblauncher_otg.html" title="The USB launcher service (usblauncher_otg) processes USB device attachments and detachments, launches drivers for communicating with devices, and publishes device information through RMPS. The service can also force a re-enumeration of a device, by resetting it or by requesting it to disconnect and change its personality.">The USB Launcher Service</a></div>
+</div>
+</div></body>
+</html>

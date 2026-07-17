@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Process creation" />
+<meta name="abstract" content="The process manager component of procnto is responsible for process creation. If a process wants to create another process, it makes a call to one of the process-creation functions, which then effectively sends a message to the process manager." />
+<meta name="description" content="The process manager component of procnto is responsible for process creation. If a process wants to create another process, it makes a call to one of the process-creation functions, which then effectively sends a message to the process manager." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Concurrency.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_File_descriptors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="PROCCREATION" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Process creation</title>
+</head>
+<body id="PROCCREATION">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Process creation</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The process manager component of <span class="keyword cmdname">procnto</span> is
+responsible for process creation. If a process wants to
+create another process, it makes a call to one of the
+process-creation functions, which then effectively sends a
+message to the process manager.
+</p>
+
+
+<p class="p">
+
+
+Here are the process-creation functions:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">exec*()</span> family of functions:
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execl.html"><span class="keyword apiname">execl()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execle.html"><span class="keyword apiname">execle()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlp.html"><span class="keyword apiname">execlp()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execlpe.html"><span class="keyword apiname">execlpe()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execv.html"><span class="keyword apiname">execv()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html"><span class="keyword apiname">execve()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvp.html"><span class="keyword apiname">execvp()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execvpe.html"><span class="keyword apiname">execvpe()</span></a>
+</li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/forkpty.html"><span class="keyword apiname">forkpty()</span></a></li>
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/popen.html"><span class="keyword apiname">popen()</span></a></li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html"><span class="keyword apiname">posix_spawn()</span></a></li>
+
+
+<li class="li"><span class="keyword apiname">spawn*()</span> family of functions:
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnl.html"><span class="keyword apiname">spawnl()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnle.html"><span class="keyword apiname">spawnle()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlp.html"><span class="keyword apiname">spawnlp()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnlpe.html"><span class="keyword apiname">spawnlpe()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnp.html"><span class="keyword apiname">spawnp()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnv.html"><span class="keyword apiname">spawnv()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnve.html"><span class="keyword apiname">spawnve()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvp.html"><span class="keyword apiname">spawnvp()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawnvpe.html"><span class="keyword apiname">spawnvpe()</span></a>
+</li>
+
+
+<li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/system.html"><span class="keyword apiname">system()</span></a></li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+It's possible to call <span class="keyword apiname">fork()</span> from a multithreaded process, but it can be very difficult
+to do so safely, so we recommend that you call it only from single-threaded processes.
+For more information, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Multithreaded_fork.html">Using <span class="keyword apiname">fork()</span> in a multithreaded process</a></q>
+in the <q class="q">Processes and Threads</q> chapter of <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>.
+</div>
+
+
+<p class="p">
+
+
+There are several versions of <span class="keyword apiname">spawn*()</span> and <span class="keyword apiname">exec*()</span>;
+the asterisk represents one to three letters, where:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="ph codeph">l</span> or <span class="ph codeph">v</span> (one is required) indicates the way the process parameters are passed</li>
+
+
+<li class="li"><span class="ph codeph">p</span> (optional) indicates that the <span class="keyword envar">PATH</span> environment variable is searched to locate
+  the program for the process
+  
+  
+</li>
+
+
+<li class="li"><span class="ph codeph">e</span> (optional) indicates that the environment variables are being passed</li>
+
+
+</ul>
+
+
+<p class="p">
+For details on each of these functions, see their entries in
+the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>, as well as the
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html">Processes and Threads</a></q>
+chapter of <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>.
+Here we'll
+mention some of the things common to many of them.
+</p>
+
+
+<p class="p">
+
+
+When you start a new process, it replaces the existing process if:
+</p>
+
+
+<ul class="ul">
+<li class="li">You specify <span class="keyword const">POSIX_SPAWN_EXEC</span> in the extended flags before you call
+  <span class="keyword apiname">posix_spawn()</span>.
+  In spite of the name, this flag is a <span class="keyword">QNX OS</span> extension.
+  
+</li>
+
+
+<li class="li">You specify <span class="keyword const">P_OVERLAY</span> when calling one of the
+  <span class="keyword apiname">spawn*</span> functions.
+  
+</li>
+
+
+<li class="li">You call one of the <span class="keyword apiname">exec*</span> routines.</li>
+
+
+</ul>
+
+
+<p class="p">
+The calling thread in the existing process is suspended while the new process
+executes (control continues at the point following the place where the
+new process was started) in the following situations:
+
+
+</p>
+
+
+<ul class="ul">
+<li class="li">You specify <span class="keyword const">P_WAIT</span> when calling one of the
+  <span class="keyword apiname">spawn*</span> functions.
+</li>
+
+
+<li class="li">You call <span class="keyword apiname">system()</span>.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The <span class="keyword apiname">system()</span> function involves a lot of overhead, so you should avoid
+  using it when you just want to create a process.
+  You should use it only when you need a shell that can parse a complex command line,
+  for example, involving pipes or the redirection of file descriptors.
+  </div>
+
+
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/process_Concurrency.html">Concurrency</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/process_File_descriptors.html">Inheriting file descriptors</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process.html" title="Your applications should be written in a way that reflects the architecture of the QNX OS—as a set of cooperating processes. In this chapter, we see how to start processes (also known as creating processes) from code, how to terminate them, and how to detect their termination.">Processes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_THREADSANDPRO.html">Threads and processes (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_Life_Cycle.html">Thread life cycle (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_PATHMAN.html">Pathname management (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Threads_and_processes.html">Threads and processes (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_kstate.html">Kernel states (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply*()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/n/nanosleep.html">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cancel.html">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_cond_wait.html">pthread_cond_wait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_exit.html">pthread_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html">pthread_join()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction.html">sigaction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigaction_struct.html">struct sigaction</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalaction.html">SignalAction()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/signalkill.html">SignalKill()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigsuspend.html">sigsuspend()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigwaitinfo.html">sigwaitinfo()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncsemwait.html">SyncSemWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadcreate.html">ThreadCreate()</a></li></ul></div>
+</div></body>
+</html>

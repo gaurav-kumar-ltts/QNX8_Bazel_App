@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="TimerCreate(), TimerCreate_r()" />
+<meta name="abstract" content="Create a timer for a process" />
+<meta name="description" content="Create a timer for a process" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/timing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timeralarm.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timerdestroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timerinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timersettime.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timertimeout.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timercreate" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>TimerCreate(), TimerCreate_r()</title>
+</head>
+<body id="timercreate">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">TimerCreate()</span>, <span class="keyword apiname">TimerCreate_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Create a timer for a process</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int TimerCreate( clockid_t <var class="keyword varname">id</var>,
+                 const struct sigevent *<var class="keyword varname">event</var> );
+
+int TimerCreate_r( clockid_t <var class="keyword varname">id</var>,
+                   const struct sigevent *<var class="keyword varname">event</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+<dd class="dd">The clock source that you want to use, one of:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">CLOCK_REALTIME</span> — the standard POSIX-defined clock.
+    Timers based on this clock wake up the processor if it's in a power-saving mode.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_SOFTTIME</span> — in this release, this is equivalent to
+    <span class="keyword const">CLOCK_REALTIME</span>.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_MONOTONIC</span> — this clock always increases
+    at a constant rate and can't be adjusted.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_THREAD_CPUTIME_ID</span>, which refers to the calling thread, or
+                a thread CPU-time clock ID returned by <a class="xref" href="../p/pthread_getcpuclockid.html" title="Return the clock ID of the CPU-time clock from a specified thread"><span class="keyword apiname">pthread_getcpuclockid()</span></a> or <a class="xref" href="../c/clockid.html" title="Get the CPU-time clock ID for a given process and thread"><span class="keyword apiname">ClockId()</span></a>.
+                The timeout that you set for this type of timer represents the thread's execution
+                time.
+                
+                <div class="note"><span class="notetitle">Note:</span> 
+                   <ul class="ul">
+                    <li class="li">The accuracy of this timer depends on the clock period.
+                      The thread may exceed the requested execution time, and the actual amount of
+                      time it uses is at least the timeout you specified but less than the same
+                      amount plus the clock period.</li>
+
+                    <li class="li">At any moment, only one timer <em class="ph i">in the whole system</em> can be using a
+                      specific thread's or process's CPU-time clock ID. If there's already a timer
+                      for the given CPU-time clock ID, <span class="keyword apiname">timer_create()</span> gives an
+                      error of <span class="keyword const">EAGAIN</span>.</li>
+
+                    <li class="li">For more information, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing_execution_times.html">Monitoring execution times</a></q> in the <q class="q">Understanding the
+                        Microkernel's Concept of Time</q> chapter of the
+                      <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.</li>
+
+                  </ul>
+
+                </div>
+
+              </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_PROCESS_CPUTIME_ID</span>, which refers to the calling process, or
+                a process CPU-time clock ID return by <a class="xref" href="../c/clock_getcpuclockid.html" title="Return the clock ID of the CPU-time clock from a specified process"><span class="keyword apiname">clock_getcpuclockid()</span></a> or <a class="xref" href="../c/clockid.html" title="Get the CPU-time clock ID for a given process and thread"><span class="keyword apiname">ClockId()</span></a>.
+                The timeout that you set for this type of timer represents the process's execution
+                time. For more information, see the <span class="keyword const">CLOCK_THREAD_CPUTIME_ID</span> entry
+                above.
+                
+              </li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">event</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a 
+  <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>
+  structure that contains the event to deliver when the timer fires;
+  see below.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword apiname">TimerCreate()</span> and <span class="keyword apiname">TimerCreate_r()</span> kernel calls
+create a per-process timer using the clock specified by <var class="keyword varname">id</var> as the timing base.
+The timer is created in the disabled state, and isn't enabled until
+you call <span class="keyword apiname">TimerSettime()</span>.
+</p>
+
+
+<p class="p">
+These functions are identical except in the way they indicate errors.
+See the <a class="xref" href="#timercreate__Returns">Returns</a> section for details.
+</p>
+
+
+<p class="p">
+You can use the returned timer ID in subsequent calls to the other timer functions.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">Instead of using these kernel calls directly, consider calling
+  <a class="xref" href="timer_create.html" title="Create a timer"><span class="keyword apiname">timer_create()</span></a>.
+</li>
+
+
+
+
+<li class="li">In order to create a timer that sends a pulse to a process belonging to a different user,
+  your process must have the <span class="keyword const">PROCMGR_AID_CONNECTION</span> ability enabled.
+  For more information, see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+  
+</li>
+
+
+<li class="li">At most 50 timer events are generated per clock tick (or <q class="q">system tick</q>),
+  to limit the consumption of system resources. If the system has a large number of timers
+  set to expire on the same clock tick, then at most 50 of the timer events
+  will actually trigger on time; the rest will be handled on the next clock tick
+  (subject to the same limitation of at most 50 timer events).
+</li>
+
+
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>
+structure pointed to by <var class="keyword varname">event</var>
+contains the event to deliver when the timer fires.
+The event doesn't need to be registered.
+We recommend the following event types:
+</p>
+
+
+<ul class="ul">
+<li class="li">If your process executes in a loop using <span class="keyword apiname">MsgReceivev()</span>,
+  then <span class="keyword const">SIGEV_PULSE</span> is a convenient way of receiving timer pulses.
+</li>
+
+
+<li class="li">If you use signals for event notification, note that signals are
+  always delivered to the process and not directly to the thread that
+  created or armed the timer.
+  You can change this by using a
+  <var class="keyword varname">sigev_notify</var> of <span class="keyword const">SIGEV_SIGNAL_THREAD</span>.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+If the <var class="keyword varname">event</var> argument is <span class="keyword const">NULL</span>, a
+<span class="keyword const">SIGALRM</span> signal is sent to your process when the timer expires.
+To specify a handler for this signal, call
+<a class="xref" href="../s/sigaction.html" title="Examine or specify the action associated with a signal"><span class="keyword apiname">sigaction()</span></a>.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+These calls don't block.
+</p>
+
+
+</div>
+
+
+
+<div class="section" id="timercreate__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The ID of the newly created timer. If an error occurs:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">TimerCreate()</span> returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.
+</li>
+
+
+<li class="li"><span class="keyword apiname">TimerCreate_r()</span> returns the negative of a value from the Errors section and
+  <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>.
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">One of the following occurred:
+  <ul class="ul">
+    <li class="li">All timers are in use; your process must release one.</li>
+
+    <li class="li">There's already a timer associated with the given CPU-time clock.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred when the kernel tried to access the buffers provided.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">One of the following occurred:
+  <ul class="ul">
+    <li class="li">The clock ID is invalid.</li>
+
+    <li class="li">The event type is <span class="keyword const">SIGEV_INTR</span>.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d449780e568">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d449780e570"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e568 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e570 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e568 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e570 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e568 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d449780e570 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigevent.html" title="Structure that describes an event">sigevent</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_create.html" title="Create a timer">timer_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timeralarm.html" title="Schedule a SIGALRM for delivery">TimerAlarm(), TimerAlarm_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timerdestroy.html" title="Destroy a process timer">TimerDestroy(), TimerDestroy_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timerinfo.html" title="Get information about a timer">TimerInfo(), TimerInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timersettime.html" title="Arm a timer with the given expiration time, disarm it, or set its tolerance">TimerSettime(), TimerSettime_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timertimeout.html" title="Set a timeout on a blocking state">TimerTimeout(), TimerTimeout_r()</a></li></ul></div>
+</div></body>
+</html>

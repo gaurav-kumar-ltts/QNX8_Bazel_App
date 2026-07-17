@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="thread_pool_create()" />
+<meta name="abstract" content="Create a thread pool handle" />
+<meta name="description" content="Create a thread pool handle" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_block.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_create_channel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_unblock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/resmgr_attach.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/select_attach.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/thread_pool_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/thread_pool_start.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="thread_pool_create" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>thread_pool_create()</title>
+</head>
+<body id="thread_pool_create">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">thread_pool_create()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Create a thread pool handle</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/resmgr.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+thread_pool_t * thread_pool_create (
+                  thread_pool_attr_t * <var class="keyword varname">pool_attr</var>,
+                  unsigned <var class="keyword varname">flags</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">pool_attr</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">thread_pool_attr_t</span> structure that
+  specifies the attributes that you want to use for the thread pool.
+  For more information, see
+  <q class="q"><a class="xref" href="#thread_pool_create__Attributes">Thread-pool attributes</a>,</q>
+  below.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags (defined in <span class="ph filepath">&lt;sys/dispatch.h&gt;</span>) that affect
+  what happens to the thread that's creating the pool:
+
+  <ul class="ul">
+    
+  <li class="li"><span class="keyword const">POOL_FLAG_CALL_BLOCK_ERRF</span> — call the 
+    <a class="xref" href="thread_pool_create.html#thread_pool_create__error_func">error function</a>  
+    on an error returned by the 
+    <a class="xref" href="thread_pool_create.html#thread_pool_create__block_func">blocking function</a> 
+    (i.e. if the blocking function returns <span class="keyword const">NULL</span>).
+        
+  </li>
+
+    
+  <li class="li"><span class="keyword const">POOL_FLAG_CALL_HANDLE_ERRF</span> — call the error function  
+    on an error returned by the 
+    <a class="xref" href="thread_pool_create.html#thread_pool_create__handler_func">handler function</a> 
+    (i.e. if the handler function returns -1).
+    
+  </li>
+
+    
+  <li class="li"><span class="keyword const">POOL_FLAG_EXIT_SELF</span> — when the pool is started,
+    exit the thread that called 
+    <a class="xref" href="thread_pool_start.html" title="Start a thread pool"><span class="keyword apiname">thread_pool_start()</span></a>.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">POOL_FLAG_USE_SELF</span> — when the pool is started,
+    use the thread that called <span class="keyword apiname">thread_pool_start()</span> as part of the pool.
+    
+  </li>
+
+    
+  </ul>
+
+
+  <p class="p">  
+  If neither <span class="keyword const">POOL_FLAG_EXIT_SELF</span> nor <span class="keyword const">POOL_FLAG_USE_SELF</span> is set, 
+  the <span class="keyword apiname">thread_pool_start()</span> function will return, with new threads being 
+  created as required.  
+  </p>
+
+  
+</dd>
+
+
+
+</dl>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+If a process sets either <span class="keyword const">POOL_FLAG_CALL_BLOCK_ERRF</span> or <span class="keyword const">POOL_FLAG_CALL_HANDLE_ERRF</span> 
+but doesn't supply an error function, and such an error occurs, a worker thread will terminate the process 
+via the <span class="keyword apiname">abort()</span> function.  
+</div>
+
+  
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+<p class="p">Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+The <span class="keyword apiname">thread_pool_create()</span> function
+creates a thread pool handle, which you can then pass to
+<a class="xref" href="thread_pool_start.html" title="Start a thread pool"><span class="keyword apiname">thread_pool_start()</span></a>
+in order to start a thread pool.
+You can use these functions to create and manage a pool of worker threads.
+</p>
+
+
+<p class="p">
+The worker threads work in the following way:
+</p>
+
+
+<ul class="ul">
+<li class="li">When a new worker thread is created, a context is allocated, which the thread uses
+  to do its work.
+</li>
+
+
+<li class="li">The thread then calls the blocking function.
+  This function blocks until the thread has work to do.
+  For example, the blocking function could call
+  <a class="xref" href="../m/msgreceive.html" title="Wait for a message or pulse on a channel"><span class="keyword apiname">MsgReceive()</span></a>
+  to wait for a message.
+</li>
+
+
+<li class="li">After the blocking function returns, the worker thread calls the handler function, which
+  performs the actual work.
+</li>
+
+
+<li class="li">When the handler function returns, the thread calls the blocking function again.</li>
+
+
+</ul>
+
+
+<p class="p">
+The thread continues to block and handle events until
+the thread pool decides this worker thread is no longer
+needed.  Finally, when the worker thread exits,
+it releases the allocated context.
+</p>
+
+
+<p class="p">
+The thread pool manages these
+worker threads so that there's a certain number of them
+in the blocked state.  Thus, as threads become busy in the
+handler function, the thread pool creates new threads to
+keep a minimum number of threads in a state where they
+can accept requests from clients.  By the same token,
+if the demand on the thread pool goes down, the thread
+pool lets some of these blocked threads exit.
+</p>
+
+
+<h3 class="title sectiontitle">Thread-pool attributes</h3>
+
+<p class="p">
+
+The <var class="keyword varname">pool_attr</var> is a pointer to a <span class="keyword dtype">thread_pool_attr_t</span> structure
+in which you specify:
+</p>
+
+
+<ul class="ul">
+<li class="li">the functions to call when a new thread is started or one dies,
+  in order to allocate and free contexts used by threads
+</li>
+
+
+<li class="li">blocking and handler functions</li>
+
+
+<li class="li">parameters of the thread pool, such as the number of worker threads</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <span class="keyword apiname">thread_pool_create()</span> function does a shallow copy of the 
+<span class="keyword dtype">thread_pool_attr_t</span> structure; it doesn't make copies of anything that the structure points to.
+This means that items that the structure points to (e.g., the <var class="keyword varname">tid_name</var> string and the
+<span class="keyword dtype">pthread_attr_t</span> structure) must exist for the lifetime of the thread pool itself.
+For example, this is valid:
+
+<pre class="pre codeblock">pool_attr.tid_name = "fsys_resmgr";
+</pre>
+
+
+<p class="p">
+but using a local or automatic variable like this isn't:
+</p>
+
+
+<pre class="pre codeblock">{
+   char  name[32];
+   snprintf(name, sizeof(name), "cam %d:%d", cam.path, cam.target);
+   pool_attr.tid_name = name;
+   ...
+   return;
+}
+</pre>
+</div>
+
+
+<p class="p">
+The <span class="keyword dtype">thread_pool_attr_t</span> structure is defined in <span class="ph filepath">&lt;sys/dispatch.h&gt;</span> as:
+</p>
+
+
+<pre class="pre codeblock" id="thread_pool_create__thread_pool_attr_t">typedef struct _thread_pool_attr {
+    THREAD_POOL_HANDLE_T    *handle;
+    THREAD_POOL_PARAM_T     *(*block_func)
+                                (THREAD_POOL_PARAM_T *ctp);
+    void                    (*unblock_func)
+                                (THREAD_POOL_PARAM_T *ctp);
+    int                     (*handler_func)
+                                (THREAD_POOL_PARAM_T *ctp);
+    THREAD_POOL_PARAM_T     *(*context_alloc)
+                                (THREAD_POOL_HANDLE_T *handle);
+    void                    (*context_free)
+                                (THREAD_POOL_PARAM_T *ctp);
+    pthread_attr_t          *attr;
+    unsigned short          lo_water;
+    unsigned short          increment;
+    unsigned short          hi_water;
+    unsigned short          maximum;
+    const char              *tid_name;
+    void                    (*error_func)
+                                (unsigned flags, int err_value);
+    unsigned                reserved[5];
+} thread_pool_attr_t;
+</pre>
+  
+<div class="note"><span class="notetitle">Note:</span> 
+In order to correctly define <span class="keyword dtype">THREAD_POOL_PARAM_T</span>,
+<span class="ph codeph">#include</span> <span class="ph filepath">&lt;sys/resmgr.h&gt;</span> before
+<span class="ph filepath">&lt;sys/dispatch.h&gt;</span>.
+</div>
+
+
+<p class="p">
+The members include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">handle</var></dt>
+
+<dd class="dd">A handle that gets passed to the <var class="keyword varname">context_alloc</var> function.
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="thread_pool_create__block_func"><var class="keyword varname">block_func</var></dt>
+
+<dd class="dd">The function that's called when a worker thread is ready to block, waiting for work. 
+  This function returns the same type of pointer that's passed to <var class="keyword varname">handler_func</var>. 
+  If a non-<span class="keyword const">NULL</span> pointer is returned, it could differ from the one 
+  passed in, as the <var class="keyword varname">ctp</var> object might have changed. 
+  If this happens, the old <var class="keyword varname">ctp</var> is no longer valid.
+  <p class="p">
+  This function may return <span class="keyword const">NULL</span> to report an error, but if 
+  <span class="keyword const">NULL</span> is returned for any reason, the old pointer must still be valid.
+  </p>
+
+</dd>
+  
+
+
+
+<dt class="dt dlterm" id="thread_pool_create__unblock_func"><var class="keyword varname">unblock_func</var></dt>
+
+<dd class="dd">The function that's called to unblock threads.
+  If you use
+  <a class="xref" href="../d/dispatch_block.html" title="Block while waiting for an event"><span class="keyword apiname">dispatch_block()</span></a>
+  as the <var class="keyword varname">block_func</var>, use
+  <a class="xref" href="../d/dispatch_unblock.html" title="Unblock a thread that is blocked on a dispatch handle"><span class="keyword apiname">dispatch_unblock()</span></a>
+  as the <var class="keyword varname">unblock_func</var>.
+  
+    <div class="note"><span class="notetitle">Note:</span>   
+    If you use <span class="keyword apiname">dispatch_unblock()</span> as the <var class="keyword varname">unblock_func</var>, 
+    calling <span class="keyword apiname">thread_pool_destroy()</span> usually results in multiple 
+    <var class="keyword varname">handler_func</var> failures, since each thread is unblocked by an unhandled pulse.
+    </div>
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="thread_pool_create__handler_func"><var class="keyword varname">handler_func</var></dt>
+
+<dd class="dd">This function is called after <var class="keyword varname">block_func</var> returns to do some work and 
+  is passed the pointer returned by <var class="keyword varname">block_func</var>. 
+  This function may return -1 to report an error. 
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">context_alloc</var></dt>
+
+<dd class="dd">The function that's called when a new thread is created by the thread pool. 
+  It is passed <var class="keyword varname">handle</var>. 
+  The function returns a pointer, which is then passed to the blocking function, 
+  <var class="keyword varname">block_func</var>.  
+  This function may return <span class="keyword const">NULL</span> to report an error.
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="thread_pool_create__context_free"><var class="keyword varname">context_free</var></dt>
+
+<dd class="dd">The function that's called when a worker thread exits, to free the context allocated with 
+  <var class="keyword varname">context_alloc</var>. The actual call to this function can happen after 
+  <a class="xref" href="thread_pool_destroy.html" title="Free the memory allocated to a thread pool"><span class="keyword apiname">thread_pool_destroy()</span></a> returns,
+  so the function code must not reference thread pool memory, which could have been freed.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">pthread_attr_t</span> structure (see
+  <a class="xref" href="../p/pthread_attr_init.html" title="Initialize a thread-attribute object"><span class="keyword apiname">pthread_attr_init()</span></a>)
+  that's passed to 
+  <a class="xref" href="../p/pthread_create.html" title="Create a thread"><span class="keyword apiname">pthread_create()</span></a>
+  to specify the stack size, priority, etc. of the worker threads.
+  If this member is <span class="keyword const">NULL</span>, default values are used.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lo_water</var></dt>
+
+<dd class="dd">The minimum number of threads that the pool should keep in the blocked state
+  (i.e., threads that are ready to do work).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">increment</var></dt>
+
+<dd class="dd">The number of new threads created at one time.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">hi_water</var></dt>
+
+<dd class="dd">The maximum number of threads to keep in a blocked state.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">maximum</var></dt>
+
+<dd class="dd">The maximum number of threads that the pool can create.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">tid_name</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a null-terminated name for the threads in the pool.
+  If set, this string is passed to
+  <a class="xref" href="../p/pthread_setname_np.html" title="Name a thread"><span class="keyword apiname">pthread_setname_np()</span></a>
+  when the thread pool creates a new thread.
+</dd>
+
+
+  
+
+<dt class="dt dlterm" id="thread_pool_create__error_func"><var class="keyword varname">error_func</var></dt>
+
+<dd class="dd">The worker thread always calls this function when the <var class="keyword varname">context_alloc</var> function 
+  fails. It also calls this function when the <var class="keyword varname">block_func</var> or 
+  <var class="keyword varname">handler_func</var> functions fail, provided the appropriate <var class="keyword varname">flags</var> 
+  values have been passed to <span class="keyword apiname">thread_pool_create()</span>.
+  </dd>
+
+  
+  <dd class="dd ddexpand">
+  When calling this function, the worker thread passes a <var class="keyword varname">flags</var> field that 
+  indicates which functions failed; it also passes the <var class="keyword varname">errno</var> value after 
+  those functions have returned as <var class="keyword varname">err_value</var>.  
+  </dd>
+
+      
+  <dd class="dd ddexpand">
+  Here are the <var class="keyword varname">flags</var> values that the worker thread could 
+  pass to <var class="keyword varname">error_func</var>:
+    
+    <dl class="dl">  
+      
+    
+      <dt class="dt dlterm"><span class="keyword const">POOL_ERROR_BLOCK</span></dt>
+
+      <dd class="dd">The <var class="keyword varname">block_func</var> failed.
+      
+      </dd>
+
+    
+      
+    
+      <dt class="dt dlterm"><span class="keyword const">POOL_ERROR_CONTEXT</span></dt>
+
+      <dd class="dd">The <var class="keyword varname">context_alloc</var> failed.
+      
+      </dd>
+
+          
+  
+    
+      <dt class="dt dlterm"><span class="keyword const">POOL_ERROR_HANDLER</span></dt>
+
+      <dd class="dd">The <var class="keyword varname">handler_func</var> failed.
+      
+      </dd>
+
+    
+      
+    </dl>
+
+
+</dd>
+
+
+
+
+</dl>
+
+  
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+  
+
+
+<p class="p">
+A thread pool handle, or <span class="keyword const">NULL</span> if an error occurs
+(<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>
+is set).
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+<dd class="dd">Insufficient memory to allocate internal data structures.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">
+Here's a simple, multithreaded resource manager:
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+#include &lt;sys/neutrino.h&gt;
+
+#define DEV_COUNT 3
+
+static resmgr_connect_funcs_t   connect_funcs;
+static resmgr_io_funcs_t        io_funcs;
+static iofunc_attr_t            attrs[DEV_COUNT];
+
+int
+main(int argc, char **argv) {
+    thread_pool_attr_t    pool_attr;
+    thread_pool_t         *tpp;
+    dispatch_t            *dpp;
+
+    if((dpp = dispatch_create()) == NULL) {
+        fprintf( stderr,
+           "%s: Unable to allocate dispatch handle.\n",
+           argv[0] );
+        return EXIT_FAILURE;
+    }
+
+    memset( &amp;pool_attr, 0, sizeof pool_attr );
+    pool_attr.handle = dpp;
+    pool_attr.context_alloc = (void *) dispatch_context_alloc;
+    pool_attr.block_func = (void *) dispatch_block;
+    pool_attr.unblock_func = (void *) dispatch_unblock;
+    pool_attr.handler_func = (void *) dispatch_handler;
+    pool_attr.context_free = (void *) dispatch_context_free;
+    pool_attr.lo_water = 2;
+    pool_attr.hi_water = 4;
+    pool_attr.increment = 1;
+    pool_attr.maximum = 50;
+    pool_attr.tid_name = "my_thread_pool";
+
+    if((tpp = thread_pool_create( &amp;pool_attr,
+                 POOL_FLAG_EXIT_SELF)) == NULL ) {
+        fprintf(stderr,
+                "%s: Unable to initialize thread pool.\n",
+                argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    iofunc_func_init( _RESMGR_CONNECT_NFUNCS,
+                      &amp;connect_funcs,
+                      _RESMGR_IO_NFUNCS, &amp;io_funcs );
+    for(int i = 0; i &lt; DEV_COUNT; i++ ) {
+        char attach_path[64];
+        iofunc_attr_init( &amp;attrs[i], S_IFNAM | 0666, 0, 0 );
+        sprintf(attach_path, "/dev/mydevice%d", i );
+        if(resmgr_attach( dpp, NULL, attach_path, _FTYPE_ANY,
+                          0, &amp;connect_funcs, &amp;io_funcs,
+                          &amp;attrs[i] ) == -1) {
+            fprintf( stderr,
+                     "%s: Unable to attach name.\n", argv[0] );
+            return EXIT_FAILURE;
+        }
+
+    }
+
+    /* Never returns */
+    thread_pool_start( tpp );
+    return EXIT_SUCCESS;
+}
+</pre>
+
+<p class="p">
+For more examples using the dispatch interface, see
+<a class="xref" href="../d/dispatch_create.html" title="Allocate a dispatch structure and create the channel associated with it"><span class="keyword apiname">dispatch_create()</span></a>,
+<a class="xref" href="../m/message_attach.html" title="Attach a message range"><span class="keyword apiname">message_attach()</span></a>, and
+<a class="xref" href="../r/resmgr_attach.html" title="Attach a path to the pathname space"><span class="keyword apiname">resmgr_attach()</span></a>.
+For more information on designing and implementing multithreaded resource managers, 
+see the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.resmgr/topic/multithread.html">Multithreaded 
+Resource Managers</a></q> chapter of <cite class="cite">Writing a Resource Manager</cite>.
+</p>
+
+  
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d356641e839">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d356641e841"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e839 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e841 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e839 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e841 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e839 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d356641e841 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html">Processes and Threads (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_block.html" title="Block while waiting for an event">dispatch_block()</a></li>
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_create.html" title="Allocate a dispatch structure and create the channel associated with it">dispatch_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_create_channel.html" title="Allocate a dispatch structure, specifying a channel ID">dispatch_create_channel()</a></li>
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_unblock.html" title="Unblock a thread that is blocked on a dispatch handle">dispatch_unblock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_create.html" title="Create a thread">pthread_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/resmgr_attach.html" title="Attach a path to the pathname space">resmgr_attach()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/select_attach.html" title="Attach a file descriptor to a dispatch handle">select_attach()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/thread_pool_destroy.html" title="Free the memory allocated to a thread pool">thread_pool_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/thread_pool_start.html" title="Start a thread pool">thread_pool_start()</a></li></ul></div>
+</div></body>
+</html>

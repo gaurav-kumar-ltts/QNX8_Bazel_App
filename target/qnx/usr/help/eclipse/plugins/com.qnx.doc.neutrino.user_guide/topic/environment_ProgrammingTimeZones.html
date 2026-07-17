@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Programming with time zones" />
+<meta name="abstract" content="Inside a program, you can set the TZ environment variable by calling setenv() or putenv()." />
+<meta name="description" content="Inside a program, you can set the TZ environment variable by calling setenv() or putenv()." />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/environment_TimeZone.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/getconf.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/k/ksh.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/s/setconf.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/s/sh.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ProgrammingTimeZones" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Programming with time zones</title>
+</head>
+<body id="ProgrammingTimeZones">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Programming with time zones</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Inside a program, you can set the <span class="keyword envar">TZ</span> environment variable
+by calling <span class="keyword apiname">setenv()</span> or <span class="keyword apiname">putenv()</span>.
+</p>
+
+
+<div class="p">
+
+
+For example:
+
+<pre class="pre codeblock">setenv( "TZ", "PST08PDT07,M3.2.0/2,M11.1.0/2", 1 );
+putenv( "TZ=PST08PDT07,M3.2.0/2,M11.1.0/2" );
+</pre>
+</div>
+
+
+<div class="p">
+To obtain the value of the variable, use the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/g/getenv.html"><span class="keyword apiname">getenv()</span></a>
+function:
+
+
+<pre class="pre codeblock">char *tzvalue;
+…
+tzvalue = getenv( "TZ" );
+</pre>
+</div>
+
+
+<div class="p">
+You can get the value of <span class="keyword const">_CS_TIMEZONE</span> by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/confstr.html"><span class="keyword apiname">confstr()</span></a>,
+like this:
+
+<pre class="pre codeblock">confstr( _CS_TIMEZONE, buff, BUFF_SIZE );
+</pre>
+</div>
+
+
+<div class="p">
+Or set it like this:
+
+<pre class="pre codeblock">confstr( _CS_SET | _CS_TIMEZONE, "JST-9", 0 );
+</pre>
+</div>
+
+
+<p class="p">
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/tzset.html"><span class="keyword apiname">tzset()</span></a>
+function gets the current value of <span class="keyword envar">TZ</span>—or
+<span class="keyword const">_CS_TIMEZONE</span> if <span class="keyword envar">TZ</span> isn't set—and sets the following global variables:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/daylight.html"><var class="keyword varname">daylight</var></a></dt>
+
+<dd class="dd">Indicates if daylight saving time is supported in the locale.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/timezone.html"><var class="keyword varname">timezone</var></a></dt>
+
+<dd class="dd">The number of seconds of time difference between the
+  local time zone and Coordinated Universal Time (UTC).
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/tzname.html"><var class="keyword varname">tzname</var></a></dt>
+
+<dd class="dd">A vector of two pointers to character strings containing the standard
+  and daylight time zone names.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+
+
+
+
+Whenever you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/ctime.html"><span class="keyword apiname">ctime()</span>, <span class="keyword apiname">ctime_r()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/localtime.html"><span class="keyword apiname">localtime()</span></a>,
+or <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mktime.html"><span class="keyword apiname">mktime()</span></a>,
+the library sets <var class="keyword varname">tzname</var>, as if you had called <span class="keyword apiname">tzset()</span>.
+The same is true if you use the <span class="ph codeph">%Z</span> directive when you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/strftime.html"><span class="keyword apiname">strftime()</span></a>.
+</p>
+
+
+<p class="p">
+For more information about these functions and variables, see the
+<span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/environment_TimeZone.html">Setting the time zone</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/getconf.html">getconf</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/k/ksh.html">ksh</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/s/setconf.html">setconf</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/s/sh.html">sh</a></li></ul></div>
+</div></body>
+</html>

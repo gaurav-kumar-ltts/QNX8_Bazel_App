@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Combine messages" />
+<meta name="abstract" content="As it turns out, this concept of combine messages isn't useful just for saving bandwidth (as in the chown() case, above). It's also critical for ensuring atomic completion of operations." />
+<meta name="description" content="As it turns out, this concept of combine messages isn't useful just for saving bandwidth (as in the chown() case, above). It's also critical for ensuring atomic completion of operations." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_structure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="combine_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Combine messages</title>
+</head>
+<body id="combine_messages">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Combine messages</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+As it turns out, this concept of combine messages isn't useful just for saving
+bandwidth (as in the <span class="keyword apiname">chown()</span> case, above).
+It's also critical for ensuring atomic completion of operations.
+</p>
+
+
+<p class="p">
+
+
+Suppose the client process has two or more threads and one file descriptor.
+One of the threads in the client does an <span class="keyword apiname">lseek()</span> followed by a
+<span class="keyword apiname">read()</span>.
+Everything is as we expect it.
+If another thread in the client does the same set of operations, <em class="ph i">on the same
+file descriptor</em>, we'd run into problems.
+Since the <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">read()</span> functions don't know about each other,
+it's possible that the first thread would do the <span class="keyword apiname">lseek()</span>, and then
+get preempted by the second thread.
+The second thread gets to do its <span class="keyword apiname">lseek()</span>, and then its <span class="keyword apiname">read()</span>,
+before giving up the CPU.
+The problem is that since the two threads are sharing the <em class="ph i">same</em> file descriptor,
+the first thread's <span class="keyword apiname">lseek()</span> offset is now at the wrong place—it's at
+the position given by the second thread's <span class="keyword apiname">read()</span> function!
+This is also a problem with file descriptors that are <span class="keyword apiname">dup()</span>'d across processes,
+let alone the network.
+</p>
+
+
+<p class="p">
+An obvious solution to this is to put the <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">read()</span>
+functions within a mutex—when the first thread obtains the mutex, we now know that
+it has exclusive access to the file descriptor.
+The second thread has to wait until it can acquire the mutex before it can go and mess around
+with the position of the file descriptor.
+</p>
+
+
+<p class="p">
+Unfortunately, if someone forgot to obtain a mutex <em class="ph i">for each and every file descriptor
+operation</em>, there'd be a possibility that such an <q class="q">unprotected</q> access
+would cause a thread to read or write data to the wrong location.
+</p>
+
+
+<div class="p">
+Let's look at the C library call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readblock.html"><span class="keyword apiname">readblock()</span></a>
+(from <span class="ph filepath">&lt;unistd.h&gt;</span>):
+
+<pre class="pre codeblock">int readblock (int <var class="keyword varname">fd</var>,
+               size_t <var class="keyword varname">blksize</var>,
+               unsigned <var class="keyword varname">block</var>,
+               int <var class="keyword varname">numblks</var>,
+               void *<var class="keyword varname">buff</var>);
+</pre>
+</div>
+
+
+<p class="p">
+(The
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/writeblock.html"><span class="keyword apiname">writeblock()</span></a>
+function is similar.)
+</p>
+
+
+<div class="p">
+You can imagine a fairly <q class="q">simplistic</q> implementation for <span class="keyword apiname">readblock()</span>:
+
+<pre class="pre codeblock">int readblock (int fd, size_t blksize, unsigned block,
+               int numblks, void *buff)
+{
+    lseek (fd, blksize * block, SEEK_SET); // get to the block
+    read (fd, buff, blksize * numblks);
+}
+</pre>
+</div>
+
+
+<div class="p">
+Obviously, this implementation isn't useful in a multithreaded environment.
+We'd have to at least put a mutex around the calls:
+
+<pre class="pre codeblock">int readblock (int fd, size_t blksize, unsigned block,
+               int numblks, void *buff)
+{
+    pthread_mutex_lock (&amp;block_mutex);
+    lseek (fd, blksize * block, SEEK_SET); // get to the block
+    read (fd, buff, blksize * numblks);
+    pthread_mutex_unlock (&amp;block_mutex);
+}
+</pre>
+</div>
+
+
+<p class="p">
+(We're assuming the mutex is already initialized.)
+</p>
+
+
+<p class="p">
+This code is still vulnerable to <q class="q">unprotected</q> access; if some other
+thread in the process does a simple non-mutexed <span class="keyword apiname">lseek()</span> on the file descriptor,
+we've got a bug.
+</p>
+
+
+<div class="p">
+The solution to this is to use a combine message, as we discussed above for the
+<span class="keyword apiname">chown()</span> function.
+In this case, the C library implementation of <span class="keyword apiname">readblock()</span> puts <em class="ph i">both</em>
+the <span class="keyword apiname">lseek()</span> <em class="ph i">and</em> the <span class="keyword apiname">read()</span> operations into a single
+message and sends that off to the resource manager:
+
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The <span class="keyword apiname">readblock()</span> function's combine message.</span>
+   
+   <br /><img class="image" src="../images/rm8.svg" width="192" alt="Combine message for readblock()" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+The reason that this works is because message passing is atomic.
+From the client's point of view, either the entire message has gone to the resource
+manager, or none of it has.
+Therefore, an intervening <q class="q">unprotected</q> <span class="keyword apiname">lseek()</span> is irrelevant—when the
+<span class="keyword apiname">readblock()</span> operation is received by the resource manager, it's done in one shot.
+(Obviously, the damage will be to the unprotected <span class="keyword apiname">lseek()</span>, because after the
+<span class="keyword apiname">readblock()</span>, the file descriptor's offset is at a different place than where
+the original <span class="keyword apiname">lseek()</span> put it.)
+</p>
+
+
+<p class="p">
+But what about the resource manager?  How does it ensure that it <em class="ph i">processes</em>
+the entire <span class="keyword apiname">readblock()</span> operation in one shot?
+We'll see this shortly, when we discuss the operations performed for each message component.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_structure.html" title="Now that we've seen the data structures, we can discuss interactions between the parts that you'd supply to actually make your resource manager do something.">Resource manager structure</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

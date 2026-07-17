@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Message checking" />
+<meta name="abstract" content="Attackers can take advantage of insufficient checking of the length and offset of resource manager messages." />
+<meta name="description" content="Attackers can take advantage of insufficient checking of the length and offset of resource manager messages." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="message_checking" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Message checking</title>
+</head>
+<body id="message_checking">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Message checking</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">Attackers can take advantage of insufficient checking of the length and offset of
+    resource manager messages.</p>
+
+    <p class="p"> Most messages,
+      even ones such as <span class="keyword const">_IO_WRITE</span> that can be arbitrarily large, include a
+      modest-sized header structure that must be validated when processing the message. It is a good
+      idea to reject any message where the entire header structure is not contained within
+        <var class="keyword varname">ctp-&gt;size</var> bytes. In many cases, you know that a given message type
+      won't exceed the size of <var class="keyword varname">ctp-&gt;msg_max_size</var> (usually a bit more than 2000
+      bytes). Unless you require the message length to be larger than
+        <var class="keyword varname">ctp-&gt;msg_max_size</var>, you can simplify length checking by rejecting
+      messages when <var class="keyword varname">ctp-&gt;size</var> does not include the entire message.</p>
+
+    <p class="p">You can prevent many errors by using <var class="keyword varname">ctp-&gt;size</var> to validate data lengths
+      on short messages. Clients that QNX provides will not break if your resource manager rejects
+      messages that do not entirely fit in <var class="keyword varname">ctp-&gt;size</var>, aside from the rare
+      exception that can be long (e.g., <span class="keyword const">_IO_WRITE</span> messages; see <a class="xref" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_write_simple.html"><q class="q">A simple <span class="keyword apiname">io_write()</span> example</q></a> in
+        <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>).
+      Although this section discusses combine messages, the core libraries (and therefore legitimate
+      clients) do not combine more than a few messages.</p>
+
+    <div class="p">The following code is one way of performing the check:
+      <pre class="pre codeblock">if (ctp-&gt;size &lt; (sizeof(msg-&gt;i) + extra)) {
+    return EBADMSG;
+}</pre></div>
+
+      <p class="p">where <span class="ph codeph">extra</span> is the amount of extra data that should be there following the
+      message header (<var class="keyword varname">msg-&gt;i</var>).</p>
+
+    <div class="section"><h2 class="title sectiontitle">Combine messages</h2>
+    <p class="p">To allow atomic operations, <span class="keyword">QNX OS</span> combines some messages passed to
+        a resource manager (see <a class="xref" href="../../../com.qnx.doc.neutrino.resmgr/topic/combine.html"><q class="q">Combine Messages</q></a> in <cite class="cite">Writing a Resource
+          Manager</cite>). A resource manager receives a message from the client over a <span class="keyword">QNX OS</span> channel. That whole message, when processed by the resource
+        manager, might result in multiple embedded messages, which <span class="keyword">QNX OS</span>
+        calls combine messages. This discussion of message checking refers to the whole message sent
+        by the client as the <em class="ph i">whole message</em>. When a resource manager is accessing message data
+        contained in a message embedded in the whole message, it refers to it as the <em class="ph i">current
+          message</em>.</p>
+
+      <p class="p">In a combine message, the data for a particular message is offset. The 
+        <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgget.html"><span class="keyword apiname">resmgr_msgget()</span></a>
+ function
+        handles this offset and should be used instead of <span class="keyword apiname">MsgRead()</span>. </p>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Message length and offset variables</h2>
+      
+      <p class="p">
+        
+        
+        
+         Some variables can be trusted
+        without verification while others should be tested for sanity.</p>
+
+      
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" id="message_checking__table_whm_qll_p2b" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:14.285714285714285%" /><col style="width:14.285714285714285%" /><col style="width:28.57142857142857%" /><col style="width:42.857142857142854%" /></colgroup><thead class="thead" style="text-align:left;">
+            <tr class="row">
+              <th class="entry nocellnorowborder" style="vertical-align:top;" id="d77497e191">Variable</th>
+
+              <th class="entry nocellnorowborder" style="vertical-align:top;" id="d77497e194">Trusted?</th>
+
+              <th class="entry nocellnorowborder" style="vertical-align:top;" id="d77497e197">Purpose</th>
+
+              <th class="entry cell-norowborder" style="vertical-align:top;" id="d77497e200">Security notes</th>
+
+            </tr>
+
+          </thead>
+<tbody class="tbody">
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;size</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Indicates how much data is available in the message buffer for the current
+                message. This value includes the current message header.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Because this variable takes <var class="keyword varname">ctp-&gt;offset</var> into account,
+                always use it instead of <var class="keyword varname">ctp-&gt;info.msglen</var> to determine the
+                data available in a current message. Use the following formula to calculate how much
+                payload data is available in the current message: <p class="p"><var class="keyword varname">ctp-&gt;size</var>
+                  - <var class="keyword varname">sizeof(msg-&gt;i)</var></p>
+</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;msg</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">A pointer to the beginning of the buffer allocated for messages. The buffer
+                size is <var class="keyword varname">ctp-&gt;msg_max_size</var> bytes.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Use to create a response message that minimizes the risk of exceeding
+                  <var class="keyword varname">ctp-&gt;msg_max_size</var>. Make sure that you save data from
+                  <var class="keyword varname">msg</var> before you write to <var class="keyword varname">ctp-&gt;msg</var>.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;info.msglen</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes (see notes)</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Indicates the amount of the whole message received by the resource manager and
+                stored in <var class="keyword varname">ctp-&gt;msg</var>.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Do not use, because it does not take into account combine messages. Use
+                  <var class="keyword varname">ctp-&gt;size</var> instead.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;info.dstmsglen</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Indicates the size of the buffer that the client uses to receive the
+                reply.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">If the size of the reply is bigger than the client's reply buffer, the extra
+                data is discarded without error. In most cases, if the client's reply buffer is not
+                long enough for the response, it is better to return an error than to silently
+                discard data.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;msg_max_size</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Indicates the maximum amount of data that can be stored in the
+                  <var class="keyword varname">ctp-&gt;msg</var> buffer.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Should be used to ensure that enough space is available to hold a response
+                message created by the resource manager; otherwise, memory corruption can occur. If
+                the current message is being used to create the output message, the current message
+                might be a combine message sitting on the edge of the resource manager's receive
+                buffer, making it too small to hold the response.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">sizeof(msg-&gt;i)</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes (see notes)</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Size of the incoming message header.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Message headers are unions of an input <var class="keyword varname">msg-&gt;i</var> and output
+                  <var class="keyword varname">msg-&gt;o</var> structure. Because the size of the input structure is
+                not always the same as that of the output structure, it should never be used to
+                calculate space for an output message.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">sizeof(msg-&gt;o)</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes (see notes)</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Size of the outgoing reply message header.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Message headers are unions of an input <var class="keyword varname">msg-&gt;i</var> and output
+                  <var class="keyword varname">msg-&gt;o</var> structure. Because the size of the output structure
+                is not always the same as the input structure, it should never be used to calculate
+                the size of an input message.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">msg-&gt;i.nbytes</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">No</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Length of the current message payload.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">Supplied by the client. Do not use for <span class="keyword const">_IO_DEVCTL</span> messages. Verified by <span class="keyword apiname">iofunc_write_verify()</span>,
+                but not by <span class="keyword apiname">iofunc_read_verify()</span>. It should be sanity checked or
+                compared to trusted length values. For <span class="keyword const">_IO_READ</span>, it specifies
+                the amount of data the client wants to read. For other message types, its meaning
+                can be different.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ocb-&gt;offset</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">No (see notes)</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Used to track the current <span class="keyword apiname">lseek()</span> offset in a file.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">The default resource manager <span class="keyword apiname">lseek()</span> allows manipulation of
+                the OCB offset variable without any sanity checks. When servicing a request that
+                would typically use this offset, such as a read or write from a data buffer, the
+                offset should be checked to ensure it falls within the buffer being read. Also note
+                that because this is a signed integer, checks should detect and reject unwanted
+                negative values. For resource managers that use a custom OCB, this value typically
+                becomes <var class="keyword varname">ocb-&gt;hdr.offset</var>.</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">msg-&gt;i.combine_len</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">No</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Used to identify combine messages and by the underlying resource manager
+                library to determine the length of the current combine message.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">
+                <p class="p">Supplied by the client. Do not use.</p>
+
+                <p class="p">Instead, perform length checks using <var class="keyword varname">ctp-&gt;size</var>.</p>
+
+                <p class="p">To determine if this is the last message in a combine message, check for a
+                  non-zero <var class="keyword varname">ctp-&gt;rcvid</var> instead of checking the
+                    <span class="keyword const">_IO_COMBINE_FLAG</span> flag.</p>
+
+              </td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;offset</var></td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e197 ">Indicates the location of the current message in the receive buffer (of size
+                <var class="keyword varname">ctp-&gt;msg_max_size</var> bytes). Used for combine messages.</td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e200 ">
+                <p class="p">You should <strong class="ph b">not</strong> use this variable.</p>
+
+                <div class="p">To determine the remaining length of the message buffer, the size of the current
+                  message, and so on, use the following methods instead: <ul class="ul" id="message_checking__ul_lcm_bk2_pfb">
+                    <li class="li">For incoming messages, use <var class="keyword varname">ctp-&gt;size</var>.</li>
+
+                    <li class="li">For outgoing messages, use <var class="keyword varname">ctp-&gt;msg</var> or a stable
+                      pointer to reply directly to the client.</li>
+
+                  </ul>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry row-nocellborder" style="vertical-align:top;" headers="d77497e191 "><var class="keyword varname">ctp-&gt;info.srcmsglen</var></td>
+
+              <td class="entry row-nocellborder" style="vertical-align:top;" headers="d77497e194 ">Yes</td>
+
+              <td class="entry row-nocellborder" style="vertical-align:top;" headers="d77497e197 ">Indicates the number of bytes the client attempted to send, which might exceed
+                the number of bytes a whole message received by a resource manager can hold.</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d77497e200 "><p class="p"></p>
+</td>
+
+            </tr>
+
+          </tbody>
+</table>
+</div>
+
+      <p class="p">The base resource manager library does not do any checks on the length of the payload that
+        is attached to some resource manager messages.</p>
+
+      <p class="p">The following set of diagrams illustrate how length values relate to one another:</p>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A typical, small resource manager message.</span>
+        
+        <img class="image" src="../../images/Small_Message.svg" width="672" />
+      </div>
+
+      <p class="p">In the well-formed <span class="keyword const">_IO_DEVCTL</span> message in Figure 1, a client sends a message
+        that contains no combine messages. The message fits within the size of the receive buffer
+        used by the server (shown as a shaded rectangle). The
+          <var class="keyword varname">ctp-&gt;msg_max_size</var> variable indicates the size of the resource
+        manager's receive buffer. In a well-formed and small message, such as the one shown, the
+        majority of the message length values line up. It is easy to see that
+          <var class="keyword varname">ctp-&gt;info.srcmsglen</var>, which indicates the length of data the client
+        passed to <span class="keyword apiname">MsgSend()</span>, matches <var class="keyword varname">ctp-&gt;info.msglen</var>,
+        which indicates the size of the whole message received by the resource manager. Because this
+        message contains no embedded combine messages, <var class="keyword varname">ctp-&gt;offset</var> is 0. The
+          <var class="keyword varname">ctp-&gt;size</var> variable is equal to both
+          <var class="keyword varname">ctp-&gt;info.srcmsglen</var> and <var class="keyword varname">ctp-&gt;info.msglen</var>,
+        which is expected as it typically indicates the difference between
+          <var class="keyword varname">ctp-&gt;info.msglen</var> and <var class="keyword varname">ctp-&gt;offset</var>. Finally, the
+        message contains an accurate <var class="keyword varname">msg-&gt;i.nbytes</var> value that indicates the
+        size of the message data payload. This payload contains some well-formed data that the
+          <span class="keyword apiname">devctl()</span> handler in the resource manager expects. Of course,
+          <var class="keyword varname">msg-&gt;i.nbytes</var> does not have to be accurate.</p>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>A regular, well-formed combine message, handled as a whole message.</span>
+        
+        <img class="image" src="../../images/First_regular_combine_message.svg" width="672" />
+      </div>
+
+      <p class="p">As mentioned earlier, the resource manager library allows multiple messages that are sent
+        to it to be combined into a whole message. This approach reduces the number of round trips
+        required between a client and a server for some combinations of messages (e.g., an
+          <span class="keyword apiname">open()</span> followed by a <span class="keyword apiname">stat()</span> call).</p>
+
+      <p class="p">In Figure 2, the whole message contains two embedded combine messages: an
+          <span class="keyword apiname">lseek()</span> message followed by a <span class="keyword apiname">write()</span> message. As
+        expected, <var class="keyword varname">ctp-&gt;info.srcmsglen</var> and
+          <var class="keyword varname">ctp-&gt;info.msglen</var> both reflect the size of the whole message. As
+        noted earlier, the <var class="keyword varname">ctp-&gt;offset</var> value is typically used to indicate the
+        location of the current message being processed in the whole message. When handling the
+          <span class="keyword dtype">io_lseek_t</span> message first, <var class="keyword varname">ctp-&gt;offset</var> is zero, as
+        expected.</p>
+
+      <p class="p">When it detects a combine message, the resource manager library sets the
+          <var class="keyword varname">ctp-&gt;size</var> length to the length of the current message only. The
+        resource manager library detects a combine message when the <span class="keyword const">_IO_COMBINE_FLAG</span>
+        flag is set in the <var class="keyword varname">combine_len</var> structure member (e.g., as found in the
+          <span class="keyword dtype">_io_devctl</span> structure). When the resource manager library detects the
+          <span class="keyword const">_IO_COMBINE_FLAG</span>, it removes the flag from the member and verifies that the
+        number of bytes specified by <var class="keyword varname">combine_len</var> are actually available. If
+        sufficient bytes are available, it sets <var class="keyword varname">ctp-&gt;size</var> to the
+          <var class="keyword varname">combine_len</var> value to indicate how much data is available for the
+        current message being passed to the associated handler. For the last message in a combine
+        message, <var class="keyword varname">ctp-&gt;size</var> is the difference between
+          <var class="keyword varname">ctp-&gt;info.msglen</var> and <var class="keyword varname">ctp-&gt;offset</var> (the
+        remaining space in the message buffer).</p>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>A regular, well-formed combine message, handled as the current message.</span>
+        
+        <br /><img class="image" src="../../images/Second_Regular_Combine_Message.svg" width="672" /><br />
+      </div>
+
+      <p class="p">Figure 3 shows the values after the second combine message (the <span class="keyword dtype">io_write_t</span>
+        message) is passed to the handler as the current message. The
+          <var class="keyword varname">ctp-&gt;offset</var> value has been adjusted to point to the base of the
+        current message. The <var class="keyword varname">ctp-&gt;size</var> is the remaining size of the message
+        (not <var class="keyword varname">msg-&gt;i.combine_len</var>). The <var class="keyword varname">msg-&gt;i.combine_len</var>
+        value is omitted because for the last message, the <span class="keyword const">_IO_COMBINE_FLAG</span> flag is
+        not set and the <var class="keyword varname">msg-&gt;i.combine_len</var> should be ignored.</p>
+
+      <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 4. </span>A combine message with a partial payload.</span>
+        
+        <br /><img class="image" src="../../images/Combine_Message_with_Partial_Payload.svg" width="672" /><br />
+      </div>
+
+      <p class="p">In Figure 4, the set of messages is created by calling <span class="keyword apiname">writeblock()</span>.
+        Part of the payload for the <span class="keyword dtype">io_write_t</span> message is beyond the buffer and has
+        not been copied to the resource manager from the client. The result of any attempt to access
+        the second part of the payload result is a buffer overread. To access the complete payload,
+        the resource manager must go back to the client with a <span class="keyword apiname">resmgr_msgget()</span>.
+        You must check the <var class="keyword varname">ctp-&gt;size</var> (or call
+          <span class="keyword apiname">resmgr_msggetsize()</span>) when you determine whether sufficient bytes of the
+        payload are available without having to go back to the client. You also must check
+          <var class="keyword varname">ctp-&gt;info.srcmsglen</var> because <var class="keyword varname">msg-&gt;i.nbytes</var> is
+        supplied by the client and cannot be trusted to correctly specify the number of bytes of
+        payload that are available. The <span class="keyword apiname">resmgr_msgget()</span> call returns the number
+        of bytes actually read (from the local message buffer, the client's message buffer, or
+        both), which can be used to check whether the payload is the expected size. Finally, you
+        must check that <var class="keyword varname">msg-&gt;i.nbytes</var> matches your expected payload size.</p>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Built-in length checking</h2>
+      
+      <p class="p">The following functions perform length checking in addition to what the base resource
+        manager library does prior to calling the resource manager handler function:</p>
+
+      
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+            <tr class="row">
+              <th class="entry nocellnorowborder" style="vertical-align:top;" id="d77497e751">Function</th>
+
+              <th class="entry cell-norowborder" style="vertical-align:top;" id="d77497e754">Additional checks</th>
+
+            </tr>
+
+          </thead>
+<tbody class="tbody">
+            <tr class="row">
+              <td class="entry nocellnorowborder" style="vertical-align:top;" headers="d77497e751 ">
+                <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_read_verify.html"><span class="keyword apiname">iofunc_read_verify()</span></a>
+              </td>
+
+              <td class="entry cell-norowborder" style="vertical-align:top;" headers="d77497e754 ">If <span class="keyword const">_IO_XTYPE_OFFSET</span> or <span class="keyword const">_IO_XTYPE_READCON</span> is set,
+                it verifies that there is enough space to hold them. (See <a class="xref" href="../../../com.qnx.doc.neutrino.resmgr/topic/read_write_XTYPE.html">
+                  <q class="q">Handling the <var class="keyword varname">xtype</var> member</q></a> in <cite class="cite">Writing a
+                  Resource Manager</cite>.)</td>
+
+            </tr>
+
+            <tr class="row">
+              <td class="entry row-nocellborder" style="vertical-align:top;" headers="d77497e751 "><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_write_verify.html"><span class="keyword apiname">iofunc_write_verify()</span></a></td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d77497e754 ">If <span class="keyword const">_IO_XTYPE_OFFSET</span> or <span class="keyword const">_IO_XTYPE_READCON</span> is set,
+                it verifies that there is enough space to hold them. It also verifies that
+                  <var class="keyword varname">msg-&gt;i.nbytes</var> is not greater than the size of the message
+                actually sent (<tt class="ph tt"><var class="keyword varname">ctp</var>-&gt;<var class="keyword varname">info.srcmsglen</var> -
+                    <var class="keyword varname">ctp</var>-&gt;<var class="keyword varname">offset</var> - sizeof(io_write_t)</tt>).
+                It does not verify that the current buffer contains all the data to
+                write.</td>
+
+            </tr>
+
+          </tbody>
+</table>
+</div>
+
+      <p class="p">For an example that includes length and permission checking, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_devctl_simple.html">A
+            simple device control I/O function handler example</a></q>.</p>
+
+      <div class="note"><span class="notetitle">Note:</span>  QNX does not recommend using <span class="keyword apiname">iofunc_devctl_verify()</span> for length
+        checking.</div>
+
+      <h3 class="title sectiontitle">Responding to combine messages</h3>
+      <p class="p">If <var class="keyword varname">ctp-&gt;rcvid</var> = 0 in your resource manager handler, you cannot return
+        data to the client. Instead of attempting to send data, return an error.</p>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,389 @@
+#include "inputs/definitions.inc"
+#include "inputs/uids.inc"
+
+#if !defined(OPT_QCFS_no)
+[blksize=4096 compblksize=32768 metablksize=4096]
+[compressor=__QCFS_COMP__ complvl=__QCFS_COMP_LVL__]
+#else
+#if defined(OPT_QTD_yes)
+# Disk is read-only, no point in having free space. Unfortunately allocating no extra sectors
+# causes mkqnx6fsimg to fail.
+[num_inodes=*0]
+[num_sectors=*80]
+#else
+#if defined(OPT_QTSAFEFS_yes)
+#else
+[num_inodes=*__SYS_INODES__]
+[num_sectors=*__SYS_SIZE__]
+#if defined(__SYS_MAX_SECTORS__)
+[max_sectors=__SYS_MAX_SECTORS__]
+#endif /* __SYS_MAX_SECTORS__ */
+#endif /* OPT_QTSAFEFS_yes */
+#endif /* OPT_QTD_yes */
+#endif /* OPT_QCFS */
+[search=__MKFS_PATH__]
+
+[+dupignore]
+[+optional]
+[uid=0 gid=0 dperms=755 type=dir] /
+[uid=0 gid=0 dperms=755 type=dir] /lib
+[uid=0 gid=0 dperms=755 type=dir] /lib/dll
+[uid=0 gid=0 dperms=755 type=dir] /bin
+[uid=0 gid=0 dperms=755 type=dir] /etc
+
+[perms=444] /etc/build.date = output/build/build.date
+
+__DEFAULT_PERMISSIONS__
+
+#if ! defined(__NO_SYS_FS_EXPANSION__)
+needs_expansion = {
+}
+#endif
+
+# /etc =========================
+
+etc/profile = {
+#include "output/inc/_profile.inc"
+}
+
+[uid=0 gid=0 dperms=755 perms=555]
+
+[perms=0555] bin/start_net.sh=output/build/start_net.sh
+
+[uid=0 gid=0 dperms=755 type=dir] /etc/startup
+/etc/startup/post_startup.sh=output/build/post_startup.sh
+
+#############################################
+### Libraries
+#############################################
+
+lib/libstdc++.so.6=lib/libstdc++.so.6
+lib/__LIBRCHECK__=usr/lib/__LIBRCHECK__
+[type=link] lib/librcheck.so=__LIBRCHECK__
+lib/__LIBUNWIND__=usr/lib/__LIBUNWIND__
+lib/librpc.so.2=usr/lib/librpc.so.2
+lib/__LIBEDIT__=usr/lib/__LIBEDIT__
+lib/__LIBCPLUSPLUS__=usr/lib/__LIBCPLUSPLUS__
+lib/__LIBNCURSESW__=usr/lib/__LIBNCURSESW__
+lib/__LIBINTL__=usr/lib/__LIBINTL__
+lib/__LIBTRACELOG__=lib/__LIBTRACELOG__
+lib/__LIBEXPAT__=usr/lib/__LIBEXPAT__
+lib/__LIBPANELW__=usr/lib/__LIBPANELW__
+lib/__LIBICONV__=usr/lib/__LIBICONV__
+lib/__LIBCATALOG__=lib/__LIBCATALOG__
+lib/__LIBBZ2__=usr/lib/__LIBBZ2__
+lib/__LIBXML2__=usr/lib/__LIBXML2__
+lib/libxo.so.0=usr/lib/libxo.so.0
+lib/__LIBIPERF__=usr/lib/__LIBIPERF__
+[dperms=755 type=dir] etc/terminfo
+[dperms=755 type=dir] etc/terminfo/q
+[perms=444] etc/terminfo/q/qansi = usr/share/terminfo/q/qansi
+
+#############################################
+### Utilities
+#############################################
+bin/shutdown=sbin/shutdown
+bin/sync=bin/sync
+bin/hogs=usr/bin/hogs
+bin/sqlite3=usr/bin/sqlite3
+bin/pdebug=usr/bin/pdebug
+#if defined(__HAS_GDBSERVER__)
+bin/gdbserver=usr/bin/gdbserver
+#endif
+bin/ifconfig=sbin/ifconfig
+bin/netstat=usr/bin/netstat
+bin/pci-tool=usr/sbin/pci-tool
+bin/tracelogger=usr/sbin/tracelogger
+bin/if_up=usr/sbin/if_up
+bin/df=bin/df
+bin/fdisk=sbin/fdisk
+bin/hostname=bin/hostname
+bin/use=usr/bin/use
+bin/mkdosfs=sbin/mkdosfs
+bin/openssl=usr/bin/openssl
+bin/chkqnx6fs=sbin/chkqnx6fs
+bin/gawk=usr/bin/gawk
+[type=link] bin/awk=gawk
+bin/getfacl=bin/getfacl
+bin/ntpdate=usr/sbin/ntpdate
+bin/arp=usr/sbin/arp
+bin/curl=usr/bin/curl
+bin/fullpath=usr/bin/fullpath
+bin/ifmcstat=usr/sbin/ifmcstat
+bin/ifwatchd=usr/sbin/ifwatchd
+bin/iperf2=usr/bin/iperf2
+bin/iperf3=usr/bin/iperf3
+bin/ndp=usr/sbin/ndp
+bin/ntp-keygen=usr/sbin/ntp-keygen
+bin/ntpq=usr/bin/ntpq
+bin/pfctl=sbin/pfctl
+bin/route=sbin/route
+bin/secpolmonitor=bin/secpolmonitor
+bin/showmount=usr/bin/showmount
+bin/sntp=bin/sntp
+bin/sockstat=usr/bin/sockstat
+bin/stty=bin/stty
+bin/tcpdump=usr/sbin/tcpdump
+bin/top=usr/bin/top
+bin/usb=sbin/usb
+bin/sysctl=sbin/sysctl
+bin/slog2info=bin/slog2info
+bin/vi=bin/vi
+bin/ldd=usr/bin/ldd
+bin/less=usr/bin/less
+bin/slay=bin/slay
+bin/bsdtar=bin/bsdtar
+bin/copy_settings.sh=__TOOL_DIR__/inputs/copy_settings.sh
+
+#############################################
+### Toybox
+#############################################
+bin/toybox=usr/bin/toybox
+[type=hlink] bin/ascii=toybox
+[type=hlink] bin/base64=toybox
+[type=hlink] bin/basename=toybox
+[type=hlink] bin/bc=toybox
+[type=hlink] bin/bunzip2=toybox
+[type=hlink] bin/bzcat=toybox
+[type=hlink] bin/cal=toybox
+[type=hlink] bin/chgrp=toybox
+[type=hlink] bin/chown=toybox
+[type=hlink] bin/cksum=toybox
+[type=hlink] bin/clear=toybox
+[type=hlink] bin/cmp=toybox
+[type=hlink] bin/comm=toybox
+[type=hlink] bin/cp=toybox
+[type=hlink] bin/cpio=toybox
+[type=hlink] bin/crc32=toybox
+[type=hlink] bin/cut=toybox
+[type=hlink] bin/date=toybox
+[type=hlink] bin/diff=toybox
+[type=hlink] bin/dirname=toybox
+[type=hlink] bin/dos2unix=toybox
+[type=hlink] bin/du=toybox
+[type=hlink] bin/egrep=toybox
+[type=hlink] bin/env=toybox
+[type=hlink] bin/expand=toybox
+[type=hlink] bin/expr=toybox
+[type=hlink] bin/false=toybox
+[type=hlink] bin/fgrep=toybox
+[type=hlink] bin/file=toybox
+[type=hlink] bin/find=toybox
+[type=hlink] bin/fmt=toybox
+[type=hlink] bin/groups=toybox
+[type=hlink] bin/gunzip=toybox
+[type=hlink] bin/gzip=toybox
+[type=hlink] bin/hd=toybox
+[type=hlink] bin/head=toybox
+[type=hlink] bin/hexdump=toybox
+[type=hlink] bin/id=toybox
+[type=hlink] bin/install=toybox
+[type=hlink] bin/link=toybox
+[type=hlink] bin/logname=toybox
+[type=hlink] bin/md5sum=toybox
+[type=hlink] bin/mkdir=toybox
+[type=hlink] bin/mkfifo=toybox
+[type=hlink] bin/mktemp=toybox
+[type=hlink] bin/more=toybox
+[type=hlink] bin/mv=toybox
+[type=hlink] bin/nl=toybox
+[type=hlink] bin/nohup=toybox
+[type=hlink] bin/od=toybox
+[type=hlink] bin/paste=toybox
+[type=hlink] bin/patch=toybox
+[type=hlink] bin/printenv=toybox
+[type=hlink] bin/printf=toybox
+[type=hlink] bin/pwd=toybox
+[type=hlink] bin/readlink=toybox
+[type=hlink] bin/realpath=toybox
+[type=hlink] bin/rmdir=toybox
+[type=hlink] bin/sed=toybox
+[type=hlink] bin/seq=toybox
+[type=hlink] bin/sha1sum=toybox
+[type=hlink] bin/sleep=toybox
+[type=hlink] bin/sort=toybox
+[type=hlink] bin/split=toybox
+[type=hlink] bin/stat=toybox
+[type=hlink] bin/strings=toybox
+[type=hlink] bin/tail=toybox
+[type=hlink] bin/tar=toybox
+[type=hlink] bin/tee=toybox
+[type=hlink] bin/test=toybox
+[type=hlink] bin/time=toybox
+[type=hlink] bin/timeout=toybox
+[type=hlink] bin/touch=toybox
+[type=hlink] bin/tr=toybox
+[type=hlink] bin/true=toybox
+[type=hlink] bin/truncate=toybox
+[type=hlink] bin/tty=toybox
+[type=hlink] bin/uname=toybox
+[type=hlink] bin/uniq=toybox
+[type=hlink] bin/unix2dos=toybox
+[type=hlink] bin/unlink=toybox
+[type=hlink] bin/uudecode=toybox
+[type=hlink] bin/uuencode=toybox
+[type=hlink] bin/uuidgen=toybox
+[type=hlink] bin/wc=toybox
+[type=hlink] bin/which=toybox
+[type=hlink] bin/whoami=toybox
+[type=hlink] bin/xargs=toybox
+[type=hlink] bin/xxd=toybox
+[type=hlink] bin/yes=toybox
+[type=hlink] bin/zcat=toybox
+
+#############################################
+### suid Utilities
+#############################################
+[perms=ugo=rx,u+s] bin/login=bin/login
+[perms=ugo=rx,u+s] bin/su=bin/su
+[perms=ugo=rx,u+s] bin/passwd=usr/bin/passwd
+[perms=ugo=rx,u+s] bin/ping=sbin/ping
+[perms=ugo=rx,u+s] bin/traceroute=usr/sbin/traceroute
+[perms=ugo=rx,u+s] bin/traceroute6=usr/sbin/traceroute6
+
+#############################################
+### Services
+#############################################
+bin/fs-nfs3=usr/sbin/fs-nfs3
+bin/dumper=usr/sbin/dumper
+bin/qconn=usr/sbin/qconn
+bin/mqueue=sbin/mqueue
+bin/random=usr/sbin/random
+bin/ntpd=usr/sbin/ntpd
+bin/devb-loopback=sbin/devb-loopback
+bin/devb-umass=sbin/devb-umass
+bin/devc-pty=sbin/devc-pty
+bin/pipe=sbin/pipe
+
+#############################################
+### io-sock
+#############################################
+#if defined(OPT_IO_SOCK_DIAG_yes)
+bin/io-sock-diag=sbin/io-sock-diag
+lib/dll/mods-pci-diag.so=lib/dll/mods-pci-diag.so
+#if defined(OPT_ARCH_aarch64le)
+lib/dll/mods-fdt-diag.so=lib/dll/mods-fdt-diag.so
+lib/dll/mods-phy_fdt-diag.so=lib/dll/mods-phy_fdt-diag.so
+#endif
+lib/dll/mods-phy-diag.so=lib/dll/mods-phy-diag.so
+lib/dll/mods-usb-diag.so=lib/dll/mods-usb-diag.so
+#else
+bin/io-sock=sbin/io-sock
+lib/dll/mods-pci.so=lib/dll/mods-pci.so
+#if defined(OPT_ARCH_aarch64le)
+lib/dll/mods-fdt.so=lib/dll/mods-fdt.so
+lib/dll/mods-phy_fdt.so=lib/dll/mods-phy_fdt.so
+#endif
+lib/dll/mods-phy.so=lib/dll/mods-phy.so
+lib/dll/mods-usb.so=lib/dll/mods-usb.so
+#endif
+lib/__LIBFDT__=usr/lib/__LIBFDT__
+lib/__LIBUSBDCI__=lib/__LIBUSBDCI__
+
+bin/dhcpcd=sbin/dhcpcd
+[type=dir dperms=555] etc/dhcpcd
+[perms=444] etc/dhcpcd/dhcpcd.conf=etc/dhcpcd.conf
+[perms=555] etc/dhcpcd/dhcpcd-run-hooks=output/build/dhcpcd-run-hooks
+[type=dir dperms=555] etc/dhcpcd/dhcpcd-hooks
+[perms=555] etc/dhcpcd/dhcpcd-hooks/20-resolv.conf=output/build/20-resolv.conf
+[perms=555] etc/dhcpcd/dhcpcd.exit-hook = {
+#!/bin/sh
+
+if [ "\$reason" != BOUND ]; then
+    exit
+fi
+#include "output/inc/_dhcp.inc"
+}
+
+
+#############################################
+### ssh
+#############################################
+bin/sshd=usr/sbin/sshd
+bin/ssh-keygen=usr/bin/ssh-keygen
+bin/sshd-session=usr/libexec/sshd-session
+[dperms=555 type=dir] etc/ssh
+[perms=444] etc/ssh/sshd_config={
+Protocol 2
+HostKey /data/var/ssh/ssh_host_rsa_key
+HostKey /data/var/ssh/ssh_host_ed25519_key
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256
+AuthorizedKeysFile	.ssh/authorized_keys
+UsePAM yes
+# Disallow sshd's password checking though passwords might still be allowed
+# via pam.
+PasswordAuthentication no
+PermitUserEnvironment yes
+#if defined(OPT_SSH_IDENT_none) || defined(OPT_SSH_IDENT_prompt)
+# Allowing root login via a password is generally undesirable. If you use the
+# --ssh-ident option this will be disabled and root will be able to log in
+# by means of an ssh identity file.
+PermitRootLogin yes
+#endif
+PidFile none
+Subsystem sftp /system/bin/sftp-server
+SshdSessionPath /system/bin/sshd-session
+}
+bin/scp=usr/bin/scp
+bin/sftp-server=usr/libexec/sftp-server
+bin/ssh=usr/bin/ssh
+
+#############################################
+## PAM
+#############################################
+[uid=0 gid=0 dperms=755 type=dir] /lib/dll/pam
+[uid=0 gid=0 dperms=755 type=dir] /etc/pam
+
+lib/__LIBPAM__=usr/lib/__LIBPAM__
+
+lib/dll/pam/pam_deny.so=usr/lib/pam_deny.so
+lib/dll/pam/pam_echo.so=usr/lib/pam_echo.so
+lib/dll/pam/pam_exec.so=usr/lib/pam_exec.so
+lib/dll/pam/pam_group.so=usr/lib/pam_group.so
+lib/dll/pam/pam_permit.so=usr/lib/pam_permit.so
+lib/dll/pam/pam_qnx.so=usr/lib/pam_qnx.so
+lib/dll/pam/pam_rootok.so=usr/lib/pam_rootok.so
+lib/dll/pam/pam_self.so=usr/lib/pam_self.so
+
+[perms=444] etc/pam/login = {
+auth requisite pam_qnx.so
+account requisite pam_qnx.so
+session requisite pam_qnx.so
+#if defined(__PAM_SECPOL_CONFIG__)
+__PAM_SECPOL_CONFIG__
+#endif
+password requisite pam_qnx.so
+}
+[perms=444] etc/pam/sshd = {
+auth requisite pam_qnx.so
+account requisite pam_qnx.so
+session requisite pam_qnx.so
+#if defined(__PAM_SECPOL_CONFIG__)
+__PAM_SECPOL_CONFIG__
+#endif
+password requisite pam_qnx.so
+}
+[perms=444] etc/pam/passwd = {
+auth requisite pam_qnx.so
+account requisite pam_qnx.so
+session requisite pam_qnx.so
+password requisite pam_qnx.so
+}
+[perms=444] etc/pam/su = {
+auth sufficient pam_rootok.so no_warn
+auth requisite pam_qnx.so
+account requisite pam_qnx.so
+session requisite pam_qnx.so
+#if defined(__PAM_SECPOL_CONFIG__)
+__PAM_SECPOL_CONFIG__
+#endif
+password requisite pam_qnx.so
+}
+
+#############################################
+### Customization
+#############################################
+
+#include "output/inc/_system_files.inc"

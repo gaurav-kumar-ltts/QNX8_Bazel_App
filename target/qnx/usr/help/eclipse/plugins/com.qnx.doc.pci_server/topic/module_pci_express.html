@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Capability ID 0x10 (PCI Express)" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/modules.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="module_pci_express" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Capability ID 0x10 (PCI Express)</title>
+</head>
+<body id="module_pci_express">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Capability ID 0x10 (PCI Express)</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+
+
+
+
+The PCIe capability module provides access to the extended configuration space from 256–4095 bytes
+using the following APIs, which are defined in <span class="ph filepath">&lt;pci/cap_pcie.h&gt;</span>:
+
+<ul class="ul">
+<li class="li">
+<pre class="pre compact">
+int_t cap_pcie_version(pci_cap_t cap)
+</pre>
+
+<p class="p">Return the version of PCI Express supported by the device or -1 on any error.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+pci_err_t cap_pcie_read_portType(pci_cap_t cap, cap_pcie_portType_t *portType)
+</pre>
+
+<p class="p">If <span class="keyword const">PCI_ERR_OK</span> is returned, <var class="keyword varname">portType</var> contains the PCIe port type
+  for the device.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+bool_t cap_pcie_is_slot_implemented(pci_cap_t cap)
+</pre>
+
+<p class="p">Returns true or false, depending on whether the Root Port supports slots.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+int_t cap_pcie_read_slot_num(pci_cap_t cap)
+</pre>
+
+<p class="p">Returns the assigned slot number if the Root Port supports slots, or -1 on error.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+int_t cap_pcie_read_int_msgnum(pci_cap_t cap)
+</pre>
+
+<p class="p">Returns the MSI interrupt number used for PCIe status register changes.</p>
+
+</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+The PCIe extended capability functions (analogous to their PCI library counterparts) include:
+
+<ul class="ul">
+<li class="li">
+<pre class="pre compact">
+pci_err_t cap_pcie_read_xtnd_capid(pci_cap_t cap, pcie_capid_t *capid, uint_t idx)
+</pre>
+
+<p class="p">Analogous to <a class="xref" href="pci_device_read_capid.html" title="Get the ID of the nth capability that a device supports"><span class="keyword apiname">pci_device_read_capid()</span></a>.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+int_t cap_pcie_find_xtnd_capid(pci_cap_t cap, pcie_capid_t capid)
+</pre>
+
+<p class="p">Analogous to <a class="xref" href="pci_device_find_capid.html" title="Get the index of a capability for a device"><span class="keyword apiname">pci_device_find_capid()</span></a>.</p>
+
+</li>
+
+        <li class="li">
+          <pre class="pre compact" id="module_pci_express__pre_h4f_wg4_lzb">
+int_t cap_pcie_find_xtnd_capid_next(pci_cap_t cap, pcie_capid_t capid, int_t start_idx)
+</pre>
+
+          <p class="p">Analogous to <a class="xref" href="pci_device_find_capid.html" title="Get the index of a capability for a device"><span class="keyword apiname">pci_device_find_capid_next()</span></a>.</p>
+
+        </li>
+
+
+<li class="li">
+<pre class="pre compact">
+int_t cap_pcie_read_xtnd_capid_version(pcie_cap_t xtnd_cap, pcie_capid_t capid)
+</pre>
+
+<p class="p">Returns the extended capability version, or -1 on error.</p>
+
+</li>
+
+
+<li class="li">
+<pre class="pre compact">
+pci_err_t cap_pcie_read_xtnd_cap(pci_cap_t cap, pcie_cap_t *xtnd_cap, uint_t idx)
+</pre>
+
+<p class="p">Analogous to <a class="xref" href="pci_device_read_cap.html" title="Load a capability module"><span class="keyword apiname">pci_device_read_cap()</span></a>.</p>
+
+</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+The following APIs access the PCIe device capability, control, and status registers at offsets
+0x4/0x24, 0x8/0x28 and 0xA/0x2A, respectively.
+For all successful writes, the parameter that contains the value to be written is updated with the
+current register contents after the write is completed:
+
+<pre class="pre compact">
+pci_err_t cap_pcie_read_dev_cap_reg( pci_cap_t cap, cap_pcie_cap_reg_t *dev_cap_reg )
+pci_err_t cap_pcie_read_dev_cap_reg2( pci_cap_t cap, cap_pcie_cap_reg_t *dev_cap_reg )
+pci_err_t cap_pcie_read_dev_ctrl_reg( pci_cap_t cap, cap_pcie_ctrl_reg_t *dev_ctrl_reg )
+pci_err_t cap_pcie_read_dev_ctrl_reg2( pci_cap_t cap, cap_pcie_ctrl_reg_t *dev_ctrl_reg )
+pci_err_t cap_pcie_read_dev_stat_reg( pci_cap_t cap, cap_pcie_stat_reg_t *dev_stat_reg )
+pci_err_t cap_pcie_read_dev_stat_reg2( pci_cap_t cap, cap_pcie_stat_reg_t *dev_stat_reg )
+pci_err_t cap_pcie_write_dev_ctrl_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                       cap_pcie_ctrl_reg_t *dev_ctrl_reg )
+pci_err_t cap_pcie_write_dev_ctrl_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_ctrl_reg_t *dev_ctrl_reg )
+pci_err_t cap_pcie_write_dev_stat_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                       cap_pcie_stat_reg_t *dev_stat_reg )
+pci_err_t cap_pcie_write_dev_stat_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_stat_reg_t *dev_stat_reg )
+</pre>
+
+
+The following APIs access the PCIe link capabilities, control, and status registers at offsets
+0xC/0x2C, 0x10/0x30 and 0x12/0x32, respectively.
+For all successful writes, the parameter that contains the value to be written is updated with the
+current register contents after the write is completed:
+
+<pre class="pre compact">
+pci_err_t cap_pcie_read_link_cap_reg( pci_cap_t cap, cap_pcie_cap_reg_t *link_cap_reg )
+pci_err_t cap_pcie_read_link_cap_reg2( pci_cap_t cap, cap_pcie_cap_reg_t *link_cap_reg )
+pci_err_t cap_pcie_read_link_ctrl_reg( pci_cap_t cap, cap_pcie_ctrl_reg_t *link_ctrl_reg )
+pci_err_t cap_pcie_read_link_ctrl_reg2( pci_cap_t cap, cap_pcie_ctrl_reg_t *link_ctrl_reg )
+pci_err_t cap_pcie_read_link_stat_reg( pci_cap_t cap, cap_pcie_stat_reg_t *link_stat_reg )
+pci_err_t cap_pcie_read_link_stat_reg2( pci_cap_t cap, cap_pcie_stat_reg_t *link_stat_reg )
+pci_err_t cap_pcie_write_link_ctrl_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_ctrl_reg_t *link_ctrl_reg )
+pci_err_t cap_pcie_write_link_ctrl_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                         cap_pcie_ctrl_reg_t *link_ctrl_reg )
+pci_err_t cap_pcie_write_link_stat_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_stat_reg_t *link_stat_reg )
+pci_err_t cap_pcie_write_link_stat_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                         cap_pcie_stat_reg_t *link_stat_reg )
+</pre>
+
+
+The following APIs access the PCIe slot capabilities, control, and status registers at offsets
+0x14/0x34, 0x18/0x38 and 0x1A/0x3A, respectively.
+For all successful writes, the parameter that contains the value to be written is updated with the
+current register contents after the write is completed:
+
+<pre class="pre compact">
+pci_err_t cap_pcie_read_slot_cap_reg( pci_cap_t cap, cap_pcie_cap_reg_t *slot_cap_reg )
+pci_err_t cap_pcie_read_slot_cap_reg2( pci_cap_t cap, cap_pcie_cap_reg_t *slot_cap_reg )
+pci_err_t cap_pcie_read_slot_ctrl_reg( pci_cap_t cap, cap_pcie_ctrl_reg_t *slot_ctrl_reg )
+pci_err_t cap_pcie_read_slot_ctrl_reg2( pci_cap_t cap, cap_pcie_ctrl_reg_t *slot_ctrl_reg )
+pci_err_t cap_pcie_read_slot_stat_reg( pci_cap_t cap, cap_pcie_stat_reg_t *slot_stat_reg )
+pci_err_t cap_pcie_read_slot_stat_reg2( pci_cap_t cap, cap_pcie_stat_reg_t *slot_stat_reg )
+pci_err_t cap_pcie_write_slot_ctrl_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_ctrl_reg_t *slot_ctrl_reg )
+pci_err_t cap_pcie_write_slot_ctrl_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                         cap_pcie_ctrl_reg_t *slot_ctrl_reg )
+pci_err_t cap_pcie_write_slot_stat_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_stat_reg_t *slot_stat_reg )
+pci_err_t cap_pcie_write_slot_stat_reg2( pci_devhdl_t hdl, pci_cap_t cap,
+                                         cap_pcie_stat_reg_t *slot_stat_reg )
+</pre>
+
+
+The following APIs access the PCIe root capabilities, control, and status registers at offsets
+0x1C, 0x1E and 0x20 respectively.
+For all successful writes, the parameter that contains the value to be written is updated with the
+current register contents after the write is completed:
+
+<pre class="pre compact">
+pci_err_t cap_pcie_read_root_cap_reg( pci_cap_t cap, cap_pcie_root_cap_reg_t *root_cap_reg )
+pci_err_t cap_pcie_read_root_ctrl_reg( pci_cap_t cap, cap_pcie_root_ctrl_reg_t *root_ctrl_reg )
+pci_err_t cap_pcie_read_root_stat_reg( pci_cap_t cap, cap_pcie_root_stat_reg_t *root_stat_reg )
+pci_err_t cap_pcie_write_root_ctrl_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_root_ctrl_reg_t *root_ctrl_reg )
+pci_err_t cap_pcie_write_root_stat_reg( pci_devhdl_t hdl, pci_cap_t cap,
+                                        cap_pcie_root_stat_reg_t *root_stat_reg )
+</pre>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Examples</h2>
+
+<p class="p">The following example locates and processes all instances of a specific capability:</p>
+
+<pre class="pre codeblock">int capid_idx = pci_device_find_capid(bdf, capid);
+
+while (capid_idx &gt;= 0) {
+    /*
+     * Do something with the capability instance. This may include reading it with
+     * pci_device_read_cap() and making use of the capability specific APIs enabled
+     * after a successful call to pci_device_read_cap().
+     */
+    capid_idx = pci_device_find_capid_next(bdf, capid, capid_idx);
+}</pre>
+<p class="p">Similarly, use <span class="keyword apiname">cap_pcie_find_xtnd_capid()</span> and <span class="keyword apiname">cap_pcie_find_xtnd_capid_next()</span>
+  for PCIe extended capabilities.</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/modules.html" title="This appendix describes some general-purpose capability modules and their APIs.">Capability Modules and APIs</a></div>
+</div>
+</div></body>
+</html>

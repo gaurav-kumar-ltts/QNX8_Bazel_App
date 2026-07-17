@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="unlinkat()" />
+<meta name="abstract" content="Remove a link to a file at a given location" />
+<meta name="description" content="Remove a link to a file at a given location" />
+<meta name="DC.subject" content=", unlinkat(), files, unlinking, deleting, symbolic links, links, symbolic, QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content=", unlinkat(), files, unlinking, deleting, symbolic links, links, symbolic, QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-u.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/e/errno.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/l/linkat.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pathmgr_unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/remove.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/rmdir.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/symlinkat.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/u/unlink.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="unlinkat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>unlinkat()</title>
+</head>
+<body id="unlinkat">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">unlinkat()</span></h1>
+
+
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Remove a link to a file at a given location</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;fcntl.h&gt;
+
+int unlinkat( int <var class="keyword varname">dirfd</var>,
+              const char* const <var class="keyword varname">path</var>,
+              int <var class="keyword varname">flags</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">dirfd</var></dt>
+
+<dd class="dd">A file descriptor that indicates the base directory for relative filepaths. The symbolic link name given in <var class="keyword varname">path</var>
+    is appended to the directory associated with <var class="keyword varname">dirfd</var>, to produce the full link path.
+    You can set this argument to <span class="keyword const">AT_FDCWD</span> to use the current working directory as the base directory.
+  <div class="note"><span class="notetitle">Note:</span> The <span class="keyword">QNX OS</span> implementation of the <span class="keyword apiname">*at()</span> functions differ from the POSIX standards.
+    You must use a file descriptor obtained from an <span class="keyword apiname">open()</span> or <span class="keyword apiname">openat()</span> call with the
+    <a class="xref" href="../o/open.html#open__O_DIRECTORY"><span class="keyword const">O_DIRECTORY</span></a> flag set, rather than the <span class="keyword const">O_SEARCH</span>
+    flag on POSIX. Otherwise, the function fails and sets <var class="keyword varname">errno</var> to <span class="keyword const">ENOTDIR</span>.</div>
+
+    <p class="p">If <var class="keyword varname">path</var> specifies an absolute path, <var class="keyword varname">dirfd</var> has no effect.</p>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">path</var></dt>
+
+<dd class="dd">The name of the file that you want to unlink.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">A bitfield of the following flags:
+    <ul class="ul">
+        <li class="li"><span class="keyword const">AT_REMOVEDIR</span> — 
+            remove the directory entry specified by <var class="keyword varname">dirfd</var> and <var class="keyword varname">path</var> as a directory, not a normal file</li>
+
+    </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<div class="p">
+The <span class="keyword apiname">unlinkat()</span> function removes a link to a file if:
+
+<ul class="ul">
+<li class="li">The given path names a symbolic link; the removal doesn't affect the 
+  target file or directory.</li>
+
+
+<li class="li">The given path doesn't name a symbolic link; after doing the removal,
+  <span class="keyword apiname">unlinkat()</span> decrements the link count of the target file.
+
+  <p class="p">
+  If the link count of the file becomes zero, and no process has the file open,
+  then the space that the file occupies is freed, and no one can access the file anymore.
+  </p>
+
+
+  <p class="p">
+  If one or more processes have the file open when the last link is removed, the link is removed,
+  but the removal of the file is delayed until all references to it have been closed.
+  </p>
+
+</li>
+
+</ul>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+To remove a directory, call
+<a class="xref" href="../r/rmdir.html" title="Delete an empty directory"><span class="keyword apiname">rmdir()</span></a>
+or
+<a class="xref" href="../r/remove.html" title="Remove a link to a file"><span class="keyword apiname">remove()</span></a>.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">The operation succeeded.</dd>
+
+
+
+
+<dt class="dt dlterm">Nonzero</dt>
+
+<dd class="dd">The operation failed (<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EACCES</span></dt>
+
+<dd class="dd">One of the following is true:
+  <ul class="ul">
+    <li class="li">Search permission is denied on a component of the path prefix.</li>
+
+    <li class="li">Write permission is denied for the parent directory of the symbolic link to be removed.</li>
+
+    <li class="li">
+        You don't have permission to search the directory underlying <var class="keyword varname">dirfd</var>.</li>
+
+    <li class="li">The <span class="keyword const">S_ISVTX</span> flag is set on the directory containing the file referred to by <var class="keyword varname">path</var>
+      and the process does not satisfy the directory protection criteria.
+      To learn about these criteria, see the <a class="xref" href="../c/chmod.html" title="Change the permissions for a file"><span class="keyword apiname">chmod()</span></a> reference.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+<dd class="dd">The <var class="keyword varname">path</var> argument does not specify an absolute path and the <var class="keyword varname">dirfd</var> argument is
+  neither <span class="keyword const">AT_FDCWD</span> nor a valid file descriptor open for reading.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EBUSY</span></dt>
+
+<dd class="dd">The file named by <var class="keyword varname">path</var> cannot be unlinked
+  because it's being used by the system or another process
+  and the target filesystem or resource manager considers this to be an error.
+  Or, the <var class="keyword varname">path</var> argument refers to a named STREAM file.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EEXIST</span></dt>
+
+<dd class="dd">The <span class="keyword const">AT_REMOVEDIR</span> bit is set in <var class="keyword varname">flag</var>
+  and <var class="keyword varname">path</var> names a directory that is not empty, 
+  or there are hard links to the directory other than dot or a single entry in dot-dot.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">An invalid value was specified for <var class="keyword varname">flag</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ELOOP</span></dt>
+
+<dd class="dd">During resolution of the <var class="keyword varname">path</var> argument, a loop was found in the symbolic links
+  or more than <span class="keyword const">SYMLOOP_MAX</span> symbolic links were encountered.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENAMETOOLONG</span></dt>
+
+<dd class="dd">The length of the <var class="keyword varname">path</var> string exceeds <span class="keyword const">PATH_MAX</span>,
+  or the resolution of a symbolic link within <var class="keyword varname">path</var> produced a result longer than <span class="keyword const">PATH_MAX</span>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOENT</span></dt>
+
+<dd class="dd">The named file doesn't exist, or <var class="keyword varname">path</var> is an empty string.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENONEMPTY</span></dt>
+
+<dd class="dd">The <span class="keyword const">AT_REMOVEDIR</span> bit is set in <var class="keyword varname">flag</var>
+  and <var class="keyword varname">path</var> names a directory that is not empty, 
+  or there are hard links to the directory other than dot or a single entry in dot-dot.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOSYS</span></dt>
+
+<dd class="dd">The <span class="keyword apiname">unlinkat()</span> function isn't implemented for the filesystem underlying
+  the specified path.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOTDIR</span></dt>
+
+<dd class="dd">One of the following is true:
+  <ul class="ul">
+    <li class="li">A component of the path prefix names an existing file that is neither a directory nor a symbolic link to one.</li>
+
+    <li class="li">The <var class="keyword varname">pathname</var> argument contains at least one non-slash character, ends with at least one slash character 
+        (<tt class="ph tt">/</tt>), and the last component names an existing file that is neither a directory nor a symbolic link to one.</li>
+
+    <li class="li">The <span class="keyword const">AT_REMOVEDIR</span> bit is set in <var class="keyword varname">flag</var> and <var class="keyword varname">path</var> doesn't name a directory.</li>
+
+    <li class="li">The file descriptor in <var class="keyword varname">dirfd</var> was created without <span class="keyword const">O_DIRECTORY</span> set.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The file named by <var class="keyword varname">path</var> is a directory, 
+  and either the calling process doesn't have the appropriate privileges
+  or the target filesystem or resource manager prohibits using <span class="keyword apiname">unlinkat()</span> on directories.
+  Or, the <span class="keyword const">S_ISVTX</span> flag is set on the directory containing the file named by <var class="keyword varname">path</var> 
+  and the process does not satisfy the directory protection criteria.
+  To learn about these criteria, see the <a class="xref" href="../c/chmod.html" title="Change the permissions for a file"><span class="keyword apiname">chmod()</span></a> reference.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EROFS</span></dt>
+
+<dd class="dd">The directory entry to be unlinked resides on a read-only filesystem.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ETXTBSY</span></dt>
+
+<dd class="dd">The entry to be unlinked is the last directory entry to a pure procedure (shared text) file that's currently being executed.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 2008</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d358048e616">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d358048e618"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e616 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e618 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e616 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e618 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e616 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d358048e618 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-u.html">U</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/e/errno.html" title="Thread-local error variable">errno</a></li>
+<li class="linklist"><a class="link" href="../../topic/l/linkat.html" title="Create a link to an existing file located at a given path">linkat()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pathmgr_unlink.html" title="Remove a link">pathmgr_unlink()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/remove.html" title="Remove a link to a file">remove()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/rmdir.html" title="Delete an empty directory">rmdir()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/symlinkat.html" title="Create a symbolic link to a path, at a given location">symlinkat()</a></li>
+<li class="linklist"><a class="link" href="../../topic/u/unlink.html" title="Remove a link to a file">unlink()</a></li></ul></div>
+</div></body>
+</html>

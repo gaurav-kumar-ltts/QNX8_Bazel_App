@@ -1,0 +1,710 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="TimerInfo(), TimerInfo_r()" />
+<meta name="abstract" content="Get information about a timer" />
+<meta name="description" content="Get information about a timer" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/timing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_getexpstatus.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_getoverrun.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_gettime.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timercreate.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timerinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>TimerInfo(), TimerInfo_r()</title>
+</head>
+<body id="timerinfo">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">TimerInfo()</span>, <span class="keyword apiname">TimerInfo_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get information about a timer</em></p>
+
+
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int TimerInfo( pid_t <var class="keyword varname">pid</var>,
+               timer_t <var class="keyword varname">id</var>,
+               int <var class="keyword varname">flags</var>,
+               struct _timer_info* <var class="keyword varname">info</var> );
+
+int TimerInfo_r( pid_t <var class="keyword varname">pid</var>,
+                 timer_t <var class="keyword varname">id</var>,
+                 int <var class="keyword varname">flags</var>,
+                 struct _timer_info* <var class="keyword varname">info</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+<dd class="dd">The process ID that you're requesting the timer information for.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+
+<dd class="dd">The ID of the timer, as returned by
+  <a class="xref" href="timercreate.html" title="Create a timer for a process"><span class="keyword apiname">TimerCreate()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Supported flags are:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">_NTO_TIMER_RESET_OVERRUNS</span>
+    — reset the timer's overrun count to zero.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_TIMER_SEARCH</span>
+    — if this flag is specified and the timer ID doesn't exist,
+    return information on the <em class="ph i">next</em> timer ID.  
+    This provides a mechanism to discover all of the timers in the process.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_TI_REPORT_TOLERANCE</span> — store the timer tolerance in the
+    <var class="keyword varname">otime.interval_nsec</var> member of the <span class="keyword dtype">_timer_info</span> structure.
+    
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">info</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">_timer_info</span> structure where the function
+  can store the information about the specified timer.
+  For more details, see
+  <q class="q"><a class="xref" href="#timerinfo__TimerInfo"><span class="keyword dtype">struct _timer_info</span></a>,</q>
+  below.
+
+  <p class="p">
+  You can pass <span class="keyword const">NULL</span> for this argument if the only bit set
+  in <var class="keyword varname">flags</var> is <span class="keyword const">_NTO_TIMER_RESET_OVERRUNS</span>.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+These kernel calls get information about a previously 
+created timer specified by <var class="keyword varname">id</var>, and store the information in the buffer
+pointed to by <var class="keyword varname">info</var>. 
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">TimerInfo()</span> and <span class="keyword apiname">TimerInfo_r()</span>
+functions are identical except in the way they indicate errors.
+See the <a class="xref" href="#timerinfo__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">Instead of using these kernel calls directly, consider calling
+  <a class="xref" href="timer_getexpstatus.html" title="Get the expiry status of a timer"><span class="keyword apiname">timer_getexpstatus()</span></a>,
+  <a class="xref" href="timer_getoverrun.html" title="Return the number of timer overruns"><span class="keyword apiname">timer_getoverrun()</span></a>,
+  or
+  <a class="xref" href="timer_gettime.html" title="Get the amount of time left on a timer"><span class="keyword apiname">timer_gettime()</span></a>.
+</li>
+
+
+<li class="li">In order to get timer information about a process belonging to a different user <em class="ph i">and</em>
+  simultaneously use the <span class="keyword const">_NTO_TIMER_RESET_OVERRUNS</span> flag,
+  your process must have the <span class="keyword const">PROCMGR_AID_TIMER</span> ability enabled.
+  In order to request information about another process,
+  your process must have the <span class="keyword const">PROCMGR_AID_XPROCESS_QUERY</span> ability enabled.
+  For more information, see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+  
+  
+</li>
+
+  
+<li class="li">There's no generic way to query when a timer was activated. However, you can determine the
+            activation time by reading the timer information after activation (<a class="xref" href="timersettime.html" title="Arm a timer with the given expiration time, disarm it, or set its tolerance"><span class="keyword apiname">TimerSettime()</span></a> activates the
+            timer) but before the first time the timer is fired, and then subtract the known initial
+            interval (that is, for <span class="keyword apiname">TimerSettime()</span>, the value of <span class="keyword dtype">struct
+              _itimer</span>
+            <var class="keyword varname">nsec</var>). </li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p" id="timerinfo__TimerInfo"><strong class="ph b"><span class="keyword dtype">struct _timer_info</span></strong></p>
+
+
+<p class="p">
+
+The <span class="keyword dtype">_timer_info</span> structure pointed to by <var class="keyword varname">info</var>
+contains at least these members:
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword dtype">uint32_t</span> <var class="keyword varname">flags</var></dt>
+
+<dd class="dd">One or more of these bit flags:
+    
+  <dl class="dl compact">
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_ABSOLUTE</span></dt>
+
+  <dd class="dd">The timer is waiting for an absolute time to occur; otherwise, the timer is relative.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_ACTIVE</span></dt>
+
+  <dd class="dd">The timer is active.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_EXPIRED</span></dt>
+
+  <dd class="dd">The timer has expired.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_HIGH_RESOLUTION</span></dt>
+
+  <dd class="dd">The tolerance is greater than 0 and less than one tick.
+                      
+                </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_PRECISE</span></dt>
+
+  <dd class="dd">The timer is precise, and excludes any default tolerance that was set for
+    the process (see
+    <a class="xref" href="../p/procmgr_timer_tolerance.html" title="Get or set the default timer tolerance for a process"><span class="keyword apiname">procmgr_timer_tolerance()</span></a>).
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_PROCESS_TOLERANT</span></dt>
+
+  <dd class="dd">The timer is using the process's default tolerance.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_TARGET_PROCESS</span></dt>
+
+  <dd class="dd">The timer targets the process, not a specific thread.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_TOD_BASED</span></dt>
+
+  <dd class="dd">The timer the timer is based relative to the beginning of the Epoch (January 1, 1970, 00:00:00 GMT);
+    otherwise, it's relative to the time that <span class="keyword">QNX OS</span> was started on the machine
+    (see the system page <var class="keyword varname">qtime</var> <var class="keyword varname">boot_time</var> member).
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">_NTO_TI_TOLERANT</span></dt>
+
+  <dd class="dd">The timer has a nonzero tolerance (which could be the process's default tolerance).
+    
+  </dd>
+
+  
+
+  
+
+  </dl>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int32_t</span> <var class="keyword varname">tid</var></dt>
+
+<dd class="dd">The thread to which the timer is directed (0 if it's directed to the process).</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int32_t</span> <var class="keyword varname">notify</var></dt>
+
+<dd class="dd">The bottom 16 bits are the value of <var class="keyword varname">sigev_notify</var> for the associated
+  <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>.
+  The other bits are used internally.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">clockid_t</span> <var class="keyword varname">clockid</var></dt>
+
+<dd class="dd">The type of clock used.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">uint32_t</span> <var class="keyword varname">overruns</var></dt>
+
+<dd class="dd">The number of overruns.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">struct sigevent</span> <var class="keyword varname">event</var></dt>
+
+<dd class="dd">The event dispatched when the timer expires.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">struct _itimer</span> <var class="keyword varname">itime</var></dt>
+
+<dd class="dd"><div class="p">A <span class="keyword dtype">struct _itimer</span> with the following fields:<dl class="dl">
+                
+                  <dt class="dt dlterm"><span class="keyword dtype">uint64_t</span>
+                    <var class="keyword varname">nsec</var></dt>
+
+                  <dd class="dd">When the timer is next scheduled to fire.</dd>
+
+                
+                
+                  <dt class="dt dlterm"><span class="keyword dtype">uint64_t</span>
+                    <var class="keyword varname">interval_nsec</var></dt>
+
+                  <dd class="dd">The timer's interval.</dd>
+
+                
+              </dl>
+</div>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">struct _itimer</span> <var class="keyword varname">otime</var></dt>
+
+<dd class="dd">The time remaining before the timer expires.
+  If you specified <span class="keyword const">_NTO_TI_REPORT_TOLERANCE</span> in the <var class="keyword varname">flags</var> argument,
+  <var class="keyword varname">otime.interval_nsec</var> is set to the timer tolerance.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+For more information, see the description of
+<a class="xref" href="timercreate.html" title="Create a timer for a process"><span class="keyword apiname">TimerCreate()</span></a>.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+These calls don't block.
+</p>
+
+</div>
+
+
+
+<div class="section" id="timerinfo__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The ID of the timer that the information is for.
+If an error occurs:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">TimerInfo()</span> returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.
+</li>
+
+
+<li class="li"><span class="keyword apiname">TimerInfo_r()</span> returns the negative of a value from the Errors section and
+  <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>.
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The timer specified by <var class="keyword varname">id</var> doesn't exist.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">The process specified by <var class="keyword varname">pid</var> doesn't exist.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">
+This program creates a timer and then gets information about it.
+The arguments are the timer's tolerance, the process's default tolerance, and a flag that indicates whether or not to
+use the process's default tolerance.
+For more information, see
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing_tolerance.html">Tolerant and high-resolution timers</a></q> in the
+<q class="q">Understanding the Microkernel's Concept of Time</q>
+chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdint.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/procmgr.h&gt;
+
+int main (int argc, char **argv)
+{
+        struct sigevent event;
+        timer_t timerId;
+        int tolerance = 0;
+        struct itimerspec newTimerTolerance, newTimerSpec;
+        int rc;
+        struct _timer_info tinfo;
+        struct _clockperiod period;
+        int precise = 0, not_used = 0;
+        uint64_t p_tolerance = 0;
+
+        if (argc &gt; 1) {
+          tolerance = atoi (argv[1]);
+        }
+
+        if (argc &gt; 2) {
+          p_tolerance = atoi (argv[2]);
+        }
+
+        if (argc &gt; 3) {
+          precise = atoi (argv[3]);
+        }
+
+        // Set the process's default tolerance if it's nonzero.
+        if (p_tolerance != 0) {
+           rc = procmgr_timer_tolerance ( 0, &amp;p_tolerance, NULL);
+           if (rc == -1)
+           {
+              perror ("procmgr_timer_tolerance");
+              return EXIT_FAILURE;
+           }
+        }
+
+        event.sigev_notify = SIGEV_SIGNAL;
+        event.sigev_signo = SIGUSR1;
+
+        // Create a timer.
+        rc = timer_create(CLOCK_MONOTONIC, &amp;event, &amp;timerId);
+        if (rc == -1)
+        {
+          perror ("timer_create()");
+          return EXIT_FAILURE;
+        }
+
+        // Set the tolerance on the timer first because
+        // setting the time activates the timer.
+        memset(&amp;newTimerTolerance, 0, sizeof(newTimerTolerance));
+        newTimerTolerance.it_value.tv_sec = 0;
+        newTimerTolerance.it_value.tv_nsec = tolerance;
+        newTimerTolerance.it_interval.tv_sec  = 0;
+        newTimerTolerance.it_interval.tv_nsec = 0;
+        rc = timer_settime(timerId, TIMER_TOLERANCE, &amp;newTimerTolerance, NULL);
+        if (rc == -1)
+        {
+          perror ("timer_settime() tolerance");
+          return EXIT_FAILURE;
+        }
+
+        memset(&amp;newTimerSpec, 0, sizeof(newTimerSpec));
+        newTimerSpec.it_value.tv_sec =  5;
+        newTimerSpec.it_value.tv_nsec = 5000;
+        newTimerSpec.it_interval.tv_sec  = 0;
+        newTimerSpec.it_interval.tv_nsec = 0;
+        rc = timer_settime(timerId, precise ? TIMER_PRECISE : 0, &amp;newTimerSpec, NULL);
+        if (rc == -1)
+        {
+          perror ("timer_settime() time");
+          return EXIT_FAILURE;
+        }
+
+        // Get the clock period.
+        rc = ClockPeriod (CLOCK_MONOTONIC, NULL, &amp;period, not_used);
+        if (rc == -1)
+        {
+          perror ("ClockPeriod()");
+          return EXIT_FAILURE;
+        }
+        printf ("Clock period: %d ns\n\n", period.nsec);
+
+        // Get information about the timer.
+        memset(&amp;tinfo, 0, sizeof(struct _timer_info));
+        rc = TimerInfo ( getpid(), timerId, _NTO_TI_REPORT_TOLERANCE, &amp;tinfo);
+        if (rc == -1)
+        {
+          perror ("TimerInfo()");
+          return EXIT_FAILURE;
+        }
+
+        printf ("Timer information:\n");
+        printf ("   Thread ID: %d\n", tinfo.tid);
+
+        switch (tinfo.clockid) {
+        case CLOCK_MONOTONIC:
+          printf ("   CLOCK_MONOTONIC\n");
+          break;
+
+        case CLOCK_REALTIME:
+          printf ("   CLOCK_REALTIME\n");
+          break;
+
+        case CLOCK_SOFTTIME:
+          printf ("   CLOCK_SOFTTIME\n");
+          break;
+
+        }
+        printf ("   Overruns: %d\n", tinfo.overruns);
+        printf ("   Start time: %ld ns; interval: %ld ns\n", tinfo.itime.nsec,
+                tinfo.itime.interval_nsec);
+        printf ("   Remaining : %ld ns\n", tinfo.otime.nsec);
+
+        if (tinfo.flags &amp;_NTO_TI_ABSOLUTE) {
+          printf ("   ABSOLUTE\n");
+        } else {
+          printf ("   Relative\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_ACTIVE) {
+          printf ("   ACTIVE\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_EXPIRED) {
+          printf ("   EXPIRED\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_PRECISE) {
+          printf ("   PRECISE\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_PROCESS_TOLERANT) {
+          printf ("   PROCESS_TOLERANT: %ld ns.\n", p_tolerance);
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_TARGET_PROCESS) {
+          printf ("   TARGET_PROCESS\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_TOD_BASED) {
+          printf ("   TOD_BASED\n");
+        }
+
+        if (tinfo.flags &amp;_NTO_TI_TOLERANT) {
+           printf ("   TOLERANT");
+           tolerance = tinfo.otime.interval_nsec;
+           if ((tolerance &gt; 0) &amp;&amp; (tolerance &lt; period.nsec)) {
+              printf (" (high-resolution): %d ns.\n", tolerance);
+           } else {
+              printf (": %d ns.\n", tolerance);
+           }
+
+        }
+
+        return EXIT_SUCCESS;
+}
+</pre>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d188920e847">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d188920e849"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e847 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e849 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e847 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e849 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e847 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d188920e849 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigevent.html" title="Structure that describes an event">sigevent</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_getexpstatus.html" title="Get the expiry status of a timer">timer_getexpstatus()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_getoverrun.html" title="Return the number of timer overruns">timer_getoverrun()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_gettime.html" title="Get the amount of time left on a timer">timer_gettime()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timercreate.html" title="Create a timer for a process">TimerCreate(), TimerCreate_r()</a></li></ul></div>
+</div></body>
+</html>

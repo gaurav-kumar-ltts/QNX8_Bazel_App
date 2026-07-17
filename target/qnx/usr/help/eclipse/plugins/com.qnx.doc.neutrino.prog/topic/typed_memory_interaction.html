@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Interaction with other POSIX APIs" />
+<meta name="abstract" content="Typed memory can interact with other POSIX APIs." />
+<meta name="description" content="Typed memory can interact with other POSIX APIs." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/typed_memory_overview.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/proc_memmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_mem_offset.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_create_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_revoke.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Interaction" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Interaction with other POSIX APIs</title>
+</head>
+<body id="Interaction">
+
+<h1 class="title topictitle1" id="ariaid-title1">Interaction with other POSIX APIs</h1>
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Typed memory can interact with other POSIX APIs.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">rlimits</span></dt>
+
+<dd class="dd">The POSIX
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/setrlimit.html"><span class="keyword apiname">setrlimit()</span></a>
+  APIs provide the ability to set limits
+  on the virtual and physical memory that a process can consume.
+  Since typed memory operations may operate on normal RAM
+  (<span class="ph codeph">sysram</span>) and will create mappings in the process's address
+  space, they need to be taken into account when doing the <span class="ph codeph">rlimit</span>
+  accounting. In particular, the following rules apply:
+  
+
+  <ul class="ul">
+  <li class="li">Any mapping created by
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+    for typed memory objects is counted in the process's
+    <span class="keyword const">RLIMIT_VMEM</span> or <span class="keyword const">RLIMIT_AS</span> limit.
+    
+    
+  </li>
+
+
+  <li class="li">Typed memory never counts against <span class="keyword const">RLIMIT_DATA</span>.
+    
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">POSIX file-descriptor functions</dt>
+
+<dd class="dd">You can use the file descriptor that <span class="keyword apiname">posix_typed_memory_open()</span>
+  returns with selected POSIX fd-based calls, as follows:
+  
+
+  <ul class="ul">
+  <li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fstat.html"><span class="keyword apiname">fstat(fd,..)</span></a>,
+    which fills in the
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword dtype">stat</span></a>
+    structure as it does for a shared memory object.
+    The <var class="keyword varname">st_size</var> field holds the size of the typed memory object.
+    In earlier releases, it was used internally by the OS.
+    
+    
+  </li>
+
+
+  <li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close(fd)</span></a>
+    closes the file descriptor.
+    
+  </li>
+
+
+  <li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a>
+    and
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup2.html"><span class="keyword apiname">dup2()</span></a>
+    duplicate the file handle.
+    
+    
+  </li>
+
+
+  <li class="li"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_mem_offset.html"><span class="keyword apiname">posix_mem_offset()</span></a>
+    behaves as documented in the POSIX specification.
+    
+  </li>
+
+
+  </ul>
+
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/typed_memory_overview.html" title="Your system's startup program can reserve memory pools to be used for special purposes, such as graphics. These pools are separate from SYSRAM.">Typed memory</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/proc_memmgr.html">Memory management (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap(), mmap64(), mmap_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_mem_offset.html">posix_mem_offset()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html">posix_typed_mem_get_info()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html">posix_typed_mem_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_create_handle.html">shm_create_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html">shm_ctl(), shm_ctl_special()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open_handle.html">shm_open_handle()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html">shm_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_revoke.html">shm_revoke()</a></li></ul></div>
+</div></body>
+</html>

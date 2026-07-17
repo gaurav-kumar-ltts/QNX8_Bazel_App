@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="hook_postconfigure()" />
+<meta name="abstract" content="This is invoked after configure has been successfully run. Usually you don't need to define this function, but sometimes you just can't quite convince configure to do the right thing, so you can put some hacks in here to fix things appropriately." />
+<meta name="description" content="This is invoked after configure has been successfully run. Usually you don't need to define this function, but sometimes you just can't quite convince configure to do the right thing, so you can put some hacks in here to fix things appropriately." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_GNU_configure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/make.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="hook_postconfigure" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>hook_postconfigure()</title>
+</head>
+<body id="hook_postconfigure">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">hook_postconfigure()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+This is invoked after <span class="keyword cmdname">configure</span> has been successfully run.
+Usually you don't need to define this function, but sometimes you
+just can't quite convince <span class="keyword cmdname">configure</span> to do the right thing, so you
+can put some hacks in here to fix things appropriately.
+</p>
+
+
+<div class="p">
+
+
+For example, again from GCC:
+
+<pre class="pre codeblock">function hook_postconfigure {
+    echo "s/^GCC_CFLAGS *=/&amp;-I\$\(QNX_TARGET\)\/usr\/include /"  &gt;/tmp/fix.$$
+    if [ ${SYSNAME} == nto ]; then
+        echo "s/OLDCC = cc/OLDCC = .\/xgcc -B.\/ -I \$\(QNX_TARGET\)\/usr\/include/" &gt;&gt;/tmp/fix.$$
+        echo "/^INCLUDES = /s/\$/ -I\$\(QNX_TARGET\)\/usr\/include/" &gt;&gt;/tmp/fix.$$
+        if [ ${target} == ntosh ]; then
+            # We've set up GCC to support both big and little endian, but
+            # we only actually support little endian right now. This will
+            # cause the configures for the target libraries to fail, since
+            # it will test the compiler by attempting a big endian compile
+            # which won't link due to a missing libc &amp; crt?.o files.
+            # Hack things by forcing compiles/links to always be little endian
+            sed -e "s/^CFLAGS_FOR_TARGET *=/&amp;-ml /"  &lt;Makefile &gt;1.$$
+            mv 1.$$ Makefile
+        fi
+    else
+        # Only need to build libstdc++ &amp; friends on one host
+        rm -Rf ${target}
+
+        echo "s/OLDCC = cc/OLDCC = .\/xgcc -B.\//" &gt;&gt;/tmp/fix.$$
+    fi
+    cd gcc
+    sed -f/tmp/fix.$$ &lt;Makefile &gt;1.$$
+    mv 1.$$ Makefile
+    cd ..
+    rm /tmp/fix.$$
+}
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/make_convent_GNU_configure.html" title="The addvariant utility knows how to work with code that uses a GNU ./configure script for configuration.">GNU configure</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html">addvariant</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/make.html">make</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling directories" />
+<meta name="abstract" content="The example we used above was that of a serial port resource manager. We also stated an assumption: “Let's assume for now that we need an exact match.” The assumption is only half-true—all the pathname matching we'll be talking about in this chapter has to completely match a component of the pathname, but may not have to match the entire pathname. We'll clear this up shortly." />
+<meta name="description" content="The example we used above was that of a serial port resource manager. We also stated an assumption: “Let's assume for now that we need an exact match.” The assumption is only half-true—all the pathname matching we'll be talking about in this chapter has to completely match a component of the pathname, but may not have to match the entire pathname. We'll clear this up shortly." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Handling_directories" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling directories</title>
+</head>
+<body id="Handling_directories">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling directories</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The example we used above was that of a serial port resource manager.
+We also stated an assumption: <q class="q">Let's assume for now that we need an exact match.</q>
+The assumption is only half-true—all the pathname matching
+we'll be talking about in this chapter has to <em class="ph i">completely</em> match
+a <em class="ph i">component</em> of the pathname, but may not have to match the
+<em class="ph i">entire</em> pathname.
+We'll clear this up shortly.
+</p>
+
+
+<div class="p">
+
+Suppose I had code that does this:
+
+<pre class="pre codeblock">fp = fopen ("/etc/passwd", "r");
+</pre>
+</div>
+
+
+<p class="p">Recall that <span class="keyword apiname">fopen()</span> eventually calls <span class="keyword apiname">open()</span>, so we have
+        <span class="keyword apiname">open()</span> asking about the pathname <span class="ph filepath">/etc/passwd</span>. But
+      there isn't one in the diagram: 
+      
+      
+    </p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span><span class="keyword">QNX OS</span>'s namespace.</span>
+
+<br /><img class="image" src="../images/rm1.svg" width="672" alt="Process Manager maintained tree structure." /><br />
+</div>
+
+
+<p class="p">We do notice, however, that <span class="keyword cmdname">fs-qnx6</span> has registered its association of PID/CHID
+      at the pathname <q class="q"><span class="ph filepath">/</span>.</q> Although it's not shown on the diagram,
+        <span class="keyword cmdname">fs-qnx6</span> registered itself as a <em class="ph i">directory resource manager</em>—it
+      told the process manager that it'll be responsible for <q class="q"><span class="ph filepath">/</span></q>
+      <em class="ph i">and below</em>. This is something that the other, <q class="q">device</q> resource managers (e.g., the
+      serial port resource manager) didn't do. By setting the <q class="q">directory</q> flag,
+        <span class="keyword cmdname">fs-qnx6</span> is able to handle the request for
+          <q class="q"><span class="ph filepath">/etc/passwd</span></q> because the first part of the request is
+          <q class="q"><span class="ph filepath">/</span></q>—a matching component! </p>
+
+
+<div class="p">What if we tried to do the following?
+
+<pre class="pre codeblock">fd = open ("/dev/ser1/9600.8.1.n", O_WRONLY);
+</pre>
+</div>
+
+
+<p class="p">Well, since the serial port resource manager doesn't have the directory flag set, the process
+      manager will look at it and say <q class="q">Nope, sorry, the pathname <span class="ph filepath">/dev/ser1</span> is
+        not a directory. I'm not going to return this resource manager for this request. </q> The
+      process manager will then fall back to a shorter pathname, and it will be handled the same as
+          <q class="q"><span class="ph filepath">/etc/passwd</span></q>, above. But, importantly, the serial port resource
+      manager won't have to deal with it. </p>
+
+
+<div class="note"><span class="notetitle">Note:</span>  Obviously, as hinted at in my choice of parameters for the <span class="keyword apiname">open()</span> call
+      above, it <em class="ph i">may</em> be a clever idea to allow some <q class="q">traditional</q> drivers to be opened
+      with additional parameters past the <q class="q">usual</q> name. However, the rule of thumb here is,
+        <q class="q">If you can get away with it in a design review meeting, knock yourself
+        out.</q>
+    </div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Client_view.html" title="We've already seen a hint of what the client expects. It expects a file-descriptor-based interface, using standard POSIX functions.">The client's view</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,39 @@
+#if defined(OPT_IO_SOCK_DIAG_yes)
+lib/dll/devs-cgem-diag.so=lib/dll/devs-cgem-diag.so
+#else
+lib/dll/devs-cgem.so=lib/dll/devs-cgem.so
+#endif
+
+lib/dll/devs-axe.so=lib/dll/devs-axe.so
+lib/dll/devs-axge.so=lib/dll/devs-axge.so
+lib/dll/devs-cdce.so=lib/dll/devs-cdce.so
+lib/dll/devs-smsc.so=lib/dll/devs-smsc.so
+
+bin/mbox-bcm=bin/mbox-bcm
+bin/fan-rpi5=sbin/fan-rpi5
+bin/i2c-dwc-rpi5=sbin/i2c-dwc-rpi5
+
+#if defined(OPT_USB_yes)
+lib/dll/devu-hcd-dwc3-xhci.so=lib/dll/devu-hcd-dwc3-xhci.so
+#endif
+
+[perms=0555] bin/fan_start.sh = {
+#!/bin/sh
+
+echo "Starting fan control driver"
+# gpio 45 is configured as PWM1_CHAN3 to drive fan
+gpio-rp1 set 45 a0 pd
+fan-rpi5
+waitfor /dev/fan
+echo 200 > /dev/fan
+}
+
+[perms=0555] bin/i2c_start.sh = {
+#!/bin/sh
+
+echo "Starting I2C driver"
+gpio-rp1 set 2 a3 pu
+gpio-rp1 set 3 a3 pu
+i2c-dwc-rpi5 -p0x1f00074000 -c200000000 -q0xa8 --u1
+
+}

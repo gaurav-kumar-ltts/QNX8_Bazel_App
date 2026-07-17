@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The info member" />
+<meta name="abstract" content="The startup_header structure's info member is an array of startup_info* structures that provide a communications area between the IPL and the startup code." />
+<meta name="description" content="The startup_header structure's info member is an array of startup_info* structures that provide a communications area between the IPL and the startup code." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_info" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>The info member</title>
+</head>
+<body id="ipl_info">
+
+	<h1 class="title topictitle1" id="ariaid-title1">The <var class="keyword varname">info</var> member</h1>
+
+	
+	
+	<div class="body conbody ignore"><p class="shortdesc">The <span class="keyword dtype">startup_header</span> structure's <var class="keyword varname">info</var> member is an
+		array of <span class="keyword dtype">startup_info*</span> structures that provide a communications area between
+		the IPL and the startup code.</p>
+
+		<div class="section">
+			
+			
+			<p class="p">When the IPL code detects system features (e.g., amount of memory installed, current
+				time, information about the bus used on the system, etc.), it stores this information in
+				the <var class="keyword varname">info</var> array so that the startup code can retrieve it later.
+				This design saves the startup code from repeating the same detection logic as the IPL.
+				The <span class="keyword dtype">startup_info*</span> structures and enumerated types include:</p>
+
+			<p class="p">
+				<a class="xref" href="#ipl_info__info_hdr"><span class="keyword dtype">startup_info_hdr</span></a>,
+				<a class="xref" href="#ipl_info__info_types"><span class="keyword dtype">startup_info_types</span></a>,
+				<a class="xref" href="#ipl_info__info_skip"><span class="keyword dtype">startup_info_skip</span></a>,
+				<a class="xref" href="#ipl_info__info_mem"><span class="keyword dtype">startup_info_mem</span> and
+					<span class="keyword dtype">startup_info_mem_extended</span></a>,
+				<a class="xref" href="#ipl_info__info_disk"><span class="keyword dtype">startup_info_disk</span></a>,
+				<a class="xref" href="#ipl_info__info_time"><span class="keyword dtype">startup_info_time</span></a>,
+				<a class="xref" href="#ipl_info__info_box"><span class="keyword dtype">startup_info_box</span></a>,
+				<a class="xref" href="#ipl_info__bootargs_entry"><span class="keyword dtype">bootargs_entry</span></a>,
+				<a class="xref" href="#ipl_info__startup_trailer"><span class="keyword dtype">startup_trailer</span></a>
+			</p>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_hdr"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_hdr</span></h2>
+			
+			
+			<div class="p">The <var class="keyword varname">info</var> member is declared as an array of <span class="keyword dtype">_Uint32t</span>
+				fields. This declaration allocates a storage area that contains a set of structures,
+				each beginning with a <span class="keyword dtype">startup_info_hdr</span> header:
+<pre class="pre codeblock">struct startup_info_hdr {
+    _Uint16t        type;
+    _Uint16t        size;
+};
+</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:15%" /><col style="width:15%" /><col style="width:70%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e171">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e174">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e177">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr id="ipl_info__type" class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e171 ">
+								<var class="keyword varname">type</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e174 "><span class="keyword dtype">_Uint16t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e177 ">One of the <span class="keyword dtype">startup_info_types</span> enumerated values
+								(see <q class="q"><a class="xref" href="#ipl_info__info_types">startup_info_types</a></q>
+								below)</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e171 "><var class="keyword varname">size</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e174 "><span class="keyword dtype">_Uint16t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e177 ">Size of the current <span class="keyword dtype">startup_info_*</span> structure, in bytes</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_types"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_types</span></h2>
+			
+			
+<pre class="pre codeblock">enum startup_info_types {
+    STARTUP_INFO_SKIP = 0,	/* If size 0 then end of list */
+    STARTUP_INFO_MEM,
+    STARTUP_INFO_DISK,
+    STARTUP_INFO_TIME,
+    STARTUP_INFO_BOX,
+    STARTUP_INFO_USER = 0x8000	/* User reserved numbers start here */
+};</pre>
+			<div class="p">The <span class="keyword dtype">startup_info_hdr</span> enumerated types include:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="keyword const">STARTUP_INFO_SKIP</span></dt>
+
+					<dd class="dd">Ignore this field. If the corresponding <var class="keyword varname">size</var> member is 0,
+						this is the end of the <var class="keyword varname">info</var> list.
+						
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword const">STARTUP_INFO_MEM</span></dt>
+
+					<dd class="dd">A <span class="keyword dtype">startup_info_mem</span> or <span class="keyword dtype">startup_info_mem_extended</span>
+						structure is present.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword const">STARTUP_INFO_DISK</span></dt>
+
+					<dd class="dd">A <span class="keyword dtype">startup_info_disk</span> structure is present.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword const">STARTUP_INFO_TIME</span></dt>
+
+					<dd class="dd">A <span class="keyword dtype">startup_info_time</span> structure is present.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword const">STARTUP_INFO_BOX</span></dt>
+
+					<dd class="dd">A <span class="keyword dtype">startup_info_box</span> structure is present.</dd>
+
+				
+			</dl>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_skip"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_skip</span></h2>
+			
+			
+			<div class="p">This structure is used to indicate the end of the <var class="keyword varname">info</var> list;
+				it stores no extra information:
+<pre class="pre codeblock">struct startup_info_skip {
+    struct startup_info_hdr hdr;
+};</pre></div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_mem"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_mem</span><span class="keyword const"> and </span>
+				<span class="keyword dtype">startup_info_mem_extended</span></h2>
+			
+			
+			
+			
+			<p class="p">These structures each contain an address and size pair defining a chunk of memory that
+				should be added to <span class="keyword cmdname">procnto</span>'s free memory pool.</p>
+
+			<div class="p">The <span class="keyword dtype">startup_info_mem</span> structure is defined as follows:
+<pre class="pre codeblock">struct startup_info_mem {
+    struct startup_info_hdr hdr;
+    _Uint32t                addr;
+    _Uint32t                size;
+};
+</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e406">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e409">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e412">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e406 "><span class="keyword dtype">startup_info_hdr</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e409 ">struct</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e412 ">Standard <var class="keyword varname">info</var> array header structure</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e406 "><var class="keyword varname">addr</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e409 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e412 ">Memory block start address</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e406 "><var class="keyword varname">size</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e409 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e412 ">Memory block size, in bytes</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+			<div class="p">The <var class="keyword varname">addr</var> and <var class="keyword varname">size</var> fields are 32 bits long,
+				so memory is limited to 4 GB. For larger memory blocks,
+				the <span class="keyword dtype">startup_info_mem_extended</span> structure is used:
+<pre class="pre codeblock">struct startup_info_mem_extended {
+    struct startup_info_mem mem;
+    _Uint32t            addr_hi;
+    _Uint32t            size_hi;
+};
+</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e494">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e497">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e500">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e494 "><span class="keyword dtype">startup_info_mem</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e497 ">struct</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e500 ">The structure for memory blocks that are less than 4 GB</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e494 "><var class="keyword varname">addr_hi</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e497 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e500 ">High portion of the memory address (see below)</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e494 "><var class="keyword varname">size_hi</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e497 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e500 ">High portion of the memory size (see below)</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+			<div class="p" id="ipl_info__calculate">For the extended structure, you can determine the address and size from
+				the <var class="keyword varname">addr_hi</var> and <var class="keyword varname">size_hi</var> members and the
+				encapsulated <span class="keyword dtype">startup_info_mem</span> structure as follows:
+<pre class="pre codeblock">((paddr64_t) addr_hi &lt;&lt; 32) | mem.addr
+((paddr64_t) size_hi &lt;&lt; 32) | mem.size
+</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				More than one <span class="keyword dtype">startup_info_mem</span> or
+				<span class="keyword dtype">startup_info_mem_extended</span> structure
+				may be present to accommodate systems that have free memory located in various blocks
+				throughout the address space.
+				Both structures are identified by a <var class="keyword varname">type</var> member of
+				<span class="keyword const">STARTUP_INFO_MEM</span> in the <span class="keyword dtype">startup_info_hdr</span> structure;
+				use the <var class="keyword varname">size</var> field in the header to tell them apart.
+			</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_disk"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_disk</span></h2>
+			
+			
+			
+			<div class="p">The <span class="keyword dtype">startup_info_disk</span> structure contains information about any hard disks
+				detected. It is defined as follows:
+<pre class="pre codeblock">struct startup_info_disk {
+    struct startup_info_hdr hdr;
+    _Uint8t                 drive;
+    _Uint8t                 zero;
+    _Uint16t                heads;
+    _Uint16t                cylinders;
+    _Uint16t                sectors;
+    _Uint32t                blocks;
+};
+</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e624">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e627">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e630">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><span class="keyword dtype">startup_info_hdr</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 ">struct</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Standard <var class="keyword varname">info</var> array header structure</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">drive</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Drive number</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">zero</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Reserved; must be zero</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">heads</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint16t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Number of heads present</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">cylinders</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint16t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Number of cylinders present</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">sectors</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint16t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Number of sectors present</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e624 "><var class="keyword varname">blocks</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e627 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e630 ">Total block size of device. Assuming 512 bytes per block, the total size
+								is calculated as <var class="keyword varname">heads</var> ×
+								<var class="keyword varname">cylinders</var> × <var class="keyword varname">sectors</var>.</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_time"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_time</span></h2>
+			
+			
+			<div class="p">The <span class="keyword dtype">startup_info_time</span> structure contains a record of the system's most
+				recent startup time. It is defined as follows:
+<pre class="pre codeblock">struct startup_info_time {
+    struct startup_info_hdr hdr;
+    _Uint32t                time;
+};
+</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e783">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e786">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e789">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e783 "><span class="keyword dtype">startup_info_hdr</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e786 ">struct</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e789 ">Standard <var class="keyword varname">info</var> array header structure</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e783 "><var class="keyword varname">time</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e786 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e789 ">Current time as the number of seconds since 1970 01 01 00:00:00 GMT.</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__info_box"><h2 class="title sectiontitle"><span class="keyword dtype">startup_info_box</span></h2>
+			
+			
+<pre class="pre codeblock">struct startup_info_box {
+    struct startup_info_hdr hdr;
+    _Uint8t                 boxtype;
+    _Uint8t                 bustype;
+    _Uint8t                 spare[2];
+};
+</pre>
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e857">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e860">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e863">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e857 "><span class="keyword dtype">startup_info_hdr</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e860 ">struct</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e863 ">Standard <var class="keyword varname">info</var> array header structure</td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e857 "><var class="keyword varname">boxtype</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e860 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e863 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e857 "><var class="keyword varname">bustype</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e860 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e863 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e857 "><var class="keyword varname">spare[2]</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e860 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e863 ">Reserved, must be zero</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__bootargs_entry"><h2 class="title sectiontitle"><span class="keyword dtype">bootargs_entry</span></h2>
+			
+			
+<pre class="pre codeblock">struct bootargs_entry {
+    _Uint8t     size_lo;    /* Includes entire structure */
+    _Uint8t     size_hi;
+    _Int8t      argc;
+    _Int8t      envc;
+    _Uint32t    shdr_addr;
+    char        args[1];    /* variable length */
+};</pre>
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e957">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e960">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e963">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">size_lo</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">size_hi</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 "><span class="keyword dtype">_Uint8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">argc</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 "><span class="keyword dtype">_Int8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">envc</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 "><span class="keyword dtype">_Int8t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">shdr_addr</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e957 "><var class="keyword varname">args[1]</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e960 ">char</td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e963 "> </td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+		<div class="section" id="ipl_info__startup_trailer"><h2 class="title sectiontitle"><span class="keyword dtype">startup_trailer</span></h2>
+			
+			
+			<div class="p">The <span class="keyword dtype">startup_trailer</span> structure contains a checksum for the
+				<span class="keyword dtype">startup_header</span> structure, calculated from the start of the header to the
+				start of the trailer (this structure). It is defined as follows:
+<pre class="pre codeblock">struct startup_trailer {
+    unsigned long   cksum;
+};</pre></div>
+
+			
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:27%" /><col style="width:15%" /><col style="width:57.99999999999999%" /></colgroup><thead class="thead" style="text-align:left;">
+						<tr class="row">
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e1087">Member</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e1090">Type</th>
+
+							<th class="entry cellrowborder" style="vertical-align:top;" id="d33988e1093">Description</th>
+
+						</tr>
+
+					</thead>
+<tbody class="tbody">
+						<tr class="row">
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e1087 "><var class="keyword varname">cksum</var></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e1090 "><span class="keyword dtype">_Uint32t</span></td>
+
+							<td class="entry cellrowborder" style="vertical-align:top;" headers="d33988e1093 ">Checksum from start of header to start of trailer</td>
+
+						</tr>
+
+					</tbody>
+</table>
+</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

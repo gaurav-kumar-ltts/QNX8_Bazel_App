@@ -1,0 +1,53 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--nfs=[<host>:<export>|no]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    To have a directory exported by a host mounted on a target specify the host
+    name or IP address and the exported directory in the form "<host>:<export>".
+    This will be mounted at /fs/qnx.
+
+    The default is "no" which results in no directory being mounted via NFS.
+EOF
+}
+
+function validate() {
+    exit 0
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_nfs
+    if [ "$OPT_NFS" != no ]; then
+        cat >output/option_files/dhcp.opt_nfs <<EOF
+STARTU_P(fs_nfs3_t,__FS_NFS3_ID__) fs-nfs3 $OPT_NFS /fs/qnx &
+EOF
+        cat >output/option_files/post_start.opt_nfs <<EOF
+. /data/var/etc/settings/network
+if [ \$IP_ADDR != dhcp ]; then
+    STARTU_P(fs_nfs3_t,__FS_NFS3_ID__) fs-nfs3 $OPT_NFS /fs/qnx &
+fi
+EOF
+    fi
+
+    exit 0
+}
+
+case "$1" in
+    brief)
+        brief;;
+    help)
+        help;;
+    validate)
+        validate;;
+    configure)
+        configure;;
+    default)
+        echo no;;
+esac

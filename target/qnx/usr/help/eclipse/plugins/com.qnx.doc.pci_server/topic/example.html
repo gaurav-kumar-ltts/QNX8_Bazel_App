@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Example</title>
+</head>
+<body id="example">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Example</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+This example (partly in pseudocode) looks for all the devices with a given vendor ID,
+and then gets the ID for each device.
+If the driver handles the current device, it gets the associated capabilities and loads them if they're
+of interest, reads the address space information and IRQs, and sets up the mappings.
+</p>
+
+
+<p class="p">
+You could call
+<a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>
+with the specific VID, DID, and CCODE that your driver supports.
+If it supports a family of devices, you should loop while calling
+<span class="keyword apiname">pci_device_find()</span> with each supported DID.
+</p>
+
+
+<pre class="pre codeblock">uint_t idx = 0;
+while ((bdf = pci_device_find(
+               idx, PCI_VID_xxx, PCI_DID_ANY, PCI_CCODE_STORAGE_ATA_ANY)) != PCI_BDF_NONE)
+{
+    pci_did_t did;
+    pci_err_t r = pci_device_read_did(bdf, &amp;did);
+
+    if (r == PCI_ERR_OK)
+    {
+        /* does this driver handle this device ? */
+        if (driver handles this DID)
+        {
+            pci_devhdl_t hdl = pci_device_attach(bdf, pci_attachFlags_EXCLUSIVE_OWNER, &amp;r);
+
+            if (hdl != NULL)
+            {
+                pci_ba_t ba[7];    // the maximum number of entries that can be returned
+                int_t nba = NELEMENTS(ba);
+                pci_irq_t irq[10];    // the maximum number of expected entries based on
+                                      // capabilities
+                int_t nirq = NELEMENTS(irq);
+
+                /* optionally determine the device's capabilities */
+                uint_t capid_idx = 0;
+                pci_capid_t capid;
+
+                /* instead of looping, we could use pci_device_find_capid() to select which
+                   capabilities to use */
+                while ((r = pci_device_read_capid(bdf, &amp;capid, capid_idx)) == PCI_ERR_OK)
+                {
+                    if (capid is supported by driver and is to be used)
+                    {
+                        pci_cap_t cap = NULL;
+                        r = pci_device_read_cap(bdf, &amp;cap, capid_idx);
+                        if (r == PCI_ERR_OK)
+                        {
+                            /* use capability-specific APIs to set any capability-specific
+                               options */
+
+                            /* enable the capability */
+                            r = pci_device_cfg_cap_enable(
+                                   hdl, pci_reqType_e_MANDATORY, cap);
+                        }
+                    }
+                    /* get the next capability ID */
+                    ++capid_idx;
+                }
+
+                /* read the address space information */
+                r = pci_device_read_ba(hdl, &amp;nba, ba, pci_reqType_e_UNSPECIFIED);
+                if ((r == PCI_ERR_OK) &amp;&amp; (nba &gt; 0))
+                {
+                    uint_t i;
+                    for (i=0; i&lt;nba; i++)
+                    {
+                        /* mmap() the address space(s) */
+                    }
+                }
+                /* read the irq information */
+                r = pci_device_read_irq(hdl, &amp;nirq, irq);
+                if ((r == PCI_ERR_OK) &amp;&amp; (nirq &gt; 0))
+                {
+                    uint_t i;
+                    for (i=0; i&lt;nirq; i++)
+                    {
+                        int_t iid = InterruptAttach(irq[i], my_isr, NULL, 0, 0);
+                    }
+                }
+                /*
+                 * Do other driver-specific processing. For example, if the device does DMA
+                 * then translate your allocated memory buffers into addresses suitable for
+                 * access from the PCI address space.
+                 */
+                pci_ba_t buf =
+                {
+                    .addr = &lt;physical address of memory buffer(s)&gt;,
+                    .size = &lt;size of buffer&gt;,
+                    .type = pci_asType_e_MEM, 
+                    .attr = pci_asAttr_e_INBOUND | pci_asAttr_e_CONTIG,
+                };
+                pci_ba_t xlate;
+                r = pci_device_map_as(hdl, &amp;buf, &amp;xlate);
+                if (r == PCI_ERR_OK)
+                {
+                    /* use xlate.addr to program DMA transfers */
+                }
+            }
+            else slog("Couldn't attach to device B%u:D%u:F%u", 
+                       PCI_BUS(bdf), PCI_DEV(bdf), PCI_FUNC(bdf));
+        }
+        else slog("device ID 0x%x not supported", did);
+    }
+    else slog("Couldn't read device ID for B%u:D%u:F%u", 
+               PCI_BUS(bdf), PCI_DEV(bdf), PCI_FUNC(bdf));
+
+    /* get the next device instance */
+    ++idx;
+}
+</pre>
+
+</div>
+
+</body>
+</html>

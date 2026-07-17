@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Debug startup tasks" />
+<meta name="abstract" content="In addition to the debug kernel callouts, the startup code must provide some functions that enable it to output the debug information." />
+<meta name="description" content="In addition to the debug kernel callouts, the startup code must provide some functions that enable it to output the debug information." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startup_other" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Debug startup tasks</title>
+</head>
+<body id="startup_other">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Debug startup tasks</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">In addition to the debug kernel callouts, the startup code must provide some functions that enable it to
+		output the debug information.</p>
+
+		<p class="p">
+			
+			
+		</p>
+
+		<div class="note"><span class="notetitle">Note:</span> For information about the kernel callouts the startup code provides, and instructions on how to modify
+			existing kernel callouts or write your own, see the <a class="xref" href="../callouts/callout_about.html" title="Kernel callouts are standalone pieces of code (or code fragments) that the kernel uses to perform hardware-specific functions. These callouts don't need to be statically linked to the kernel.">Kernel Callouts</a> chapter.</div>
+
+		<div class="p">The functions required to output debug information include:
+		<ul class="ul">
+			<li class="li"><a class="xref" href="../startup_lib/kprintf.html" title="Display output using the put_char() function you provide (x86 only)."><span class="keyword apiname">kprintf()</span></a> functions</li>
+
+			<li class="li">hardware-specific initialization and put functions (i.e., <span class="keyword apiname">init_*()</span>)</li>
+
+		</ul>
+</div>
+
+		<div class="p">These functions don't need to be position-independent, so they can be written in C. Both the startup
+			debug functions and the kernel debug callouts are specified in a structure that is often set up in the
+			startup code’s <span class="keyword apiname">main()</span> function. For example:
+<pre class="pre codeblock">const struct debug_device debug_devices[] = {
+    {   "console",
+        {    "",
+            NULL
+        },
+        init_vga,
+        put_vga,
+        {   &amp;display_char_vga,
+            &amp;poll_key_pckbd,
+        }
+    },
+    {   "8250",
+        {   "0x3f8^0.57600.1843200.16",
+            "0x2f8^0.57600.1843200.16"
+        },
+        init_8250,
+        put_8250,
+        {   &amp;display_char_8250,
+            &amp;poll_key_8250,
+            &amp;break_detect_8250,
+        }
+    },
+};</pre></div>
+
+	</div>
+
+</body>
+</html>

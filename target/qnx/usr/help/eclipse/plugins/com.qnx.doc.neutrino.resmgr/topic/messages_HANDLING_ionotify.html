@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling ionotify(), poll(), and select()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_Sample_IO_NOTIFY.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_ionotify" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling ionotify(), poll(), and select()</title>
+</head>
+<body id="HANDLING_ionotify">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll()</span>, and <span class="keyword apiname">select()</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+A client uses 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html"><span class="keyword apiname">ionotify()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/poll.html"><span class="keyword apiname">poll()</span></a>, and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select.html"><span class="keyword apiname">select()</span></a>
+to ask a resource manager about the status of certain conditions (e.g., whether input data is available).
+The conditions may or may not have been met.
+The resource manager can be asked to:
+</p>
+
+
+<ul class="ul">
+<li class="li">check the status of the conditions immediately, and return if any have been met</li>
+
+<li class="li">deliver an event later on when a condition is met (this is referred to as arming the resource manager)</li>
+
+</ul>
+
+
+<p class="p">
+The <span class="keyword apiname">poll()</span> and <span class="keyword apiname">select()</span> functions differ from <span class="keyword apiname">ionotify()</span>
+in that most of the work is done in the library. 
+For example, the client code would be unaware that any event is involved,
+and unaware of the blocking function that waits for the event.
+This is all hidden in the library code for <span class="keyword apiname">poll()</span> and <span class="keyword apiname">select()</span>.
+</p>
+
+
+<p class="p">
+However, from a resource manager's point of view, there's no difference between
+<span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll()</span>, and <span class="keyword apiname">select()</span>;
+they're handled with the same code.
+For more information on the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html"><span class="keyword apiname">ionotify()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/poll.html"><span class="keyword apiname">poll()</span></a>, and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select.html"><span class="keyword apiname">select()</span></a>
+functions, see the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<div class="p">
+
+Since these three functions require the resource manager to do the same work, 
+they all send the <span class="keyword const">_IO_NOTIFY</span> message to the resource manager.
+The <var class="keyword varname">io_notify</var> handler is responsible for handling this message.
+Let's start by looking at the format of the message itself:
+
+<pre class="pre codeblock">struct _io_notify {
+    uint16_t                    type;
+    uint16_t                    combine_len;
+    int32_t                     action;
+    int32_t                     flags;
+    struct __sigevent32         event;
+
+    /* The fields `mgr` to `timo` are only valid if (flags &amp; _NOTIFY_COND_EXTEN).
+     * The full header must be present regardless of the flags. */
+    int32_t                     mgr[2];    /* For use by manager */
+    int32_t                     flags_extra_mask;
+    int32_t                     flags_exten;
+    int32_t                     nfds;
+    int32_t                     fd_first;
+    int32_t                     nfds_ready;
+    int64_t                     timo;
+    /* struct pollfd            fds[nfds]; */
+};
+
+struct _io_notify_reply {
+    uint32_t                    zero;
+    uint32_t                    flags;   /* actions above */
+    int32_t                     flags2;  /* flags above */
+    struct __sigevent32         event;
+
+    /* Following fields only updated by new managers (if valid) */
+    int32_t                     mgr[2];    /* For use by manager */
+    int32_t                     flags_extra_mask;
+    int32_t                     flags_exten;
+    int32_t                     nfds;
+    int32_t                     fd_first;
+    int32_t                     nfds_ready;
+    int64_t                     timo;
+    /* struct pollfd            fds[nfds]; */
+};
+
+typedef union {
+    struct _io_notify           i;
+    struct _io_notify_reply     o;
+} io_notify_t;
+</pre>
+</div>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+The code samples used in this chapter are not always POSIX-compliant.
+</div>
+
+
+<div class="p">
+
+As with all resource manager messages, 
+we've defined a <span class="keyword dtype">union</span> that contains the input structure (coming into the resource manager)
+and a reply or output structure (going back to the client).
+The <var class="keyword varname">io_notify</var> handler is prototyped with the argument:
+
+<pre class="pre codeblock">io_notify_t *<var class="keyword varname">msg</var>
+</pre>
+</div>
+
+
+<p class="p">
+This argument is a pointer to the union containing the input or output message.
+The following items are found in the input structure, which is
+the <var class="keyword varname">i</var> member (of type <span class="keyword dtype">_io_notify</span>):
+</p>
+
+
+<dl class="dl">
+
+  <dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+  <dd class="dd"><span class="keyword const">_IO_NOTIFY</span></dd>
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">combine_len</var></dt>
+
+  <dd class="dd">Used for combine messages; for details, see the
+    <a class="xref" href="combine.html" title="To conserve bandwidth and to support atomic operations, combine messages are supported. A combine message is constructed by the client's C library and consists of multiple I/O and/or connect messages packaged together into one.">Combine Messages</a> chapter.</dd>
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">action</var></dt>
+
+  <dd class="dd">Used by the
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify.html"><span class="keyword apiname">iofunc_notify()</span></a>
+    helper function to tell it whether it should:
+   <ul class="ul">
+     <li class="li">just check for conditions now </li>
+
+     <li class="li">check for conditions now, and if none are met, arm them</li>
+
+     <li class="li">just arm for transitions</li>
+
+   </ul>
+
+  </dd>
+
+  <dd class="dd ddexpand">Since <span class="keyword apiname">iofunc_notify()</span> looks after this, you don't have to worry about it.</dd>
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+  <dd class="dd">The conditions the client is interested in. This field can be any mixture of the following:
+  
+   <dl class="dl">
+   
+   <dt class="dt dlterm"><span class="keyword const">_NOTIFY_COND_INPUT</span></dt>
+
+   <dd class="dd">This condition is met when there are one or more units of input data available 
+     (i.e., clients can now issue reads). 
+     The number of units defaults to 1, but you can change it. 
+     The definition of a unit is up to you:
+     for a character device such as a serial port, it would be a character;
+     for a POSIX message queue, it would be a message. 
+     Each resource manager selects an appropriate object.
+     
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><span class="keyword const">_NOTIFY_COND_OUTPUT</span></dt>
+
+   <dd class="dd">This condition is met when there's room in the output buffer 
+     for one or more units of data (i.e., clients can now issue writes).
+     The number of units defaults to 1, but you can change it.
+     The definition of a unit is up to you—some resource managers may default to an empty output buffer, 
+     while others may choose some percentage of the buffer empty.
+     
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><span class="keyword const">_NOTIFY_COND_OBAND</span></dt>
+
+   <dd class="dd">The condition is met when one or more units of out-of-band data are available. 
+     The number of units defaults to 1, but you can change it.
+     The definition of out-of-band data is specific to the resource manager.
+     
+     
+     
+   </dd>
+
+   
+   
+   
+   <dt class="dt dlterm"><span class="keyword const">_NOTIFY_COND_EXTEN</span></dt>
+
+   <dd class="dd">The conditions are defined with some extended flags; used internally.
+   
+   
+   </dd>
+
+   
+   </dl>
+
+  </dd>
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">event</var></dt>
+
+  <dd class="dd">The <span class="keyword dtype">sigevent</span> that the resource manager delivers once a condition is met.</dd>
+
+
+</dl>
+
+
+<p class="p">
+A resource manager needs to keep a list of clients that want to be notified as conditions are met,
+along with the events to use to do the notifying.
+When a condition is met, 
+the resource manager must traverse the list to look for clients that are interested in 
+that condition, and then deliver the appropriate event.
+As well, if a client closes its file descriptor, 
+then any notification entries for that client must be removed from the list.
+</p>
+
+
+<p class="p">
+To make all this easier, the following structure and helper functions are provided for you 
+to use in a resource manager:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword dtype">iofunc_notify_t</span> structure</dt>
+
+<dd class="dd">Contains the three notification lists, one for each possible condition.
+  Each is a list of the clients to be notified for that condition.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify.html"><span class="keyword apiname">iofunc_notify()</span></a></dt>
+
+<dd class="dd">Adds or removes notification entries, and polls for conditions.
+  Call this function inside your <var class="keyword varname">io_notify</var> handler function.
+  When adding notification entries, you can provide the number of elements that must be present in
+  the input, output, and out-of-band queues in order for the corresponding events to be triggered
+  (i.e., delivered to the client).
+  These trigger values are also known as <dfn class="term">notification counts</dfn>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify_trigger.html"><span class="keyword apiname">iofunc_notify_trigger()</span>, <span class="keyword apiname">iofunc_notify_trigger_strict()</span></a></dt>
+
+<dd class="dd">Sends notifications to queued clients.
+  Call either of these functions when one or more conditions have been met.
+  When the client closes its file descriptor, call <span class="keyword apiname">iofunc_notify_trigger_strict()</span>
+  for each condition.
+  Both functions take a count to compare against the trigger value for each notification entry,
+  and then send a notification to the client only if the count is greater than or equal to that value.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_notify_remove.html"><span class="keyword apiname">iofunc_notify_remove()</span>, <span class="keyword apiname">iofunc_notify_remove_strict()</span></a></dt>
+
+<dd class="dd">Removes notification entries from the list.
+  Call <span class="keyword apiname">iofunc_notify_remove_strict()</span> when the client closes its file descriptor.
+</dd>
+
+
+
+</dl>
+
+
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+
+<p class="p" id="HANDLING_ionotify__iofunc_notify_t">
+In a multi-threaded server, you must serialize access to each <span class="keyword dtype">iofunc_notify_t</span> structure.
+In many cases, this is done implicitly by the default locking on the extended attribute structure 
+that holds device-specific data and notification data copied from that other structure.
+(For an example of this implicit locking, see the 
+<a class="xref" href="messages_Sample_IO_NOTIFY.html#Sample_IO_NOTIFY__io_write"><span class="keyword apiname">io_write</span> handler</a> in the coding example
+shown in the next section.)
+But if an <span class="keyword dtype">iofunc_notify_t</span> structure is accessed somewhere that this default locking has not occurred 
+(e.g., in an interrupt-handling thread), then explicit locking must be done, 
+either of the extended attribute structure or with an explicitly added lock for the <span class="keyword dtype">iofunc_notify_t</span> structure.
+</p>
+
+<p class="p">
+Failure to serialize access to these structures can lead to server-side race conditions, which can introduce bugs that are 
+difficult to detect and fix.
+</p>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+Don't return <span class="keyword const">_RESMGR_NOREPLY</span> from an
+<var class="keyword varname">io_notify</var> handler, as it may be called multiple times
+from a single message if handling multiple file descriptors from a client call to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select.html"><span class="keyword apiname">select()</span></a> or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/poll.html"><span class="keyword apiname">poll()</span></a>.
+This is handled for you if you're using <span class="keyword apiname">iofunc_notify()</span>.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/messages_Sample_IO_NOTIFY.html">Sample code for handling _IO_NOTIFY messages</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

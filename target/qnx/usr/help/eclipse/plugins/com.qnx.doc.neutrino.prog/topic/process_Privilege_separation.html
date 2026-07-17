@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Privilege separation" />
+<meta name="abstract" content="Privilege separation is a way of designing an application so that its underlying components are divided into a number of processes with differing privileges." />
+<meta name="description" content="Privilege separation is a way of designing an application so that its underlying components are divided into a number of processes with differing privileges." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Privileges.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_thread_IO_privileges.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Privilege_separation" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Privilege separation</title>
+</head>
+<body id="process_Privilege_separation">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Privilege separation</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Privilege separation is a way of designing an application so that
+its underlying components are divided into a number of processes with
+differing privileges.
+</p>
+
+
+
+
+<p class="p">
+
+
+In many applications, services, and drivers, a part of the program will
+require some amount of elevated privileges to carry out its job.
+These privileges might be some capability that allows some specific privileged
+action, some additional groups that allow access to files, and so on.
+In many designs, these elevated privileges are taken for granted and are simply
+considered part of the necessary privileges for the entire program.
+These designs unfortunately usually result in a privileged process's having an
+unnecessarily large <em class="ph i">attack surface</em>.
+</p>
+
+
+<p class="p">
+The diagram below illustrates a traditional design, with a system service
+consisting of a single privileged process.
+In this example, the attack surface exposes the privileged process to all of
+the clients.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>System service with no privilege separation.</span>
+
+<br /><img class="image" src="../images/no_privilege_separation.svg" width="312" alt="No privilege separation" /><br />
+</div>
+
+
+<p class="p">
+For example, a network service that processes incoming packets could be
+required to carry out some privileged action after processing an incoming
+packet, requiring the service to have some privileged ability.
+The processing of all incoming packets, many of which might have nothing to do
+with running as <span class="ph filepath">root</span> or some privileged ability, doesn't
+explicitly require elevated privileges, and therefore the design unnecessarily
+increases the attack surface of the process.
+</p>
+
+
+<p class="p">
+In this case, you should consider the feasibility of moving the portion of
+the service that requires special privileges into a separate process with
+minimal functionality.
+In this design, a small privileged process can maintain an IPC channel between
+itself and the network packet processing part of the service.
+This IPC channel can expose an extremely minimal protocol.
+This concept is illustrated in the diagram below, which shows two system service
+processes, and an attack surface exposing only the process with lower
+privileges.
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>System service with privilege separation.</span>
+
+<br /><img class="image" src="../images/privilege_separation.svg" width="480" alt="Privilege separation" /><br />
+</div>
+
+
+<p class="p">
+In the packet-processing scenario, when the nonprivileged part of the application requires some
+privileged action to take place, it notifies the privileged process, via the IPC channel.
+This way, any exploited vulnerabilities that manifest from complex operations
+such as packet processing won't immediately grant an attacker the elevated
+privileges.
+The minimal IPC protocol used between the service processes also makes it more
+difficult for attackers to elevate their privileges by attempting to attack
+the more privileged process after successfully compromising the less
+privileged process.
+</p>
+
+
+<p class="p">
+
+
+
+One consideration to keep in mind is the IPC mechanism selected to communicate
+between the nonprivileged and privileged portions of the service.
+If you use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn()</span></a>,
+followed by
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/e/execve.html"><span class="keyword apiname">execve()</span></a>
+to start the separated process,
+then information about the selected IPC mechanism must be transferred
+because it can't necessarily be inherited easily.
+In the case of channels and Unix Domain Sockets, the time between when a
+channel is bound and a child is spawned presents a possible window of attack
+where the parent process creates the channel and then passes this channel ID
+to the child process so it can connect.
+During this window of time, an unauthorized process might be able to connect
+to the channel.
+Even if you attempt to enforce UID and GID permissions, there could be another
+compromised application with the same permissions that might try to connect.
+</p>
+
+
+<p class="p">
+To make sure that the connecting client is in fact the child, we recommend
+that the implementation verify both the credentials and the process ID (PID)
+of the channel or UDS client, to make sure that it is in fact the
+child process connecting.
+Any other connections should be rejected.
+In addition, as soon as the connection is
+established, no further connections should be handled.
+For a very basic example of how this privilege separation and authentication
+design might be achieved, see
+<q class="q"><a class="xref" href="process_Privilege_separation_eg.html" title="Here's a basic example of privilege separation consisting of a low-privileged client and a high-privileged server. The example can easily be adapted to various design paradigms.">An example of privilege separation</a>.</q>
+</p>
+
+
+<p class="p">
+Note that other widely used Unix services, such as OpenSSH, also carry out
+this form of privilege separation.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/process_thread_IO_privileges.html">Thread I/O privileges</a></strong><br />
+ Some services and drivers have threads that require I/O privileges, which require some special security. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Privileges.html" title="In systems where security is important, applications should run with the fewest privileges possible. This practice helps reduce the impact of possible compromises and can also help lower the privilege escalation attack surface of the device.">Process privileges</a></div>
+</div>
+</div></body>
+</html>

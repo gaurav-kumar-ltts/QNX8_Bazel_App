@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Window Groups" />
+<meta name="abstract" content="Window groups establish a hierarchy of windows that consists of a parent and at least one child window." />
+<meta name="description" content="Window groups establish a hierarchy of windows that consists of a parent and at least one child window." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_windowing.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_windowing-groups" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Window Groups</title>
+</head>
+<body id="cscreen_windowing-groups">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Window Groups
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Window groups establish a hierarchy of windows that consists of a parent and at least one child window.
+    </p>
+
+        <p class="p">
+            
+            
+            
+            
+            
+            A window group is a tree of windows that presents itself as a single window to those outside of the window
+            group. However, to the parent of the window group, each window within the group provides content that's
+            independent of each other.
+        </p>
+
+        <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>
+                An example of a window group
+            </span>
+            
+            <br /><img class="image" src="../../images/window_group_owner.svg" width="672" /><br />
+        </div>
+
+        <p class="p">
+            Window groups can be used when:
+        </p>
+
+        <ul class="ul">
+            <li class="li">
+                your content is tied to that in another window (e.g., content needs to be overlaid on top of another window)
+            </li>
+
+            <li class="li">
+                you have a parent window with no buffer of its own; its child windows have the buffers (e.g., the
+                renderer creates its own window for another application to join the window group created. This is a way
+                to have control the layout of a window that's owned by another application)
+            </li>
+
+            <li class="li">
+                you simply can't do everything in one window (e.g., you have multiple renderers);
+                unless your content needs to be synchronized, it's always better to have different renderers render to
+                separate windows
+            </li>
+
+        </ul>
+
+        <div class="section"><h2 class="title sectiontitle">Window hierarchy</h2>
+            
+            
+            <p class="p">
+                A window hierarchy is an organization of one or more window groups. What actually determines the
+                positioning rules is where the window sits in its window hierarchy, and where a window can sit in a
+                window hierarchy is somewhat determined by its type. For example, a window of type
+                <span class="keyword const">SCREEN_CHILD_WINDOW</span> or <span class="keyword const">SCREEN_EMBEDDED_WINDOW</span> is meant to be parented by
+                another window, whereas a window of type <span class="keyword const">SCREEN_APPLICATION_WINDOW</span> may have no parent at
+                all.
+            </p>
+
+            <p class="p">
+                A <span class="keyword const">SCREEN_ROOT_WINDOW</span> is a window that's responsible for consuming the content of all
+                windows in its group. <span class="keyword">Screen</span> performs compositing with this
+                root window, but won't composite any window below it.
+            </p>
+
+            <p class="p">
+                Note that any window within a window hierarchy can be marked as a <span class="keyword const">SCREEN_ROOT_WINDOW</span>.
+                A parent to a <span class="keyword const">SCREEN_ROOT_WINDOW</span> won't recognize any children that the
+                <span class="keyword const">SCREEN_ROOT_WINDOW</span> may have. The <span class="keyword const">SCREEN_ROOT_WINDOW</span>
+                manages its buffers and its children's buffers.
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>
+                    An example of a window hierarchy
+                </span>
+                
+                <br /><img class="image" src="../../images/window_hierarchy.svg" width="672" /><br />
+            </div>
+
+            <p class="p">
+                A window hierarchy is established by using window groups. When establishing a window hierarchy,
+                child windows use the parent window's <span class="keyword const">SCREEN_PROPERTY_ID</span> to join the window group. The
+                parent window is the owner of the window group, and this is the group that child windows join. The
+                parent queries its own <span class="keyword const">SCREEN_PROPERTY_ID</span>, as a string, and makes it available to
+                child windows.
+            </p>
+
+            <div class="note"><span class="notetitle">Note:</span> 
+                <p class="p">
+                    Make sure you don't confuse the property <span class="keyword const">SCREEN_PROPERTY_ID</span> retrieved as a character
+                    string with <span class="keyword const">SCREEN_PROPERTY_ID_STRING</span>.
+                </p>
+
+                <p class="p">
+                    <span class="keyword const">SCREEN_PROPERTY_ID</span> retrieved as a string (e.g., retrieved using
+                    <a class="xref" href="../screen_get_window_property_cv.html" title="Retrieve the current value of the specified window property of type char"><span class="keyword apiname">screen_get_window_property_cv()</span></a>)
+                    is the name of the window. This is a read-only property.
+                </p>
+
+                <p class="p">
+                    <span class="keyword const">SCREEN_PROPERTY_ID_STRING</span> is the name given to the window by the owner. This
+                    property can be used by a window manager or a parent for identification.
+                </p>
+ 
+            </div>
+
+            <p class="p">
+                For example, the parent window queries its <span class="keyword const">SCREEN_PROPERTY_ID</span> like this:
+            </p>
+
+            <pre class="pre codeblock">...
+char window_group_name[64];
+screen_get_window_property_cv(screen_window,
+                              SCREEN_PROPERTY_ID,
+                              sizeof(window_group_name),
+                              window_group_name );
+...
+            </pre>
+            <p class="p">
+                Typically managers and parents use the <span class="keyword const">SCREEN_PROPERTY_ID</span> so that they don't have
+                to explicitly create a window group to create its hierarchy. The <span class="keyword const">SCREEN_PROPERTY_ID</span> is
+                guaranteed to be unique within the system.
+            </p>
+
+            <p class="p">
+                The children then use it to join the parent's window group by calling
+                <a class="xref" href="../screen_join_window_group.html" title="Cause a window to join a group or a window group"><span class="keyword apiname">screen_join_window_group()</span></a>.
+                For example, <span class="ph codeph">screen_join_window_group(screen_child_window, window_group_name);</span>
+            </p>
+
+            <p class="p">
+                Once a child joins a group, and is thus parented, it inherits display-related properties from
+                its parent. Their values are always relative to the window above it in its hierarchy. For top-level
+                windows (windows that are the highest in the hierarchy), their properties are relative to the dimensions
+                of the display. Refer to
+                <a class="xref" href="cscreen_windowing-properties.html" title="Applications use windows to display content. Some properties determine the size and positioning of your window and its content. Other properties determine the look and interpretation of your window's content.">Window properties</a>.
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Window Alternate</h2>
+            
+            
+            <p class="p">
+                A window alternate is a window you can use in place of another. For example, one window can contain
+                a thumb-nail of an image while its alternate can contain the high-resolution image. Your application can
+                make one visible over the other. That's just an example; the content of alternate windows can
+                be completely independent. An alternate window is specified by the setting the
+                <span class="keyword const">SCREEN_PROPERTY_ALTERNATE</span> on your window.
+            </p>
+
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_windowing.html" title="Windows are used to display content and to combine content produced by different renderers. Each of the different renderers can be in the same process, or in another process or processes.">Windowing</a></div>
+</div>
+</div></body>
+</html>

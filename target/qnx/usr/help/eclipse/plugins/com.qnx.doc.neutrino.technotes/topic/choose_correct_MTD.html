@@ -1,0 +1,627 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Choosing the Correct MTD Routine for the Flash Filesystem" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="choose_correct_MTD" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Choosing the Correct MTD Routine for the Flash Filesystem</title>
+</head>
+<body id="choose_correct_MTD">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Choosing the Correct MTD Routine for the Flash Filesystem</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+This technote explains how to choose the correct Memory Technology Driver (MTD) routine for your 
+flash filesystem. Before you begin, you should first review
+the descriptions of all available MTD callouts for a flash driver. 
+
+</p>
+
+
+<p class="p">
+The MTD  callouts are as follows:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3337e57">Callout</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3337e60">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">ident()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Identify the flash chip(s)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">reset()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Return the flash to the read state after an error</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">read()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Read data from flash (if <span class="keyword const">NULL</span>, an internal <span class="keyword apiname">memcpy()</span> is used)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">write()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Write data to flash</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">erase()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Erase a flash block (also known as a <q class="q">unit</q>)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">sync()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Poll for the completion of an erasure</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">suspend()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Suspend an erasure for a read/write operation (if supported)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">resume()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Resume a suspended erasure after a read/write operation (if supported)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">islock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Determine whether a block/unit is write protected</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">lock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Write-protect a block</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">unlock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Disable write protection</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e57 "><span class="keyword apiname">unlockall()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e60 ">Invoke a single command to unlock the whole chip (if supported)</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<div class="p">
+Although we refer to the callouts in this technote using the  general notation above,  
+the source code for the MTD libraries contains different API versions. The
+exact callouts available for the  two versions of the library (MTDv1 and MTDv2) are:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3337e214">Generic callout</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3337e217">MTDv1</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3337e220">MTDv2</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">ident()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_ident()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_ident()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">reset()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_reset()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_reset()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">read()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_read()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2read()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">write()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_write()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2write()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">erase()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_erase()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2erase()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">sync()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_sync()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2sync()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">suspend()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_suspend()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2suspend()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">resume()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 "><span class="keyword apiname">f3s_resume()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2resume()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">islock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2islock()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">lock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2lock()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">unlock()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2unlock()</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e214 "><span class="keyword apiname">unlockall()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e217 ">—</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3337e220 "><span class="keyword apiname">f3s_v2unlockall()</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+</div>
+
+
+<p class="p">
+Ideally, there would be a table that describes every combination of board and
+flash in existence and tells you which callout to use. Since this is 
+unrealistic, this technote focuses mainly on describing a 
+general method for choosing the right combination
+of MTD callouts. You will need to:  
+</p>
+
+
+<ul class="ul">
+<li class="li">have a general understanding of the board's flash interface</li>
+
+<li class="li">look at the descriptions/comments in the MTD source code in our BSPs</li>
+
+<li class="li">look at the board's datasheet for the flash part</li>
+
+</ul>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Unusual flash configurations</h2>
+
+
+<p class="p">
+As a first step, you should determine whether your board has an unusual flash
+configuration. In a standard flash configuration, the  flash should be located at 
+a contiguous physical memory address that can be directly mapped, read, and written to by software.
+Usually, the chips are allowed to be interleaved for performance/bus-width reasons.
+</p>
+
+
+<p class="p">
+Here are some examples of nonstandard flash configurations:
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm">Special alignment restrictions</dt>
+
+<dd class="dd">Some CPUs and/or boards require that the memory be read or written to at certain sizes and alignments.
+  These boards cause unpredictable behavior (corruption, <span class="keyword const">SIGBUS</span>, or <span class="keyword const">SIGSEGV</span>)
+  if the default <span class="keyword apiname">memcpy()</span>-based MTD read function is used.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Miswired endian </dt>
+
+<dd class="dd">Some boards have improperly wired flash that cause bytes to be in the wrong endian.
+  This requires significant custom modifications to many MTD callouts in order to write commands and
+  read CFI data in the right endian.
+</dd>
+
+
+
+
+<dt class="dt dlterm">PCMCIA </dt>
+
+<dd class="dd">Under rare situations, some NOR flash-based PC Card storage devices are supported.
+  These require special interactions with the PCMCIA driver.
+</dd>
+
+
+
+
+<dt class="dt dlterm">SDRAM controller based </dt>
+
+<dd class="dd">Most Micron flash chips use an interface based on SDRAM bus commands.
+  While they can be made to work, special code must be written to access the board's memory controller.
+</dd>
+
+
+
+
+<dt class="dt dlterm">NAND flash</dt>
+
+<dd class="dd">CompactFlash, SD Card, SmartMedia, Sony MemoryStick, etc.
+  These devices use NAND flash and are not supported by the <span class="keyword cmdname">devf-*</span> flash drivers.
+  NAND flash is totally different from NOR flash, but is often confused with the NOR flash.
+</dd>
+
+
+
+
+<dt class="dt dlterm">SRAM </dt>
+
+<dd class="dd">The <span class="keyword cmdname">devf-ram</span> driver may work with some battery-backed SRAM.
+  They are to be assessed on a case-by-case basis.
+  Keep reading if you want to give it a try, but we can't guarantee the driver's resilience to power failure.
+  This is because SRAM has a completely different <q class="q">failure mode</q> from that of NOR flash.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If your board has any such unusual configuration, don't hesitate to
+consult your <span class="keyword">BlackBerry QNX</span> representative.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">MTD source code</h2>
+
+
+<p class="p">
+You can find the complete source to the MTD driver library
+under <span class="ph filepath"><var class="keyword varname">bsp_root</var>/libs/src/hardware/flash/mtd-flash</span>.
+</p>
+
+
+<p class="p">
+The callouts are grouped by manufacturer (e.g., <span class="ph filepath">intel/iCFI_write.c</span>).
+Each of these files contains enough comments to detail the type of flash
+they work with. These comment-blocks provide the most up-to-date
+information on selecting the right MTD callout. Don't be afraid to look at
+these files.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Manufacturer</h2>
+
+
+<p class="p">
+Since the MTD source code is organized by manufacturer, your next step is to
+determine the manufacturer. Look at the board itself  or read the flash's
+datasheet. Flash components made by different manufacturers are usually not compatible
+with each other.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+To date, we support flash from these manufacturers: Intel and FASL LLC (Spansion/AMD/Fujitsu).
+</div>
+
+
+<p class="p">
+There are also groups for SRAM and ROM; in this case there's only one
+choice for each callout, so we won't discuss them here.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Choosing the callouts</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword apiname">read()</span></dt>
+
+<dd class="dd">In most cases, setting the callout pointer to <span class="keyword const">NULL</span> is sufficient.
+  This causes the MTD to use <span class="keyword apiname">memcpy()</span> to read directly from flash.
+  You need to write a custom read callout if your board has special read restrictions.
+
+  <p class="p">
+  Here's an example: 
+  </p>
+
+
+  <pre class="pre codeblock">#include &lt;sys/f3s_mtd.h&gt;
+
+int32_t f3s_mtd_read(f3s_dbase_t *dbase,
+                     f3s_access_t *access,
+                     uint32_t flags,
+                     uint32_t offset,
+                     int32_t size,
+                     uint8_t *buffer)
+{
+   uint8_t *memory;
+   /* Set proper page on socket */
+   memory = (uint8_t *)access-&gt;service-&gt;page(&amp;access-&gt;socket,
+                                             F3S_POWER_ALL, 
+                                             offset, 
+                                             NULL);
+   if (memory == NULL)
+   {
+       fprintf(stderr, 
+               "%s: %d page() returns NULL\n",
+               __func__, 
+               __LINE__);
+       return (-1);
+   }
+   /* Replace this memcpy with your special handling code */
+   memcpy(buffer, memory, size);
+   return (size);
+}
+  </pre>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">ident()</span></dt>
+
+<dd class="dd">There are currently two main choices available for <span class="keyword apiname">ident()</span> callouts:
+  one for CFI and another for non-CFI.
+  Most modern flash chips support the common flash interface (CFI) specification,  a common 
+  method of identifying a flash chip and its capabilities. 
+  If your flash chip supports CFI,
+  then you should always use the CFI-specific <span class="keyword apiname">ident()</span> callout.
+  The alternative is to use a hard-coded table of recognized flash IDs.
+  These non-CFI-specific <span class="keyword apiname">ident()</span> callouts usually require some customization
+  and should be used as a last resort.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">write()</span></dt>
+
+<dd class="dd">Flash can be written to either a word (8 or 16 bits) or a buffer (several words at a time).
+  All chips support single-word writes, so it is always a conservative choice.
+  More sophisticated chips such as Intel StrataFlash and AMD MirrorBit support buffered writes,
+  which are significantly faster.
+
+  <p class="p">
+  When consulting AMD's datasheets, don't confuse
+  their <q class="q">Unlock Bypass</q> write mode with their buffered write mode.
+  The unlock bypass mode eliminates only the extra handshake between each word write.
+  Real buffered write modes collect several words into an internal buffer and programs them in parallel.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">erase()</span></dt>
+
+<dd class="dd">Choosing an <span class="keyword apiname">erase()</span> callout is very straightforward;
+  there's usually just one to choose from.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">sync()</span></dt>
+
+<dd class="dd">For MTDv1, there are usually two main types of <span class="keyword apiname">f3s_sync()</span> callouts: one for 
+  boot-block flash and one for regular flash.
+  The boot-block flash  have two different sizes for erase blocks. 
+  The boot-block <span class="keyword apiname">f3s_sync()</span> callout needs to know the size of the block it wants to erase.  
+  The regular <span class="keyword apiname">f3s_sync()</span> callout doesn't need this extra logic.
+  If you aren't sure, pick the <span class="keyword apiname">f3s_sync()</span> for
+  boot-block flash; it's slightly slower, but works for any kind of flash.
+
+  <p class="p">
+  If you need to use a <span class="keyword apiname">f3s_v2sync()</span> callout, there's usually only one to choose from.
+  </p>
+
+
+  <p class="p">
+  The <span class="keyword apiname">f3s_v2sync()</span> callout doesn't need to know the erase block size.
+  The size is determined by the filesystem via a different API.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">suspend()</span> and <span class="keyword apiname">resume()</span></dt>
+
+<dd class="dd">Flash chips either support <span class="keyword apiname">suspend()</span> and <span class="keyword apiname">resume()</span> callouts or they don't. 
+  This is evident from the datasheet.
+  Like the <span class="keyword apiname">erase()</span> callout, there's usually only one choice.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">islock()</span>, <span class="keyword apiname">lock()</span>, <span class="keyword apiname">unlock()</span>,
+  and <span class="keyword apiname">unlockall()</span>
+</dt>
+
+<dd class="dd">Locking is new to the MTD version 2 library (MTDv2).
+  Support for locking is evident from the datasheet.
+  For chips that do support block-level write protection, there are two
+  different implementations: persistent and volatile.
+
+  <ul class="ul">
+  <li class="li">Persistent write protection uses flash cells to remember which block is locked.
+    Just like normal flash cells, these cells can be arbitrarily
+    locked, but must be unlocked at the same time.
+    Persistent implementations use the <span class="keyword apiname">islock()</span>, <span class="keyword apiname">lock()</span>, and
+    <span class="keyword apiname">unlockall()</span> callouts.
+  </li>
+
+
+  <li class="li">Volatile implementations always default to being completely locked after every reset.
+    This implementation has the advantage that blocks can be locked and unlocked at will.
+    These flash chips use the <span class="keyword apiname">islock()</span>, <span class="keyword apiname">lock()</span>, and
+    <span class="keyword apiname">unlock()</span> callouts.
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+</body>
+</html>

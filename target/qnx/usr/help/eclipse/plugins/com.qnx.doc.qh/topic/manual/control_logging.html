@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Controlling QNX helpers logging" />
+<meta name="abstract" content="Logging using QNX helpers is controlled by a configuration string that specifies a combination of the destination flags, the verbosity of a context, and the message-specific flags." />
+<meta name="description" content="Logging using QNX helpers is controlled by a configuration string that specifies a combination of the destination flags, the verbosity of a context, and the message-specific flags." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX Helpers Developer's Guide, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX Helpers Developer's Guide, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/about_log_8h.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="control_logging" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Controlling QNX helpers logging</title>
+</head>
+<body id="control_logging">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Controlling QNX helpers logging</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">Logging using QNX helpers is controlled by a configuration string that specifies a
+    combination of the destination flags, the verbosity of a context, and the message-specific
+    flags.</p>
+
+          <p class="p">The destination flags are the base, and the message-specific flags are applied on top.
+      For logging to occur, at least one destination needs to be active and the message severity
+      level needs to satisfy the verbosity requirements of the destinations configured for the
+      specified context.</p>
+
+    <p class="p">There are currently four logging destinations: <span class="ph codeph">slog</span>,
+        <span class="keyword cmdname">slog2</span>, <span class="ph codeph">stdout</span>, and <span class="ph codeph">stderr</span>. </p>
+
+    <div class="section"><h2 class="title sectiontitle">Logging configuration syntax</h2>
+
+      
+      <p class="p">The configuration string uses the following format:</p>
+
+      <pre class="pre codeblock"><var class="keyword varname">context_name_1</var>:<var class="keyword varname">destination</var>[=<var class="keyword varname">severity_level</var>,...];
+<var class="keyword varname">context_name_2</var>:<var class="keyword varname">destination</var>[=<var class="keyword varname">severity_level</var>,...];
+<var class="keyword varname">context_nameN</var>:<var class="keyword varname">destination</var>[=<var class="keyword varname">severity_level</var>,...]</pre>
+      <p class="p">It is made up of a series of key-value pairs separated by a semi-colon (;), without any
+        newlines, spaces, tabs, or separating characters. The key and value are separated by a colon
+        (:). The key is a context name and the value is the configuration to apply to the context.
+        For information about context names, see <q class="q"><a class="xref" href="set_up_logging.html" title="QNX helpers logging provides default settings and configuration that initialize slog2.">Setting up QNX helpers logging</a></q>. You can
+        also specify one of the following reserved context names:</p>
+<ul class="ul" id="control_logging__ul_llt_q4z_jkb">
+          <li class="li"><span class="ph codeph">all</span> — the specified configuration applies to all contexts except the
+            default one.</li>
+
+          <li class="li"><span class="ph codeph">default</span> — update the default context with the specified
+          configuration.</li>
+
+        </ul>
+<p class="p">The value part of the key-value pair is itself made up of a series of key-value pairs separated
+        by a comma (,) and the key and value are separated by an equal sign (=). The key specifies a
+        logging destination and the value specifies the severity levels used for the verbosity.
+        Valid destination keys are <span class="ph codeph">all</span>, <span class="ph codeph">default</span>,
+          <span class="ph codeph">slog</span>, <span class="keyword cmdname">slog2</span>, <span class="ph codeph">stdout</span>, and
+          <span class="ph codeph">stderr</span>. Valid severity level values are <span class="ph codeph">all</span>,
+          <span class="ph codeph">none</span>, <span class="ph codeph">shutdown</span>, <span class="ph codeph">critical</span>,
+          <span class="ph codeph">error</span>, <span class="ph codeph">warning</span>, <span class="ph codeph">notice</span>,
+          <span class="ph codeph">info</span>, <span class="ph codeph">debug1</span>, and <span class="ph codeph">debug2</span>.</p>
+
+      <ul class="ul">
+          <li class="li"><span class="ph codeph">all</span> — all logging destinations are assigned the value.</li>
+
+          <li class="li"><span class="ph codeph">default</span> — the context uses the values from the default context and a
+          value cannot be specified. When the default context configuration changes, the values
+          assigned by the <span class="ph codeph">default</span> key also change. If you use
+            <span class="ph codeph">default</span> with the default context, the default context reverts back to
+          the original defaults, as if it was never configured.</li>
+
+        <li class="li">For all other destination keys, the value is optional (omit the equal sign). If no value
+          is specified, the verbosity for the specified destination does not change.</li>
+
+        </ul>
+
+      <p class="p">When the key specifies a logging destination, it is used as an active destination (using
+        its assigned verbosity, if you provide one) for the specified context. However, if the key
+        is prefixed with a tilde (~), it is an inactive destination. Logging can still occur for
+        destinations with this prefix if a log call specifically requests this destination and it
+        meets the verbosity requirements.</p>
+
+      <p class="p">The order of contexts and destinations can affect the logging behavior because the
+        configuration is applied from left to right and contexts and destinations can be specified
+        multiple times. The logging configuration that exists prior to making this call is not
+        cleared before configuration updates are applied.</p>
+
+      <p class="p">The configuration also applies to contexts that haven't been created yet. When a context is
+        created, the configuration information is looked up and applied to it; otherwise, the
+        context reverts to the default context's configuration.</p>
+
+      <p class="p">There cannot be any white space in the configuration.</p>
+
+      <p class="p">If there is a parsing error, the function returns an error and does not modify the logging
+        configuration.</p>
+
+          </div>
+
+          <div class="section"><h2 class="title sectiontitle">Example logging configurations</h2>
+      <ul class="ul"><li class="li"><pre class="pre">default:slog2=info;all:~stdout=none;qh:stdout=default 
+</pre>
+<ol class="ol"><li class="li">Set the <span class="keyword cmdname">slog2</span> verbosity to <span class="ph codeph">QH_LOG_SEVERITY_INFO</span> for the default context.</li>
+<li class="li">Specify that all other contexts should not use <span class="ph codeph">stdout</span> as an active destination
+              and set its verbosity to <span class="ph codeph">QH_LOG_SEVERITY_NONE</span>.
+                <span class="ph codeph">stdout</span> is used only when a log call specifically requests it.</li>
+<li class="li">Specify that the <span class="ph codeph">qh</span> context should use the settings from the default context for the <span class="ph codeph">stdout</span> destination.</li>
+</ol>
+
+</li>
+<li class="li"><pre class="pre">default:slog2=notice,~stderr=error 
+</pre>
+<ol class="ol">
+            <li class="li">Applies to the default context only.</li>
+<li class="li">Add <span class="keyword cmdname">slog2</span> as an active destination (with verbosity level
+                <span class="ph codeph">QH_LOG_SEVERITY_NOTICE</span>).</li>
+<li class="li">Make <span class="ph codeph">stderr</span> an inactive destination and set its verbosity level to
+                <span class="ph codeph">QH_LOG_SEVERITY_ERROR</span>.</li>
+<li class="li">Leave the rest of the destinations and their associated verbosity unchanged.</li>
+</ol>
+
+</li>
+<li class="li"><pre class="pre">all:~all=none,slog2=notice,~stderr=error 
+</pre>
+<ol class="ol"><li class="li">Applies to all contexts except the default.</li>
+<li class="li">Make all destinations inactive and set their verbosity to none (i.e., don't log anything).</li>
+<li class="li">Add <span class="keyword cmdname">slog2</span> as an active destination with verbosity level <span class="ph codeph">QH_LOG_SEVERITY_NOTICE</span>.</li>
+<li class="li">Keep <span class="ph codeph">stderr</span> inactive but set its verbosity level to <span class="ph codeph">QH_LOG_SEVERITY_ERROR</span>.</li>
+</ol>
+
+</li>
+<li class="li"><pre class="pre">my_ctx:slog2 
+</pre>
+<ol class="ol"><li class="li">Add <span class="keyword cmdname">slog2</span> as an active destination to the context <span class="ph codeph">my_ctx</span>
+              without changing its verbosity.</li>
+<li class="li">Leave the rest of the destinations and their associated verbosity unchanged.</li>
+</ol>
+
+</li>
+</ul>
+ </div>
+
+          <div class="section"><h2 class="title sectiontitle">Preventing applications from making changes to the logging configuration</h2>
+      <p class="p">If the environment variables contain <span class="keyword envar">QH_LOG_CONFIG_CTX</span>, a program-specific
+        configuration string (which uses the format
+          <span class="keyword envar">QH_LOG_CONFIG_CTX__</span><var class="keyword varname">progname</var>), or both, the library
+        automatically uses them one after the other, starting with <span class="keyword envar">QH_LOG_CONFIG_CTX</span>
+        (if it is set and valid) to update the destination flags at startup, before the process
+        enters its main function. The library then prevents that application from making any further
+        changes. This behavior allows system integrators to set up the logging configuration the way
+        they want without the possibility of the application changing it.</p>
+<p class="p">For development environments, where the implied locking can cause problems, you can disable the
+        locking behavior by setting <span class="keyword envar">QH_LOG_CONFIG_LOCKED</span> to 0.</p>
+</div>
+
+          <div class="section"><h2 class="title sectiontitle"><span class="keyword envar">QH_LOG_CONFIG_CTX__</span><var class="keyword varname">progname</var></h2>
+       <p class="p">The program-specific environment variable allows system integrators to have system-wide settings
+        in <span class="keyword envar">QH_LOG_CONFIG_CTX</span> and program-specific settings in
+          <span class="keyword envar">QH_LOG_CONFIG_CTX__</span><var class="keyword varname">progname</var>.</p>
+<div class="p">The <span class="keyword envar">QH_LOG_CONFIG_CTX__</span><var class="keyword varname">progname</var> environment variable is made up of:<ol class="ol">
+          <li class="li"><span class="keyword envar">QH_LOG_CONFIG_CTX__</span> (suffix is two underscores).</li>
+
+          <li class="li">The program name as reported by <span class="ph codeph">__progname</span>. If the first character or
+            any other characters are non-alphanumeric, they are converted to an underscore. The name
+            is truncated to 63 characters. The case of the characters is preserved. For example, if
+              <span class="ph codeph">__progname</span> is <span class="ph codeph">03aB[-t</span>, the environment variable
+            associated with it is <span class="ph codeph">QH_LOG_CONFIG_CTX___3_aB__t</span>.</li>
+
+        </ol>
+</div>
+
+      </div>
+
+          <div class="section"><h2 class="title sectiontitle">Configuring <span class="keyword cmdname">slog2</span></h2>
+      
+      <p class="p">System integrators can use the environment variable <span class="keyword envar">QH_LOG_CONFIG_SLOG2</span> or
+          <span class="keyword envar">QH_LOG_CONFIG_SLOG2__</span><var class="keyword varname">progname</var> (which uses the same
+        naming convention as <span class="keyword envar">QH_LOG_CONFIG_CTX__</span><var class="keyword varname">progname</var>) to
+        configure the set of <span class="keyword cmdname">slog2</span> buffers that QNX helpers uses. If these
+        environment variables are used, QNX helpers uses only one of them, because having a combined
+        or successive application of multiple <span class="keyword cmdname">slog2</span> configurations doesn't make
+        sense. It first tries to use
+        <span class="keyword envar">QH_LOG_CONFIG_SLOG2__</span><var class="keyword varname">progname</var>, and if it is absent or
+        invalid, it uses the system-wide one if it is present and valid. If neither environment
+        variable is present and valid, it creates three <span class="keyword cmdname">slog2</span> buffers to use by
+        default:</p>
+
+      <div class="p">
+        <ul class="ul">
+          <li class="li"><span class="ph codeph">high</span> - For logs with severity levels
+              <span class="keyword const">QH_LOG_SEVERITY_WARNING</span> and above. Its size is four
+              <span class="keyword cmdname">slog2</span> pages.</li>
+
+          <li class="li"><span class="ph codeph">low</span> - For logs with severity levels below
+              <span class="keyword const">QH_LOG_SEVERITY_WARNING</span>. Its size is eight <span class="keyword cmdname">slog2</span>
+            pages.</li>
+
+          <li class="li"><span class="ph codeph">default</span> - For <span class="keyword cmdname">slog2</span> calls made directly through
+            the <span class="keyword cmdname">slog2</span> API. Not for use with QNX helpers. It sets the specified
+            buffer to NULL, which means use the default buffer. This buffer has a single page.</li>
+
+        </ul>
+
+      </div>
+
+      <p class="p">The configuration string <span class="ph codeph">noslog2</span> completely disables
+          <span class="keyword cmdname">slog2</span> for QNX helpers logging (i.e., no buffer sets are created and no
+        logging to <span class="keyword cmdname">slog2</span> happens through QNX helpers).</p>
+
+<p class="p"> Registration of the <span class="keyword cmdname">slog2</span> buffers is delayed until the first QNX
+            helpers log call that logs to slog2 is made, with the following exceptions:</p>
+
+        <ul class="ul" id="control_logging__ul_bt1_5jz_jlb">
+           <li class="li">Only the default buffer has any buffer pages. In this case, if registration isn't
+          done early, it never occurs because no QNX helper logs ever go to <span class="keyword cmdname">slog2</span>
+          (the normal trigger for <span class="keyword cmdname">slog2</span> registration).</li>
+
+          <li class="li">The configuration string contains <tt class="ph tt">early_init</tt>, which indicates that the
+            <span class="keyword cmdname">slog2</span> registration should not be delayed.</li>
+
+        </ul>
+
+      <p class="p">In cases where QNX helpers should configure <span class="keyword cmdname">slog2</span>, the configuration
+        string is a series of key-value pairs separated by a semi-colon (;). Each key-value pair is
+        separated by a colon (:).  The key is one of <span class="ph codeph">high</span>, <span class="ph codeph">low</span>,
+          <span class="ph codeph">default</span>, or <span class="ph codeph">flags</span> and the value is the
+        configuration:</p>
+
+      <pre class="pre codeblock"><var class="keyword varname">key1</var>:<var class="keyword varname">value1</var>;...;<var class="keyword varname">keyN</var>:<var class="keyword varname">valueN</var></pre>
+      <p class="p">Although the order in which sections appear is not important and they are all optional, at
+        least one key-value pair is required. When one isn't specified, QNX helpers uses the default
+        values described above.</p>
+
+            <h3 class="title sectiontitle">The <span class="ph codeph">flags</span> key</h3>
+      <div class="p">The <span class="ph codeph">flags</span> key specifies a set of <span class="keyword cmdname">slog2</span> flags to use
+        when registering the <span class="keyword cmdname">slog2</span> buffer set. By default, QNX helpers doesn't
+        use any flags when it registers the <span class="keyword cmdname">slog2</span> buffer set. The value for
+          <span class="ph codeph">flags</span> is a comma-separated list of flag names. Possible values are:<ul class="ul">
+          <li class="li"><span class="ph codeph">alloc_phys</span> — Equivalent to
+            <span class="keyword const">SLOG2_ALLOC_TYPE_PHYSICAL</span>.</li>
+
+          <li class="li"><span class="ph codeph">alloc_shmem</span> — Equivalent to
+            <span class="keyword const">SLOG2_ALLOC_TYPE_SHMEM</span>.</li>
+
+          <li class="li"><span class="ph codeph">discard_newline</span> — Equivalent to
+            <span class="keyword const">SLOG2_DISCARD_NEWLINE</span>.</li>
+
+        </ul>
+For more information on these flags, see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/slog2_register.html"><span class="keyword apiname">slog2_register()</span></a> in the <cite class="cite">C Library
+          Reference</cite>.</div>
+
+            <h3 class="title sectiontitle">The <span class="ph codeph">high</span>, <span class="ph codeph">low</span>, and <span class="ph codeph">default</span> keys</h3>
+      <div class="p">The <span class="ph codeph">high</span>, <span class="ph codeph">low</span>, and <span class="ph codeph">default</span> keys each
+        represent a <span class="keyword cmdname">slog2</span> buffer configuration. Their value is a comma-separated
+        list of options. As mentioned above, the <span class="ph codeph">high</span> buffer gets the logs with
+        higher severity, <span class="ph codeph">low</span> gets those that don't make it to the
+          <span class="ph codeph">high</span> buffer, and <span class="ph codeph">default</span> gets the logs from
+          <span class="keyword cmdname">slog2</span> calls that were made directly through the
+          <span class="keyword cmdname">slog2</span> API (buffer value is NULL). The following buffer configuration
+        options are available:<ul class="ul">
+          <li class="li">For all sections:<ul class="ul">
+              <li class="li"><span class="ph codeph">pages=<var class="keyword varname">X</var></span> — <var class="keyword varname">X</var> represents the
+                number of 4 KB pages to allocate for the specified buffer. If this option isn't
+                specified, the default number of pages is used (four for the <span class="ph codeph">high</span>
+                buffer, eight for <span class="ph codeph">low</span>, and one for <span class="ph codeph">default</span>). </li>
+
+            </ul>
+</li>
+
+          <li class="li">For the <span class="ph codeph">high</span> buffer section:<ul class="ul">
+              <li class="li"><span class="ph codeph">minsev=<var class="keyword varname">severity</var></span> — The
+                  <var class="keyword varname">severity</var> value represents the severity level at which messages
+                start being logged to the <span class="ph codeph">high</span> severity buffer. Messages below this
+                severity go to the <span class="ph codeph">low</span> severity buffer. Valid values are:
+                  <span class="ph codeph">all</span>, <span class="ph codeph">none</span>, <span class="ph codeph">shutdown</span>,
+                  <span class="ph codeph">critical</span>, <span class="ph codeph">error</span>, <span class="ph codeph">warning</span>,
+                  <span class="ph codeph">notice</span>, <span class="ph codeph">info</span>, <span class="ph codeph">debug1</span>, or
+                  <span class="ph codeph">debug2</span>. When <span class="ph codeph">none</span> is used, a single buffer logs
+                all messages and there is no <span class="ph codeph">low</span> and <span class="ph codeph">high</span> buffer.
+                To use <span class="ph codeph">none</span>, the <span class="ph codeph">pages</span> configuration option for
+                the <span class="ph codeph">high</span> buffer must be set to 0. When <span class="ph codeph">all</span> or
+                  <span class="ph codeph">debug2</span> is used, it also means use a single buffer, but
+                  <span class="ph codeph">pages</span> must not be 0 for the <span class="ph codeph">high</span> buffer. If
+                  <span class="ph codeph">minsev</span> is not specified, the severity level at which messages
+                start being logged to the <span class="ph codeph">high</span> severity buffer is
+                  <span class="ph codeph">warning</span>. </li>
+
+            </ul>
+</li>
+
+          <li class="li">For the <span class="ph codeph">high</span> and <span class="ph codeph">low</span> buffer sections:<ul class="ul">
+              <li class="li"><span class="ph codeph">isdefault</span> — When the <span class="ph codeph">isdefault</span> option is
+                specified, it means that there is no default <span class="keyword cmdname">slog2</span> buffer for
+                messages logged through <span class="keyword cmdname">slog2</span> directly. Instead, those messages
+                go to the buffer that has the <span class="ph codeph">isdefault</span> option. </li>
+
+            </ul>
+</li>
+
+          </ul>
+</div>
+
+          <h3 class="title sectiontitle">White spaces</h3>
+         <p class="p">Do not put any white spaces in the <span class="keyword cmdname">slog2</span> configuration.</p>
+
+            
+            <h3 class="title sectiontitle">Parsing errors</h3>
+      <p class="p">If there is an error when the <span class="keyword cmdname">slog2</span> configuration is parsed from
+          <span class="keyword envar">QH_LOG_CONFIG_SLOG2</span>, a corresponding message is logged and QNX helpers uses
+        the following default configuration for the <span class="keyword cmdname">slog2</span> buffers:</p>
+
+      <div class="p">
+        <ul class="ul">
+          <li class="li">A <span class="ph codeph">high</span> buffer with four pages, <span class="ph codeph">minsev</span> is
+              <span class="ph codeph">warning</span>.</li>
+
+          <li class="li">A <span class="ph codeph">low</span> buffer with eight pages, a one-page default buffer, and no
+            flags.</li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+<div class="section"><h2 class="title sectiontitle">Example <span class="keyword cmdname">slog2</span> configurations</h2>
+   <pre class="pre codeblock">high:pages=5,minsev=notice;low:isdefault;flags:alloc_shmem,discard_newline 
+</pre><ul class="ul"><li class="li">The <span class="ph codeph">high</span> buffer gets five pages and is sent all messages with <span class="ph codeph">notice</span> severity and above.</li>
+<li class="li">The <span class="ph codeph">low</span> buffer gets the default number of pages (eight) and is also used as the
+          default buffer for non-QNX helpers <span class="ph codeph">slog2</span> calls. The
+            <span class="ph codeph">SLOG2_ALLOC_TYPE_SHMEM</span> and <span class="ph codeph">SLOG2_DISCARD_NEWLINE</span> flags
+          are used.</li>
+</ul>
+
+<div class="p"><pre class="pre codeblock">high:minsev=error;default:pages=5 
+</pre><ul class="ul"><li class="li">The <span class="ph codeph">high</span> buffer gets the default number of pages (four) and is sent all messages with <span class="ph codeph">error</span> severity and above.</li>
+<li class="li">The <span class="ph codeph">low</span> buffer gets the default number of pages (eight) and the default buffer gets five pages.</li>
+</ul>
+
+</div>
+
+</div>
+
+  </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/about_log_8h.html" title="QNX helpers related to logging.">log.h</a></div>
+</div>
+</div></body>
+</html>

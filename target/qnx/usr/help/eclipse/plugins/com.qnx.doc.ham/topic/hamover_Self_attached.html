@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="For self-attached entities" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_ATTACHFNS.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Self_attached" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>For self-attached entities</title>
+</head>
+<body id="Self_attached">
+
+<h1 class="title topictitle1" id="ariaid-title1">For self-attached entities</h1>
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">ham_entity_t *ham_attach_self(char *ename, uint64_t hp, int hpdl, 
+              int hpdh, unsigned flags);
+int ham_detach_self(ham_entity_t *ehdl, unsigned flags);
+
+
+</pre>
+
+<p class="p">You use these two functions to attach/detach
+a process to/from a HAM as a self-attached entity. 
+
+</p>
+
+<p class="p">The <var class="keyword varname">ename</var> argument represents the symbolic name
+for this entity, which needs to be unique in the system (of
+all monitored entities at the instant the call is made).
+
+</p>
+
+<p class="p">The <var class="keyword varname">hp</var> argument represents time values in 
+nanoseconds for the <em class="ph i">heartbeat period</em>. Heartbeating
+can be used to ensure <q class="q">liveness</q> of the
+monitored entity.  Liveness is a property that describes a
+component's useful progress. In many cases, the availability
+of a system component is compromised not because the
+component has necessarily died, but because it isn't
+responding or making any progress. The heartbeating
+mechanism lets you specify that a component will issue a
+heartbeat at a given interval, and if it misses a certain
+number of heartbeats, then that would constitute a
+heartbeat-missed condition.
+
+</p>
+
+<p class="p">The <var class="keyword varname">hpdl</var> and <var class="keyword varname">hpdh</var> represent the number
+of heartbeats that can be missed before the conditions
+<em class="ph i">heartbeatmissedlow</em> and <em class="ph i">heartbeatmissedhigh</em>
+are triggered. The HAM API library registers this request
+with a HAM and also creates a thread that keeps the
+connection to a HAM open. If the entity were to abnormally
+terminate, the connection to the HAM is closed, and the HAM
+will know that this is an abnormal termination (since
+<a class="xref" href="hamapi/ham_detach_self.html" title="Detach a self-attached entity from the HAM"><span class="keyword apiname">ham_detach_self()</span></a> 
+wasn't called first).
+
+</p>
+
+<p class="p">On the other hand, if a HAM were to abnormally fail
+(extremely unlikely) and the Guardian takes over as the new
+HAM, the connection to the old HAM will have gone stale.  In
+that case, the Guardian notifies all self-attached entities
+to reattach. The extra thread mentioned above handles this
+reattach transparently.
+
+</p>
+
+<p class="p">If a connection to a HAM is already open, then
+<a class="xref" href="hamapi/ham_attach_self.html" title="Attach an application as a self-attached entity"><span class="keyword apiname">ham_attach_self()</span></a> 
+uses the same connection, but
+increments the reference count of connections opened by this
+client. A client that indicates that it will heartbeat at a
+certain period must call <a class="xref" href="hamapi/ham_heartbeat.html" title="Send a heartbeat to the HAM"><span class="keyword apiname">ham_heartbeat()</span></a> to
+actually transmit a heartbeat to the HAM.
+
+</p>
+
+<p class="p">The library also verifies whether the <var class="keyword varname">ename</var>
+provided by the caller is unique. If it doesn't already
+exist, then this request is forwarded to a HAM, which also
+checks it again to avoid any race conditions in creating new
+entities. The <a class="xref" href="hamapi/ham_attach_self.html" title="Attach an application as a self-attached entity"><span class="keyword apiname">ham_attach_self()</span></a> 
+returns a generic
+handle, which can be used to detach the process from the HAM
+later. Note that this handle is an opaque pointer that's
+also used to add conditions and actions as shown below.
+
+</p>
+
+<p class="p">The <a class="xref" href="hamapi/ham_detach_self.html" title="Detach a self-attached entity from the HAM"><span class="keyword apiname">ham_detach_self()</span></a> 
+function is used to close
+the connection to a HAM.  From this point on, the HAM will
+no longer monitor this process as a self-attached entity.
+The extra thread is canceled. The
+<span class="keyword apiname">ham_detach_self()</span> function takes as an argument
+the handle returned by <span class="keyword apiname">ham_attach_self()</span>.
+
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_ATTACHFNS.html">Attach/detach functions</a></div>
+</div>
+</div></body>
+</html>

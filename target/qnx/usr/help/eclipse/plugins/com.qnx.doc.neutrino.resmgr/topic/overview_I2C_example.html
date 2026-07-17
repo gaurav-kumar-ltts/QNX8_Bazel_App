@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="I2C (Inter-Integrated Circuit) driver" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="I2C_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>I2C (Inter-Integrated Circuit) driver</title>
+</head>
+<body id="I2C_example">
+
+<h1 class="title topictitle1" id="ariaid-title1">I2C (Inter-Integrated Circuit) driver</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+This example is a driver for an I2C bus controller.
+The I2C bus is simply a 2-wire bus, and the hardware is extremely cheap to implement.
+The bus supports up to 127 devices on the bus, and each device can handle 256 commands.
+When devices want to read or write information to or from another device,
+they must first be set up as a controller to own the bus.
+Then the device sends out the device address and command register number.
+The worker then acts upon the command received.
+</p>
+
+
+<p class="p">
+You think a resource manager wouldn't apply in this case.
+All <span class="keyword apiname">read()</span> and <span class="keyword apiname">write()</span> operations require a device
+address and command register.
+You could use <span class="keyword apiname">devctl()</span>, but a resource manager again provides a cleaner interface.
+</p>
+
+
+<div class="p">
+With a resource manager, each device would live under its own directory,
+and each register would have a filename:
+
+<pre class="pre codeblock">/dev/i2c1/
+</pre>
+</div>
+
+
+<p class="p">
+An important thing to note is that each filename (127 devices * 256 registers = 32512 filenames) doesn't really
+need to exist.
+Each device would be created live, as it's required.
+Therefore, each <span class="keyword apiname">open()</span> is actually an <span class="keyword const">O_CREAT</span>.
+</p>
+
+
+<p class="p">
+To prevent any problems caused by a high number of possibly existing files,
+you could make an <span class="keyword cmdname">ls</span> command of the <span class="ph filepath">/dev/i2c1</span>
+directory return nothing.
+Alternatively, you could make <span class="keyword cmdname">ls</span> list the filenames that have been opened at least once.
+At this point, it's important to clarify that the existence of the filenames
+is totally handled by the resource manager;
+the OS itself isn't used in that process.
+So it isn't a problem if filenames respond to <span class="keyword apiname">open()</span> requests,
+but not to <span class="keyword cmdname">ls</span>.
+</p>
+
+
+<p class="p">
+One element is left to solve: the I2C bus has a concept of a baud rate.
+There are already C functions to set up baud rates, and you can make it
+work via the <span class="keyword cmdname">stty</span> command from the shell.
+</p>
+
+
+<p class="p">
+People using the driver don't have to worry about libraries or
+<span class="ph codeph">include</span> files because there are none.
+The resource manager, at no cost, allows each command register to be
+accessed via the shell, or for that matter, though SAMBA from a Linux or Windows machine.
+Access via the shell makes debugging so easy—there's no need to
+write custom test tools, and it's unbelievably flexible, not to mention
+the support for separate permissions for each and every command register of every device.
+</p>
+
+
+<div class="p">
+One more thing: this code could be clearer:
+
+<pre class="pre codeblock">fd = open ( "/dev/i2c1/34/45" );
+read( fd, &amp;variable, sizeof( variable ) );
+close(fd);
+</pre>
+</div>
+
+
+<div class="p">
+It would be much better to have this instead:
+
+<pre class="pre codeblock">fd = open ( "/dev/i2c1/flash/page_number" );
+read( fd, &amp;page_number, sizeof( page_number ) );
+close (fd );
+</pre>
+</div>
+
+
+<div class="p">
+Of course, you could use <span class="ph codeph">#define</span> directives to show meaningful
+information, but an even better solution is to create a configuration file
+that the driver could read to create an alias.
+The configuration file looks like this:
+
+<pre class="pre codeblock">[4=temperature_sensor] 
+10=max 
+11=min 
+12=temperature 
+13=alarm 
+[5=flash] 
+211=page_number
+</pre>
+</div>
+
+
+<p class="p">
+The field inside the square brackets defines the device address and name.
+The data that follows specifies each register of that device.
+The main advantages to this approach are:
+</p>
+
+
+<ul class="ul">
+<li class="li">The configuration file's format helps document the program.</li>
+
+
+<li class="li">If the hardware is changed, and devices are assigned new addresses,
+  you simply change the configuration file;
+  there's no need to recompile the program to recompile.
+</li>
+
+</ul>
+
+
+<p class="p">
+These predefined devices would always show via the <span class="keyword cmdname">ls</span> command.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview_Examples.html">Examples of resource managers</a></div>
+</div>
+</div></body>
+</html>

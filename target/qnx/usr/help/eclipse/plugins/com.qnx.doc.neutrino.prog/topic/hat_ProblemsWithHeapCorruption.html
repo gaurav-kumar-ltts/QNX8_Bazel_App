@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Heap corruption" />
+<meta name="abstract" content="Heap corruption occurs when a program damages the allocator's view of the heap." />
+<meta name="description" content="Heap corruption occurs when a program damages the allocator's view of the heap." />
+<meta name="DC.subject" content="heap, corruption, memory, leaks, faults, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="heap, corruption, memory, leaks, faults, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ProblemsWithHeapCorruption" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Heap corruption</title>
+</head>
+<body id="ProblemsWithHeapCorruption">
+
+<h1 class="title topictitle1" id="ariaid-title1">Heap corruption</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Heap corruption occurs when a program damages the allocator's view of the heap.
+</p>
+
+
+<p class="p">
+The outcome can be relatively benign and cause a memory leak
+(where some memory isn't returned to the heap and is inaccessible to the program afterward),
+or it may be fatal and cause a memory fault, usually within the allocator itself.
+A memory fault typically occurs within the allocator when it manipulates one or more of its free lists
+after the heap has been corrupted.
+</p>
+
+
+<p class="p">
+It's especially difficult to identify the source of corruption 
+when the source of the fault is located in another part of the code base.
+This is likely to happen if the fault occurs when:
+</p>
+
+
+<ul class="ul">
+<li class="li">a program attempts to free memory</li>
+
+<li class="li">a program attempts to allocate memory after it's been freed </li>
+
+<li class="li">the heap is corrupted long before the release of a block of memory</li>
+
+<li class="li">the fault occurs on a subsequent block of memory</li>
+
+<li class="li">adjacent memory blocks are used</li>
+
+<li class="li">your program is multithreaded</li>
+
+<li class="li">the memory allocation strategy changes</li>
+
+</ul>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Adjacent memory blocks</h2>
+
+
+<p class="p">
+When adjacent blocks are used, a program that writes outside of the bounds
+can corrupt the allocator's information about the block of memory it's using, 
+as well as the allocator's view of the heap.
+The view may include a block of memory that's
+before or after the block being used, and it may or may not be allocated. 
+In this case, a fault in the allocator will likely occur during an unrelated
+attempt to allocate or release memory.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Multithreaded programs</h2>
+
+
+<p class="p">
+Multithreaded execution may cause a fault to occur in a different thread 
+from the thread that actually corrupted the heap, 
+because threads interleave requests to allocate or release memory.
+</p>
+
+
+<p class="p">
+When the source of corruption is located in another part of the code base,
+conventional debugging techniques usually prove to be ineffective.
+Conventional debugging typically applies breakpoints—such as stopping the program from
+executing—to narrow down the offending section of code.
+While this may be effective for single-threaded programs,
+it's often unyielding for multithreaded execution because the fault 
+may occur at an unpredictable time, and the act of debugging the program
+may influence the appearance of the 
+fault by altering the way that thread execution occurs.
+</p>
+
+
+<p class="p">
+Even when the source of the error has been narrowed down, there may be a substantial amount 
+of manipulation performed on the block before it's released, particularly for 
+long-lived heap buffers.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Allocation strategy</h2>
+
+
+<p class="p">
+A program that works in a particular memory allocation strategy 
+may abort when the strategy is changed in a minor way. 
+A good example of this is a memory overrun condition (see <q class="q">Common sources,</q> below)
+where the allocator is allowed to return blocks that are larger than
+requested so it can satisfy allocation requests.
+</p>
+
+
+<p class="p">
+Under this circumstance, the program may behave normally in the presence of overrun conditions. 
+However, a simple change, such as changing the size of the block requested, 
+may result in the allocation of a block of the exact size requested, 
+resulting in a fatal error for the offending program. 
+</p>
+
+
+<p class="p">
+Fatal errors may also occur if the allocator is configured slightly differently, 
+or if the allocator policy is changed in a subsequent release of the runtime library. 
+This makes it all the more important to detect errors early 
+in the lifecycle of an application, even if it doesn't exhibit fatal errors in the testing phase.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Common sources</h2>
+
+
+<p class="p">
+Some of the most common sources of heap corruption include:
+</p>
+
+
+<ul class="ul">
+<li class="li">a memory assignment that corrupts the header of an allocated block</li>
+
+<li class="li">an incorrect argument that's passed to a memory allocation function</li>
+
+<li class="li">an allocator that made certain assumptions in order to avoid 
+    keeping additional memory to validate information, or to avoid costly runtime checking
+</li>
+
+<li class="li">invalid information that's passed in a request, such as to <span class="keyword apiname">free()</span></li>
+
+<li class="li">overrun and underrun errors</li>
+
+<li class="li">releasing memory</li>
+
+<li class="li">using uninitialized or stale pointers</li>
+
+</ul>
+
+
+<p class="p">
+Even the most robust allocator can occasionally fall prey to the above problems.
+Let's take a look at the last three items in more detail.
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Overrun and underrun errors</dt>
+
+<dd class="dd">Overrun and underrun errors occur when your program writes outside of the bounds of the allocated block. 
+They're one of the most difficult type of heap corruption to track down, 
+and usually the most fatal to program execution.
+
+<p class="p">
+<em class="ph i">Overrun errors</em> occur when the program writes <em class="ph i">past</em> the end of the allocated block. 
+Frequently this causes corruption in an adjacent block in the heap, 
+whether or not it's allocated. 
+When this occurs, the behavior that's observed varies depending on whether that block is allocated or free, 
+and whether it's associated with a part of the program related to the source of the error. 
+When a neighboring block that's allocated becomes corrupted, the corruption is usually apparent when that
+block is released elsewhere in the program.
+When an unallocated block becomes corrupted, a fatal error will usually result during a subsequent allocation request.
+Although this may well be the next allocation request, it actually depends
+on a complex set of 
+conditions that could result in a fault at a much later point in time, in a 
+completely unrelated section of the program, especially when small blocks of 
+memory are involved.
+</p>
+
+
+<p class="p">
+<em class="ph i">Underrun errors</em> occur when the program writes <em class="ph i">before</em> the start of the allocated block. 
+Often they corrupt the header of the block itself,
+and sometimes, the preceding block in memory.
+Underrun errors usually result in a fault that occurs when the program attempts to release a corrupted block.
+</p>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Releasing memory</dt>
+
+<dd class="dd">In order to release memory, your program must track the pointer for the allocated block and 
+pass it to the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html"><span class="keyword apiname">free()</span></a>
+function. 
+If the pointer is stale, or if it doesn't point to the exact start of the allocated block,
+it may result in heap corruption.
+
+<p class="p">
+
+
+
+
+A pointer is <em class="ph i">stale</em> when it refers to a block of memory that's already been released. 
+A duplicate request to <span class="keyword apiname">free()</span> involves passing <span class="keyword apiname">free()</span> a
+stale pointer—there's no way to know whether this pointer refers to unallocated memory,
+or to memory that's been used to satisfy an allocation request in another part of the program. 
+</p>
+
+
+<p class="p">
+Passing a stale pointer to <span class="keyword apiname">free()</span> may result in a fault in the allocator,
+or worse, it may release a block that's been used to satisfy another allocation request. 
+If this happens, 
+the code making the allocation request may compete with another section of 
+code that subsequently allocated the same region of heap, 
+resulting in corrupted data for one or both.
+</p>
+
+
+<p class="p">
+The most effective way to avoid this error is to <span class="keyword const">NULL</span> out pointers when the block is released, 
+but this is uncommon, and difficult to do when pointers are aliased in any way.
+</p>
+
+
+<p class="p">
+A second common source of errors is to attempt to release an interior pointer 
+(i.e., one that's somewhere inside the allocated block rather than at the beginning). 
+This isn't a legal operation, but it may occur when the pointer has been used 
+in conjunction with pointer arithmetic. The result of providing an interior 
+pointer is highly dependent on the allocator and is largely unpredictable, but 
+it frequently results in a fault in the <span class="keyword apiname">free()</span> call.
+</p>
+
+
+<p class="p">
+A rarer source of errors is to pass an uninitialized pointer to <span class="keyword apiname">free()</span>. 
+If the uninitialized pointer is an automatic (stack) variable, it may 
+point to a heap buffer, causing the types of coherency problems described 
+for duplicate <span class="keyword apiname">free()</span> requests above. If the pointer contains some other 
+non-<span class="keyword const">NULL</span> value, it may cause a fault in the allocator.
+</p>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Using uninitialized or stale pointers</dt>
+
+<dd class="dd">If you use uninitialized or stale pointers,
+you might corrupt the data in a heap buffer that's allocated to another part of the program,
+or see memory overrun or underrun errors.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat.html" title="If you develop a program that dynamically allocates memory, you're also responsible for tracking any memory that you allocate whenever a task is performed, and for releasing that memory when you no longer need it. If you fail to track the memory correctly, you may introduce memory leaks or unintentionally write to an area outside of the allocated memory space.">Heap analysis</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Extending the OCB" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Advanced.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="extocb" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Extending the OCB</title>
+</head>
+<body id="extocb">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Extending the OCB</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+
+
+
+
+
+To extend the OCB, you'll need to provide two functions—one to allocate (and initialize) the
+new OCB and one to free it—to override the defaults, <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_ocb_calloc.html"><span class="keyword apiname">iofunc_ocb_calloc()</span></a> and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_ocb_free.html"><span class="keyword apiname">iofunc_ocb_free()</span></a>. Then, you'll need to bind your two customized
+functions into the mount structure. (Yes, this does mean that you'll need a mount structure, if only
+for this one purpose.) Finally, you'll need to define your own OCB typedef, so that the prototypes
+for the code are all correct.
+</p>
+
+
+<div class="p">
+Let's look at the OCB typedef first, and then we'll see how to override the functions:
+
+<pre class="pre codeblock">#define IOFUNC_OCB_T struct my_ocb
+#include &lt;sys/iofunc.h&gt;
+</pre>
+</div>
+
+
+<p class="p">
+This tells the included file, <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>, that the manifest
+constant <span class="keyword const">IOFUNC_OCB_T</span> now points to your new and improved OCB structure.
+
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+It's <em class="ph i">very</em> important to keep in mind that the <q class="q">normal</q>
+OCB <em class="ph i">must</em> appear as the first entry in your extended OCB!
+This is because the POSIX helper library passes around a pointer to what it
+expects is a normal OCB—it doesn't know about your extended OCB,
+so therefore the first data element at the pointer location must be the
+normal OCB.
+</div>
+
+
+<div class="p">
+Here's our extended OCB:
+
+
+
+<pre class="pre codeblock">typedef struct my_ocb
+{
+    iofunc_ocb_t    <var class="keyword varname">normal_ocb</var>;
+    int             <var class="keyword varname">my_extra_flags</var>;
+    ...
+} my_ocb_t;
+</pre>
+</div>
+
+
+<div class="p">
+Finally, here's the code that illustrates how to override the allocation and
+deallocation functions in the mount structure:
+
+
+<pre class="pre codeblock">// declare
+iofunc_mount_t      mount;
+iofunc_funcs_t      mount_funcs;
+
+// set up the mount functions structure
+// with our allocate/deallocate functions
+
+// _IOFUNC_NFUNCS is from the .h file
+mount_funcs.nfuncs = _IOFUNC_NFUNCS;
+
+// your new OCB allocator
+mount_funcs.ocb_calloc = my_ocb_calloc;
+
+// your new OCB deallocator
+mount_funcs.ocb_free = my_ocb_free;
+
+// set up the mount structure
+iofunc_mount_init(&amp;mount, sizeof(mount));
+mount.conf |= IOFUNC_PC_ACL;
+</pre>
+</div>
+
+
+<div class="p">
+Then all you have to do is bind the mount functions to the mount structure, and the
+mount structure to the attributes structure:
+
+
+<pre class="pre codeblock">...
+
+mount.funcs = &amp;mount_funcs;
+attr.mount = &amp;mount;
+</pre>
+</div>
+
+
+<div class="p">
+The <span class="keyword apiname">my_ocb_calloc()</span> and <span class="keyword apiname">my_ocb_free()</span> functions are responsible
+for allocating and initializing an extended OCB and for freeing the OCB, respectively.
+They are prototyped as:
+
+<pre class="pre codeblock">IOFUNC_OCB_T * my_ocb_calloc (resmgr_context_t *<var class="keyword varname">ctp</var>, IOFUNC_ATTR_T *<var class="keyword varname">attr</var>);
+
+void my_ocb_free (IOFUNC_OCB_T *<var class="keyword varname">ocb</var>);
+</pre>
+</div>
+
+
+<p class="p">
+This means that the <span class="keyword apiname">my_ocb_calloc()</span> function gets passed both the internal
+resource manager context and the attributes structure.
+The function is responsible for returning an initialized OCB.
+The <span class="keyword apiname">my_ocb_free()</span> function gets passed the OCB and is responsible for
+releasing the storage for it.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+It's important to realize that the OCB may be allocated by functions other than the normal
+open connect function handler—for example, the memory manager may allocate an OCB. The impact
+of this is that your OCB allocating function must be able to initialize the OCB with the
+<var class="keyword varname">attr</var> argument. </div>
+
+
+<p class="p">
+There are two interesting uses for these two functions (that have nothing to do with extending the
+OCB):
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Monitoring the allocation and deallocation of OCBs</dt>
+
+<dd class="dd">In this case, you can simply <q class="q">tie in</q> to the allocator/deallocator and monitor the usage of
+  the OCBs (for example, you may wish to limit the total number of OCBs outstanding at any given
+  time). This may prove to be a good idea if you're not taking over the open connect function
+  handler, and yet still need to intercept the creation of (and possibly deletion of) OCBs.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Providing more efficient allocation and deallocation</dt>
+
+<dd class="dd">Another reason for overriding the library's built-in OCB allocator/deallocator is that
+  you may wish to keep the OCBs on a free list, instead of using the library's <span class="keyword apiname">calloc()</span>
+  and <span class="keyword apiname">free()</span> functions.
+  If you're allocating and deallocating OCBs at a high rate, this may prove to be more efficient.
+  
+  
+</dd>
+
+
+
+</dl>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Advanced.html" title="Now that we've covered the “basics” of resource managers, it's time to look at some more complicated aspects.">Advanced topics</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

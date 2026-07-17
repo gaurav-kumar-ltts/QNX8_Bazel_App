@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Processor affinity, clusters, runmasks, and inherit masks" />
+<meta name="DC.subject" content="processor affinity, affinity, processor, clusters, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="processor affinity, affinity, processor, clusters, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/multicore_impact.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Processor_affinity" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Processor affinity, clusters, runmasks, and inherit masks</title>
+</head>
+<body id="Processor_affinity">
+
+<h1 class="title topictitle1" id="ariaid-title1">Processor affinity, clusters, runmasks, and inherit masks</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+A question that often arises in a multicore environment is: <q class="q">Can I make it so that one
+processor handles the GUI, another handles the database, and the other two handle
+the realtime functions?</q>
+</p>
+
+
+<p class="p">
+The answer is: <q class="q">Yes, absolutely.</q>
+</p>
+
+
+<p class="p">
+This is done through <dfn class="term">processor affinity</dfn>,
+the ability to associate a thread with a particular processor or cluster of processors.
+</p>
+
+
+<p class="p">
+A <dfn class="term">cluster</dfn> is a group of associated processors. All clusters on a system are defined by the startup code.
+Some clusters are always defined, including one representing all the processors on the system,
+and a set of clusters where each one represents a different processor.
+So on a system with <var class="keyword varname">N</var> processors, there are always (at least) <var class="keyword varname">N</var>+1 clusters.
+</p>
+
+
+<p class="p">
+Custom clusters may be defined by the startup program, either directly in the program code or
+configured by the <span class="keyword option">-c</span> command option. This allows processors to be
+grouped based on hardware properties. For example, on a machine with heterogeneous
+processors, the startup program might define one cluster for the faster processors (or CPUs)
+and another for the slower ones. A compute-bound thread could then set its affinity mask
+(i.e., its association with a particular cluster) to the faster cluster.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+An affinity mask is typically called a <dfn class="term">runmask</dfn>.
+
+
+</div>
+
+
+<div class="p">
+To query existing custom clusters, run the following command, which displays each cluster's name and runmask:
+<pre class="pre codeblock">    pidin syspage=cluster
+</pre>
+</div>
+
+
+<p class="p">
+For details about the naming of clusters, refer to the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/startup_options.html#startup_options__c_opt"><span class="keyword option">-c</span> option</a>
+in the <span class="keyword cmdname">startup-*</span> entry in the <cite class="cite">Utilities Reference</cite>.
+</p>
+
+
+<div class="p">The <span class="keyword">QNX OS</span> imposes some restrictions around the usage of processors within clusters:
+<ul class="ul">
+  <li class="li">No processor may be in more than eight clusters</li>
+
+  <li class="li">Each thread can be associated with only one cluster</li>
+
+  <li class="li">A thread can run only on processors that belong to the cluster indicated by its runmask</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Runmasks can be set explicitly through functions, as explained in the next section,
+or implicitly by causing any thread that receives a message to inherit the sender's runmask,
+as explained in <q class="q"><a class="xref" href="#Processor_affinity__client_runmask_inheritance">Client runmask inheritance</a></q> below.
+</p>
+
+
+<p class="p">
+However, setting the runmask affects the processor affinity for only the calling thread,
+not further threads that it may create. To change the processor affinity of any further threads,
+you use an <dfn class="term">inherit mask</dfn>, as explained in
+<q class="q"><a class="xref" href="#Processor_affinity__inherit_masks_setting">Setting inherit masks</a></q> below.
+</p>
+
+
+<div class="section" id="Processor_affinity__runmasks_setting"><h2 class="title sectiontitle">Setting runmasks</h2>
+
+
+
+
+
+<p class="p">
+When a thread starts up, its runmask depends on whether it was created as an additional thread in
+an existing process, or as the first (main) thread of a new process.
+In the first case, the runmask is the inherit mask of the creator thread
+(i.e., the thread that called a function such as <span class="keyword apiname">thrd_create()</span> or
+<span class="keyword apiname">pthread_create()</span>).
+In the second case, the runmask can be defined by attribute-setting functions (refer to
+<q class="q"><a class="xref" href="#Processor_affinity__runmasks_new_processes">Runmasks and inherit masks used in new processes</a></q> below).
+</p>
+
+
+<div class="p">
+You can change the runmask for the calling thread by issuing the
+<span class="keyword apiname">ThreadCtl()</span> <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html#threadctl___NTO_TCTL_RUNMASK">
+<span class="keyword cmdname">_NTO_TCTL_RUNMASK</span></a> command:
+<pre class="pre codeblock">if (ThreadCtl( _NTO_TCTL_RUNMASK, (void *)my_runmask ) == -1) {
+    /* An error occurred. */
+}
+</pre>
+</div>
+
+
+<p class="p">
+The runmask is a bitmap; each bit position indicates a particular processor.
+For example, the setting <span class="ph codeph">0x05</span> (binary <span class="ph codeph">00000101</span>)
+allows the thread to run on processors 0 (the <span class="ph codeph">0x01</span> bit) and 2 (the <span class="ph codeph">0x04</span> bit).
+If this runmask matches a cluster, the call succeeds; otherwise it fails with <span class="keyword const">EINVAL</span>.
+</p>
+
+
+</div>
+
+
+<div class="section" id="Processor_affinity__inherit_masks_setting"><h2 class="title sectiontitle">Setting inherit masks</h2>
+
+
+
+
+
+<div class="p">
+When a thread starts up, its inherit mask is set to the inherit mask of the creator thread.
+You can change the inherit mask along with the runmask for the calling thread by issuing the
+<span class="keyword apiname">ThreadCtl()</span> <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html#threadctl___NTO_TCTL_RUNMASK_GET_AND_SET_INHERIT"><span class="keyword cmdname">_NTO_TCTL_RUNMASK_GET_AND_SET_INHERIT</span></a> command.
+The structure that you pass in with this command is defined in <span class="ph filepath">&lt;sys/neutrino.h&gt;</span>
+as follows:
+
+<pre class="pre codeblock">struct _thread_runmask {
+    int         size;
+/*  unsigned    runmask[size];      */
+/*  unsigned    inherit_mask[size]; */
+};
+</pre>
+</div>
+
+
+<p class="p">
+The last two fields are commented out because the number of elements in the
+<var class="keyword varname">runmask</var> and <var class="keyword varname">inherit_mask</var> arrays depends on
+the number of processors on your multicore system.
+For example, on a system with 48 processors, the <var class="keyword varname">runmask</var> and
+<var class="keyword varname">inherit_mask</var> arrays contain two elements each.
+</p>
+
+
+<div class="p">
+The <span class="ph filepath">&lt;sys/neutrino.h&gt;</span> header file also defines macros that
+you can use to work with the <span class="keyword dtype">_thread_runmask</span> structure.
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword apiname">RMSK_SIZE</span>(<var class="keyword varname">num_cpu</var>)</dt>
+
+<dd class="dd">Determine how many unsigned integers are needed for the masks in the
+  <span class="keyword dtype">_thread_runmask</span> structure. You must pass the number of processors,
+  which is found in the system page, to this macro.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">RMSK_SET</span>(<var class="keyword varname">cpu</var>, <var class="keyword varname">p</var>)</dt>
+
+<dd class="dd">Set the bit for <var class="keyword varname">cpu</var> in the mask pointed to by <var class="keyword varname">p</var>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">RMSK_CLR</span>(<var class="keyword varname">cpu</var>, <var class="keyword varname">p</var>)</dt>
+
+<dd class="dd">Clear the bit for <var class="keyword varname">cpu</var> in the mask pointed to by <var class="keyword varname">p</var>.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">RMSK_ISSET</span>(<var class="keyword varname">cpu</var>, <var class="keyword varname">p</var>)</dt>
+
+<dd class="dd">Determine if the bit for <var class="keyword varname">cpu</var> is set in the mask pointed to
+  by <var class="keyword varname">p</var>.
+  
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+The CPUs (processors) are numbered from 0. These macros work with runmasks of any length.
+</p>
+
+
+<h3 class="title sectiontitle">Effects of setting zero and non-zero values</h3>
+<p class="p">
+If you set the <var class="keyword varname">runmask</var> member to a nonzero value and it matches an existing
+cluster, <span class="keyword apiname">ThreadCtl()</span> sets the runmask of the calling thread to this value.
+If the value doesn't match a cluster, the call fails with <span class="keyword const">EINVAL</span>.
+If you set this member to zero, the runmask of the calling thread isn't changed.
+</p>
+
+
+<p class="p">
+If you set the <var class="keyword varname">inherit_mask</var> member to a nonzero value that matches an existing
+cluster, <span class="keyword apiname">ThreadCtl()</span> sets the calling thread's inherit mask to this value.
+If the value doesn't match a cluster, the call fails with <span class="keyword const">EINVAL</span>.
+If you set this member to zero, the calling thread's inherit mask isn't changed.
+</p>
+
+
+<p class="p">
+If the calling thread goes on to create any new threads,
+then the <var class="keyword varname">runmask</var> and <var class="keyword varname">inherit_mask</var> fields for the new threads
+are set to the inherit mask of the creator thread.
+This occurs whether the threads are created directly
+(e.g., by calling <span class="keyword apiname">thrd_create()</span> or <span class="keyword apiname">pthread_create()</span>)
+or indirectly as part of a new process (e.g., by calling <span class="keyword apiname">fork()</span> or
+<span class="keyword apiname">posix_spawn()</span>).
+In the case of <span class="keyword apiname">exec()</span>, these fields are unchanged.
+</p>
+
+
+<h3 class="title sectiontitle">Code sample</h3>
+<div class="p">
+Here's a code sample that shows how to set up the runmask and inherit mask:
+
+<pre class="pre codeblock">unsigned    num_elements = 0;
+int         *rsizep, masksize_bytes, size;
+unsigned    *rmaskp, *imaskp;
+void        *my_data;
+
+/* Determine the number of array elements required to hold the masks,
+ * based on the number of processors on the system. */
+num_elements = RMSK_SIZE(_syspage_ptr-&gt;num_cpu);
+
+/* Determine the size of the runmask, in bytes. */
+masksize_bytes = num_elements * sizeof(unsigned);
+
+/* Allocate memory for the data structure that we'll pass to ThreadCtl().
+ * We need space for an integer (the number of elements in each mask array)
+ * and the two masks (runmask and inherit mask). */
+size = sizeof(int) + 2 * masksize_bytes;
+
+if ((my_data = malloc(size)) == NULL) {
+    /* Not enough memory. */
+    …
+} else {
+    memset(my_data, 0x00, size);
+
+    /* Set up pointers to the "members" of the structure. */
+    rsizep = (int *)my_data;
+    rmaskp = rsizep + 1;
+    imaskp = rmaskp + num_elements;
+
+    /* Set the size. */
+    *rsizep = num_elements;
+
+    /* Set the runmask. Call this macro once for each processor that the current
+       thread can run on. */
+    RMSK_SET(cpu1, rmaskp);
+
+    /* Set the inherit mask. Call this macro once for each processor that
+       you want any threads created by the current thread to be able to run on. */
+    RMSK_SET(cpu1, imaskp);
+
+    if ( ThreadCtl(_NTO_TCTL_RUNMASK_GET_AND_SET_INHERIT, my_data) == -1) {
+        /* Something went wrong. */
+        …
+    }
+}
+</pre>
+</div>
+
+</div>
+
+
+<div class="section" id="Processor_affinity__runmasks_new_processes"><h2 class="title sectiontitle">Runmasks and inherit masks used in new processes</h2>
+
+
+<p class="p">
+If you're starting a new process, you can specify a runmask by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawnattr_setxflags.html"><span class="keyword apiname">posix_spawnattr_setxflags()</span></a>
+to set the <span class="keyword const">POSIX_SPAWN_EXPLICIT_CPU</span> extended flag,
+then <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_spawnattr_setrunmask_np.html"><span class="keyword apiname">pthread_spawnattr_setrunmask_np()</span></a> to set the runmask for a new process,
+and then <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html"><span class="keyword apiname">posix_spawn()</span></a> to create the process.
+
+
+
+
+</p>
+
+
+<p class="p">
+If you specify the runmask attribute, then when the new process starts up, the main thread's runmask
+and inherit mask are given that runmask value. If you don't define a runmask, then when the new
+process starts up, the main thread's runmask and inherit mask are set to the inherit mask of the
+creator thread (i.e., the one that called <span class="keyword apiname">posix_spawn()</span>).
+In both cases, if no further changes are made in the new process
+(i.e., none of the mask-setting functions described in previous sections are called),
+then this results in normal inherit mask behavior,
+meaning all threads in the new process are given the runmask and inherit mask of the main thread.
+</p>
+
+
+
+</div>
+
+
+<div class="section" id="Processor_affinity__client_runmask_inheritance"><h2 class="title sectiontitle">Client runmask inheritance</h2>
+
+
+
+
+
+<p class="p">
+When creating a channel, you can enable the <span class="keyword const">_NTO_CHF_INHERIT_RUNMASK</span> flag to cause
+any thread that receives a message on this channel to inherit the sender's runmask.
+With this client runmask inheritance, the server's runmask has no effect on the server's execution
+behavior when it receives messages. This is because the server is either RECEIVE-blocked and, hence,
+not running, or running with the runmask of the client whose message it's handling.
+</p>
+
+<p class="p">
+If this flag is set, then when a server thread receives a pulse on the channel,
+the thread's runmask is set to the thread's inherit mask.
+</p>
+
+<p class="p">
+For more information, refer to the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html#channelcreate__InheritRunmask"><span class="keyword const">_NTO_CHF_INHERIT_RUNMASK</span></a>
+description in the <span class="keyword apiname">ChannelCreate()</span> entry in the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/multicore_impact.html">The impact of multicore</a></div>
+</div>
+</div></body>
+</html>

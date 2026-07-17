@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Mapping DMA devices and memory regions through the API" />
+<meta name="abstract" content="For systems that will be safety certified, the recommended method for mapping DMA devices to memory regions and specifying their access permissions is through the startup configuration. Only for non-safety systems should you use the SMMUMAN client API." />
+<meta name="description" content="For systems that will be safety certified, the recommended method for mapping DMA devices to memory regions and specifying their access permissions is through the startup configuration. Only for non-safety systems should you use the SMMUMAN client API." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="use" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Mapping DMA devices and memory regions through the API</title>
+</head>
+<body id="use">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Mapping DMA devices and memory regions through the API</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">For systems that will be safety certified, the recommended method for mapping
+		DMA devices to memory regions and specifying their access permissions is through the startup
+		configuration. Only for non-safety systems should you use the SMMUMAN client API.</p>
+
+		<div class="section">
+			
+			
+			<div class="p">After the <span class="keyword cmdname">smmuman</span> service has started, processes such as device
+				drivers or external applications can use the client API to connect to the service
+				and use it to program the system IOMMU/SMMUs. This API is defined in the
+				<span class="ph filepath">smmu.h</span> header file and made available in the
+				<span class="ph filepath">libsmmu.a</span> library. Clients can use this API to:
+				<ul class="ul">
+					<li class="li">add or remove DMA devices</li>
+
+					<li class="li">add or remove memory regions that DMA devices are permitted to access, or modify
+						the devices' access permissions</li>
+
+					<li class="li">have the <span class="keyword cmdname">smmuman</span> service inform them of illegal DMA device
+						attempts to access memory</li>
+
+				</ul>
+
+			</div>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">Until the <span class="keyword cmdname">smmuman</span> service programs the
+				IOMMU/SMMUs on a board with a DMA device's memory access permissions, that device
+				has unrestricted access to memory.</div>
+
+			
+		</div>
+
+		<div class="section" id="use__tasks"><h2 class="title sectiontitle">Task overview</h2>
+			
+			<div class="p">A <span class="keyword cmdname">smmuman</span> client using the service to map DMA devices and memory
+				regions typically does the following:
+				<ol class="ol">
+					<li class="li">Obtains the custom abilities it will need to connect to the
+						<span class="keyword cmdname">smmuman</span> (see <q class="q"><a class="xref" href="#use__connect">Connecting to the service</a></q> below).</li>
+
+					<li class="li">Calls <a class="xref" href="../api/smmu_init.html" title="Initialize contact between the client process and smmuman"><span class="keyword apiname">smmu_init()</span></a> to <a class="xref" href="#use__connect">connect to the <span class="keyword cmdname">smmuman</span> service</a>.</li>
+
+					<li class="li">Calls <a class="xref" href="../api/smmu_obj_create.html" title="Create a SMMU object to which devices and their memory mappings can be added"><span class="keyword apiname">smmu_obj_create()</span></a> to <a class="xref" href="#use__obj">create SMMU objects</a>.</li>
+
+					<li class="li">Calls the <span class="keyword apiname">smmu_device_add_*()</span> functions to <a class="xref" href="#use__adddev">add DMA devices</a> to the SMMU objects.
+					</li>
+
+					<li class="li">Calls <a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a> to <a class="xref" href="#use__addmem">add the memory mappings and
+							permissions</a> appropriate for the DMA devices attached to the SMMU
+						objects.</li>
+
+					<li class="li">As needed, calls <a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a> or the appropriate
+						<span class="keyword apiname">smmu_device_add_*()</span> function to <a class="xref" href="#use__remove"> remove devices or memory mappings</a> that are no longer
+						needed.</li>
+
+					<li class="li">Calls <a class="xref" href="../api/smmu_obj_destroy.html" title="Destroy a SMMU object"><span class="keyword apiname">smmu_obj_destroy()</span></a> to destroy SMMU objects
+						that are no longer needed and, finally, calls <a class="xref" href="../api/smmu_fini.html" title="Terminate the client’s connection with smmuman"><span class="keyword apiname">smmu_fini()</span></a> to <a class="xref" href="#use__fini">terminate the connection</a> with the
+						<span class="keyword cmdname">smmuman</span> service.</li>
+
+				</ol>
+
+			</div>
+
+			<p class="p">See <q class="q"><a class="xref" href="#use__report">Monitoring DMA transgressions</a></q> below for instructions
+				on how to have the <span class="keyword cmdname">smmuman</span> service notify a client of illegal DMA
+				device attempts to access memory.</p>
+
+		</div>
+
+		<div class="section" id="use__connect"><h2 class="title sectiontitle">Connecting to the service</h2>
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">To use the SMMUMAN API, a process in your system must become a client of the
+				<span class="keyword cmdname">smmuman</span> service.</p>
+
+			<div class="p">Before initializing contact with the service, the process must obtain the appropriate
+				custom abilities:
+				<ul class="ul">
+					<li class="li"><span class="ph codeph">SMMU_ABILITY_ATTACH_NAME ("smmu/attach")</span> —
+						required for all connections to the service</li>
+
+					<li class="li"><span class="ph codeph">SMMU_ABILITY_TARGET_NAME ("smmu/target")</span> —
+						required if the client will use the <span class="keyword const">SMF_TARGET</span> flag when calling
+						<a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a> (currently reserved for
+						the QNX hypervisor)</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">Use <span class="keyword apiname">procmgr_ability_lookup()</span> and
+				<span class="keyword apiname">procmgr_ability()</span> to look up and control these custom abilities.
+				For more information, see <a class="xref" href="../api/smmu_init.html" title="Initialize contact between the client process and smmuman"><span class="keyword apiname">smmu_init()</span></a> in the <a class="xref" href="../api/api.html" title="This chapter describes the API that SMMUMAN clients can use to access and manage the smmuman services.">SMMUMAN Client API Reference</a> chapter, and <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability_lookup.html"><span class="keyword apiname">procmgr_ability_lookup()</span></a> and
+				<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a> in the
+				<cite class="cite">C Library Reference</cite>.</p>
+
+			<p class="p">After your process has the required abilities, call <a class="xref" href="../api/smmu_init.html" title="Initialize contact between the client process and smmuman"><span class="keyword apiname">smmu_init()</span></a> to check if the
+					<span class="keyword cmdname">smmuman</span> service is running and connect to it as a client.</p>
+
+		</div>
+
+		<div class="section" id="use__safety"><h2 class="title sectiontitle">Checking the service's safety status</h2>
+			
+			
+			
+			
+			<p class="p">If you are running a safety-related system, you must use the
+				<span class="keyword cmdname">smmuman</span> safety variant. A <span class="keyword cmdname">smmuman</span> client can call
+				<a class="xref" href="../api/smmu_safety.html" title="Query the smmuman service for its safety status"><span class="keyword apiname">smmu_safety()</span></a> to check if the <span class="keyword cmdname">smmuman</span>
+				service to which it is connected is the safety variant.</p>
+
+			<p class="p">See <a class="xref" href="options.html#options__safety">safety</a> in
+					<q class="q"><a class="xref" href="options.html" title="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both.">Global options</a></q> for information about
+				configuring your system's response to the presence of components that aren't
+				safety-certified.</p>
+
+		</div>
+
+		<div class="section" id="use__obj"><h2 class="title sectiontitle">Creating SMMU objects</h2>
+			
+			
+			
+			
+			<p class="p">The <span class="keyword cmdname">smmuman</span> service manages dynamic memory region mappings, and
+				DMA device mappings and permissions through SMMU objects. Thus, at any time after it
+				has initiated contact with the <span class="keyword cmdname">smmuman</span> service and become its
+				client, your process can call <a class="xref" href="../api/smmu_obj_create.html" title="Create a SMMU object to which devices and their memory mappings can be added"><span class="keyword apiname">smmu_obj_create()</span></a> to create a SMMU object to
+				which it can then add memory mappings and DMA devices.</p>
+
+			<p class="p">A <span class="keyword cmdname">smmuman</span> client may create as many SMMU objects as it needs; this
+				allows different devices to have different mappings to memory regions. For example,
+				the QNX hypervisor <span class="keyword cmdname">qvm</span> processes use this capability.</p>
+
+			<p class="p">Additionally, at any time while the <span class="keyword cmdname">smmuman</span> service is running,
+				your client can remove a DMA device from a SMMU object by calling the relevant
+				<a class="xref" href="../api/smmu_device_add_generic.html" title="Add a device to a SMMU object, or remove it"><span class="keyword apiname">smmu_device_add_*()</span></a> function with the
+				<var class="keyword varname">sop</var> argument set to <span class="keyword const">NULL</span>.</p>
+
+		</div>
+
+		<div class="section" id="use__adddev"><h2 class="title sectiontitle">Adding DMA devices</h2>
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">After your <span class="keyword cmdname">smmuman</span> client has created one or more SMMU objects, it
+				can add devices to the objects. Call one of the following for each DMA device that
+				needs to access memory:</p>
+
+			<ul class="ul">
+				<li class="li"><a class="xref" href="../api/smmu_device_add_generic.html" title="Add a device to a SMMU object, or remove it"><span class="keyword apiname">smmu_device_add_generic()</span></a> — add a
+					device of an unspecified type to a SMMU object</li>
+
+				<li class="li"><a class="xref" href="../api/smmu_device_add_mmio.html" title="Add an MMIO device to a SMMU object, or remove it"><span class="keyword apiname">smmu_device_add_mmio()</span></a> — add a
+					Memory-Mapped I/O (MMIO) device to a SMMU object</li>
+
+				<li class="li"><a class="xref" href="../api/smmu_device_add_pci.html" title="Add a PCI device to a SMMU object, or remove it"><span class="keyword apiname">smmu_device_add_pci()</span></a> — add a
+					Peripheral Component Interconnect (PCI) device to a SMMU object</li>
+
+			</ul>
+
+			<p class="p">If you are adding a device to an object after you have added a memory mapping to that
+				object, you may need to refresh the memory mappings (see <q class="q"><a class="xref" href="#use__seq">Preferred sequence for adding memory mappings and devices</a></q>).</p>
+
+			<div class="note"><span class="notetitle">Note:</span> <p class="p">All devices attached to a SMMU object are granted access to the memory regions
+					mapped to that object, with the same permissions. If you want to give two
+					devices access to the same memory region, but with different permissions (e.g.,
+					one device may only read, the other may only write), then you must create two
+					separate SMMU objects (see <a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a>).</p>
+
+				<p class="p">A device may have only one owner. Attempting to use one of the
+					<span class="keyword apiname">smmu_device_add_*()</span> functions when the device has already
+					been added to a SMMU object of a different client will result in an
+					<span class="keyword const">EBUSY</span> error. A <span class="keyword cmdname">smmuman</span> client may move a
+					device from one of its SMMU objects to another one of its SMMU objects, however,
+					because this action doesn't change the device owner.</p>
+</div>
+
+		</div>
+
+		<div class="section" id="use__addmem"><h2 class="title sectiontitle">Adding memory mappings</h2>
+			
+			
+			
+			<p class="p">After your <span class="keyword cmdname">smmuman</span> client has created one or more SMMU objects, it
+				can add memory regions to these objects, specifying the access permissions that will
+				be applied to the devices attached to each object. Call <a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a> to add a memory region to an object,
+				so that devices attached to the object can have access to this memory region.</p>
+
+		</div>
+
+		<div class="section" id="use__seq"><h2 class="title sectiontitle">Preferred sequence for adding memory mappings and devices</h2>
+			
+			<p class="p">The preferred sequence for adding memory regions and devices to a SMMU object is to
+				add the devices first, then add the memory regions. These memory regions will apply
+				to all the devices linked to the SMMU object.</p>
+
+			<p class="p">This is not always possible, however, and you may need to add the memory region
+				mappings first. For example, if a USB device is added to your system after startup,
+				you may need to add it to a memory region mapping you created earlier.</p>
+
+			<p class="p">If you add the mappings first, and then you add a device, the
+				<span class="keyword apiname">smmu_device_add_*()</span> function may return -1
+				(failure), 0 (nothing more to do), or +1 (see
+				<a class="xref" href="../api/smmu_device_add_generic.html" title="Add a device to a SMMU object, or remove it"><span class="keyword apiname">smmu_device_add_generic()</span></a> and the other
+				<span class="keyword apiname">smmu_device_add_*()</span> functions).</p>
+
+			<p class="p">A +1 return from these functions means that the hardware module used
+				for the new device has indicated that page tables for this device are needed.
+				You address this by calling <a class="xref" href="../api/smmu_mapping_add.html" title="Add a memory mapping to or remove a memory mapping from a SMMU object"><span class="keyword apiname">smmu_mapping_add()</span></a> again for all the active
+				mappings on the SMMU object.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<div class="p">After a +1 return from a <span class="keyword apiname">smmu_device_add_*()</span> function:
+					<ul class="ul">
+						<li class="li">Devices that were previously added to the SMMU object may continue their DMA
+							operations; they don't have to wait on the call to
+							<span class="keyword apiname">smmu_mapping_add()</span>.</li>
+
+						<li class="li">You need to add only the active mappings again; you don't need to do
+							anything about mappings you deleted from the SMMU object.</li>
+
+					</ul>
+
+				</div>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="use__remove"><h2 class="title sectiontitle">Removing devices and memory regions</h2>
+			
+			
+			
+			
+			
+			<p class="p">If a DMA device is no longer on the system (e.g., USB device has been removed), you
+				can call the appropriate <span class="keyword apiname">smmu_device_add_*()</span> function with its
+				<var class="keyword varname">sop</var> argument set to NULL to 
+				remove the device from a SMMU object.</p>
+
+			<p class="p">If the devices attached to a SMMU object no longer require access to some memory
+				regions mapped to this SMMU object, you can remove these regions from the object by
+				calling <span class="keyword apiname">smmu_mapping_add()</span> without specifying any of the
+				<span class="keyword const">SMF_READ</span>, <span class="keyword const">SMF_WRITE</span>, or <span class="keyword const">SMF_EXEC</span>
+				permissions for the <var class="keyword varname">flags</var> argument (i.e., with the
+				<var class="keyword varname">flags</var> argument set to <span class="keyword const">SMF_NONE</span>; see <a class="xref" href="../api/smmu_enums.html#smmu_enums__mapping_flags"><span class="keyword dtype">smmu_mapping_flags</span></a> in the <q class="q"><a class="xref" href="../api/api.html" title="This chapter describes the API that SMMUMAN clients can use to access and manage the smmuman services.">SMMUMAN Client API Reference</a></q>).</p>
+
+		</div>
+
+		<div class="section" id="use__fini"><h2 class="title sectiontitle">Disconnecting your <span class="keyword cmdname">smmuman</span> client</h2>
+			
+			
+			
+			
+			
+			<div class="p">If your client no longer needs to interface with the <span class="keyword cmdname">smmuman</span>
+				service, it can disconnect from it. To disconnect from the
+				<span class="keyword cmdname">smmuman</span> service, a client must:
+				<ol class="ol">
+					<li class="li">For every SMMU object it has created, call <a class="xref" href="../api/smmu_obj_destroy.html" title="Destroy a SMMU object"><span class="keyword apiname">smmu_obj_destroy()</span></a> to destroy this
+						object in turn.</li>
+
+					<li class="li">After it has destroyed all its SMMU objects, call <a class="xref" href="../api/smmu_fini.html" title="Terminate the client’s connection with smmuman"><span class="keyword apiname">smmu_fini()</span></a> to terminate its connection with the
+						<span class="keyword cmdname">smmuman</span> service.</li>
+
+				</ol>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="use__report"><h2 class="title sectiontitle">Monitoring DMA transgressions</h2>
+			
+			
+			
+			
+			
+			<p class="p">After the <span class="keyword cmdname">smmuman</span> service programs the memory mappings for DMA
+				devices into the system IOMMU/SMMUs, these units will inform it of any attempts by
+				these devices to access memory outside their assigned regions.</p>
+
+			<p class="p">A <span class="keyword cmdname">smmuman</span> client can register to be informed of these
+				transgressions. This client doesn't have to be the client that owns the SMMU objects
+				and has added devices and mapped memory regions to it. You could have some clients
+				(e.g., device drivers) create objects, add devices and map memory regions, and
+				another client (i.e., some other process in your system) monitor transgressions.</p>
+
+			<ol class="ol">
+				<li class="li">Call <a class="xref" href="../api/smmu_xfer_notify.html" title="Register to be notified of DMA device memory access transgressions"><span class="keyword apiname">smmu_xfer_notify()</span></a> to register for updates.</li>
+
+				<li class="li">Call <a class="xref" href="../api/smmu_xfer_status.html" title="Retrieve the record of a DMA device’s attempt to access memory outside its permitted region or regions"><span class="keyword apiname">smmu_xfer_status()</span></a> at any time to query the
+					<span class="keyword cmdname">smmuman</span> service for any records it may have of attempted
+					transgressions.</li>
+
+				<li class="li">Call <a class="xref" href="../api/smmu_xfer_notify.html" title="Register to be notified of DMA device memory access transgressions"><span class="keyword apiname">smmu_xfer_notify()</span></a> to reregister for updates.</li>
+
+			</ol>
+
+			<p class="p">When the <span class="keyword cmdname">smmuman</span> service informs a client that an IOMMU/SMMU has
+				refused a DMA device's memory access attempt, it clears that client's registration
+				for notification of DMA device memory access transgressions.
+				The <span class="keyword apiname">smmu_xfer_notify()</span> call after the
+				<span class="keyword apiname">smmu_xfer_status()</span> call is required to reregister the client
+				so it will receive notifications of any subsequent attempted transgressions.</p>
+
+		</div>
+
+		
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

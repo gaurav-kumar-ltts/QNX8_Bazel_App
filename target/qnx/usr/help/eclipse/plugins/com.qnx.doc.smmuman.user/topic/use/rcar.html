@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Options for Renesas R-Car IPMMUs" />
+<meta name="abstract" content="On the Renesas R-Car H3 and other related boards, IOMMU/SMMUs are known as IPMMUs; a smmuman service running on the hardware needs a support library for the board IPMMUs." />
+<meta name="description" content="On the Renesas R-Car H3 and other related boards, IOMMU/SMMUs are known as IPMMUs; a smmuman service running on the hardware needs a support library for the board IPMMUs." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/config.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rcar" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Options for Renesas R-Car IPMMUs</title>
+</head>
+<body id="rcar">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Options for Renesas R-Car IPMMUs</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">On the Renesas R-Car H3 and other related boards, IOMMU/SMMUs are known as IPMMUs;
+		a <span class="keyword cmdname">smmuman</span> service running on the hardware needs a support library for
+		the board IPMMUs.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The configurations described here are for use with the
+				<span class="ph filepath">smmu-rcar3.so</span> and <span class="ph filepath">smmu-rcar3-safety.so</span>
+				support libraries. These support libraries implement the
+				code to communicate with Renesas R-Car H3 IPMMUs, as specified in Chapter 16
+				<cite class="cite">Renesas R-Car Series, 3rd Generation User’s Manual: Hardware</cite>, Nov. 2018
+				(Rev. 1.50).</p>
+
+			<div class="p">To load the right support library, you must set the <span class="keyword option">smmu</span> option's
+				<var class="keyword varname">smmu_type</var> argument to the library's name:
+				<ul class="ul">
+					<li class="li"><span class="ph filepath">smmu-rcar3.so</span> for non-safety systems</li>
+
+					<li class="li"><span class="ph filepath">smmu-rcar3-safety.so</span> for safety-related systems</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Options</h2>
+			
+			<p class="p">The following list describes the options for a <span class="keyword cmdname">smmuman</span> service using
+				a <span class="ph filepath">smmu-rcar3.so</span> or <span class="ph filepath">smmu-rcar3-safety.so</span>
+				support library for SMMUs that use the Renesas R-Car H3 IPMMU architecture.</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">smmu_type_param</var></dt>
+
+					<dd class="dd"><div class="p">On boards that use the Renesas R-Car H3 IPMMU architecture,
+							the <var class="keyword varname">smmu_type_param</var> argument is as follows:
+<pre class="pre codeblock"><var class="keyword varname">paddr</var>,<var class="keyword varname">fault_vector</var>,<var class="keyword varname">mm_fault_bit</var>{,<var class="keyword varname">socid</var>.<var class="keyword varname">revid</var>}</pre>
+						</div>
+
+						<dl class="dl compact">
+							
+								<dt class="dt dlterm"><var class="keyword varname">paddr</var></dt>
+
+								<dd class="dd">The physical address of the main memory IPMMU unit registers.</dd>
+
+							
+							
+								<dt class="dt dlterm"><var class="keyword varname">fault_vector</var></dt>
+
+								<dd class="dd">The interrupt that occurs when an illegal DMA request is
+									attempted.</dd>
+
+							
+							
+								<dt class="dt dlterm"><var class="keyword varname">mm_fault_bit</var></dt>
+
+								<dd class="dd">The interrupt bit that is set when a page table fault occurs.</dd>
+
+								<dd class="dd ddexpand">The page table fault interrupt bit may be different on different
+									chips and chip revisions; check the hardware documentation for
+									the chip you are using.</dd>
+
+							
+							
+								<dt class="dt dlterm"><var class="keyword varname">socid</var></dt>
+
+								<dd class="dd">A SoC identification number supported by the configuration data.</dd>
+
+							
+							
+								<dt class="dt dlterm"><var class="keyword varname">revid</var></dt>
+
+								<dd class="dd">A supported revision number of the SoC supported by the
+									configuration data.</dd>
+
+							
+						</dl>
+
+					</dd>
+
+					<dd class="dd ddexpand"><div class="p">For example, the following configuration is for an R-Car H3 SOC (revision
+							3.0), as described in the <cite class="cite">Renesas R-Car Series, 3rd Generation
+								User’s Manual: Hardware</cite>, Nov. 2018 (Rev. 1.50):
+						<pre class="pre codeblock">smmu rcar3 0xe67b0000,228,18,0x4f.0x20</pre>
+							where <span class="ph codeph">0xe67b0000</span> is the physical address of the main
+							memory IPMMU unit registers, 228 is the interrupt that occurs when an illegal
+							DMA request is attempted, 18 is the page table fault interrupt bit, and
+							<span class="ph codeph">0x4f.0x20</span> is the ID and revision numbers of the SoC supported
+							by the configuration data.</div>
+</dd>
+
+						
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">smmu_unit_param</var></dt>
+
+					<dd class="dd"><div class="p">On boards that use the Renesas R-Car H3 IPMMU architecture, the syntax
+							for <var class="keyword varname">smmu_unit_param</var> is as follows:
+						<pre class="pre codeblock"><var class="keyword varname">paddr</var>,<var class="keyword varname">intr_status_bit</var></pre>
+						</div>
+
+						<dl class="dl compact">
+							
+								<dt class="dt dlterm"><var class="keyword varname">paddr</var></dt>
+
+								<dd class="dd">The physical address of the IPMMU unit registers.</dd>
+
+							
+							
+								<dt class="dt dlterm"><var class="keyword varname">intr_status_bit</var></dt>
+
+								<dd class="dd">The bit number in the interrupt status register where this unit
+									has encountered a fault condition.</dd>
+
+							
+						</dl>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">smmu_use_param</var></dt>
+
+					<dd class="dd"><div class="p">On boards that use the Renesas R-Car H3 IPMMU architecture, the syntax
+							for <var class="keyword varname">smmu_use_param</var> is as follows:
+						<pre class="pre codeblock"><var class="keyword varname">utlb</var></pre>
+						</div>
+
+						<dl class="dl compact">
+							
+								<dt class="dt dlterm"><var class="keyword varname">utlb</var></dt>
+
+								<dd class="dd">The micro-translation lookaside buffer (TLB) number to use for
+									the device.</dd>
+
+							
+						</dl>
+
+					</dd>
+
+					<dd class="dd ddexpand"><div class="p">For example:
+						<pre class="pre codeblock">device mem:0xE6EF0000 use vi0 0</pre>
+							where <span class="ph codeph">mem:</span> defines a memory-mapped I/O device at
+							physical address <span class="ph codeph">0xE6EF0000</span>; this device uses the
+							<span class="ph codeph">vi0</span> IOMMU/SMMU unit and the micro-translation
+							lookaside buffer (TLB) 0.</div>
+
+					</dd>
+
+				
+			</dl>
+
+			<h3 class="title sectiontitle">Configuring unit and TLB values for multiple devices</h3>
+			<div class="p">Don't use multiple lines to configure multiple devices to share the
+				same unit (<var class="keyword varname">smmu_unit_param paddr</var>) and TLB values
+				(<var class="keyword varname">smmu_use_param utlb</var>); this sort of configuration may cause
+				problems with the device disconnection and lead to undefined behavior.
+				For example, don't do the following:
+			<pre class="pre codeblock">device mem:0xe6ef0000 use vi0 0
+device mem:0xe6ef1000 use vi0 0
+device mem:0xe6ef2000 use vi0 0
+device mem:0xe6ef3000 use vi0 0</pre>
+			</div>
+
+			<div class="p">Instead, use a single line specifying the <span class="keyword option">device</span> option's
+				<var class="keyword varname">device_spec</var> and <var class="keyword varname">length</var> arguments.
+				For example:
+			<pre class="pre codeblock">device mem:0xe6ef0000/0x4000 use vi0 0</pre>
+			</div>
+
+			<div class="note warning"><span class="warningtitle">Warning:</span> Devices that share the same unit and TLB are linked to the same
+				memory region map and, hence, aren't protected from each other.</div>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/config.html" title="Correct configuration of the smmuman service requires careful attention to architecture-specific and board-specific details provided in the board manufacturer’s documentation.">Configuring smmuman</a></div>
+</div>
+</div></body>
+</html>

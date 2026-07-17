@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Copy-on-write filesystem" />
+<meta name="abstract" content="To address the problems associated with existing disk filesystems, the Power-Safe filesystem never overwrites live data; it does all updates using copy-on-write (COW), assembling a new view of the filesystem in unused blocks on the disk. The new view of the filesystem becomes “live” only when all the updates are safely written on the disk. Everything is COW: both metadata and user data are protected." />
+<meta name="description" content="To address the problems associated with existing disk filesystems, the Power-Safe filesystem never overwrites live data; it does all updates using copy-on-write (COW), assembling a new view of the filesystem in unused blocks on the disk. The new view of the filesystem becomes “live” only when all the updates are safely written on the disk. Everything is COW: both metadata and user data are protected." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="COW_filesystem" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Copy-on-write filesystem</title>
+</head>
+<body id="COW_filesystem">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Copy-on-write filesystem</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+To address the problems associated with existing disk filesystems,
+the Power-Safe filesystem never overwrites live data;
+it does all updates using copy-on-write (COW), assembling a new view of the
+filesystem in unused blocks on the disk.
+The new view of the filesystem becomes <q class="q">live</q> only when all the
+updates are safely written on the disk.
+<em class="ph i">Everything</em> is COW: both metadata and user data are protected.
+</p>
+
+
+<p class="p">
+
+
+
+To see how this works, let's consider how the data is stored.
+A Power-Safe filesystem is divided into logical blocks,
+the size of which you can specify when you use
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html"><span class="keyword cmdname">mkqnx6fs</span></a>
+to format the filesystem.
+Each inode includes 16 pointers to blocks.
+If the file is smaller than 16 blocks, the inode points to the data blocks
+directly.
+If the file is any bigger, those 16 blocks become pointers to more blocks,
+and so on.
+</p>
+
+
+<p class="p">
+The final block pointers to the real data are all in the leaves and are
+all at the same level.
+In some other filesystems—such as EXT2—a file always has
+some direct
+blocks, some indirect ones, and some double indirect, so you go to
+different levels to get to different parts of the file.
+With the Power-Safe filesystem, all the user data for a file is at the
+same level.
+</p>
+
+
+
+
+<div class="p">
+<br /><img class="image" src="../images/cow_structure.svg" width="672" alt="Inodes, indirect pointers, and blocks" /><br />
+</div>
+
+
+<p class="p">
+If you change some data,
+it's written in one or more unused blocks,
+and the original data remains unchanged.
+The list of indirect block pointers
+must be modified to refer to the newly used blocks, but again
+the filesystem copies the existing block of pointers and modifies the
+copy.
+The filesystem then updates the inode—once again by modifying
+a copy—to refer to the new block of indirect pointers.
+</p>
+
+
+<div class="p">
+When the operation is complete, the original data and the pointers to it remain
+intact, but there's a new set of blocks, indirect pointers, and inode for
+the modified data:
+
+<br /><img class="image" src="../images/cow_updated.svg" width="672" alt="COW inodes, indirect pointers, and blocks" /><br />
+</div>
+
+
+<p class="p">
+This has several implications for the COW filesystem:
+</p>
+
+
+<ul class="ul">
+<li class="li">The bitmap and inodes are treated in the same way as user files.</li>
+
+
+<li class="li">Any filesystem block can be relocated, so there aren't any fixed locations.</li>
+
+
+<li class="li">The filesystem must be completely self-referential.</li>
+
+
+</ul>
+
+
+<p class="p">
+
+A <em class="ph i">superblock</em> is a global root block that contains the inodes
+for the system bitmap and inodes files.
+A Power-Safe filesystem maintains <em class="ph i">two</em> superblocks:
+</p>
+
+
+<ul class="ul">
+<li class="li">a stable superblock that reflects the original version of all the blocks</li>
+
+<li class="li">a working superblock that reflects the modified data</li>
+
+</ul>
+
+
+<p class="p">
+The working superblock can include pointers to blocks in the stable superblock.
+These blocks contain data that hasn't yet been modified.
+The inodes and bitmap for the working superblock grow from it.
+</p>
+
+
+<div class="p">
+<br /><img class="image" src="../images/superblocks.svg" width="672" alt="Stable and working superblocks" /><br />
+</div>
+
+
+<p class="p">
+
+A <em class="ph i">snapshot</em> is a consistent view of the filesystem (simply
+a committed superblock).
+To take a snapshot, the filesystem:
+</p>
+
+
+<ol class="ol">
+<li class="li">Locks the filesystem to make sure that it's in a stable
+  state; all client activity is suspended, and there must be no active
+  operations.
+</li>
+
+
+<li class="li">Writes all the copied blocks to disk.
+  The order isn't important, so it can be optimized.
+</li>
+
+
+<li class="li">Forces the data to be synchronized to disk, including flushing any
+  hardware track cache.
+</li>
+
+
+<li class="li">Constructs the superblock, recording the new location of the bitmap
+  and inodes, incrementing its sequence number, and calculating a CRC.
+</li>
+
+
+<li class="li">Writes the superblock to disk.</li>
+
+
+<li class="li">Switches between the working and committed views.
+  The old versions of the copied blocks are freed and become available
+  for use.
+</li>
+
+
+</ol>
+
+
+<p class="p">
+To mount the disk at startup, the filesystem simply reads the
+superblocks from disk, validates their CRCs, and then chooses the one
+with the higher sequence number.
+There's no need to replay a transaction log.
+The time it takes to mount the filesystem is the time it takes to read a
+couple of blocks.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If the drive doesn't support synchronizing, <span class="ph filepath">fs-qnx6.so</span>
+can't guarantee that the filesystem is power-safe.
+Before using this filesystem,
+check to make sure that your device meets the filesystem's requirements.
+For more information, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html#fs-qnx6.so__Device_properties">Required properties of the device</a></q>
+in the entry for <span class="ph filepath">fs-qnx6.so</span> in the
+<cite class="cite">Utilities Reference</cite>.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys_QNX6_filesystem.html" title="The Power-Safe filesystem is a reliable disk filesystem that can withstand power failures without corruption.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html">Filesystem limits (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html">fs-qtd.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li></ul></div>
+</div></body>
+</html>

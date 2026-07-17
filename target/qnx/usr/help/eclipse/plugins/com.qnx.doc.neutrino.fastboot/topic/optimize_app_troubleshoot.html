@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Other techniques and troubleshooting" />
+<meta name="abstract" content="Most of the techniques described in this chapter can be tried from the start of your project, then reviewed and revised as you increase your understanding of your system." />
+<meta name="description" content="Most of the techniques described in this chapter can be tried from the start of your project, then reviewed and revised as you increase your understanding of your system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="optimze_app_troubleshoot" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Other techniques and troubleshooting</title>
+</head>
+<body id="optimze_app_troubleshoot">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Other techniques and troubleshooting</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> Most of the techniques described in this chapter can be tried from the start of your
+        project, then reviewed and revised as you increase your understanding of your
+        system.</p>
+
+        <p class="p"> Many of these techniques are for optimizing your application. If you have implemented
+            them and you still find that your splash screen application isn't showing your content
+            on the display in an optimal time, try to find other areas to optimize in your system.
+            These can include:</p>
+
+        <ul class="ul">
+            <li class="li">
+                <p class="p">Determine if your splash screen application has inadvertently used composition
+                    (created a framebuffer) when rendering an image to a display. Because there's
+                    time required to set up the framebuffer, in general, the use of framebuffer
+                    increases the time it takes to show content on the display.</p>
+
+                <div class="p">To determine if a framebuffer was created, run your splash screen application,
+                    and immediately after it completes, check if there are window entries under the
+                    following folder:
+                <pre class="pre codeblock">/dev/screen/0</pre></div>
+
+                <p class="p">If there are any entries, you should investigate to find out what is causing the
+                    framebuffer to be created.</p>
+
+            </li>
+
+            <li class="li"> If your hardware supports hardware pipelines and you require multiple, visible
+                windows, consider using the hardware pipelines to do the composition rather than
+                creating a framebuffer. This technique can help to show content on the display more
+                quickly. For more information about using pipelines, see the <q class="q">
+                    <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_composition.html">Composition</a>
+                </q> section in the <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_displaying.html"> Displaying the contents of windows</a> chapter of the
+                    <cite class="cite">Screen Developer's Guide</cite>. </li>
+
+            <li class="li"> Use tools such as <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/tracelogger.html"><span class="keyword cmdname">tracelogger</span></a>
+                
+                to trace events and to get measurements on your system. You can use the measurements
+                to help identify latencies in your startup time, and areas that you should consider
+                optimizing. </li>
+
+            <li class="li"> Use <span class="keyword cmdname">slog2info</span> and <span class="keyword cmdname">screeninfo</span> to help debug
+                your splash screen application. For more information about debugging your
+                application, see the <q class="q"><a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_screen-debugging.html">Debugging</a></q> chapter in the <cite class="cite"><span class="keyword">Screen</span> Developer's Guide</cite>. </li>
+
+            <li class="li"><p class="p">If you have a multicore hardware platform, separate the decoding of an image and
+                    the image rendering operations into separate threads. If you run the threads on
+                    separate cores, you can decode and render images in parallel.</p>
+
+                <p class="p">With this technique you can show your content before you even start the <span class="keyword">Screen</span> service; that is, before you make a call to one
+                    of the <span class="keyword apiname">screen_attach_*_buffer()</span> functions to write the buffer
+                    (see <a class="xref" href="../../com.qnx.doc.screen/topic/screen_attach_pixmap_buffer.html"><span class="keyword apiname">screen_attach_pixmap_buffer()</span></a>, <a class="xref" href="../../com.qnx.doc.screen/topic/screen_attach_stream_buffers.html"><span class="keyword apiname">screen_attach_stream_buffers()</span></a>, and <a class="xref" href="../../com.qnx.doc.screen/topic/screen_attach_window_buffers.html"><span class="keyword apiname">screen_attach_window_buffers</span></a> in the
+                    <q class="q"><span class="keyword">Screen</span> Library Reference</q> chapter
+                    of the <cite class="cite"><span class="keyword">Screen</span> Developer's Guide</cite>).</p>
+
+                <p class="p">In short, you will be able to show your initial content before doing all the work
+                    that is needed to get the <span class="keyword">Screen</span> service
+                    started.</p>
+
+            </li>
+
+        </ul>
+
+        <p class="p">For more suggestions to troubleshoot your application and techniques to trace through
+            your code, see the <a class="xref" href="../../com.qnx.doc.screen/topic/manual/cscreen_screen-debugging.html"> Debugging</a> chapter in the <cite class="cite"><span class="keyword">Screen</span> Developer's Guide</cite>. </p>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

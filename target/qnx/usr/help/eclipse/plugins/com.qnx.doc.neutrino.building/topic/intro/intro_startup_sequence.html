@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The boot process" />
+<meta name="abstract" content="A QNX OS system boot involves, in sequence, the IPL, the startup program, the OS, and, optionally, resource managers such as device drivers or utilities such as SLM." />
+<meta name="description" content="A QNX OS system boot involves, in sequence, the IPL, the startup program, the OS, and, optionally, resource managers such as device drivers or utilities such as SLM." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="intro_startup_sequence" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>The boot process</title>
+</head>
+<body id="intro_startup_sequence">
+
+	<h1 class="title topictitle1" id="ariaid-title1">The boot process</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">A <span class="keyword">QNX OS</span> system boot involves, in sequence, the IPL,
+		the startup program, the OS, and, optionally, resource managers such as device drivers or
+		utilities such as SLM.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Components</h2>
+			
+			<div class="p">A <span class="keyword">QNX OS</span> boot sequence has three main components.
+				Following the hardware initialization, which is often handled by a boot loader
+				(e.g., BIOS or UEFI for x86, U-Boot for ARM), the QNX boot uses:
+				<ul class="ul">
+					<li class="li">an Initial Program Loader (IPL)</li>
+
+					<li class="li">a startup program</li>
+
+					<li class="li">an OS image</li>
+
+				</ul>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<p class="p">Both the startup program and the OS image are present in an image filesystem
+					(see <q class="q"><a class="xref" href="intro_ifs.html" title="When the IPL has completed its work, it copies a bootable OS image into RAM and jumps to it to continue execution.">Image Filesystem (IFS)</a></q> in this chapter).</p>
+
+				<p class="p">A useful way to think about the boot process and its components is that each step
+					provides greater abstraction from the hardware. The IPL is specific to an
+					architecture, board, and sometimes even board revision. The startup code is specific
+					to an architecture and board. And, generally speaking, an OS kernel can work with
+					different boards that share an architecture.</p>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Tasks</h2>
+			
+			<p class="p">The figure below shows a more detailed view of the boot tasks, which includes the tasks
+				handled by the hardware, and those that happen after the OS has started (such as
+				launching an application). With the exception of the tasks that the hardware and
+				firmware control, you can control the entire boot sequence, including tasks that
+				happen after the OS has started and applications are launched.</p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A high-level view of the boot sequence for a <span class="keyword">QNX OS</span>
+					system. The circled numbers in the diagram represent the steps in the boot sequence.
+				</span>
+				
+				<br /><img class="image" src="../../images/bootup_timeline.svg" width="672" /><br />
+			</div>
+
+			<div class="p">When a <span class="keyword">QNX OS</span> system starts up, components in the system
+				perform the following tasks:
+			<ol class="ol">
+				<li class="li">The board hardware and firmware perform checks and initialization tasks, then hand control over to
+					the software located at a predetermined location.</li>
+
+				<li class="li"><p class="p">Traditionally, the location where the processor begins execution has been a hard-coded address,
+						known as the <em class="ph i">reset vector</em>. However, some boards support using a component such as a ROM
+						monitor or Multimedia card LOader (MLO) to identify where the processor should begin execution
+						after the hardware- and firmware-controlled tasks are complete.</p>
+
+					<p class="p">The IPL performs the minimum hardware configuration needed to create an environment that 
+						allows the startup program and the <span class="keyword">QNX OS</span> kernel to run, then
+						locates and loads the image filesystem (IFS), and transfers control to the startup program in
+						the image (see <q class="q"><a class="xref" href="intro_ifs.html" title="When the IPL has completed its work, it copies a bootable OS image into RAM and jumps to it to continue execution.">Image Filesystem (IFS)</a></q>).</p>
+</li>
+
+				<li class="li"><p class="p">The startup program configures the system, including timers, interrupt controllers, and cache
+						controllers (see <q class="q"><a class="xref" href="intro_startup.html" title="You can customize the QNX OS for different embedded-system hardware by changing the startup program.">Startup program</a></q> in this chapter, and the
+						<a class="xref" href="../startup/startup_about.html" title="The first program to run in a bootable OS image is the startup program; it completes the system configuration, then launches the OS kernel.">Startup Programs</a> chapter).</p>
+
+					<p class="p">When it has completed the configuration, this program transfers control to the OS kernel.</p>
+</li>
+
+				<li class="li"><p class="p">The <span class="keyword"></span> kernel is included in the <span class="keyword cmdname">procnto</span> module, which combines the
+						kernel and process manager. This module sets up the kernel, then runs the instructions
+						specified in a script in the buildfile used to generate the OS image.
+						This script contains startup instructions for drivers and other processes, 
+						and any additional commands for running other required components.</p>
+
+					
+				</li>
+
+				<li class="li"><div class="p">The buildfile specifies the remainder of the boot process, including: <ul class="ul">
+						<li class="li">the files and commands to include in the image</li>
+
+						<li class="li">the startup order for the executables</li>
+
+						<li class="li">the loading options for the files and the executables</li>
+
+						<li class="li">the command-line arguments and environment variables for the executables</li>
+
+					</ul>
+</div>
+
+					<p class="p">The buildfile may specify most or all applications that will run on the system, or include only a
+						few applications, leaving the majority to be started later.</p>
+
+					<p class="p">When all of the commands in the buildfile have completed successfully, the QNX system has finished
+						booting.</p>
+
+				</li>
+
+				<li class="li">The System Launch and Monitor (SLM) utility is used to launch complex applications consisting of
+					many processes that must be started in a specific order. It allows you to configure application
+					launch sequences without modifying the buildfile (see
+					<q class="q"><a class="xref" href="intro_other.html#intro_other__slm">System Launch and Monitor (SLM)</a></q>).</li>
+
+			</ol>
+</div>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				
+				
+				
+				
+				
+				<p class="p">On ARM platforms, the reset vector is normally at address <span class="ph codeph">0x00000000</span>, so the boot
+					device (NOR flash or other first-stage boot device) is mapped to this physical address. On x86
+					platforms, the reset vector is usually at <span class="ph codeph">0xFFFFFFF0</span>. Some boards support
+					retrieving the execution entry point from a component such as a ROM monitor or an MLO.</p>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

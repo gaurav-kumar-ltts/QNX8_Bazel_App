@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="From reset to startup" />
+<meta name="abstract" content="Due to the different board architectures and processes handled by the board firmware, IPLs for x86 and ARM platforms are very different." />
+<meta name="description" content="Due to the different board architectures and processes handled by the board firmware, IPLs for x86 and ARM platforms are very different." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_reset_startup" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>From reset to startup</title>
+</head>
+<body id="ipl_reset_startup">
+
+	<h1 class="title topictitle1" id="ariaid-title1">From reset to startup</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Due to the different board architectures and processes handled by the board firmware, IPLs for x86 and
+		ARM platforms are very different. </p>
+
+		<div class="section">
+			<div class="p">Despite their differences, IPLs for all board families have completed their work when they have loaded
+				the IFS into memory and jumped to the startup code. They all have at least the following in common:
+				<ul class="ul">
+					<li class="li">They are the first software code to execute on the board (as opposed to the BIOS or Boot ROM code,
+						which is in the board firmware).</li>
+
+					<li class="li">They finish up by handing control to the OS startup code (see the
+						<a class="xref" href="../startup/startup_about.html" title="The first program to run in a bootable OS image is the startup program; it completes the system configuration, then launches the OS kernel.">Startup Programs</a> chapter).</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">The figure below shows, at a high level, the sequence of components that initialize and boot a
+				board, for each of the x86 and ARM platforms. Even though the startup code differs between the
+				platforms, this code is considered the point of convergence, because it is the first OS code to run.
+				The ARM sequence shows a Boot ROM, but some boards do not use Boot ROM or use a first-stage,
+				low-level Boot ROM.</p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The boot processes for x86 and ARM platforms.</span>
+				
+				<br /><img class="image" src="../../images/ipl_x86_arm.svg" width="672" alt="Figure showing how a QNX IPL loads the startup code from a linearly mapped device" /><br />
+			</div>
+
+			<p class="p">In the diagram above, the files with the first software code to be executed are called <span class="ph filepath">_start</span>
+				for both platforms.</p>
+
+		</div>
+
+		<div class="section" id="ipl_reset_startup__linker"><h2 class="title sectiontitle">The linker file</h2>
+			
+			
+			
+			<div class="p">For both x86 and ARM boards, the file with the assembly code at the reset vector
+				is specified in the linker file (e.g., <span class="ph filepath">qnx-x86.lnk</span> or
+				<span class="ph filepath">qnx-arm.lnk</span>). For example, assuming that the board is 64-bit
+				little endian, <span class="ph filepath">qnx-aarch64-<var class="keyword varname">board_name</var>.lnk</span>
+				might begin as follows:
+<pre class="pre codeblock">TARGET(elf64-littlearm)
+OUTPUT_FORMAT(elf64-littlearm)
+ENTRY(_start-arm-<var class="keyword varname">board_name</var>)
+MEMORY
+{
+    stack_top      :    ORIGIN = 0x402f93FC,    LENGTH = 0x0
+    stack_space    :    ORIGIN = 0x402f7400,    LENGTH = 0x2000
+    ram            :    ORIGIN = 0x402f0400,    LENGTH = 0x7000
+
+    /* TLB table must be aligned to 16K (0x4000) */
+    tlb         :   ORIGIN = 0x40310000,    LENGTH = 0x4000
+
+    /* dedicated for non-cacheble buffer */
+    scratch     :   ORIGIN = 0x80000000,    LENGTH = 0x100000
+}
+
+SECTIONS
+{
+    .text : {
+            _start.o(.text)
+            *(.text)
+            ...
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

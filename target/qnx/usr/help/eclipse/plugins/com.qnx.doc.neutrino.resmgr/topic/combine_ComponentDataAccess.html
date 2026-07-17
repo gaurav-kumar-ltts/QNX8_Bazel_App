@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Component data access" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/combine_CombineMsgHandling.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ComponentDataAccess" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Component data access</title>
+</head>
+<body id="ComponentDataAccess">
+
+<h1 class="title topictitle1" id="ariaid-title1">Component data access</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The second issue associated with handling combine messages
+is how to access the data area for subsequent message components.
+</p>
+
+
+<p class="p">
+For example, the <span class="keyword apiname">writeblock()</span> combine message
+format has an <span class="keyword apiname">lseek()</span> message first, followed by
+the <span class="keyword apiname">write()</span> message. This means that the data
+associated with the <span class="keyword apiname">write()</span> request is further in
+the received message buffer than would be the case for just
+a simple <span class="keyword const">_IO_WRITE</span> message:
+
+
+
+
+
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Client call:</dt>
+
+<dd class="dd"><span class="keyword apiname">writeblock()</span></dd>
+
+
+
+
+<dt class="dt dlterm">Message(s):</dt>
+
+<dd class="dd"><span class="keyword const">_IO_LSEEK</span> , <span class="keyword const">_IO_WRITE</span> , data</dd>
+
+
+
+
+<dt class="dt dlterm">Callouts:</dt>
+
+<dd class="dd"><var class="keyword varname">io_lock_ocb</var>, <var class="keyword varname">io_lseek</var>, <var class="keyword varname">io_write</var>,
+  <var class="keyword varname">io_unlock_ocb</var>
+</dd>
+
+
+
+</dl>
+
+
+<p class="p"> This issue is easy to work around. There's a resource manager library function called <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgget.html"><span class="keyword apiname">resmgr_msgget()</span></a> that knows how to get the data corresponding to the
+correct message component. Therefore, in the <var class="keyword varname">io_write</var> handler, if you used
+<span class="keyword apiname">resmgr_msgget()</span> instead of <span class="keyword apiname">MsgRead()</span>, this would be
+transparent to you. 
+
+
+
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Resource managers should always use <span class="keyword apiname">resmgr_msg*()</span> cover functions.
+</div>
+
+
+<p class="p">The <span class="keyword apiname">resmgr_msgget()</span> function takes the combine message offset of the component
+message into account when it retrieves the message. It first copies data from the current local
+message buffer, and then gets the rest of the data from the client by calling
+<span class="keyword apiname">MsgRead()</span>. For completeness, there's also a <span class="keyword apiname">resmgr_msgwrite()</span>
+that works in an identical manner to <span class="keyword apiname">MsgWrite()</span>, except that it dereferences the
+passed <var class="keyword varname">ctp</var> to obtain the <var class="keyword varname">rcvid</var>.
+
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/combine_CombineMsgHandling.html">The library's combine-message handling</a></div>
+</div>
+</div></body>
+</html>

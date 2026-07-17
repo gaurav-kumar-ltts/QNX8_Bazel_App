@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ConnectDupFd(), ConnectDupFd_r()" />
+<meta name="abstract" content="Support file descriptor duplication" />
+<meta name="description" content="Support file descriptor duplication" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-c.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="connectdupfd" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ConnectDupFd(), ConnectDupFd_r()</title>
+</head>
+<body id="connectdupfd">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ConnectDupFd()</span>, <span class="keyword apiname">ConnectDupFd_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Support file descriptor duplication</em></p>
+
+<div class="section">
+<div class="note"><span class="notetitle">Note:</span> 
+ Don't use the <span class="keyword apiname">ConnectDupFd()</span> or <span class="keyword apiname">ConnectDupFd_r()</span> kernel call directly; instead, use
+  <a class="xref" href="../d/dupfd.html" title="Duplicate a file descriptor from another process"><span class="keyword apiname">dupfd()</span></a>, <a class="xref" href="../d/dupfd_getinfo.html" title="Fetch the information registered by calling dupfd_register()"><span class="keyword apiname">dupfd_getinfo()</span></a>,
+  <a class="xref" href="../d/dupfd_register.html" title="Register a file descriptor to be duplicated by another process"><span class="keyword apiname">dupfd_register()</span></a>, or
+  <a class="xref" href="../d/dupfd_unregister.html" title="Unregister a handle that was returned by a call to dupfd_register()"><span class="keyword apiname">dupfd_unregister()</span></a>.
+</div>
+
+</div>
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int ConnectDupFd( int <var class="keyword varname">op</var>,
+                  pid64_t  * <var class="keyword varname">pid</var>,
+                  dupfd_handle_t * <var class="keyword varname">handle</var>,
+                  pid_t * <var class="keyword varname">srvpid</var>,
+                  struct _msg_info_hdr * <var class="keyword varname">info</var> );
+
+int ConnectDupFd_r( int <var class="keyword varname">op</var>,
+                    pid64_t  * <var class="keyword varname">pid</var>,
+                    dupfd_handle_t * <var class="keyword varname">handle</var>,
+                    pid_t * <var class="keyword varname">srvpid</var>,
+                    struct _msg_info_hdr * <var class="keyword varname">info</var> );
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+  <dt class="dt dlterm"><var class="keyword varname">op</var></dt>
+
+  <dd class="dd">The operation to perform; one of:
+    <ul class="ul">
+      <li class="li"><a class="xref" href="#connectdupfd___NTO_DUPFD_REGISTER"><span class="keyword const">_NTO_DUPFD_REGISTER</span></a></li>
+
+      <li class="li"><a class="xref" href="#connectdupfd___NTO_DUPFD_REGISTER_DISC"><span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span></a></li>
+
+      <li class="li"><a class="xref" href="#connectdupfd___NTO_DUPFD_UNREGISTER"><span class="keyword const">_NTO_DUPFD_UNREGISTER</span></a></li>
+
+      <li class="li"><a class="xref" href="#connectdupfd___NTO_DUPFD_LOOKUP"><span class="keyword const">_NTO_DUPFD_LOOKUP</span></a></li>
+
+      <li class="li"><a class="xref" href="#connectdupfd___NTO_DUPFD_VERIFY"><span class="keyword const">_NTO_DUPFD_VERIFY</span></a></li>
+
+    </ul>
+
+  </dd>
+
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+  <dd class="dd">The PID (process ID) of the process, which can be a 32- or 64-bit input parameter or a 64-bit output parameter.
+
+      <ul class="ul">
+        <li class="li">When using the <span class="keyword const">_NTO_DUPFD_LOOKUP</span> operation, the <var class="keyword varname">pid</var>
+          receives the peer PID as an output parameter.
+          This means that the process that sends the file descriptor receives the PID of the recipient,
+          whereas the process that receives the file descriptor receives the sender's PID.</li>
+
+        <li class="li">For the operations, <span class="keyword const">_NTO_DUPFD_REGISTER</span>, and <span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span>,
+          it is the PID of the process that receives the file descriptor.
+
+        </li>
+
+        <li class="li">
+          For the operation, <span class="keyword const">_NTO_DUPFD_VERIFY</span>,
+          it is the PID of the process making the request to the server to duplicate the file descriptor.
+        </li>
+
+      </ul>
+
+
+
+  </dd>
+
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">handle</var></dt>
+
+  <dd class="dd">
+    The handle is an identifier that authorizes the transfer of a file descriptor.
+    There is a limit of 200 handles per process. If this limit is reached, the kernel's default behaviour is to replace the oldest entry.
+    <div class="note"><span class="notetitle">Note:</span> 
+      For the operations, <span class="keyword const">_NTO_DUPFD_REGISTER</span> and <span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span>,
+      the handle argument is updated with the handle output parameter.
+      Whereas, for any other operation, <var class="keyword varname">handle</var> is used as an input parameter.
+    </div>
+</dd>
+
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">srvpid</var></dt>
+
+  <dd class="dd">A pointer to <span class="keyword dtype">pid_t</span> that is updated with the PID of the server process
+    associated with the handle.
+    <div class="note"><span class="notetitle">Note:</span> 
+      Only the <span class="keyword const">_NTO_DUPFD_LOOKUP</span> operation uses this parameter.
+    </div>
+
+  </dd>
+
+
+
+
+  <dt class="dt dlterm"><var class="keyword varname">info</var></dt>
+
+  <dd class="dd">A pointer to a structure that contains information about the file descriptor to duplicate.
+    <div class="note"><span class="notetitle">Note:</span> 
+      <ul class="ul">
+        <li class="li">
+          The operation <span class="keyword const">_NTO_DUPFD_LOOKUP</span> uses this as an output parameter and the kernel provides the information
+          about the file descriptor to duplicate.
+        </li>
+
+        <li class="li">The <span class="keyword const">_NTO_DUPFD_REGISTER</span> and the <span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span> use this as an input parameter.
+          The <var class="keyword varname">coid</var> (connection ID) of the <var class="keyword varname">info</var> structure must be set to the
+          file descriptor to be duplicated.</li>
+
+        <li class="li">The <span class="keyword const">_NTO_DUPFD_VERIFY</span> operation also uses this as an input parameter.
+          However, the parameter is set to match the contents of the info member of an <span class="keyword const">_IO_DUP</span> message.</li>
+
+      </ul>
+
+
+    </div>
+
+  </dd>
+
+
+
+</dl>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">ConnectDupFd()</span> and <span class="keyword apiname">ConnectDupFd_r()</span> kernel calls duplicate file descriptors.
+</p>
+
+
+<p class="p">The section that follows describes the possible operations.</p>
+
+
+<p class="p" id="connectdupfd___NTO_DUPFD_REGISTER"><strong class="ph b"><span class="keyword const">_NTO_DUPFD_REGISTER</span></strong></p>
+
+<p class="p">The sender registers and retrieves a handle for a file descriptor.
+If the maximum number of file descriptors are registered, the system searches for an entry that was
+associated with a process that has exited.
+If no entry is found, the function returns an error of <span class="keyword const">EAGAIN</span>. Otherwise, it returns a <var class="keyword varname">handle</var>.
+</p>
+
+
+<p class="p" id="connectdupfd___NTO_DUPFD_REGISTER_DISC"><strong class="ph b"><span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span></strong></p>
+
+<p class="p">This operation is similar to <span class="keyword const">_NTO_DUPFD_REGISTER</span>.
+The only difference is that if the maximum number of file descriptors are already registered,
+and no stale entries are found, the oldest entry is identified and replaced with the new registration.
+
+</p>
+
+
+<div class="p">
+<div class="note"><span class="notetitle">Note:</span> 
+  In both <span class="keyword const">_NTO_DUPFD_REGISTER</span> and <span class="keyword const">_NTO_DUPFD_REGISTER_DISC</span>, the following are applicable:
+  <ul class="ul">
+    <li class="li">
+      The <var class="keyword varname">coid</var> (connection ID) of the <var class="keyword varname">info</var> structure should be set to the
+      file descriptor to be duplicated.
+    </li>
+
+    <li class="li">
+      The <var class="keyword varname">srvpid</var> argument isn't used.
+    </li>
+
+    <li class="li">
+      The <var class="keyword varname">handle</var> is used as an output parameter.
+    </li>
+
+  </ul>
+
+</div>
+
+</div>
+
+<p class="p" id="connectdupfd___NTO_DUPFD_UNREGISTER"><strong class="ph b"><span class="keyword const">_NTO_DUPFD_UNREGISTER</span></strong></p>
+
+<p class="p">
+The sender uses this operation to unregister a handle. This operation only uses the <var class="keyword varname">handle</var> parameter.
+</p>
+
+
+<p class="p" id="connectdupfd___NTO_DUPFD_LOOKUP"><strong class="ph b"><span class="keyword const">_NTO_DUPFD_LOOKUP</span></strong></p>
+
+<p class="p">
+The process that receives a duped file descriptor uses it to lookup the required information for an <span class="keyword const">_IO_DUP</span> message.
+The call succeeds only if the caller is one of the two processes associated with the file descriptor.
+When a call succeeds, the <span class="keyword dtype">_msg_info_hdr</span> structure is filled with the necessary
+information for performing a duplication operation.
+</p>
+
+
+<div class="p">
+<div class="note"><span class="notetitle">Note:</span> 
+  In <span class="keyword const">_NTO_DUPFD_LOOKUP</span>, the following is applicable:
+  <ul class="ul">
+    <li class="li">You provide the <var class="keyword varname">handle</var> as an input parameter when using this
+      function. The function returns the values of <var class="keyword varname">pid</var> (set to the process
+      to receive the file descriptor) and <var class="keyword varname">srvpid</var> (set to the resmgr that supports the
+      file descriptor as output parameters). </li>
+
+  </ul>
+
+</div>
+
+</div>
+
+
+<p class="p" id="connectdupfd___NTO_DUPFD_VERIFY"><strong class="ph b"><span class="keyword const">_NTO_DUPFD_VERIFY</span></strong></p>
+
+<p class="p">
+The server that provides the file descriptor being transferred verifies that the <span class="keyword const">_IO_DUP</span> request
+comes with approval from the sending process. Only the server can make the call, as all other calls are rejected.
+</p>
+
+
+<div class="p">
+<div class="note"><span class="notetitle">Note:</span> 
+  In <span class="keyword const">_NTO_DUPFD_VERIFY</span>, the following is applicable:
+  <ul class="ul">
+    <li class="li">
+      The process duplicates the file descriptor using the <var class="keyword varname">handle</var> as an input parameter.
+      The <var class="keyword varname">pid</var> parameter is the PID of the process that is making the request (the process that sends the _IO_DUP message).
+    </li>
+
+    <li class="li">
+      The <var class="keyword varname">info</var> parameter is also used and contains the info member of the <span class="keyword const">_IO_DUP</span> message that the server received.
+    </li>
+
+    <li class="li">
+      The process doesn't use <var class="keyword varname">srvpid</var>.
+    </li>
+
+  </ul>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+<p class="p"> 0 on success, or -1 if an error occurred (<var class="keyword varname">errno</var> is set). </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+<dl class="dl">
+
+
+  <dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+  <dd class="dd">The flag <span class="keyword const">_NTO_DUPFD_REGISTER</span> was specified and the limit on the number of handles has been reached.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+  <dd class="dd">The file descriptor isn't valid.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+  <dd class="dd">The <var class="keyword varname">pid</var>, <var class="keyword varname">handle</var>, <var class="keyword varname">srvcpid</var>, or <var class="keyword varname">info</var> pointers are invalid.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+  <dd class="dd">The file descriptor is invalid or is a side channel.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">ENOENT</span></dt>
+
+  <dd class="dd">
+    <div class="p">
+      One of the following errors occurred:
+      <ul class="ul">
+        <li class="li">
+          The <var class="keyword varname">handle</var> is invalid.
+        </li>
+
+        <li class="li">
+          The handle's associated file descriptor is closed.
+        </li>
+
+        <li class="li">
+          The handle is unregistered
+        </li>
+
+        <li class="li">
+          The <var class="keyword varname">pid</var> you provided does not match the one associated with the handle for a verify operation.
+        </li>
+
+        <li class="li">
+          The process that services the file descriptor didn't make the call for a verify operation.
+        </li>
+
+        <li class="li">
+          The process that registered the file descriptor or the process that the <var class="keyword varname">handle</var> is for didn't make the call for the lookup operation.
+        </li>
+
+      </ul>
+
+    </div>
+
+  </dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+  <dd class="dd">Insufficient memory available to register.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+  <dd class="dd">The process ID doesn't represent an existing process.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d373499e675">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d373499e677"> </th>
+</tr>
+
+  </thead>
+<tbody class="tbody">
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e675 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e677 ">No</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e675 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e677 ">Yes</td>
+</tr>
+
+    <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e675 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d373499e677 ">Yes</td>
+</tr>
+
+  </tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-c.html">C</a></div>
+</div>
+</div></body>
+</html>

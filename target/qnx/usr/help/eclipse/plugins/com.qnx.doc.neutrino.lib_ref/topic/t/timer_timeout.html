@@ -1,0 +1,873 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="timer_timeout(), timer_timeout_r()" />
+<meta name="abstract" content="Set a timeout on a blocking state" />
+<meta name="description" content="Set a timeout on a blocking state" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/timing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timercreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timerinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timertimeout.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timer_timeout" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>timer_timeout(), timer_timeout_r()</title>
+</head>
+<body id="timer_timeout">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">timer_timeout()</span>, <span class="keyword apiname">timer_timeout_r()</span></h1>
+
+
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Set a timeout on a blocking state</em></p>
+
+  
+  <div class="section">
+    <div class="note"><span class="notetitle">Note:</span> 
+      See the documentation for <a class="xref" href="timertimeout.html" title="Set a timeout on a blocking state"><span class="keyword apiname">TimerTimeout()</span></a>; the <span class="keyword apiname">timer_timeout()</span> function is a cover for
+      <span class="keyword apiname">TimerTimeout()</span>
+      that uses a <span class="keyword dtype">timespec</span> structure (specifying seconds and nanoseconds)
+      instead of a <span class="keyword dtype">uint64_t</span> (specifying nanoseconds)
+      for the <var class="keyword varname">ntime</var> and <var class="keyword varname">otime</var> arguments.
+    </div>
+
+  </div>
+
+  
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;time.h&gt;
+
+int timer_timeout( 
+              clockid_t <var class="keyword varname">id</var>,
+              unsigned <var class="keyword varname">flags</var>,
+              const struct sigevent* <var class="keyword varname">notify</var>,
+              const struct timespec* <var class="keyword varname">ntime</var>,
+              struct timespec* <var class="keyword varname">otime</var> );
+
+int timer_timeout_r(
+              clockid_t <var class="keyword varname">id</var>,
+              unsigned <var class="keyword varname">flags</var>,
+              const struct sigevent* <var class="keyword varname">notify</var>,
+              const struct timespec* <var class="keyword varname">ntime</var>,
+              struct timespec* <var class="keyword varname">otime</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+<dd class="dd">The clock to use to implement the timeout; one of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">CLOCK_REALTIME</span> — the standard POSIX-defined clock. 
+    Timers based on this clock wake up the processor if it's in a power-saving
+    mode.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_SOFTTIME</span> — (a <span class="keyword">QNX OS</span> extension)
+    this clock is active only when
+    the processor <em class="ph i">isn't</em> in a power-saving mode.  
+    For example, an application using a <span class="keyword const">CLOCK_SOFTTIME</span> timer
+    to sleep wouldn't wake up
+    the processor when the application was due to wake up.  
+    This will allow the processor to enter a power-saving mode.
+    
+
+    <p class="p">
+    While the processor isn't in a power-saving mode, 
+    <span class="keyword const">CLOCK_SOFTTIME</span> behaves the same as
+    <span class="keyword const">CLOCK_REALTIME</span>.
+    </p>
+
+  </li>
+
+
+  <li class="li"><span class="keyword const">CLOCK_MONOTONIC</span> — this clock always increases
+    at a constant rate and can't be adjusted.
+    
+  </li>
+
+
+  </ul>
+
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags that control the function's behavior; one of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">TIMER_TOLERANCE</span> to specify the amount of the tolerance to allow the kernel
+    with regard to the expiry time
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> to block in the <span class="keyword const">STATE_NANOSLEEP</span> state until the
+    timeout occurs or a signal unblocks the thread
+    
+  </li>
+
+
+  <li class="li">a combination of zero or more bits that specify which states the timeout applies to (see below)</li>
+
+
+  </ul>
+
+
+  <p class="p">
+  If you specify <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> or a combination of timeout states,
+  you can also OR in the following bits:
+  </p>
+
+
+    <ul class="ul">
+    <li class="li"><span class="keyword const">TIMER_ABSTIME</span> — set an absolute expiration time.
+      If you don't set this bit, the function sets a relative expiration time.
+      
+    </li>
+
+
+    <li class="li"><span class="keyword const">TIMER_PRECISE</span> — override any default tolerance that was set for
+      the process (see
+      <a class="xref" href="../p/procmgr_timer_tolerance.html" title="Get or set the default timer tolerance for a process"><span class="keyword apiname">procmgr_timer_tolerance()</span></a>).
+      
+    </li>
+
+
+    </ul>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">notify</var></dt>
+
+<dd class="dd">A pointer to a
+  <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>
+  structure that defines the event that the kernel acts on if the timeout
+  expires; see below.
+
+  <p class="p">
+  If you specify <span class="keyword const">TIMER_TOLERANCE</span> in the flags, this argument must be <span class="keyword const">NULL</span>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ntime</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a
+  <a class="xref" href="timespec.html" title="Time-specification structure"><span class="keyword dtype">timespec</span></a>
+  structure where the function can get some data, depending on the <var class="keyword varname">flags</var>:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">TIMER_TOLERANCE</span> — a pointer to the timer tolerance.
+    If this argument is <span class="keyword const">NULL</span>, the function doesn't change the timer tolerance.
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> or a combination of timeout states — 
+    a pointer to the timeout.
+    If this argument is <span class="keyword const">NULL</span>, the timeout occurs immediately (see below).
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">otime</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a location where the function can store some
+  data, depending on the <var class="keyword varname">flags</var>:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">TIMER_TOLERANCE</span> — the previous timer tolerance</li>
+
+  <li class="li"><span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> — the time remaining in the sleep</li>
+
+  <li class="li">a combination of timeout states — not used</li>
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">timer_timeout()</span> and <span class="keyword apiname">timer_timeout_r()</span> functions
+kernel calls set a timeout on any kernel blocking state, block for a specified time, or set the timer tolerance
+for these timeouts, depending on the <var class="keyword varname">flags</var>. 
+These functions are identical except in the way they indicate errors.
+See the <a class="xref" href="#timer_timeout__Returns">Returns</a> section for details.
+</p>
+
+
+<h3 class="title sectiontitle">Setting the tolerance for a timeout</h3>
+
+<p class="p">
+To set the timer tolerance for a timeout, set <var class="keyword varname">flags</var> to <span class="keyword const">TIMER_TOLERANCE</span>.
+In this case, <span class="keyword apiname">timer_timeout()</span> doesn't start a timeout;
+you need to call it twice, once with <var class="keyword varname">flags</var> set to
+<span class="keyword const">TIMER_TOLERANCE</span>, and once to set the timeout.
+If you're setting a timeout on a kernel blocking state, it doesn't matter which order you do this in.
+For a <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> timeout, you should set the tolerance first.
+</p>
+
+
+<p class="p">
+        In order to set the
+        tolerance to a value between 0 and the clock period, you need to have the
+          <span class="keyword const">PROCMGR_AID_HIGH_RESOLUTION_TIMER</span> ability enabled. For more information,
+        see <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>. </p>
+
+
+<p class="p">
+For more information about timer tolerance, see
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing_tolerance.html">Tolerant and high-resolution timers</a></q> in the
+<q class="q">Understanding the Microkernel's Concept of Time</q>
+chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</p>
+
+
+<h3 class="title sectiontitle">Setting a timeout on a kernel blocking state</h3>
+
+<p class="p"> The following table shows the blocking states that are entered as a result of certain kernel
+        calls, along with the corresponding timeout state bits that you can use in the
+          <var class="keyword varname">flags</var> argument: 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      </p>
+
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1118183e591">Call</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1118183e594">Blocking state</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1118183e597">Timeout state</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../i/interruptwait.html" title="Wait for a hardware interrupt"><span class="keyword apiname">InterruptWait()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_INTR</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_INTR</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../m/msgreceive.html" title="Wait for a message or pulse on a channel"><span class="keyword apiname">MsgReceive()</span></a>,
+    <a class="xref" href="../m/msgreceivev.html" title="Wait for a message or pulse on a channel"><span class="keyword apiname">MsgReceivev()</span></a>,
+    <a class="xref" href="../m/msgreceivepulse.html" title="Receive a pulse on a channel"><span class="keyword apiname">MsgReceivePulse()</span></a>,
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_RECEIVE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_RECEIVE</span></td>
+
+</tr>
+
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../m/msgsend.html" title="Send a message to a channel"><span class="keyword apiname">MsgSend()</span></a>,
+    <a class="xref" href="../m/msgsendnc.html" title="Send a message to a channel (non-cancellation point)"><span class="keyword apiname">MsgSendnc()</span></a>,
+    <a class="xref" href="../m/msgsendsv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendsv()</span></a>,
+    <a class="xref" href="../m/msgsendsvnc.html" title="Send a message to a channel (non-cancellation point)"><span class="keyword apiname">MsgSendsvnc()</span></a>,
+    <a class="xref" href="../m/msgsendv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendv()</span></a>,
+    <a class="xref" href="../m/msgsendvnc.html" title="Send a message to a channel (non-cancellation point)"><span class="keyword apiname">MsgSendvnc()</span></a>,
+    <a class="xref" href="../m/msgsendvs.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendvs()</span></a>,
+    <a class="xref" href="../m/msgsendvsnc.html" title="Send a message to a channel (non-cancellation point)"><span class="keyword apiname">MsgSendvsnc()</span></a>
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_SEND</span> or <span class="keyword const">STATE_REPLY</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_SEND</span> or <span class="keyword const">_NTO_TIMEOUT_REPLY</span></td>
+
+</tr>
+
+
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../s/signalsuspend.html" title="Suspend a thread until a signal is received"><span class="keyword apiname">SignalSuspend()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_SIGSUSPEND</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_SIGSUSPEND</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../s/signalwaitinfo.html" title="Select a pending signal"><span class="keyword apiname">SignalWaitinfo()</span></a>,
+    <a class="xref" href="../s/signalwaitinfomask.html" title="Block a set of signals and then select a pending signal"><span class="keyword apiname">SignalWaitinfoMask()</span></a>
+  </td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_SIGWAITINFO</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_SIGWAITINFO</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../s/synccondvarwait.html" title="Block a thread on a synchronization object"><span class="keyword apiname">SyncCondvarWait()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_CONDVAR</span> or <span class="keyword const">STATE_MUTEX</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_CONDVAR</span> or <span class="keyword const">_NTO_TIMEOUT_MUTEX</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../s/syncmutexlock.html" title="Lock a mutex synchronization object"><span class="keyword apiname">SyncMutexLock()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_MUTEX</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_MUTEX</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="../s/syncsemwait.html" title="Wait on a semaphore"><span class="keyword apiname">SyncSemWait()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_SEM</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_SEM</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="threadctl.html" title="Control a thread"><span class="keyword apiname">ThreadCtl()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_WAITPAGE</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 ">Timing out on this state isn't supported</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e591 "><a class="xref" href="threadjoin.html" title="Block until a thread terminates"><span class="keyword apiname">ThreadJoin()</span></a></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e594 "><span class="keyword const">STATE_JOIN</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e597 "><span class="keyword const">_NTO_TIMEOUT_JOIN</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+For example, to set a timeout on <span class="keyword apiname">MsgSendv()</span>, specify
+<span class="ph codeph">_NTO_TIMEOUT_SEND | _NTO_TIMEOUT_REPLY</span> for the <var class="keyword varname">flags</var> argument.
+</p>
+
+
+<p class="p">
+Here's what happens to the timer:
+</p>
+
+
+<ul class="ul">
+<li class="li">When you call <span class="keyword apiname">timer_timeout()</span>, the timer is <em class="ph i">armed</em>;
+  the timer structure is created, and a relative timeout is converted into an absolute one.
+</li>
+
+
+<li class="li">When the kernel attempts to enter a blocking state specified in <var class="keyword varname">flags</var>, the
+          timer is <em class="ph i">activated</em>. That is, the timer is placed on the active timer list, and the
+          kernel starts to check the timeout against the current time; if it has already passed, the
+          kernel delivers the event right away. </li>
+
+
+<li class="li">When one of the above kernel calls completes without blocking, <em class="ph i">or</em> 
+  the kernel call blocks but unblocks before the timeout expires, <em class="ph i">or</em>
+  the timeout expires, the timer is cleared.
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+A relative timeout starts when you call <span class="keyword apiname">timer_timeout()</span>,
+<em class="ph i">not</em> when the blocking state is entered.
+It's possible to get preempted after calling <span class="keyword apiname">timer_timeout()</span> but before
+the blocking kernel call.
+</div>
+
+
+<p class="p">
+The <span class="keyword apiname">timer_timeout()</span> function always operates on a one-shot basis. 
+When one of the above kernel calls returns (or is interrupted by a signal),
+the timeout request is removed from the system. 
+Only one timeout per thread may be in effect at a time. 
+A second call to <span class="keyword apiname">timer_timeout()</span>, 
+without calling one of the above kernel functions, replaces the existing timeout on that thread. 
+A call with <var class="keyword varname">flags</var> set to zero ensures that a timeout won't occur on any state. 
+This is the default when a thread is created.
+</p>
+
+
+<p class="p">
+Always call <span class="keyword apiname">timer_timeout()</span> just before the function that
+you wish to time out.  For example:
+</p>
+
+
+<pre class="pre codeblock">...
+event.sigev_notify = SIGEV_UNBLOCK;
+
+timeout.tv_sec  = 10;
+timeout.tv_nsec =  0;
+
+timer_timeout( CLOCK_MONOTONIC, _NTO_TIMEOUT_SEND | _NTO_TIMEOUT_REPLY, 
+               &amp;event, &amp;timeout, NULL );
+MsgSendv( coid, NULL, 0, NULL, 0 );
+...
+</pre>
+
+<p class="p">
+There's one exception to this rule: as described above, if you want to set the timer tolerance, you need to call
+<span class="keyword apiname">timer_timeout()</span> twice, once with <var class="keyword varname">flags</var> set to
+<span class="keyword const">TIMER_TOLERANCE</span>, and once to set the timeout.
+It doesn't matter which order you do this in.
+</p>
+
+
+<p class="p">
+If you call <span class="keyword apiname">timer_timeout()</span> followed by a kernel call that can't cause
+the thread to block (e.g., <span class="keyword apiname">ClockId()</span>), the results are undefined.
+</p>
+
+
+<p class="p">
+If a signal handler is called between the call
+to <span class="keyword apiname">timer_timeout()</span> and the kernel call
+(<a class="xref" href="../m/msgsendv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendv()</span></a>
+in this example), the
+<span class="keyword apiname">timer_timeout()</span> values are saved during the signal handler
+and then are restored when the signal handler exits.
+</p>
+
+
+<p class="p">
+
+If the timeout expires, the kernel acts on the event specified in the
+<a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a>
+structure pointed to by the <var class="keyword varname">notify</var> argument.
+You'll almost always want to use an event of type <span class="keyword const">SIGEV_UNBLOCK</span>, which makes
+the timed-out kernel call fail with an error of <span class="keyword const">ETIMEDOUT</span>.
+The event doesn't need to be registered.
+If you pass <span class="keyword const">NULL</span> for <var class="keyword varname">notify</var>, <span class="keyword const">SIGEV_UNBLOCK</span> is assumed.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<span class="keyword apiname">MsgSend*()</span> doesn't unblock if the server has already received the
+message via <span class="keyword apiname">MsgReceive*()</span> <strong class="ph b">and</strong> has specified
+<span class="keyword const">_NTO_CHF_UNBLOCK</span> in the <var class="keyword varname">flags</var> argument to its
+<a class="xref" href="../c/channelcreate.html" title="Create a communications channel"><span class="keyword apiname">ChannelCreate()</span></a>
+call.
+In this case, the server doesn't want the client to unblock on its own;
+instead, the kernel sends an unblock pulse to the server, and
+it's up to the server to do a <span class="keyword apiname">MsgReply*()</span> or
+<a class="xref" href="../m/msgerror.html" title="Unblock a client and set its error code"><span class="keyword apiname">MsgError()</span></a>.
+For more information, see
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg_ntochfunblock.html"><span class="keyword const">_NTO_CHF_UNBLOCK</span></a></q>
+in the <q class="q">Message Passing</q> chapter of <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>.
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">id</var> argument specifies the clock to use to implement the timeout.
+The timeout:
+</p>
+
+
+<ul class="ul">
+<li class="li">is specified by the <var class="keyword varname">ntime</var> argument</li>
+
+
+<li class="li">is relative to the current time (when <span class="keyword apiname">timer_timeout()</span>
+  is called), unless <var class="keyword varname">flags</var> includes <span class="keyword const">TIMER_ABSTIME</span>,
+  which makes the timeout occur at the absolute time set in <var class="keyword varname">ntime</var>
+</li>
+
+
+<li class="li">occurs on a clock tick (see <a class="xref" href="../c/clockperiod.html" title="Get a clock period"><span class="keyword apiname">ClockPeriod()</span></a>)
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Because of the nature of time measurement,
+the timer might actually expire later than the specified time.
+For more information, see the
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time</a></q>
+chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</div>
+
+
+<p class="p">
+If you don't wish to block for any time, you can pass a
+<span class="keyword const">NULL</span> for <var class="keyword varname">ntime</var> in which case no timer is used,
+the event is assumed to be <span class="keyword const">SIGEV_UNBLOCK</span> and an attempt
+to enter a blocking state as set by <var class="keyword varname">flags</var> will immediately
+return with <span class="keyword const">ETIMEDOUT</span>. Although a questionable practice,
+this can be used to poll potential blocking kernel calls. For example,
+you can poll for messages using <span class="keyword apiname">MsgReceivev()</span> with an
+immediate timeout. A much better approach is to use multiple
+threads and have one block while waiting for messages.
+</p>
+
+
+<h3 class="title sectiontitle">Blocking for a specified time</h3>
+
+<p class="p">
+
+If you set <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> in the <var class="keyword varname">flags</var>, then
+these calls block in the <span class="keyword const">STATE_NANOSLEEP</span> state until the timeout occurs
+or a signal unblocks the thread.
+If you want to set the timer tolerance for <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span>, you should do so first.
+The timeout is as described above.
+</p>
+
+
+<p class="p">
+You can use this to implement an efficient kernel sleep as follows:
+</p>
+
+
+<pre class="pre codeblock">timer_timeout( CLOCK_MONOTONIC, _NTO_TIMEOUT_NANOSLEEP, NULL, &amp;ntime, &amp;otime );
+</pre>
+
+<p class="p">
+If <var class="keyword varname">otime</var> isn't <span class="keyword const">NULL</span>, the kernel sets
+*<var class="keyword varname">otime</var> to the time remaining in the sleep.
+</p>
+
+
+<h3 class="title sectiontitle">Blocking states</h3>
+
+<p class="p">
+The kernel calls don't block unless you specify <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> in
+<var class="keyword varname">flags</var>. In this case, the calls block as follows:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">STATE_NANOSLEEP</span></dt>
+
+<dd class="dd">The calling thread blocks for the requested time period.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section" id="timer_timeout__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+On success, these functions return:
+</p>
+
+
+<ul class="ul">
+<li class="li">0 if you specified <span class="keyword const">TIMER_TOLERANCE</span> in the <var class="keyword varname">flags</var> argument</li>
+
+
+<li class="li">0 if you specified <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> and the sleep was successful</li>
+
+
+<li class="li">the timeout states from the last time that the calling thread used one of these functions to set a timeout,
+  or 0 if the previous call specified <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span>
+  (calls with <span class="keyword const">TIMER_TOLERANCE</span> don't affect the saved timeout states)
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If an error occurs:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">timer_timeout()</span> returns -1 and sets
+    <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>. 
+</li>
+
+
+<li class="li"><span class="keyword apiname">timer_timeout_r()</span> returns the negative of a value from the Errors section and
+  <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>.
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">All kernel timer entries are in use.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred when the kernel tried to access
+  <var class="keyword varname">ntime</var>, <var class="keyword varname">otime</var>, or <var class="keyword varname">notify</var>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINTR</span></dt>
+
+<dd class="dd">The call was interrupted by a signal.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">Invalid arguments:
+
+  <ul class="ul">
+  <li class="li">The <var class="keyword varname">id</var> argument doesn't specify a valid clock ID.</li>
+
+
+  <li class="li">If you specified <span class="keyword const">TIMER_TOLERANCE</span> in the flags, you also set
+    other bits in the <var class="keyword varname">flags</var>, or <var class="keyword varname">notify</var> isn't <span class="keyword const">NULL</span>.
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOTSUP</span> </dt>
+
+<dd class="dd">The <var class="keyword varname">id</var> argument specifies a clock for which <span class="keyword apiname">timer_timeout()</span> or
+<span class="keyword apiname">timer_timeout_r()</span> isn't supported, such as a CPU-time clock.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d1118183e1486">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d1118183e1488"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1486 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1488 ">Read the <em class="ph i">Caveats</em></td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1486 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1488 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1486 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1118183e1488 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">timer_timeout()</span> or <span class="keyword apiname">timer_timeout_r()</span> function 
+can serve as a cancellation point only if <span class="keyword const">_NTO_TIMEOUT_NANOSLEEP</span> is given in 
+<var class="keyword varname">flags</var>.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg.html">Message Passing (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigevent.html" title="Structure that describes an event">sigevent</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timercreate.html" title="Create a timer for a process">TimerCreate(), TimerCreate_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timerinfo.html" title="Get information about a timer">TimerInfo(), TimerInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timertimeout.html" title="Set a timeout on a blocking state">TimerTimeout(), TimerTimeout_r()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Tutorial: Create a gesture-handling application" />
+<meta name="abstract" content="This tutorial shows you the basics for creating a gesture application using system-supported gesture recognizers." />
+<meta name="description" content="This tutorial shows you the basics for creating a gesture application using system-supported gesture recognizers." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/gestures_tutorials.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/multiple_gesture_sets_example.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="create-gesture-app" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Tutorial: Create a gesture-handling application</title>
+</head>
+<body id="create-gesture-app">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Tutorial: Create a gesture-handling application</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">This tutorial shows you the basics for creating a gesture application using
+        system-supported gesture recognizers. </p>
+
+        <div class="section"><h2 class="title sectiontitle">You will learn to:</h2>
+            
+                <ul class="ul">
+                    <li class="li">create a gesture callback function</li>
+
+                    <li class="li">create a gesture set failure callback function</li>
+
+                    <li class="li">initialize gesture sets</li>
+
+                    <li class="li">detect gestures</li>
+
+                    <li class="li">clean up gestures</li>
+
+                </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create your gesture callback function</h2>
+            
+            <p class="p">
+                The gesture callback function defines what the application does
+                when a gesture is recognized or updated:
+            </p>
+
+            <pre class="pre codeblock">void(*gesture_callback_f)(struct gesture_base* gesture,
+                          mtouch_event_t* event,
+                          void* param, int async);
+            </pre>
+            <p class="p">The argument <span class="keyword parmname">gesture</span> contains information about the gesture and
+                the parameter <span class="keyword parmname">event</span> contains information about the mtouch event
+                that caused the gesture. The parameter <span class="keyword parmname">async</span> identifies whether
+                this callback was invoked from an event (<span class="keyword parmname">async</span> = 0)
+                or from a timer (<span class="keyword parmname">async</span> = 1). </p>
+
+            <p class="p"> If you have gestures that are transitioning based on timer events, this callback
+                function could be invoked as a result of either a timer event (from the context of
+                the timer thread) or an mtouch event. Your application code needs to implement the
+                synchronization mechanism between mtouch callback functions and timer-event callback
+                functions. Your application needs to check the <span class="keyword parmname">async</span> parameter
+                and implement synchronization accordingly. </p>
+
+            <div class="p"> This function's main component is a <span class="ph codeph">switch</span> statement that defines
+                the application's actions based on the gesture received. Typically, your gesture
+                application copies information from the incoming gesture to a local structure and
+                uses that information accordingly. The type of local structure depends on the
+                incoming gesture. Usually, you're interested only if a certain gesture has been
+                detected (i.e., the state of the gesture recognizer is
+                    <span class="keyword const">GESTURE_STATE_COMPLETE</span>). However, your callback function may look
+                for other states and behave accordingly for your application. For an example of such
+                    <span class="ph codeph">switch</span> statement, see the following code:
+                <pre class="pre codeblock">switch (gesture-&gt;type) {
+    case GESTURE_TWO_FINGER_PAN: {
+        gesture_tfpan_t* tfpan = (gesture_tfpan_t*)gesture;
+        if (tfpan-&gt;base.state == GESTURE_STATE_COMPLETE)
+        {
+           printf("Two-finger pan gesture detected: %d, %d",
+                                                   tfpan-&gt;centroid.x, tfpan-&gt;centroid.y);
+        }   
+        break;
+    }
+    case GESTURE_ROTATE: {
+        gesture_rotate_t* rotate = (gesture_rotate_t*)gesture;
+        if (rotate-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           if (rotate-&gt;angle != rotate-&gt;last_angle) {
+               printf("Rotate: %d degs", rotate-&gt;angle - rotate-&gt;last_angle);
+           }
+        }
+        break;
+    }
+    case GESTURE_SWIPE: {
+        gesture_swipe_t* swipe = (gesture_swipe_t*)gesture;
+        if (swipe-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           if (swipe-&gt;direction &amp; GESTURE_DIRECTION_UP) {
+               printf("up %d", swipe-&gt;last_coords.y - swipe-&gt;coords.y);
+           } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_DOWN) {
+              printf("down %d", swipe-&gt;coords.y - swipe-&gt;last_coords.y);
+           } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_LEFT) {
+               printf("left %d", swipe-&gt;last_coords.x - swipe-&gt;coords.x);
+           } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_RIGHT) {
+               printf("right %d", swipe-&gt;coords.x - swipe-&gt;last_coords.x);
+           }
+        }
+        break;
+    }
+    case GESTURE_PINCH: {
+        gesture_pinch_t* pinch = (gesture_pinch_t*)gesture;
+        if (pinch-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Pinch %d, %d", (pinch-&gt;last_distance.x - pinch-&gt;distance.x),
+                                  (pinch-&gt;last_distance.y - pinch-&gt;distance.y));
+        }
+        break;
+    }
+    case GESTURE_TAP: {
+        gesture_tap_t* tap = (gesture_tap_t*)gesture;
+        if (tap-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Tap x:%d y:%d",tap-&gt;touch_coords.x, tap-&gt;touch_coords.y);
+        }
+        break;
+    }
+    case GESTURE_DOUBLE_TAP: {
+        gesture_double_tap_t* d_tap = (gesture_double_tap_t*)gesture;
+        if (d_tap-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Double tap first_touch x:%d y:%d", d_tap-&gt;first_touch.x,
+                                                      d_tap-&gt;first_touch.y);
+           printf("Double tap first_release x:%d y:%d", d_tap-&gt;first_release.x,
+                                                        d_tap-&gt;first_release.y);
+           printf("Double tap second_touch x:%d y:%d", d_tap-&gt;second_touch.x,
+                                                       d_tap-&gt;second_touch.y);
+           printf("Double tap second_release x:%d y:%d", d_tap-&gt;second_touch.x,
+                                                         d_tap-&gt;second_release.y);
+        }
+        break;
+    }
+    case GESTURE_TRIPLE_TAP: {
+        gesture_triple_tap_t* t_tap = (gesture_triple_tap_t*)gesture;
+        if (t_tap-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Triple tap first_touch x:%d y:%d", t_tap-&gt;first_touch.x,
+                                                      t_tap-&gt;first_touch.y);
+           printf("Triple tap first_release x:%d y:%d", t_tap-&gt;first_release.x,
+                                                        t_tap-&gt;first_release.y);
+           printf("Triple tap second_touch x:%d y:%d", t_tap-&gt;second_touch.x,
+                                                       t_tap-&gt;second_touch.y);
+           printf("Triple tap second_release x:%d y:%d", t_tap-&gt;second_touch.x,
+                                                         t_tap-&gt;second_release.y);
+           printf("Triple tap third_touch x:%d y:%d", t_tap-&gt;third_touch.x,
+                                                      t_tap-&gt;second_touch.y);
+           printf("Triple tap third_release x:%d y:%d", t_tap-&gt;third_touch.x,
+                                                        t_tap-&gt;second_release.y);
+        }
+        break;
+    }
+    case GESTURE_PRESS_AND_TAP: {
+        gesture_pt_t* pt_t = (gesture_pt_t*)gesture;
+        if (pt_t-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Initial press x:%d y:%d", pt_t-&gt;initial_coords[0].x,
+                                             pt_t-&gt;initial_coords[0].y);
+           printf("Initial tap x:%d y:%d", pt_t-&gt;initial_coords[1].x,
+                                           pt_t-&gt;initial_coords[1].y);
+           printf("Press x:%d y:%d", pt_t-&gt;coords[0].x, pt_t-&gt;coords[0].y);
+           printf("Tap x:%d y:%d", pt_t-&gt;coords[1].x, pt_t-&gt;coords[1].y);
+        }
+        break;
+    }
+    case GESTURE_TWO_FINGER_TAP: {
+        gesture_tft_t* tft_t = (gesture_tft_t*)gesture;
+        if (tft_t-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Coordinates of touch event (finger 1) x:%d y:%d",
+                                                         tft_t-&gt;touch_coords[0].x,
+                                                         tft_t-&gt;touch_coords[0].y);
+           printf("Coordinates of touch event (finger 2) x:%d y:%d",
+                                                         tft_t-&gt;touch_coords[1].x,
+                                                         tft_t-&gt;touch_coords[1].y);
+           printf("Coordinates of release event (finger 1) x:%d y:%d",
+                                                         tft_t-&gt;release_coords[0].x,
+                                                         tft_t-&gt;release_coords[0].y);
+           printf("Coordinates of release event (finger 2) x:%d y:%d",
+                                                         tft_t-&gt;release_coords[1].x,
+                                                         tft_t-&gt;release_coords[1].y);
+           printf("Midpoint between two touches x:%d y:%d", tft_t-&gt;centroid.x,
+                                                            tft_t-&gt;centroid.y);
+        }
+        break;
+    }
+    case GESTURE_LONG_PRESS: {
+        gesture_long_press_t* lp_t = (gesture_long_press_t*)gesture;
+        if (lp_t-&gt;base.state == GESTURE_STATE_COMPLETE)  {
+           printf("Long press x:%d y:%d",lp_t-&gt;coords.x, lp_t-&gt;coords.y);
+           printf("Timer ID:%d",lp_t-&gt;success_timer);
+        }
+        break;
+    }
+    case GESTURE_USER: {
+        printf("User-defined gesture detected.");
+        break;
+    }
+    default:
+        printf("Unknown");
+        break;
+    }
+                </pre>
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Create your failure callback function (optional)</h2>
+            
+            <div class="p"> Sometimes, you may want your application to create a failure callback function to be
+                invoked when all gestures in a gesture set have transitioned to the
+                    <span class="keyword const">GESTURE_STATE_FAILED</span> state:
+                <pre class="pre codeblock">void(*gestures_set_fail_f)(struct gestures_set* set, struct event_list* list, int async);
+                </pre>
+            </div>
+
+            <div class="p"> This sample failure callback function shows how to copy an event list that's
+                received as part of a gesture set failure callback.
+                <pre class="pre codeblock">void fail_callback(struct gestures_set* set, struct event_list* list, int async)
+{
+    /* first_set should be defined in your application as
+     * struct gestures_set* first_set;
+     * and then be allocated and initialized in your application.
+     */
+    if (set == first_set) {
+        /* An example of list copy.
+         * This isn't necessary if events don't need to be kept following the
+         * call to gestures_set_process_event_list()
+         */
+        struct event_list* new_list = event_list_alloc(0, 0, 0, 1);
+        if (new_list) {
+            event_list_copy(list, new_list);
+            gestures_set_process_event_list(second_set, new_list, NULL);
+            event_list_free(new_list);
+        }
+    }
+}
+                </pre>
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Initialize your gesture sets</h2>
+            
+            <p class="p"> Your application needs to register the callback function with the Gestures library
+                so that it can be invoked when a gesture occurs. </p>
+
+            <p class="p">
+                To register the gesture callback function, your application
+                needs to first allocate the gesture set. If you have defined a
+                failure callback for your gesture set, then you must call:
+            </p>
+
+            <pre class="pre codeblock">gestures_set_register_fail_cb(struct gestures_set* set, gestures_set_fail_f callback);
+            </pre>
+            <p class="p"> to register your failure callback function with your gesture set.</p>
+
+            <div class="p"> In this example, two gesture sets are initialized and a failure callback is
+                registered with the first gesture set:
+                <pre class="pre codeblock">struct gestures_set* first_set;
+struct gestures_set* second_set;
+
+static void init_gestures()
+{
+    gesture_tap_t* tap;
+    gesture_double_tap_t* double_tap;
+    gesture_triple_tap_t* triple_tap;
+    gesture_tft_t* tft;
+
+    first_set = gestures_set_alloc();
+        long_press_gesture_alloc(NULL, gesture_callback, first_set);
+        tap = tap_gesture_alloc(NULL, gesture_callback, first_set);
+        double_tap = double_tap_gesture_alloc(NULL, gesture_callback, first_set);
+        triple_tap = triple_tap_gesture_alloc(NULL, gesture_callback, first_set);
+        tft = tft_gesture_alloc(NULL, gesture_callback, first_set);
+        gesture_add_mustfail(&amp;tap-&gt;base, &amp;double_tap-&gt;base);
+        gesture_add_mustfail(&amp;double_tap-&gt;base, &amp;triple_tap-&gt;base);
+        gestures_set_register_fail_cb(first_set, fail_callback);
+
+    second_set = gestures_set_alloc();
+        swipe_gesture_alloc(NULL, gesture_callback, second_set);
+        pinch_gesture_alloc(NULL, gesture_callback, second_set);
+        rotate_gesture_alloc(NULL, gesture_callback, second_set);
+        pt_gesture_alloc(NULL, gesture_callback, second_set);
+        tfpan_gesture_alloc(NULL, gesture_callback, second_set);
+        tft_gesture_alloc(NULL, gesture_callback, second_set);
+}
+                </pre>
+            </div>
+
+            <p class="p"> If you're using custom gestures that you have defined yourself, then you need to
+                allocate your custom gesture recognizer and add it to the gesture set as part of the
+                gesture-set initialization using the <span class="keyword apiname">alloc()</span> function you've
+                defined. For example, in the code snippet shown, you can add your custom gesture
+                recognizer to your second gesture set by calling your
+                    <span class="keyword apiname">custom_gesture_alloc()</span> function in
+                    <span class="keyword apiname">init_gestures()</span>: </p>
+
+            <pre class="pre codeblock">static void init_gestures()
+{
+   ...
+   second_set = gestures_set_alloc();
+   ...
+      gesture_custom_t* user_gesture = custom_gesture_alloc(custom_params,
+                                                            gesture_callback,
+                                                            set);
+}
+                </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Detect the gestures</h2>
+            
+            <p class="p">
+                Now, your application needs a way of triggering the gesture
+                callback function when a touch event occurs. When such a touch
+                event is detected, your application calls
+                <span class="keyword apiname">gestures_set_process_event()</span>.
+            </p>
+
+            <div class="p"> Touch events can be detected through <span class="keyword">Screen</span> events in
+                a main application loop. If the incoming event is a touch, move, or release event,
+                you need to populate an mtouch event with data from the <span class="keyword">Screen</span> event. The helper function,
+                    <span class="keyword apiname">screen_get_mtouch_event()</span> can do this for you; it's part of
+                the Input Events library. See file input/screen_helpers.h for more information.
+                Then, your application calls <span class="keyword apiname">gestures_set_process_event()</span>.
+                <pre class="pre codeblock">while (1) {
+    while (screen_get_event(screen_ctx, screen_ev, ~0L) == EOK) {
+        rc = screen_get_event_property_iv(screen_ev, SCREEN_PROPERTY_TYPE, &amp;screen_val);
+        if (rc || screen_val == SCREEN_EVENT_NONE) {
+            break;
+        }
+        switch (screen_val) {
+            case SCREEN_EVENT_MTOUCH_TOUCH:
+            case SCREEN_EVENT_MTOUCH_MOVE:
+            case SCREEN_EVENT_MTOUCH_RELEASE:
+                rc = screen_get_mtouch_event(screen_ev, &amp;mtouch_event, 0);
+                if (rc) {
+                    fprintf(stderr, "Error: failed to get mtouch event\n");
+                    continue;
+                }
+                gestures_set_process_event(first_set, &amp;mtouch_event, NULL);
+                break;
+        }
+    }
+}
+                </pre>
+            </div>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Clean up gestures</h2>
+            
+            <p class="p">
+                Before exiting your application, you need to free the memory
+                associated with your gesture sets:
+            </p>
+
+                <pre class="pre codeblock">static void gestures_cleanup()
+{
+    if (NULL != first_set) {
+        gestures_set_free(first_set);
+        first_set = NULL;
+    }
+    if (NULL != second_set) {
+        gestures_set_free(second_set);
+        second_set = NULL;
+    }
+}
+                </pre>
+        </div>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../../topic/manual/multiple_gesture_sets_example.html">Example: Code snippets of a gesture-handling application</a></strong><br />
+ This example contains most of the code snippets that illustrate how to create a         gesture application and cascade multiple gesture sets using failure callbacks. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/gestures_tutorials.html" title="Gestures tutorials aim to help you understand how to use the Gestures library in your own applications by providing step-by-step guides.">Gesture Tutorials</a></div>
+</div>
+</div></body>
+</html>

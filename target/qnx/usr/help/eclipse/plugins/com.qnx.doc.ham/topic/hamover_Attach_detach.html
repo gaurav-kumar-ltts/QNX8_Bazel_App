@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Code snippet using attach/detach calls" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_ATTACHFNS.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Attach_detach" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Code snippet using attach/detach calls</title>
+</head>
+<body id="Attach_detach">
+
+<h1 class="title topictitle1" id="ariaid-title1">Code snippet using attach/detach calls</h1>
+
+
+<div class="body conbody">
+
+<pre class="pre codeblock">...
+ham_entity_t *ehdl;
+int status;
+ehdl = ham_attach("ptpd2", 0, -1, "/usr/sbin/ptpd2 -K", 0);
+/* ptpd2 is started, running and monitored now */
+...
+...
+status = ham_detach(ehdl,0);
+...
+...
+</pre>
+
+<p class="p">Of course the attach and detach needn't necessarily be
+performed by the same caller:
+
+</p>
+
+<pre class="pre codeblock">...
+ham_entity_t *ehdl;
+int status;
+/* starts and begins monitoring ptpd2 */
+ehdl = ham_attach("ptpd2", 0, -1, "/usr/sbin/ptpd2 -K", 0);
+...
+...
+/* disconnect from Ham (monitoring still continues) */
+exit(0);
+</pre>
+
+<p class="p">And to detach <span class="keyword cmdname">ptpd2</span>: </p>
+
+<pre class="pre codeblock">...
+int status;
+/* stops monitoring ptpd2. */
+status = ham_detach_name(0, "ptpd2", 0);
+...
+exit(0);
+</pre>
+
+<p class="p">If <span class="keyword cmdname">ptpd2</span> were already running, say with <var class="keyword varname">pid</var>
+            <span class="ph codeph">105328676</span>, then we can write the attach/detach code as follows: </p>
+
+<pre class="pre codeblock">ham_entity_t *ehdl;
+int status;
+ehdl = ham_attach("ptpd2", 0, 105328676, NULL, 0);
+...
+...
+status = ham_detach(ehdl,0);
+/* status = ham_detach_name(0, "ptpd2",0); */
+...
+...
+exit(0);
+</pre>
+
+<p class="p">For convenience, the <span class="keyword apiname">ham_attach()</span> and
+<span class="keyword apiname">ham_detach()</span> functions connect to a HAM if such
+a connection doesn't already exist. We do this only to
+make the use of the functions easier.
+
+</p>
+
+<p class="p">The connections to a HAM persist only for the duration of the attach/detach
+calls; any subsequent requests to the HAM must be
+preceded by the appropriate <span class="keyword apiname">ham_connect()</span> calls.
+
+</p>
+
+<p class="p">The best way to perform a large sequence of requests to a HAM is to:
+
+</p>
+
+<ol class="ol">
+<li class="li"> Call <a class="xref" href="hamapi/ham_connect.html" title="Connect to the HAM"><span class="keyword apiname">ham_connect()</span></a> 
+before the first request.
+
+</li>
+
+<li class="li"> Call <a class="xref" href="hamapi/ham_disconnect.html" title="Disconnect from the HAM"><span class="keyword apiname">ham_disconnect()</span></a> 
+after the last request.</li>
+
+</ol>
+
+<p class="p">This is the most efficient method, because it guarantees
+that there's always the same connection open to the HAM.
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_ATTACHFNS.html">Attach/detach functions</a></div>
+</div>
+</div></body>
+</html>

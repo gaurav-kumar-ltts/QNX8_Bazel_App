@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Setting up QNX helpers logging" />
+<meta name="abstract" content="QNX helpers logging provides default settings and configuration that initialize slog2." />
+<meta name="description" content="QNX helpers logging provides default settings and configuration that initialize slog2." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX Helpers Developer's Guide, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX Helpers Developer's Guide, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/about_log_8h.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="set_up_logging" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Setting up QNX helpers logging</title>
+</head>
+<body id="set_up_logging">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Setting up QNX helpers logging</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">QNX helpers logging provides default settings and configuration that initialize
+      <span class="keyword cmdname">slog2</span>.</p>
+
+        <p class="p">Instead of implementing initialization for <span class="keyword cmdname">slog2</span> for each library
+      individually, a developer can implement <span class="keyword cmdname">slog2</span> for any library that uses it
+      by specifying a QNX helpers logging context.</p>
+          <p class="p">A library or application normally has a single logging context that identifies it (by name)
+        in the logs. The context name is used as a prefix when the context is used for logging and
+        to match the context when it is specified by name in the API.</p>
+
+    <div class="section"><h2 class="title sectiontitle">Creating a logging context</h2>
+
+      <p class="p">The simplest way to create a logging context with a given name for use with the QNX helpers
+        logging interface is to use the <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span> macro and
+        define <span class="keyword const">QH_LOG_USER_CONTEXT_NAME</span> to hold the context name. Although
+          <span class="keyword const">QH_LOG_USER_CONTEXT_NAME</span> is typically defined in the project's makefiles
+        (so that it applies to the whole project), you can also define it in a file prior to
+        including <span class="ph codeph">log.h</span> and then call
+          <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span>. When you define it in a file, the
+        context only applies for the specific file.</p>
+
+      <p class="p"><span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span> is called only once in a source file
+        throughout the entire project, at file scope, without a semicolon at the end.</p>
+
+      <p class="p">You must initialize the context using the <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span>
+        macro to use the <em class="ph i">qh_log()</em>, <em class="ph i">qh_log_noloc()</em>, <em class="ph i">qh_log_loc()</em> and
+          <span class="keyword apiname">QH_LOG_CHECK()</span> macros with the context because all those functions make
+        use of the default context variable (<span class="keyword const">QH_LOG_USER_CONTEXT_VAR</span>).</p>
+
+          </div>
+
+          <div class="section"><h2 class="title sectiontitle">Context pointer</h2>
+      <p class="p">If the <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span> macro is not used to define the project
+        context, then you must declare a context pointer as <span class="ph codeph">extern</span> and hide it to
+        prevent it from being globally seen by other loaded modules (for an example, see the
+        declaration of <span class="keyword const">QH_LOG_USER_CONTEXT_VAR</span> in
+          <span class="ph codeph"><span class="ph filepath">log.h</span></span>). Alternatively, you can use a static variable
+        at file scope in a source file if logging calls are only made from that file.</p>
+
+      <p class="p">You can also use <a class="xref" href="../qh_log_context_create.html" title="Create a logging context"><span class="keyword apiname">qh_log_context_create()</span></a> to create a logging context, instead
+        of using the <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span> macro.</p>
+          </div>
+
+          <div class="section"><h2 class="title sectiontitle">Makefile and source code entries</h2>
+      <p class="p">Because the details of a logging context are totally abstracted when you use the
+          <span class="keyword apiname">QH_LOG_DEFAULT_CONTEXT_INIT()</span> macro, an application can
+        initialize a logging context by simply including the following entries in the makefiles and source
+        code.</p>
+<div class="p">Add the following line to the makefiles:
+        <pre class="pre">CCFLAGS += -DQH_LOG_USER_CONTEXT_NAME="\"$(NAME)\"" 
+</pre>
+</div>
+<div class="p">Add the following lines to a single source file (non-header):
+        <pre class="pre">#include &lt;qh/log.h&gt;
+...
+QH_LOG_DEFAULT_CONTEXT_INIT()
+...
+... 
+</pre>
+</div>
+          </div>
+
+          <div class="section"><h2 class="title sectiontitle">Logging context names</h2>
+      <p class="p">The context names <span class="ph codeph">all</span>, <span class="ph codeph">default</span>, and <span class="ph codeph">qh</span> are
+        reserved. The name <span class="ph codeph">qh</span> is used internally by QNX helpers. The names
+          <span class="ph codeph">all</span> and <span class="ph codeph">default</span> are used in QNX helpers logging
+        configuration (see <q class="q"><a class="xref" href="control_logging.html" title="Logging using QNX helpers is controlled by a configuration string that specifies a combination of the destination flags, the verbosity of a context, and the message-specific flags.">Controlling QNX helpers logging</a></q>). If the context name matches a
+        reserved name, its first character is replaced by an underscore.</p>
+
+      <p class="p">The name can be composed of any alphanumeric characters and any characters from the set
+        "#()+-.&lt;&gt;[]_" (excluding the double quotes). Any other character is converted to an
+        underscore.</p>
+
+      <p class="p">The maximum length (including null-termination) of the name is 32 characters (longer names
+        are truncated) and it cannot have zero length. Keep this requirement in mind when you use the
+          <em class="ph i">qh_log_get_*_by_name</em>() functions, which use the normalized name.</p>
+<p class="p">Use <a class="xref" href="../qh_log_context_normalize_name.html" title="Normalize a context name"><span class="keyword apiname">qh_log_context_normalize_name()</span></a> to either prepare a context's
+        name before you create it or to get the name that the creation process derived from
+        the input name.</p>
+<p class="p">Although you can call this function more than once with the same context pointer, if a context at
+        that address exists already, the name in the second call is ignored.</p>
+
+      </div>
+
+  </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/about_log_8h.html" title="QNX helpers related to logging.">log.h</a></div>
+</div>
+</div></body>
+</html>

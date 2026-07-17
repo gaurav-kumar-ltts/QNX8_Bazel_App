@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Provide initialization and cleanup callback functions" />
+<meta name="abstract" content="Screen makes two function calls in the driver: one for initialization and one for cleanup." />
+<meta name="description" content="Screen makes two function calls in the driver: one for initialization and one for cleanup." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Input Events Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Input Events Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cmtouch_writing_driver.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cmtouch-init-fini" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Provide initialization and cleanup callback functions</title>
+</head>
+<body id="cmtouch-init-fini">
+
+   <h1 class="title topictitle1" id="ariaid-title1">Provide initialization and cleanup callback functions</h1>
+
+ 
+
+<div class="body conbody"><p class="shortdesc">
+    <span class="keyword">Screen</span> makes two function calls in the driver:
+    one for initialization and one for cleanup.
+ </p>
+
+<p class="p">
+   <span class="keyword">Screen</span> parses the configuration file,
+   <span class="ph filepath">graphics.conf</span>, to determine the driver specified in the
+   <span class="ph codeph">mtouch</span> section of this configuration file.
+</p>
+
+ <p class="p">
+   <span class="keyword">Screen</span> calls <span class="keyword apiname">dlopen()</span> on
+    this specified driver. Upon a successful <span class="keyword apiname">dlopen()</span>,
+    <span class="keyword">Screen</span> will use <span class="keyword apiname">dlsym()</span> to
+    look for two entries: <span class="keyword apiname">mtouch_driver_init()</span> and
+    <span class="keyword apiname">mtouch_driver_fini()</span>.
+</p>
+
+<div class="section"><h2 class="title sectiontitle">Implement initialization callback function</h2>
+   
+   <p class="p">
+      <span class="keyword apiname">mtouch_driver_init()</span> performs the following:
+   </p>
+
+   <ol class="ol">
+      <li class="li">Sets the default values of the driver.</li>
+
+      <li class="li">Parses any options specified in <span class="ph filepath">graphics.conf</span>
+         using <span class="keyword apiname">input_parseopts()</span>. For details, see the
+         <q class="q"><a class="xref" href="../../../com.qnx.doc.screen/topic/manual/mtouch_config.html">Touch configuration file</a></q> section in the
+         <span class="keyword">Screen</span> documentation.</li>
+
+      <li class="li">Performs any necessary hardware initialization.</li>
+
+      <li class="li">Configure callback functions using <span class="ph codeph">mtouch_driver_funcs_t</span> as described in
+                  <a class="xref" href="cmtouch_configure_attach.html" title="Callback functions and capabilities of your touch controller need to be configured and specified, respectively, before connecting to the Input Events library.">Connect to the Input Events
+                  library</a>. </li>
+
+      <li class="li">Specify driver parameters using <span class="ph codeph">mtouch_driver_params_t</span> as described in
+                  <a class="xref" href="cmtouch_configure_attach.html" title="Callback functions and capabilities of your touch controller need to be configured and specified, respectively, before connecting to the Input Events library.">Connect to the Input Events
+                  library</a>. </li>
+
+      <li class="li">Connect to Input Events library as described in <a class="xref" href="cmtouch_configure_attach.html" title="Callback functions and capabilities of your touch controller need to be configured and specified, respectively, before connecting to the Input Events library.">Connect to the Input Events library</a>.</li>
+
+      <li class="li">Create a separate thread to communicate directly with the hardware
+         via the hardware interface (e.g., I2C, SPI, USB, etc.) and trigger
+         the Input Events library API function
+         <span class="keyword apiname">mtouch_driver_process_packet()</span> to start processing
+         the touch-related event data.
+      </li>
+
+   </ol>
+
+   <div class="p">
+      The driver insertion point for <span class="keyword">Screen</span> is
+      <span class="keyword apiname">mtouch_driver_init()</span>. This callback function has the
+      following signature:
+      <pre class="pre codeblock">void* (*init)(const char* options);
+      </pre>
+   </div>
+
+   <p class="p">
+      An example implementation of <span class="keyword apiname">mtouch_driver_init()</span>:
+   </p>
+
+   <pre class="pre codeblock">void * mtouch_driver_init(const char* options)
+{
+	pthread_attr_t pattr;
+	sched_param_t param;
+	
+	/* touch_dev_t is the structure which contains information specific to
+	 * your touch device along with other NTO and thread information.
+	 */
+	touch_dev_t *td = (touch_dev_t *)calloc(1,sizeof(touch_dev_t));
+    memset(td,0,sizeof(touch_dev_t));
+	if(td==NULL){
+		mtouch_error("touch_device", "Failed to allocate memory for device structure");
+		return NULL;
+	}
+	
+	/* Initialize any defaults for your touch device here */
+	td-&gt;thread_priority = 21; /* Thread priority for communicating directly with the hardware */
+
+   /* Parse the mtouch options from graphics.conf */
+	input_parseopts(options, set_options, td);
+
+   /* Connect to device */
+	td-&gt;chid = ChannelCreate(0);
+	if(td-&gt;chid == -1) {
+		mtouch_error("touch_device","%s: ChannelCreate: %s",__FUNCTION__,strerror(errno));
+		goto failChannelCreate;
+	}
+
+	td-&gt;coid = ConnectAttach(0,0,td-&gt;chid,_NTO_SIDE_CHANNEL,0);
+	if(td-&gt;coid==-1) {
+		mtouch_error("touch_device","%s: ConnectAttach: %s",__FUNCTION__,strerror(errno));
+		goto failConnectAttach;
+	}
+	
+	/* Utility function attach_drier() to configure your callback function and
+	 *  connect to the Input Events library
+	 */
+	if(attach_driver(td)!=EOK) {
+		goto failAttachLibInputEvents;
+	}
+
+	pthread_attr_init(&amp;pattr);
+	param.sched_priority = td-&gt;thread_priority;
+	pthread_attr_setschedparam(&amp;pattr, &amp;param);
+	pthread_attr_setinheritsched(&amp;pattr, PTHREAD_EXPLICIT_SCHED);
+	
+	/* Create a thread for communicating directly with the hardware and to
+	 * trigger mtouch_driver_process_packet() */
+	int ret = pthread_create(&amp;td-&gt;recv_thread, &amp;pattr, tp_recv_thread, td);
+	if (EOK != ret) {
+		mtouch_error("touch_device", "Failed to create the intr thread (%s - %i)",strerror(errno),ret);
+		goto failCreateThread;
+	}
+	pthread_setname_np(td-&gt;recv_thread, "touch_device");
+	
+	return td;
+
+failCreateThread:
+	InterruptDetach(td-&gt;tp_iid);
+	td-&gt;tp_iid = -1;
+
+failAttachLibInputEvents:
+	mtouch_driver_detach(td-&gt;inputevents_hdl);
+	td-&gt;inputevents_hdl = NULL;
+
+failInitialize:
+	ChannelDestroy(td-&gt;chid);
+	td-&gt;chid = -1;
+
+failConnectAttach:
+	ConnectDetach(td-&gt;chid);
+	td-&gt;chid = -1;
+
+failChannelCreate:
+	free(td);
+	return NULL;
+}
+   </pre>
+</div>
+
+   <div class="section"><h2 class="title sectiontitle">Implement cleanup callback function</h2>
+      
+      <p class="p">
+         <span class="keyword apiname">mtouch_driver_fini()</span> performs any necessary device
+         cleanup and disconnects from the Input Events library.
+      </p>
+
+      <div class="p">
+         The driver exit point for <span class="keyword">Screen</span> is
+         <span class="keyword apiname">mtouch_driver_fini()</span>. This callback function has the
+         following signature:
+         <pre class="pre codeblock">void (*fini)(void* dev);
+</pre>
+      </div>
+
+      <p class="p">
+         An example implementation of <span class="keyword apiname">mtouch_driver_fini()</span>:
+      </p>
+
+      <pre class="pre codeblock">void mtouch_driver_fini(void* dev)
+{
+	touch_dev_t *td = dev;
+
+	pthread_cancel(td-&gt;tp_recv_thread);
+	pthread_join(td-&gt;tp_recv_thread, NULL);
+
+	if (td-&gt;inputevents_hdl) {
+		mtouch_driver_detach(td-&gt;inputevents_hdl);
+		td-&gt;inputevents_hdl = NULL;
+	}
+
+	free(td);
+}
+      </pre>
+   </div>
+
+ </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cmtouch_writing_driver.html" title="In order for Screen to be able to detect events from your touch controller, you need to provide a driver for your touch controller.">Writing a Touch Driver</a></div>
+</div>
+</div></body>
+</html>

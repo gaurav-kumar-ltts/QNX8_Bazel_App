@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The BSP Makefile" />
+<meta name="abstract" content="Every BSP has a Makefile in its base directory and can have other Makefiles in subdirectories." />
+<meta name="description" content="Every BSP has a Makefile in its base directory and can have other Makefiles in subdirectories." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bsp_makefile" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>The BSP Makefile</title>
+</head>
+<body id="bsp_makefile">
+
+	<h1 class="title topictitle1" id="ariaid-title1">The BSP Makefile</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Every BSP has a <span class="ph filepath">Makefile</span> in its base directory and can have other
+		<span class="ph filepath">Makefile</span>s in subdirectories.</p>
+
+		<div class="section">
+			
+			
+			<div class="p">Most of the targets in the <span class="ph filepath">Makefile</span> are board-specific. For the list of targets for each board,
+				see the <q class="q">Build the BSP (commandline)</q> section in the user's guide of the BSP you are working with.
+				The <span class="ph filepath">Makefile</span>s in a BSP typically define these targets:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="keyword option">all</span></dt>
+
+					<dd class="dd"><p class="p">Runs all the targets in the <span class="ph filepath">Makefile</span>.</p>
+
+						<p class="p">If you don't specify a target, <span class="keyword cmdname">make</span> defaults to this target.</p>
+</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword option">clean</span></dt>
+
+					<dd class="dd">Removes all IFS images.</dd>
+
+				
+				
+			</dl>
+
+			</div>
+
+			<p class="p">For more information about <span class="ph filepath">Makefile</span>s in general, see the GNU website at
+				<a class="xref" href="http://www.gnu.org/" target="_blank">www.gnu.org/</a>.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Sample Makefile</h2>
+			
+			<div class="p">Below is a sample BSP <span class="ph filepath">Makefile</span> for an ARM board. Note that the image-building process
+				uses additional <span class="ph filepath">Makefile</span>s, such as the <span class="ph filepath">/images/Makefile</span>
+				(see <q class="q"><a class="xref" href="#bsp_makefile__addmk">Product-specific targets</a></q>), to build the final target image:
+<pre class="pre codeblock"># This is the top-level Makefile for all source packages.
+# It makes all the code in the "src" directory, then installs it in the
+# "install" directory, then makes the images in the images directory (if present).
+
+ROOT_DIR := $(notdir $(CURDIR))
+ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+unexport ROOT_DIR
+
+.PHONY: all install clean links make_links dummy images prebuilt binaries
+
+# Expands to a single newline character
+define NEWLINE
+
+SUFFIXES := .mk
+
+all: install links $(if $(wildcard images/*),images)
+    @echo done
+
+subdirs:=$(subst /Makefile,,$(wildcard */[Mm]akefile))
+
+clean:
+    $(foreach dir,$(subdirs), $(MAKE) -C$(dir) clean $(NEWLINE))
+    -$(RM_HOST) -r install/*
+
+install: $(if $(wildcard prebuilt/*),prebuilt)
+    $(MAKE) -Csrc hinstall
+    $(MAKE) -Csrc
+
+# Have to invoke "make_links" target because the first make expands
+# the $(wildcard ...) too soon - we might not have copied things into
+# the "install" tree yet.
+links:
+    $(MAKE) make_links
+
+make_links:
+    $(foreach file,$(wildcard install/*/boot/build/*),cd images;$(LN_HOST) ../$(file) $(notdir $(file));cd ..;)
+
+images:
+    $(MAKE) -Cimages
+
+prebuilt:
+    cp -rf prebuilt/* install
+</pre></div>
+
+			<p class="p">For information about the <span class="keyword cmdname">make</span> utility, see
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/make.html"><span class="keyword cmdname">make</span></a> in the <cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+		<div class="section" id="bsp_makefile__addmk"><h2 class="title sectiontitle">Product-specific targets</h2>
+			
+			<div class="p">Some BSPs may be delivered with more than one possible target image already configured.
+				For example, the x86_64 BSP includes a <span class="ph filepath">Makefile</span> that defines a target image
+				with <span class="keyword">Screen Graphics Subsystem</span> support, and a target image without
+				<span class="keyword">Screen</span> support. The <span class="ph filepath">Makefile</span> in the BSP's
+				<span class="ph filepath">/images</span> directory defines multiple targets, so you can generate either image or both:
+			<dl class="dl">
+				
+					<dt class="dt dlterm">all</dt>
+
+					<dd class="dd">Invokes both targets.</dd>
+
+				
+				
+					<dt class="dt dlterm">ifs-<var class="keyword varname">target</var></dt>
+
+					<dd class="dd">Invokes the build without
+						<span class="keyword">Screen</span> support, where <var class="keyword varname">target</var> is the name of
+						your platform (e.g., <span class="ph filepath">x86_64-generic</span>).</dd>
+
+				
+				
+					<dt class="dt dlterm">ifs-<var class="keyword varname">target</var>-graphics</dt>
+
+					<dd class="dd">Invokes the build with
+						<span class="keyword">Screen</span> support, where <var class="keyword varname">target</var> is the name of
+						your platform (e.g., <span class="ph filepath">x86_64-generic</span>).</dd>
+
+				
+			</dl>
+
+			</div>
+
+			
+		</div>
+
+	</div>
+
+</body>
+</html>

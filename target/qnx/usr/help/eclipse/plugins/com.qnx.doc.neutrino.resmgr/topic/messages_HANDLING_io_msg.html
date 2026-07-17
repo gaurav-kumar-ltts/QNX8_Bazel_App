@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling out-of-band (_IO_MSG) messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_io_msg" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling out-of-band (_IO_MSG) messages</title>
+</head>
+<body id="HANDLING_io_msg">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling out-of-band (<span class="keyword const">_IO_MSG</span>) messages</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+
+
+An <span class="keyword const">_IO_MSG</span> message lets a client send an
+<q class="q">out-of-band</q> or control message to a resource manager, by way of a file descriptor.
+This interface is more general than an <span class="keyword apiname">ioctl()</span> or
+<span class="keyword apiname">devctl()</span>, but less portable.
+</p>
+
+
+<p class="p">
+The format of the message is specific to the resource manager, aside from
+the header, which we'll look at shortly.
+The client program sets up the message and uses
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>
+to send it to the resource manager.
+The resource manager must set up an <var class="keyword varname">io_msg</var> handler in order to receive
+the message; there isn't a default handler.
+</p>
+
+
+<div class="p">
+
+The message header is defined in <span class="ph filepath">&lt;sys/iomsg.h&gt;</span> and looks like this:
+
+<pre class="pre codeblock">struct _io_msg {
+    uint16_t    type;
+    uint16_t    combine_len;
+    uint16_t    mgrid;
+    uint16_t    subtype;
+};
+</pre>
+</div>
+
+
+<p class="p">
+The fields include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+<dd class="dd"><span class="keyword const">_IO_MSG</span></dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">combine_len</var></dt>
+
+<dd class="dd">Set this to <span class="ph codeph">sizeof (struct _io_msg)</span>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mgrid</var></dt>
+
+<dd class="dd">A unique ID for your resource manager.
+  The <span class="ph filepath">&lt;sys/iomgr.h&gt;</span> header file defines some IDs that
+  are reserved for various <span class="keyword">QNX OS</span> resource managers.
+  You can use an ID in the range from <span class="keyword const">_IOMGR_PRIVATE_BASE</span>
+  through <span class="keyword const">_IOMGR_PRIVATE_MAX</span> for your resource manager.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">subtype</var></dt>
+
+<dd class="dd">Use this field to distinguish different types of <span class="keyword const">_IO_MSG</span>
+  messages that you want your resource manager to handle.
+</dd>
+
+
+
+</dl>
+
+
+<div class="p">
+Any data should follow this header.
+For example:
+
+<pre class="pre codeblock">typedef struct {
+    struct _io_msg hdr;
+
+    /* Add any required data fields here. */
+
+} my_msg_t;
+</pre>
+</div>
+
+
+<div class="p">
+The client program would then do something like this:
+
+<pre class="pre codeblock">#define MY_MGR_ID (_IOMGR_PRIVATE_BASE + 22)
+
+my_msg_t msg, my_reply;
+int fd;
+long status;
+
+fd = open ("/dev/sample", O_RDWR);
+    
+msg.hdr.type = _IO_MSG;
+msg.hdr.combine_len = sizeof( msg.hdr );
+msg.hdr.mgrid = MY_MGR_ID;
+msg.hdr.subtype = 0;
+
+/* Fill in the additional fields as required. */
+    
+status = MsgSend( fd, &amp;msg, sizeof( msg ), &amp;my_reply, sizeof (my_reply));
+</pre>
+</div>
+
+
+<div class="p">
+The resource manager registers a function to handle the <span class="keyword const">_IO_MSG</span> messages:
+
+<pre class="pre codeblock">/* Initialize the functions for handling messages */
+iofunc_func_init(_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs,
+                 _RESMGR_IO_NFUNCS, &amp;io_funcs);
+
+io_funcs.msg = my_io_msg;
+</pre>
+</div>
+
+
+<div class="p">
+This handler processes the message as appropriate.
+For example:
+
+<pre class="pre codeblock">int my_io_msg (resmgr_context_t *ctp, io_msg_t *msg, RESMGR_OCB_T *ocb)
+{
+    my_msg_t my_msg;
+    
+    MsgRead (ctp-&gt;rcvid, &amp;my_msg, sizeof (my_msg), 0);
+    
+    if (my_msg.hdr.mgrid != MY_MGR_ID)
+    {
+        return (ENOSYS);
+    }
+
+    /* Process the data as required. */
+    
+    /* Reply if necessary and tell the library that we've already replied. */
+    MsgReply( ctp-&gt;rcvid, 0, &amp;my_reply, sizeof(my_reply));
+    return (_RESMGR_NOREPLY);
+}
+</pre>
+</div>
+
+
+<p class="p">
+
+Note that the handler returns <span class="keyword const">ENOSYS</span> if the <var class="keyword varname">mgrid</var>
+member of the header isn't the correct manager ID.
+This handler replies to the client, and then returns
+<span class="keyword const">_RESMGR_NOREPLY</span> to tell the library that there's no need for it to do the reply.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

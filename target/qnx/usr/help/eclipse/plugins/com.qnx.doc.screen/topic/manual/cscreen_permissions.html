@@ -1,0 +1,943 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Permissions and Privileges" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Permissions and Privileges</title>
+</head>
+<body id="cscreen_">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Permissions and Privileges
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+    </p>
+
+        <p class="p">
+            
+            
+            
+            <span class="keyword">Screen</span> uses POSIX-style permissions (read, write, execute) and permission classes
+            (<dfn class="term">owner</dfn>(<dfn class="term">user</dfn>), <dfn class="term">manager</dfn>, <dfn class="term">other</dfn>) to manage the various levels
+            of access in <span class="keyword">Screen</span>.
+            This model is used to control not only the level of access to various instances of <span class="keyword">Screen API</span> objects
+            (e.g. windows, sessions), but also the level of access that a given <span class="keyword">Screen API</span> object has to a given
+            function or property.</p>
+
+        <p class="p">
+            Permissions refers to the ability to perform certain operations such as calling a function (<span class="keyword apiname">screen_post_window()</span>)
+            or setting a property (<span class="keyword const">SCREEN_PROPERTY_VISIBLE</span>). Privileges refers to the set of permissions that are granted
+            based on the type of role.
+        </p>
+
+        <p class="p">
+            Note that permissions are not applied to the creation (e.g., <span class="keyword apiname">screen_create_*()</span>)or destruction
+            (e.g., <span class="keyword apiname">screen_destroy_*()</span>) of objects.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Privileges</h2>
+            
+            
+            <p class="p">
+                Privileges are permissions that are controlled by roles. <span class="keyword">Screen</span> uses the POSIX permission
+                classes to control permissions based on the type of role.
+            </p>
+
+            <p class="p">
+                Any user of <span class="keyword">Screen</span> (e.g. <span class="keyword">Screen</span> context) is granted
+                <dfn class="term">other permissions</dfn> in relation to any given <span class="keyword">Screen</span> object. Generally, there is no
+                visibility to user-created objects for contexts that are related through <dfn class="term">other privileges</dfn>.
+                However, some <span class="keyword">Screen</span>-owned objects, such as display objects defined in the
+                <span class="ph filepath">graphics.conf</span> configuration file,
+                grant <dfn class="term">read permissions</dfn> to objects with <dfn class="term">other privileges</dfn> by default,
+                so that all contexts are aware of these display objects.
+            </p>
+
+            A context can have elevated privileges in the combination of the following types of roles: Owner, User, and Manager.
+            <dl class="dl">
+                
+                    <dt class="dt dlterm" id="cscreen___owner_privilege"><dfn class="term">Owner</dfn></dt>
+
+                    <dd class="dd"> An owner is defined as whoever creates the object. The owner, by default,
+                        has <dfn class="term">user permissions</dfn> on the object. Because of these permissions, it has the ability to get
+                        and set certain properties and perform certain functions. See the <dfn class="term">user</dfn> role described below.
+                        An <dfn class="term">owner</dfn> can also grant <dfn class="term">user permissions</dfn> on the object to other <span class="keyword">Screen</span>
+                        contexts through <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>. Since it is the owner, it may also have
+                        additional permissions which cannot be granted to other <span class="keyword">Screen</span> contexts.</dd>
+
+                
+                
+                    <dt class="dt dlterm" id="cscreen___user_privilege"><dfn class="term">User</dfn></dt>
+
+                    <dd class="dd"> Similar to an owner, a user has privileges based on <dfn class="term">user permissions</dfn>. These permissions
+                        are granted by the owner as mentioned above. <dfn class="term">User permissions</dfn>, <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>,
+                        are set through the <span class="keyword">Screen API</span>.
+                        <div class="note"><span class="notetitle">Note:</span> 
+                            The permissions associated with the user role are the ones granted by the owner, to other contexts,
+                            through <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>. When the owner sets <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>
+                            through a combination of strings or integer values, contexts that fall within the classification are granted
+                            <dfn class="term">user privileges</dfn> to that object. Masked with whatever permissions are being set. For example:
+<pre class="pre codeblock">char permissions[] = "user:1000:r--";
+screen_set_window_property_cv(screen_win,
+                              SCREEN_PROPERTY_PERMISSIONS,
+                              strlen(permissions), permissions);
+</pre>
+                            In this example, any context with a user ID of 1000 is granted <dfn class="term">user permissions</dfn>
+                            on that <span class="keyword">Screen</span> window. If the context did not previously have read access
+                            to this window, then they would at this point receive a <span class="keyword const">SCREEN_EVENT_CREATE</span>
+                            for the window.
+                        </div>
+</dd>
+
+                
+                
+                    <dt class="dt dlterm" id="cscreen___manager_privilege"><dfn class="term">Manager</dfn></dt>
+
+                    <dd class="dd"> <p class="p">
+                        A manager, by default, is granted <dfn class="term">group permissions</dfn> on applicable objects
+                        that it should have <dfn class="term">manager</dfn> access to. This gives you the ability to get and set
+                        certain properties and perform certain functions allowed by <dfn class="term">group permissions</dfn>.
+                    </p>
+
+                        <p class="p">Managers must be created within a privileged context
+                            type. The following context types create privileged manager contexts:
+                        </p>
+
+                        <p class="p"><span class="keyword const">SCREEN_WINDOW_MANAGER_CONTEXT</span></p>
+
+                        <p class="p"><span class="keyword const">SCREEN_POWER_MANAGER_CONTEXT</span></p>
+
+                        <p class="p"><span class="keyword const">SCREEN_DISPLAY_MANAGER_CONTEXT</span></p>
+
+                        <p class="p"><span class="keyword const">SCREEN_INPUT_MANAGER_CONTEXT</span></p>
+
+                        <p class="p">
+                            A parent assumes a manager role for read and write access to certain
+                            properties, since it can be considered a manager of its child windows (but not
+                            all parents necessarily manage their children). 
+                        </p>
+
+                        <p class="p">
+                            Manager privileges can't be set. The role of manager can only be
+                            gained or lost by joining or leaving groups, respectively.
+                        </p>
+
+                        <p class="p">
+                            For example, a context created as a <span class="keyword const">SCREEN_INPUT_MANAGER_CONTEXT</span>
+                            will be granted <dfn class="term">group permissions</dfn> to all device API objects on the system.
+                            For device objects, properties such as <span class="keyword const">SCREEN_PROPERTY_WINDOW</span> and
+                            <span class="keyword const">SCREEN_PROPERTY_KEYMAP</span> have the permission set to <span class="keyword option">rw-rw-r--</span>.
+                            With <dfn class="term">group</dfn> access, this context can both read and write these properties for any
+                            device on the system. Conversely, a property such as <span class="keyword const">SCREEN_PROPERTY_POSITION </span>
+                            has the permissions set to <span class="keyword option">rw-r--r--</span>. With <dfn class="term">group</dfn> access,
+                            this context can read this property, but cannot write it. Only contexts with <dfn class="term">user</dfn>
+                            access to that device object can set this property.
+                        </p>
+</dd>
+
+                
+            </dl>
+
+          
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Permissions</h2>
+            
+            
+            <p class="p"> Permissions from the user role are what's granted to others. The owner grants these
+                user permissions so that others can access the object. A
+                    <span class="keyword const">SCREEN_EVENT_CREATE</span> and a <span class="keyword const">SCREEN_EVENT_CLOSE</span> event
+                are used to notify whoever gains or loses access to the object respectively. In the
+                case of multiple grants of access, a <span class="keyword const">SCREEN_EVENT_CREATE</span> event is
+                received only by those actually <em class="ph i">gaining the access</em>. For example, someone
+                granted access to its top-level window to everyone. A window manager, who already
+                has access to all top-level windows doesn't receive a
+                    <span class="keyword const">SCREEN_EVENT_CREATE</span> event for this action. Instead, it receives a
+                    <span class="keyword const">SCREEN_EVENT_PROPERTY</span> event to indicate that the
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property of that window has changed. </p>
+
+            <p class="p"> The user permissions apply only to those properties that can be changed by the owner
+                of the object. Properties that can be changed only by a specific role remain
+                unaffected regardless of the setting of <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>.
+                For example, there are window properties that can be changed only by a window's
+                parent. This rule still holds true despite the value that
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> is set to. The exception is that if
+                the window has no parent, or if there is no window manager, then the permissions
+                apply to all window properties. </p>
+
+            <p class="p"> Permissions can be set dynamically; this means you can set the
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property at any time. However, note
+                that permissions are not cached. If you change permissions, you'll need to ensure
+                that it doesn't interfere with any ongoing processing that your application is
+                doing. For example, a <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> could be successful, but then if
+                permissions are changed, it could cause a subsequent call to <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> to fail. </p>
+
+            <p class="p"> Similar to setting file permissions with <span class="keyword cmdname">chmod</span> (change file modes
+                in POSIX) or <span class="keyword cmdname">setfacl</span>, if you want someone to have special access
+                to an object, you need to set the appropriate permissions on that object. The
+                permissions control the read, write, and execute accessibilities to your object
+                following file permissions conventions. </p>
+
+            <p class="p"> The read, write, and execute permissions can be specified for each class of user for
+                an object. Note that the following mapping applies: </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">read</dt>
+
+                    <dd class="dd">Read permission means that you're able to access the object to retrieve
+                        properties and buffers. Examples of functions that can be performed if you
+                        have read access are: <ul class="ul">
+                            <li class="li">
+                                <a class="xref" href="../screen_read_window.html" title="Take a screenshot of the window and store the resulting image in the specified buffer"><span class="keyword apiname">screen_read_window()</span></a>
+                            </li>
+
+                            <li class="li">
+                                <a class="xref" href="../screen_get_window_property_iv.html" title="Retrieve the current value of the specified window property of type integer"><span class="keyword apiname">screen_get_window_property_iv()</span></a>
+                            </li>
+
+                            <li class="li">
+                                <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> when the window is the
+                                source </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">write</dt>
+
+                    <dd class="dd">Write permission means that you're able to access the object to set
+                        properties and write to buffers. Examples of functions that can be performed
+                        if you have write access are: <ul class="ul">
+                            <li class="li">
+                                <a class="xref" href="../screen_set_window_property_iv.html" title="Set the value of the specified window property of type integer"><span class="keyword apiname">screen_set_window_property_iv()</span></a>
+                            </li>
+
+                            <li class="li">
+                                <a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> when the window is the
+                                destination </li>
+
+                        </ul>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">execute</dt>
+
+                    <dd class="dd">
+                        <p class="p"> Execute permission means that you're able to access the object to inject
+                            events to it. This means that <a class="xref" href="../screen_inject_event.html" title="Send an input event to the window that has input focus on a given display"><span class="keyword apiname">screen_inject_event()</span></a> function can be
+                            used to inject the event. </p>
+
+                        <p class="p"> The function <a class="xref" href="../screen_inject_event.html" title="Send an input event to the window that has input focus on a given display"><span class="keyword apiname">screen_inject_event()</span></a> doesn't require
+                            an object handle. Therefore, if you grant only execute permissions to
+                            others, <span class="keyword">Screen</span> doesn't send
+                                <span class="keyword const">SCREEN_EVENT_CREATE</span> or
+                                <span class="keyword const">SCREEN_EVENT_CLOSE</span> events. </p>
+
+                    </dd>
+
+                
+            </dl>
+
+            <p class="p"> Permissions are set using the <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property.
+                You can set this property as: </p>
+
+            <ul class="ul">
+                <li class="li">an integer</li>
+
+                <li class="li">a string</li>
+
+            </ul>
+
+            <p class="p"> When you set the <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string, <span class="keyword">Screen</span> updates the integer value where applicable. </p>
+
+            <p class="p"> The <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> can't be retrieved as a string. When
+                you retrieve it using a <span class="keyword apiname">screen_get_*_property_iv()</span> function, you
+                won't see any permission changes you've made by setting
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string, unless your string
+                permissions correspond to an integer setting. </p>
+
+            <p class="p">
+                
+                <strong class="ph b">Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as an integer</strong>
+            </p>
+
+            <p class="p"> Valid permissions that can be used and combined are defined by <a class="xref" href="../group__screen__windows_1Screen_Permission_Masks.html" title="Types of permission masks">Screen permission
+                    masks</a>. You can retrieve and set this property by using the <span class="keyword">Screen API</span> functions <span class="keyword apiname">screen_get_*_property_iv()</span>
+                and <span class="keyword apiname">screen_set_*_property_iv()</span>, respectively. For example, if the
+                object in question is a window, then you'd use <a class="xref" href="../screen_get_window_property_iv.html" title="Retrieve the current value of the specified window property of type integer"><span class="keyword apiname">screen_get_window_property_iv()</span></a> to retrieve
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> and <a class="xref" href="../screen_set_window_property_iv.html" title="Set the value of the specified window property of type integer"><span class="keyword apiname">screen_set_window_property_iv()</span></a> to set it. </p>
+
+            <div class="note"><span class="notetitle">Note:</span>  Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as an integer is absolute. It
+                completely replaces any previous value of
+                <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>. </div>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:18%" /><col style="width:15%" /><col style="width:35%" /><col style="width:32%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e657">Class</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e660">Mask group</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e663">Description</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e666">Permission masks</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Owner</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">WIN</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you are the owner of this object, you will have the specified
+                                permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRWIN</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWWIN</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXWIN</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Parent</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">TOP</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you are the parent of this object, you will have the
+                                specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRTOP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWTOP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXTOP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">User ID</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">USR</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you have the same user ID as the owner of this object, you
+                                will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRUSR</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWUSR</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXUSR</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Group ID</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">GRP</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you have the same group ID as the owner of this object, you
+                                will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRGRP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWGRP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXGRP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Process ID</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">PID</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you have the same process ID as the owner of this object, you
+                                will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRPID</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWPID</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXPID</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Process group ID</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">PGP</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you have the same process group ID as the owner of this
+                                object, you will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRPGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWPGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXPGP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Application group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">AGP</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> If you are in the same application group as the owner of this
+                                object, you will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRAGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWAGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXAGP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e657 ">Other</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e660 ">OTH</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e663 "> Anyone will have the specified permissions to this object. </td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e666 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IROTH</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWOTH</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXOTH</span></p>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <p class="p"> For example, let's say you have this code: </p>
+
+            <pre class="pre codeblock">...
+screen_window_t screen_win;
+int permissions = SCREEN_PERMISSION_IRWIN | SCREEN_PERMISSION_IWWIN |
+                  SCREEN_PERMISSION_IXWIN | \ SCREEN_PERMISSION_IRPID |
+                  SCREEN_PERMISSION_IWPID | SCREEN_PERMISSION_IXPID;
+/* Note that the above permissions include the owner privileges.
+ * These need to be included because when setting permissions using masks,
+ * the setting replaces all previous values. That's why we include the
+ * owner privileges so that we don't lose them.
+ */
+...
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_PERMISSIONS, permissions);
+...
+            </pre>
+            <div class="p"> In this case, if you have the same process ID as that window, then you're permitted
+                to call the following on that window: <ul class="ul">
+                    <li class="li"><a class="xref" href="../screen_read_window.html" title="Take a screenshot of the window and store the resulting image in the specified buffer"><span class="keyword apiname">screen_read_window()</span></a></li>
+
+                    <li class="li"><a class="xref" href="../screen_set_window_property_iv.html" title="Set the value of the specified window property of type integer"><span class="keyword apiname">screen_set_window_property_iv()</span></a></li>
+
+                    <li class="li"><a class="xref" href="../screen_inject_event.html" title="Send an input event to the window that has input focus on a given display"><span class="keyword apiname">screen_inject_event()</span></a> to inject an event
+                        into that window </li>
+
+                    <li class="li"><a class="xref" href="../screen_blit.html" title="Copy pixel data from one buffer to another"><span class="keyword apiname">screen_blit()</span></a> with
+                        that window as either source or destination </li>
+
+                </ul>
+
+            </div>
+
+            <div class="cautiontitle">CAUTION:</div><div class="note caution"> We don't recommend removing all owner permissions. When you set
+                    <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as an integer, make sure that the
+                following bits are included in the permissions that you're setting: <ul class="ul">
+                    <li class="li"><span class="keyword const">SCREEN_PERMISSION_IRWIN</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PERMISSION_IWWIN</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PERMISSION_IXWIN</span></li>
+
+                </ul>
+
+            </div>
+
+            <p class="p"> When you use <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as an integer, you're able
+                to grant access to different classes, but all within the context created by the same
+                process. If you want to grant access to an outside process, the only way to do so is
+                to set the permissions for <var class="keyword varname">Others</var>. However, by granting the
+                    <var class="keyword varname">Others</var> permission, it includes <em class="ph i">all</em> others. So, there's
+                really no way to grant access to a particular outside process without giving access
+                to everyone else. Use <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string if you
+                need to have more control on filtering permissions. </p>
+
+            <p class="p">
+                
+                <strong class="ph b">Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string</strong>
+            </p>
+
+            <p class="p"> You can further restrict permissions to particular clients or classes of clients if
+                you use the <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> property as a string. Unlike
+                the integer permissions, the string permissions allow you to specify a specific
+                context, process, process group, group, or user that's not the same as the owner of
+                the object. </p>
+
+            <p class="p"> You can set this property by using the <span class="keyword">Screen API</span> set functions
+                    (<span class="keyword apiname">screen_set_*_property_cv()</span>). For example, if the object in
+                question is a window, then you'd use <a class="xref" href="../screen_set_window_property_cv.html" title="Set the value of the specified window property of type char"><span class="keyword apiname">screen_set_window_property_cv()</span></a> to set it. When
+                using permissions as a string, the permissions masks (integer) are set, but only the
+                bits that have an integer association with the string form. </p>
+
+            <p class="p"> The following table shows each permission string and its corresponding permissions
+                masks: </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1042">Class</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1045">Permissions string</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1048">Applicable permissions masks</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Owner</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">context::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRWIN</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWWIN</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXWIN</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Parent</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">parent::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRTOP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWTOP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXTOP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Application</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">application::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRAGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWAGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXAGP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Process</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">process::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRPID</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWPID</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXPID</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Process group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">processgroup::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRPGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWPGP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXPGP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">User</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">user::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRUSR</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWUSR</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXUSR</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">group::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IRGRP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWGRP</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXGRP</span></p>
+
+                            </td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1042 ">Other</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1045 "><kbd class="ph userinput">other::rwx</kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1048 ">
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IROTH</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IWOTH</span></p>
+
+                                <p class="p"><span class="keyword const">SCREEN_PERMISSION_IXOTH</span></p>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <p class="p">The following table shows the format for all permissions strings: </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:16.666666666666664%" /><col style="width:33.33333333333333%" /><col style="width:50%" /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1276">Class</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1279">Format</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d73063e1282">Example</th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Parent</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">parent::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">parent::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Application</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">application::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">application::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Owner</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">context::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">context::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Specified context</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">context:<var class="keyword varname">id</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">context:screen-ctx-0-00000000-</kbd><kbd class="ph userinput">657eb725d72a0c965a743c0672534abf:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Process</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">process::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">process::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Specified process</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">process:<var class="keyword varname">pid</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">process:1234:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Process group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">process group::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">process group::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Specified process group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">process group:<var class="keyword varname">pgid</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">process group:5678:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">User</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">user::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">user::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Specified user</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">user:<var class="keyword varname">uid</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">user:1000:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Named user</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">user:<var class="keyword varname">uname</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">user:root:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">group::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">group::rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Specified group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">group:<var class="keyword varname">gid</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">group:2000:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Named group</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">group:<var class="keyword varname">gname</var>:<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">group:root:rwx</kbd></td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1276 ">Other</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1279 "><kbd class="ph userinput">other::<var class="keyword varname">permissions</var></kbd></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d73063e1282 "><kbd class="ph userinput">other::rwx</kbd></td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+            <ul class="ul">
+                <li class="li">
+                    <p class="p"> The <var class="keyword varname">id</var> for specified contexts is the identifier of
+                        the context object. You can retrieve this identifier from the context by
+                        calling <a class="xref" href="../screen_get_context_property_cv.html" title="Retrieve the current value of the specified context property of type char"><span class="keyword apiname">screen_get_context_property_cv()</span></a> for
+                        <span class="keyword const">SCREEN_PROPERTY_ID</span>. The ID
+                        of the context is returned. This string is used to set the permissions. </p>
+
+                </li>
+
+                <li class="li">
+                    <p class="p"> The <var class="keyword varname">permissions</var> string is a combination of r (read), w
+                        (write), x (execute), and - (no permission). The permissions must be
+                        specified in this order. </p>
+
+                </li>
+
+            </ul>
+
+            <p class="p"> Here are some examples (presuming a default set of permissions mask that includes
+                owner privileges): </p>
+
+            <p class="p"><strong class="ph b">Example 1: Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string, then
+                    retrieving the property</strong></p>
+
+            <pre class="pre codeblock">...
+char c_permissions[] = "parent::rwx";
+int i_permissions;
+screen_set_window_property_cv(screen_win, SCREEN_PROPERTY_PERMISSIONS,
+                                          strlen(c_permissions),c_permissions);
+screen_get_window_property_iv(screen_win, SCREEN_PROPERTY_PERMISSIONS,
+                                          i_permissions);
+            </pre>
+            <div class="p"> In this example, the permissions in string form have corresponding masks. Therefore,
+                in addition to the default permissions mask, the following bits are now set: <ul class="ul">
+                    <li class="li"><span class="ph codeph">SCREEN_PERMISSION_IRTOP</span></li>
+
+                    <li class="li"><span class="ph codeph">SCREEN_PERMISSION_IWTOP</span></li>
+
+                    <li class="li"><span class="ph codeph">SCREEN_PERMISSION_IXTOP</span></li>
+
+                </ul>
+
+            </div>
+
+            <p class="p"><strong class="ph b">Example 2: Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as a string and as
+                    an integer, then retrieving the property</strong></p>
+
+            <pre class="pre codeblock">...
+char c_permissions[] =
+                       "context:screen-ctx-0-00000000-657eb725d72a0c965a743c0672534abf:rwx";
+int i_permissions = SCREEN_PERMISSION_IRWIN | SCREEN_PERMISSION_IWWIN |
+                    SCREEN_PERMISSION_IXWIN | \ SCREEN_PERMISSION_IRGRP |
+                    SCREEN_PERMISSION_IWGRP | SCREEN_PERMISSION_IXGRP;
+screen_set_window_property_cv(screen_win, SCREEN_PROPERTY_PERMISSIONS,
+                                          strlen(c_permissions), c_permissions);
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_PERMISSIONS, i_permissions);
+screen_get_window_property_iv(screen_win, SCREEN_PROPERTY_PERMISSIONS, i_permissions);
+            </pre>
+            <p class="p"> In this example, the permissions set in string form don't have corresponding
+                permissions masks. Therefore, the resulting property value is: <span class="ph codeph">
+                    SCREEN_PERMISSION_IRGRP | SCREEN_PERMISSION_IWGRP | SCREEN_PERMISSION_IXGRP |
+                    SCREEN_PERMISSION_IRWIN | SCREEN_PERMISSION_IWWIN | SCREEN_PERMISSION_IXWIN
+                </span>. Despite not being accounted for in the integer value, the permissions
+                that were set in string form are still applied. </p>
+
+            <p class="p"><strong class="ph b">Example 3: Setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as strings, then
+                    retrieving the property</strong></p>
+
+            <pre class="pre codeblock">...
+char permissions1000[] = "user:1000:rw-";
+char permissions1001[] = "user:1001:rw-";
+int permissions;
+screen_set_window_property_cv(screen_win, SCREEN_PROPERTY_PERMISSIONS, \
+                              strlen(permissions1000), permissions1000);
+screen_set_window_property_cv(screen_win, SCREEN_PROPERTY_PERMISSIONS, \
+                              strlen(permissions1001), permissions1001);
+screen_get_window_property_iv(screen_win, SCREEN_PROPERTY_PERMISSIONS, permissions);
+            </pre>
+            <p class="p"> In this example, the permissions set in string form don't have corresponding
+                permissions masks. Therefore, the default permissions mask is returned from the
+                query of <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span>. Despite not being accounted for
+                in the integer value, the permissions that are set in string form are still applied.
+                Unlike setting permissions as an integer, setting permissions as a string is
+                additive. Subsequent settings of permissions won't undo previous settings.
+                Therefore, users 1000 and 1001 <em class="ph i">both</em> result in having <span class="ph codeph">rw-</span>
+                permissions. </p>
+
+            <p class="p"> To remove permissions from user 1000, you can call set again with the string
+                permissions as: <span class="ph codeph">user:1000:---</span>
+            </p>
+
+            <p class="p"> Setting specified classes won't affect the permission masks </p>
+
+            <div class="note"><span class="notetitle">Note:</span>  Whether you're setting <span class="keyword const">SCREEN_PROPERTY_PERMISSIONS</span> as an integer
+                or as a string, you still change it by calling the object's set property function.
+                This function is delayed in its execution. That is, the command is queued for batch
+                processing at a later time. Remember to perform a flush using <a class="xref" href="../screen_flush_context.html" title="Flush a context, given a context and a set of flags"><span class="keyword apiname">screen_flush_context()</span></a> to ensure that your
+                permissions are changed and take effect when you expect them to. </div>
+
+        </div>
+
+	</div>
+
+</body>
+</html>

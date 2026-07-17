@@ -1,0 +1,609 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="iofunc_attr_t" />
+<meta name="abstract" content="I/O attribute structure" />
+<meta name="description" content="I/O attribute structure" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-i.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_attr_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_attr_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_attr_trylock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_attr_unlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_lock_default.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_mmap_default.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_mount_t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_ocb_t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/iofunc_time_update.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="iofunc_attr_t" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>iofunc_attr_t</title>
+</head>
+<body id="iofunc_attr_t">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">iofunc_attr_t</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">I/O attribute structure</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/iofunc.h&gt;
+
+typedef struct _iofunc_attr {
+    IOFUNC_MOUNT_T                  *mount;
+    struct _iofunc_mmap_list        *mmap_list;
+    struct _iofunc_lock_list        *lock_list;
+    void                            *acl;
+    union {
+        void                        *lockobj;
+        pthread_mutex_t             lock;
+    };
+    uint32_t                        flags;
+    uint16_t                        count;
+    uint16_t                        rcount;
+    uint16_t                        wcount;
+    uint16_t                        rlocks;
+    uint16_t                        wlocks;
+    uint16_t                        reserved;
+#if !defined(_IOFUNC_OFFSET_BITS) || _IOFUNC_OFFSET_BITS == 64
+ #if __OFF_BITS__ == 64
+    off_t                           nbytes;
+    ino_t                           inode;
+ #else
+    off64_t                         nbytes;
+    ino64_t                         inode;
+ #endif
+#elif _IOFUNC_OFFSET_BITS - 0 == 32
+ #if __OFF_BITS__ == 32
+  #if defined(__LITTLEENDIAN__)
+    off_t                           nbytes;
+    off_t                           nbytes_hi;
+    ino_t                           inode;
+    ino_t                           inode_hi;
+  #elif defined(__BIGENDIAN__)
+    off_t                           nbytes_hi;
+    off_t                           nbytes;
+    ino_t                           inode_hi;
+    ino_t                           inode;
+  #else
+   #error endian not configured for system
+  #endif
+ #else
+  #if defined(__LITTLEENDIAN__)
+    int32_t                         nbytes;
+    int32_t                         nbytes_hi;
+    int32_t                         inode;
+    int32_t                         inode_hi;
+  #elif defined(__BIGENDIAN__)
+    int32_t                         nbytes_hi;
+    int32_t                         nbytes;
+    int32_t                         inode_hi;
+    int32_t                         inode;
+  #else
+   #error endian not configured for system
+  #endif
+ #endif
+#else
+ #error _IOFUNC_OFFSET_BITS value is unsupported
+#endif
+    uid_t                           uid;
+    gid_t                           gid;
+    time_t                          mtime;
+    time_t                          atime;
+    time_t                          ctime;
+    mode_t                          mode;
+    nlink_t                         nlink;
+    dev_t                           rdev;
+    unsigned                        mtime_ns;
+    unsigned                        atime_ns;
+    unsigned                        ctime_ns;
+} iofunc_attr_t;
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+The <span class="keyword dtype">iofunc_attr_t</span> structure describes the data and state associated with a service offered by
+a resource manager.
+An attribute structure is often associated with a specific name (e.g., <span class="ph filepath">/dev/ser1</span>,
+<span class="ph filepath">/dev/ser2</span>), but need not be (e.g., a pipe created by a call to
+<span class="keyword apiname">pipe()</span>).
+You typically use
+<a class="xref" href="iofunc_attr_init.html" title="Initialize the per-name attribute structure associated with a device"><span class="keyword apiname">iofunc_attr_init()</span></a>
+to initialize this structure.
+</p>
+
+
+<p class="p">
+The members include the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">mount</var></dt>
+
+<dd class="dd">A pointer to a structure with information about the mountpoint.
+  By default, this structure is of type
+  <a class="xref" href="iofunc_mount_t.html" title="I/O mount structure"><span class="keyword dtype">iofunc_mount_t</span></a>,
+  but you can specify your own structure by changing the
+  <span class="keyword const">IOFUNC_MOUNT_T</span> manifest.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mmap_list</var> and <var class="keyword varname">lock_list</var></dt>
+
+<dd class="dd">To manage their particular functionality on the resource,
+  the <var class="keyword varname">mmap_list</var> member is used by
+  <a class="xref" href="iofunc_mmap.html" title="Handle an _IO_MMAP message"><span class="keyword apiname">iofunc_mmap()</span></a>,
+  <a class="xref" href="iofunc_mmap_default.html" title="Default handler for _IO_MMAP messages"><span class="keyword apiname">iofunc_mmap_default()</span></a>,
+  and
+  <a class="xref" href="iofunc_mmap_default.html" title="Default handler for _IO_MMAP messages"><span class="keyword apiname">iofunc_mmap_default_ext()</span></a>;
+  the <var class="keyword varname">lock_list</var> member is used by
+  <a class="xref" href="iofunc_lock_default.html" title="Default handler for _IO_LOCK messages"><span class="keyword apiname">iofunc_lock_default()</span></a>.
+  Generally, you shouldn't need to modify or examine these members.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">acl</var></dt>
+
+<dd class="dd">Access control lists.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lockobj</var> and <var class="keyword varname">lock</var></dt>
+
+<dd class="dd">Members of a <span class="ph codeph">union</span> that provide a way to lock the attribute structure. To
+            support multiple threads in your resource manager, you'll need to lock the attribute
+            structure so that only one thread at a time is allowed to change it. The attribute
+            structure can be locked recursively. 
+            
+            <ul class="ul">
+              <li class="li">The default behavior is to use the <var class="keyword varname">lock</var> member, which is a
+                built-in lock mutex. If you use <a class="xref" href="iofunc_attr_init.html" title="Initialize the per-name attribute structure associated with a device"><span class="keyword apiname">iofunc_attr_init()</span></a> to initialize the structure, it
+                initializes the built-in lock mutex (<var class="keyword varname">lock</var>) using a static lock
+                initializer. <p class="p"> The resource manager layer automatically locks the attribute
+                  structure (using <a class="xref" href="iofunc_attr_lock.html" title="Lock the attribute structure"><span class="keyword apiname">iofunc_attr_lock()</span></a>) for you when certain handler
+                  functions are called (i.e., <span class="keyword const">IO_*</span>). You can lock the attribute
+                  structure by calling <a class="xref" href="iofunc_attr_lock.html" title="Lock the attribute structure"><span class="keyword apiname">iofunc_attr_lock()</span></a> or <a class="xref" href="iofunc_attr_trylock.html" title="Try to lock the attribute structure"><span class="keyword apiname">iofunc_attr_trylock()</span></a>; unlock it by calling <a class="xref" href="iofunc_attr_unlock.html" title="Unlock the attribute structure"><span class="keyword apiname">iofunc_attr_unlock()</span></a>. </p>
+
+              </li>
+
+              <li class="li">If you want to use an external lock object, override the built-in lock by pointing
+                the <var class="keyword varname">lockobj</var> member to the external lock object. You also need to
+                provide your own functions to lock and unlock the attribute structure and set the
+                appropriate members of the <var class="keyword varname">funcs</var> structure in the <a class="xref" href="iofunc_mount_t.html" title="I/O mount structure"><span class="keyword dtype">iofunc_mount_t</span></a> structure.
+              </li>
+
+            </ul>
+
+          </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags that your resource manager can set to indicate the state of the resource.
+  This member is a combination of the following flags:
+
+  <dl class="dl">
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_ATIME</span></dt>
+
+  <dd class="dd">The access time is no longer valid.
+    Typically set on a read from the resource.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_CTIME</span></dt>
+
+  <dd class="dd">The change of status time is no longer valid.
+    Typically set when the information for a file changes.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_ACL</span></dt>
+
+  <dd class="dd">The access control list has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_MODE</span></dt>
+
+  <dd class="dd">The mode has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_NLINK</span></dt>
+
+  <dd class="dd">The number of links has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_OWNER</span></dt>
+
+  <dd class="dd">The uid or the gid has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_RDEV</span></dt>
+
+  <dd class="dd">The <var class="keyword varname">rdev</var> member has changed, e.g., <span class="keyword apiname">mknod()</span>.
+    
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_SIZE</span></dt>
+
+  <dd class="dd">The size has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_DIRTY_TIME</span></dt>
+
+  <dd class="dd">One or more of <var class="keyword varname">mtime</var>, <var class="keyword varname">atime</var>, or <var class="keyword varname">ctime</var> has changed.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_MTIME</span></dt>
+
+  <dd class="dd">The modification time is no longer valid.
+    Typically set on a write to the resource.
+    
+  </dd>
+
+  
+
+  
+  <dt class="dt dlterm"><span class="keyword const">IOFUNC_ATTR_NS_TIMESTAMPS</span></dt>
+
+  <dd class="dd">The attribute structure includes the fields used for nanosecond-resolution timestamps,
+                    <var class="keyword varname">mtime_ns</var>, <var class="keyword varname">atime_ns</var>, and
+                    <var class="keyword varname">ctime_ns</var>.
+                    
+                </dd>
+
+  
+
+  </dl>
+
+
+  <p class="p">
+  You can use these flags to determine which fields of the attribute structure
+  have been modified by the various iofunc-layer helper routines.
+  That way, if you need to write the entries to some medium,
+  you can write just those that have changed.
+  In addition to the above, your resource manager can use in any way
+  the bits in the range defined by <span class="keyword const">IOFUNC_ATTR_PRIVATE</span> (see <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>).
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">count</var>, <var class="keyword varname">rcount</var>, <var class="keyword varname">wcount</var>,
+  <var class="keyword varname">rlocks</var> and <var class="keyword varname">wlocks</var>
+</dt>
+
+<dd class="dd">Several counters are stored in the attribute structure and are incremented/decremented 
+  by some of the iofunc layer helper functions. 
+  Both the functionality and the actual contents of the message
+  received from the client determine which specific members are affected.
+  
+  
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d197335e563">This counter:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d197335e566">Tracks the number of:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e563 "><var class="keyword varname">count</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e566 ">OCBs using this attribute in any manner.
+      When this count goes to zero, it means that no one is using this attribute.
+    </td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e563 "><var class="keyword varname">rcount</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e566 ">OCBs using this attribute for reading</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e563 "><var class="keyword varname">wcount</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e566 ">OCBs using this attribute for writing</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e563 "><var class="keyword varname">rlocks</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e566 ">Read locks currently registered on the attribute</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e563 "><var class="keyword varname">wlocks</var></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d197335e566 ">Write locks currently registered on the attribute</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+
+  <p class="p">
+  These counts aren't exclusive. 
+  For example, if an OCB has specified that the resource is opened for reading and writing,
+  then <var class="keyword varname">count</var>, <var class="keyword varname">rcount</var>, and <var class="keyword varname">wcount</var> are <em class="ph i">all</em> incremented. 
+  (See the 
+  <a class="xref" href="iofunc_attr_init.html" title="Initialize the per-name attribute structure associated with a device"><span class="keyword apiname">iofunc_attr_init()</span></a>,
+  <a class="xref" href="iofunc_lock_default.html" title="Default handler for _IO_LOCK messages"><span class="keyword apiname">iofunc_lock_default()</span></a>, 
+  <a class="xref" href="iofunc_lock.html" title="Lock a resource"><span class="keyword apiname">iofunc_lock()</span></a>,
+  <a class="xref" href="iofunc_ocb_attach.html" title="Initialize an Open Control Block (OCB)"><span class="keyword apiname">iofunc_ocb_attach()</span></a>, and
+  <a class="xref" href="iofunc_ocb_detach.html" title="Release Open Control Block resources"><span class="keyword apiname">iofunc_ocb_detach()</span></a> functions.)
+  
+  
+  
+  
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nbytes</var></dt>
+
+<dd class="dd">The number of bytes in the resource; your resource manager can change this value.
+
+  <p class="p">
+  For a file, this would contain the file's size. 
+  For special devices (e.g., <span class="ph filepath">/dev/null</span>) that don't support
+  <a class="xref" href="../l/lseek.html" title="Set the current read/write file offset"><span class="keyword apiname">lseek()</span></a>
+  or have a radically different interpretation for <span class="keyword apiname">lseek()</span>, 
+  this field isn't used (because you wouldn't use any of the helper functions, but would supply your own instead). 
+  In these cases, we recommend that you set this field to zero, 
+  unless there's a meaningful interpretation that you care to put to it.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">inode</var></dt>
+
+<dd class="dd">The number of a mountpoint-specific inode that must be unique per mountpoint. 
+  You can specify your own value, or 0 to have the process manager fill it in for you.
+  For filesystem type of applications, this may correspond to some on-disk structure.
+  In any case, the interpretation of this field is up to you.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">uid</var> and <var class="keyword varname">gid</var></dt>
+
+<dd class="dd">The user ID and group ID of the owner of this resource.
+  These fields are updated automatically by the <span class="keyword apiname">chown()</span> helper functions (e.g.,
+  <span class="keyword apiname">iofunc_chown_default()</span>) and are referenced in
+  conjunction with the <var class="keyword varname">mode</var> member for access-granting purposes by the
+  <span class="keyword apiname">open()</span> help functions (e.g., <span class="keyword apiname">iofunc_open_default()</span>).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mtime</var>, <var class="keyword varname">atime</var>, and <var class="keyword varname">ctime</var></dt>
+
+<dd class="dd">POSIX time members:
+  
+  
+  
+  
+
+  <ul class="ul">
+  <li class="li"><var class="keyword varname">mtime</var> — modification time (<span class="keyword apiname">write()</span> updates this).</li>
+
+  <li class="li"><var class="keyword varname">atime</var> — access time (<span class="keyword apiname">read()</span> updates this).</li>
+
+  <li class="li"><var class="keyword varname">ctime</var> — change of status time (<span class="keyword apiname">write()</span>,
+    <span class="keyword apiname">chmod()</span> and <span class="keyword apiname">chown()</span> update this).
+  </li>
+
+  </ul>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  One or more of the three time members may be <em class="ph i">invalidated</em> as a result of calling an iofunc-layer function.
+  To see if a time member is invalid, check the <var class="keyword varname">flags</var> member.
+  This is to avoid having each and every I/O message handler go to the kernel
+  and request the current time of day, just to fill in the attribute structure's time member(s).
+  
+  </div>
+
+
+  <p class="p">
+  POSIX states that these times must be <em class="ph i">valid</em> when
+  the <span class="keyword apiname">fstat()</span> is performed, but they don't have to
+  reflect the <em class="ph i">actual</em> time that the associated change occurred.
+  Also, the times must be updated between <span class="keyword apiname">fstat()</span> invocations <em class="ph i">if</em> the associated
+  change occurred between <span class="keyword apiname">fstat()</span> invocations. 
+  If the associated change never occurred between <span class="keyword apiname">fstat()</span> invocations, 
+  then the time returned should be the same as returned last time. 
+  Furthermore, if the associated change occurred multiple times between
+  <span class="keyword apiname">fstat()</span> invocations, then the time need only be
+  different from the previously returned time.
+  
+  </p>
+
+
+  <p class="p">
+  
+  To fill the members with the correct time, call
+  <a class="xref" href="iofunc_time_update.html" title="Update time stamps"><span class="keyword apiname">iofunc_time_update()</span></a>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mode</var></dt>
+
+<dd class="dd">The resource's mode (e.g., type, permissions).
+  Valid modes may be selected from the <span class="keyword const">S_*</span> series
+  of constants in <span class="ph filepath">&lt;sys/stat.h&gt;</span>; see the entry for
+  <a class="xref" href="../s/stat_struct.html" title="Data structure for information about a file or directory"><span class="keyword dtype">struct stat</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nlink</var></dt>
+
+<dd class="dd">The number of links to this resource; your resource manager can modify this member.
+  For resources that represent a directory, this value must be at least 2
+  (one for the directory itself, one for the <span class="ph filepath">./</span> entry in it).
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">rdev</var></dt>
+
+<dd class="dd">The device number for a character special device and the
+  <span class="ph filepath">rdev</span> number for a named special device.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mtime_ns</var>, <var class="keyword varname">atime_ns</var>, and <var class="keyword varname">ctime_ns</var></dt>
+
+<dd class="dd">The nanosecond values for the POSIX time members, <var class="keyword varname">mtime</var>,
+  <var class="keyword varname">atime</var>, and <var class="keyword varname">ctime</var>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-i.html">I</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr.html">Resource Managers (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_attr_init.html" title="Initialize the per-name attribute structure associated with a device">iofunc_attr_init(), iofunc_attr_init_sized()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_attr_lock.html" title="Lock the attribute structure">iofunc_attr_lock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_attr_trylock.html" title="Try to lock the attribute structure">iofunc_attr_trylock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_attr_unlock.html" title="Unlock the attribute structure">iofunc_attr_unlock()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_lock_default.html" title="Default handler for _IO_LOCK messages">iofunc_lock_default()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_mmap.html" title="Handle an _IO_MMAP message">iofunc_mmap()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_mmap_default.html" title="Default handler for _IO_MMAP messages">iofunc_mmap_default(), iofunc_mmap_default_ext()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_mount_t.html" title="I/O mount structure">iofunc_mount_t</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_ocb_t.html" title="Open Control Block structure">iofunc_ocb_t</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/iofunc_time_update.html" title="Update time stamps">iofunc_time_update()</a></li></ul></div>
+</div></body>
+</html>

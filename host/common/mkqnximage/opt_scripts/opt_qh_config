@@ -1,0 +1,97 @@
+#!/bin/bash
+
+function brief()
+{
+    echo "--qh_config=[no|<progname1>=<verbosity1>:<progname2>=<verbosity2>:...]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    mkqnximage will convert the configuration provided in the argument and set
+    logging configuration in both command-line and non command-line mode for slog2.
+
+    The default is no.
+EOF
+}
+
+function validate()
+{
+    rc=0
+    # If the argument is no, just pass
+    if [ "$OPT_QH_CONFIG" = no ]; then
+        :
+    else
+        # Break up each configuration separated by a colon
+        IFS=$':'
+        # Loop through the argument separated by semicolons
+        for i in $OPT_QH_CONFIG
+        do
+            # Take the string after the equal sign
+            verbosity="$(cut -d '=' -f 2 <<< $i)"
+            # Check if the verbosity is a valid severity level
+            if [ "$verbosity" != "all" -a "$verbosity" != "none" -a "$verbosity" != "shutdown" -a \
+                "$verbosity" != "critical" -a "$verbosity" != "error" -a "$verbosity" != "warning" -a \
+                "$verbosity" != "notice" -a "$verbosity" != "info" -a "$verbosity" != "debug1" -a \
+                "$verbosity" != "debug2" ]; then
+                echo "$verbosity is not a valid severity level"
+                rc=1
+            fi
+        done
+    fi
+    return $rc
+}
+
+function configure()
+{
+    # Remove the option file if the qh_config flag is used again
+    rm -f output/option_files/ifs_env.opt_qh_config
+
+    # If the argument is no, exit (option file is already removed in previous line if flag is used again)
+    if [ "$OPT_QH_CONFIG" = no ]; then
+        exit 0
+    fi
+
+    # Break up each configuration separated by a colon
+    IFS=$':'
+    # Loop through the configurations
+    for i in $OPT_QH_CONFIG
+    do
+        # Take the string before the equal sign
+        progname="$(cut -d '=' -f 1 <<< $i)"
+        # Take the string after the equal sign
+        verbosity="$(cut -d '=' -f 2 <<< $i)"
+        # Remove field splitting so that the environment variable string is not affected
+        IFS=
+        # Check if progname is all
+        if [ "$progname" = "all" ]; then
+            # Append lines to file only if one doesn't already exist
+            if ! grep -qFs "QH_LOG_CONFIG_CTX=\"default:slog2=$verbosity\"" output/option_files/ifs_env.opt_qh_config ; then
+                echo QH_LOG_CONFIG_CTX=\"default:slog2=$verbosity\" >> output/option_files/ifs_env.opt_qh_config
+                echo QH_LOG_CONFIG_CTX_CL=\"default:slog2=$verbosity\" >> output/option_files/ifs_env.opt_qh_config
+            fi
+        else
+            # Append lines to file only if one doesn't already exist
+            if ! grep -qFs "QH_LOG_CONFIG_CTX__$progname=\"default:slog2=$verbosity\"" output/option_files/ifs_env.opt_qh_config ; then
+                echo QH_LOG_CONFIG_CTX__$progname=\"default:slog2=$verbosity\" >> output/option_files/ifs_env.opt_qh_config
+                echo QH_LOG_CONFIG_CTX_CL__$progname=\"default:slog2=$verbosity\" >> output/option_files/ifs_env.opt_qh_config
+            fi
+        fi
+
+    done
+    exit 0
+}
+
+case "$1" in
+    brief)
+        brief;;
+    help)
+        help;;
+    validate)
+        validate;;
+    configure)
+        configure;;
+    default)
+        echo no;;
+esac

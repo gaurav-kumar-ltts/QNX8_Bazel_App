@@ -1,0 +1,447 @@
+/*
+ * $QNXLicenseC:
+ * Copyright 2007, QNX Software Systems. All Rights Reserved.
+ *
+ * You must obtain a written license from and pay applicable
+ * license fees to QNX Software Systems before you may reproduce,
+ * modify or distribute this software, or any work that includes
+ * all or part of this software.   Free development licenses are
+ * available for evaluation and non-commercial purposes.  For more
+ * information visit http://licensing.qnx.com or email
+ * licensing@qnx.com.
+ *
+ * This file may contain contributions from others.  Please review
+ * this entire file for other proprietary rights or license notices,
+ * as well as the QNX Development Suite License Guide at
+ * http://licensing.qnx.com/license-guide/ for other information. $
+ */
+#ifndef __FS_QNX6_H_INCLUDED
+#define __FS_QNX6_H_INCLUDED
+
+#ifndef __PLATFORM_H_INCLUDED
+#include <sys/platform.h>
+#endif
+#include <sys/types.h>
+
+#define QNX6FS_NAME_MAX			510
+#define QNX6FS_SYMLINK_MAX		512
+#ifdef PATH_MAX
+#define QNX6FS_PATH_MAX			PATH_MAX
+#else
+#define QNX6FS_PATH_MAX			1024
+#endif
+
+#define QNX6FS_DIRECT_BLKS		16
+#define QNX6FS_INDIRECT_LEVELS	3
+#define QNX6FS_UNUSED_BLK		((_Uint32t)-1)
+#define QNX6FS_SPARSE_BLK		((_Uint32t)-2)
+
+/* Flags for 'q6_dinode_t.i_flags'
+ */
+#define QNX6FS_INO_USED			0x01
+#define QNX6FS_INO_MODIFIED		0x02
+
+/* Seeds for Fletcher-32 and POSIX CRC32 checksums in inodes.
+ */
+#define QNX6FS_F32_SEED_INOD    ((uint32_t)0x9c2d0c41)
+#define QNX6FS_CRC32_SEED_INOD  ((uint32_t)0x7def472b)
+
+typedef struct __attribute__ ((__packed__)) q6_dinode {
+	_Uint64t			i_size;
+	_Uint32t			i_uid;
+	_Uint32t			i_gid;
+	_Uint32t			i_ftime;
+	_Uint32t			i_mtime;
+	_Uint32t			i_atime;
+	_Uint32t			i_ctime;
+	_Uint16t			i_mode;
+	_Uint16t			i_nlink;
+	_Uint32t			i_blocks[QNX6FS_DIRECT_BLKS];
+	_Uint8t				i_indirect;
+	_Uint8t				i_flags;
+	_Uint8t				i_spare1[2];
+	_Uint32t			i_crypt;
+	_Uint32t			i_emode;
+	_Uint32t			i_acl_iextra_plus_one; /* One-greater than the iextra index where the ACL record starts.     */
+	        			                       /* Encoded this way so that QNX6FS_IE_INVALID_INDEX is stored as zero */
+	        			                       /* for backward compatibility with existing records that have no ACL. */
+	_Uint32t			i_generation;	/* inode generation (inode reuse bumps it up). */
+	_Uint8t				i_spare2[4];
+	_Uint32t			i_cksum32;    /* 32-bit inode checksum */
+} q6_dinode_t;
+
+typedef struct q6_iinode {
+	_Uint64t			i_size;
+	_Uint32t			i_blocks[QNX6FS_DIRECT_BLKS];
+	_Uint8t				i_indirect;
+	_Uint8t				i_flags;
+	_Uint8t				i_spare[6];
+} q6_iinode_t;
+
+
+/*  Bits for the q6_iinode_t.i_emode field
+*/
+#define QNX6FS_EMODE_ALIMIT   0x00000001  /* Don't allocate beyond allocation limit */
+#define QNX6FS_EMODE_INPLACE  0x00000002  /* Do not COW the inode */
+#define QNX6FS_EMODE_ANTIFRAG 0x00000004  /* Use anti-fragmentation alloc policy */
+#define QNX6FS_EMODE_MASK     0x00000007  /* Mask of changeable emode bits */
+
+
+/*  The .iextra file is organized as a set of fixed size records
+ *  and only the first record is fixed as the keylist.
+ */
+#define QNX6FS_IEXTRA_VERSION       1
+#define QNX6FS_IEXTRA_SIZE          512
+#define QNX6FS_IEXTRA_TRAILER       16
+
+/* iextra record ie_rectype */
+#define QNX6FS_IEXTRA_UNUSED        0
+#define QNX6FS_IEXTRA_DOMAIN_LIST   1 /* encryption related record */
+#define QNX6FS_IEXTRA_DOMAIN_KEY    2 /* encryption related record */
+#define QNX6FS_IEXTRA_FILE_KEY      3 /* encryption related record */
+#define QNX6FS_IEXTRA_FILE_NAME     4 /* encryption related record */
+#define QNX6FS_IEXTRA_ATTRIBUTE     5 /* encryption related record */
+#define QNX6FS_IEXTRA_ACL           6 /* persistent ACL record */
+
+#define QNX6FS_IE_INVALID_INDEX     UINT32_MAX
+
+/* The maximum size in bytes supported by chunked data.
+   This is self imposed and arbitrary.
+*/
+#define QNX6FS_IE_CHUNK_MAX_SIZE    (10 * 1024)
+
+#define QNX6FS_IEXTRA_SALT_SIZE     64
+#define QNX6FS_IEXTRA_KEY_SIZE     (512/8)
+#define QNX6FS_IEXTRA_MAX_KEY_SIZE (2048/8)
+
+#define QNX6FS_DOMAIN_UNUSED        0
+#define QNX6FS_DOMAIN_MAX		\
+			((QNX6FS_IEXTRA_SIZE - QNX6FS_IEXTRA_TRAILER) / 4 - 2)
+#define QNX6FS_DOMAIN_RESERVED		(0xFF)
+
+/*  Flags used in the public iextra record information (trailer)
+*/
+
+/*	The mask of valid bits describing the migration state. If any bit is set in
+	this mask, the file is undergoing some form of migration. The migration
+	state values are NOT binary exclusive. Since only four states can ever
+	exist, we only use 2 bits to store the state.
+*/
+#define QNX6FS_IEXTRA_FLAG_MIGRATION        0x03
+
+/*	The file is being migrated from plaintext 'P' to ciphertext 'C'.
+*/
+#define QNX6FS_IEXTRA_FLAG_MIGRATION_P2C	0x01
+
+/*	The file is being migrated from ciphertext 'C' to plaintext 'P'.
+*/
+#define QNX6FS_IEXTRA_FLAG_MIGRATION_C2P	0x02
+
+/*	The file is being migrated from ciphertext 'C' produced from one key to
+	ciphertext 'C' produced by a different key.
+
+	This flag is currently not supported.
+*/
+#define QNX6FS_IEXTRA_FLAG_MIGRATION_C2C	0x03
+
+/*	Flags saved exclusively in the domain list entry of the iextra file.
+	These flags cannot use the lower 2 bits since that is technically reserved
+	for migration, even if these flags should never be set on the same record.
+*/
+
+/*	This define is for an obsolete flag, and it can be used at a later date.
+    The flag is not used on-disk in any system, and therefore no conflict exists.
+*/
+#define QNX6FS_IEXTRA_FLAG_UNUSED_1			0x04
+
+/*	This define is for an obsolete flag, and it can be used at a later date.
+    The flag is not used on-disk in any system, and therefore no conflict exists.
+*/
+#define QNX6FS_IEXTRA_FLAG_UNUSED_2			0x08
+
+#define QNX6FS_IEXTRA_FLAG_RESERVED			0x10
+
+/*	This domain key is used for filename encryption. Only one domain key should
+	have this flag at any given time.
+*/
+#define QNX6FS_IEXTRA_FLAG_DOMAIN_NAME_ENC	0x20
+
+
+/*  Flags used to define attributes of domain and file key data.
+*/
+
+/*  Enable a SHA256 HMAC within the key data.
+*/
+#define QNX6FS_IEXTRA_KEY_ENABLE_SHA256_HMAC  0x01
+
+typedef uint8_t ie_dom_num_t;
+
+/*  Record definition for QNX6FS_IEXTRA_DOMAIN_LIST.
+
+    This is a PACKED ondisk structure; it is being included in q6_iextra_t and
+    must not be padded to ensure the definition here matches the layout on disk.
+*/
+typedef struct __attribute__ ((__packed__)) ie_keylist_s {
+    union {
+        struct {
+            _Uint32t    il_version;
+            _Uint32t    il_key[QNX6FS_DOMAIN_MAX+1];
+		};
+        _Uint8t         ie_data[QNX6FS_IEXTRA_SIZE - QNX6FS_IEXTRA_TRAILER];
+    }           ie_extra;
+    _Uint8t     ie_spare1[8];
+    _Uint32t    ie_crc32;
+    _Uint8t     ie_spare2[3];
+    /*_Uint8t   ie_rectype;*/
+} ie_keylist_t;
+typedef char __size_check_ie_keylist[ (sizeof(struct ie_keylist_s) == QNX6FS_IEXTRA_SIZE-1) ? 1 : -1 ];
+
+
+/*  Record definition for QNX6FS_IEXTRA_DOMAIN_KEY.
+
+    This is a PACKED ondisk structure; it is being included in q6_iextra_t and
+    must not be padded to ensure the definition here matches the layout on disk.
+*/
+typedef struct __attribute__ ((__packed__)) ie_domainkey_s {
+	union {
+		struct {
+			_Uint8t		ik_random[QNX6FS_IEXTRA_SALT_SIZE];
+			_Uint32t	ik_version;
+			_Uint32t	ik_signature;
+			ie_dom_num_t ik_keyno;                  ///< Protected domain number
+			_Uint8t		ik_reserved1;
+			_Uint16t	ik_reserved2;
+			_Uint8t		ik_spare[49];
+			_Uint8t		ik_keyflags;
+			_Uint8t		ik_keytype;
+			_Uint8t		ik_keylen;
+			_Uint8t		ik_key[QNX6FS_IEXTRA_MAX_KEY_SIZE];
+		};
+		_Uint8t			ie_data[QNX6FS_IEXTRA_SIZE - QNX6FS_IEXTRA_TRAILER];
+	}				ie_extra;
+	_Uint8t			ie_spare2[8];
+	_Uint8t			ie_spare1[4];
+	_Uint8t			ie_flags;
+	_Uint8t			ie_domaintype;
+	ie_dom_num_t	ie_domain;                    ///< Unprotected domain number
+	/*_Uint8t		ie_rectype;*/
+} ie_domainkey_t;
+typedef char __size_check_ie_domainkey[ (sizeof(struct ie_domainkey_s) == QNX6FS_IEXTRA_SIZE-1) ? 1 : -1 ];
+
+
+/*  Record definition for QNX6FS_IEXTRA_FILE_KEY.
+
+    This is a PACKED ondisk structure; it is being included in q6_iextra_t and
+    must not be padded to ensure the definition here matches the layout on disk.
+*/
+typedef struct __attribute__ ((__packed__)) ie_filekey_s {
+	union {
+		struct {
+			_Uint8t		ic_random[QNX6FS_IEXTRA_SALT_SIZE];
+			_Uint32t	ic_version;
+			_Uint16t	ic_flags;
+			_Uint16t	ic_mode;
+			_Uint64t	ic_size;
+			_Uint64t	ic_ino;
+			_Uint32t	ic_uid;
+			_Uint32t	ic_gid;
+			_Uint64t	ic_migration;
+			_Uint8t		ic_spare[21];
+			_Uint8t		ic_keyflags;
+			_Uint8t		ic_keytype;
+			_Uint8t		ic_keylen;
+			_Uint8t		ic_key[QNX6FS_IEXTRA_MAX_KEY_SIZE];
+		};
+		_Uint8t			ie_data[QNX6FS_IEXTRA_SIZE - QNX6FS_IEXTRA_TRAILER];
+	}			ie_extra;
+	_Uint64t	ie_inode;
+	_Uint32t	ie_domainindex;
+	_Uint8t		ie_flags;
+	_Uint8t		ie_domaintype;
+	ie_dom_num_t ie_domain;
+	/*_Uint8t	ie_rectype;*/
+} ie_filekey_t;
+typedef char __size_check_ie_filekey[ (sizeof(struct ie_filekey_s) == QNX6FS_IEXTRA_SIZE-1) ? 1 : -1 ];
+
+/*  Record definition for generic byte-array iextra data than can span across multiple iextra record.
+
+    It's meant to be used in concert with:
+        ie_chunk_destroy()
+        ie_chunk_write()
+        ie_chunk_read()
+
+    This is a PACKED ondisk structure; it is being included in q6_iextra_t and
+    must not be padded to ensure the definition here matches the layout on disk.
+*/
+typedef struct __attribute__ ((__packed__)) ie_chunk_s {
+	_Uint64t    ie_inode;          /* Inode for which this data is meant for (zero if N/A) */
+	_Uint32t    ie_next_iextra;    /* Links to the rest of the data. The last chunk ends with QNX6FS_IE_INVALID_INDEX. */
+	_Uint16t    ie_remaining_size; /* Number of bytes forming the data if it were to start at this chunk. */
+	                               /* For the first chunk, ie_remaining_size is the total size of the stored data. */
+	                               /* It should not be bigger than QNX6FS_IE_CHUNK_MAX_SIZE. */
+	_Uint16t    ie_chunk_size;     /* The amount of data valid in the 'chunk_data' byte array for this chunk. */
+	_Uint8t     ie_spare[16];      /* Keeping a few spares byte for extensibility */
+	_Uint8t     ie_chunk_data[QNX6FS_IEXTRA_SIZE - 8 - 4 - 2 - 2 - 16 - 1];
+	/*_Uint8t   ie_rectype;*/
+} ie_chunk_t;
+typedef char __size_check_ie_chunk[ (sizeof(struct ie_chunk_s) == QNX6FS_IEXTRA_SIZE-1) ? 1 : -1 ];
+
+/*  The iextra record definition. The iextra record defines different types of
+    records, depending on the ie_rectype field: KEYLIST, DOMAIN_KEY, or FILE_KEY.
+    It is also used for storing types that make use of the generic chunk data list.
+*/
+typedef struct __attribute__ ((__packed__)) q6_iextra {
+	union {
+		ie_keylist_t    ie_keylist;
+		ie_domainkey_t  ie_domainkey;
+		ie_filekey_t    ie_filekey;
+		ie_chunk_t      ie_chunk;
+	};
+	_Uint8t				ie_rectype;
+} q6_iextra_t;
+typedef char __size_check_ie_redundant_sanity_check[ (sizeof(struct q6_iextra) == QNX6FS_IEXTRA_SIZE) ? 1 : -1 ];
+
+#define QNX6FS_DIR_EOF			0x00
+#define QNX6FS_DIR_LONGNAME		0xFFu
+#define QNX6FS_DIR_CRYPTNAME	0xFEu
+#define QNX6FS_DIR_DELETED		0u
+#define QNX6FS_DIR_SHORT_LEN	27
+#define QNX6FS_DIR_FAKE_LEN		16
+
+typedef struct q6_direntry {
+	_Uint32t			d_inode;
+	union {
+		struct {
+			_Uint8t		d_length;
+			char		d_name[QNX6FS_DIR_SHORT_LEN];
+		}				d_short;
+		struct {
+			_Uint8t		d_islfn;
+			_Uint8t		d_spare1[3];
+			_Uint32t	d_blkno;
+			_Uint32t	d_cksum;
+			_Uint8t		d_spare2[16];
+		}				d_long;
+		struct {
+			_Uint8t		d_iscrypt;
+			_Uint8t		d_spare1[3];
+			_Uint32t	d_blkno;
+			_Uint32t	d_cksum;
+			char		d_name[QNX6FS_DIR_FAKE_LEN];
+		}				d_crypt;
+	}					d_name;
+} q6_direntry_t;
+
+typedef struct q6_longname {
+	union {
+		struct {
+			_Uint16t	d_length;
+			char		d_name[QNX6FS_NAME_MAX];
+		};
+		struct {
+			char		d_data[QNX6FS_NAME_MAX+2];
+		};
+	};
+} q6_longname_t;
+
+#define QNX6FS_SIGNATURE		0x68191122
+#define QNX6FS_ROOT_INODE		1
+#define QNX6FS_BOOTDIR_INODE	2
+#define QNX6FS_FSYS_VERSION		4
+#define QNX6FS_SBLK_SIZE		512
+#define QNX6FS_SBLK_RSRV		4096
+#define QNX6FS_BOOT_RSRV		8192
+#define QNX6FS_BOOTDIR_SIZE		4096
+#define QNX6FS_DEFAULT_RSRV		3
+#define QNX6FS_MAX_NGROUPS		64
+
+#define QNX6FS_MAX_BLK_SIZE     (32 * 1024)
+
+/* With block sizes larger than 4KiB, an offset must be added to ensure data
+   contents are aligned to the block size boundaries:
+   0...8KiB-1         Boot Block
+   8KiB..12KiB-1      Superblock reserved
+   12KiB..Block Size  Padding
+*/
+#define QNX6FS_MIN_RSRV_SIZE    (QNX6FS_BOOT_RSRV + QNX6FS_SBLK_RSRV)
+#define QNX6FS_DATA_START(b)    ((QNX6FS_BOOT_RSRV + QNX6FS_SBLK_RSRV)        \
+								+ ( ((b) <= QNX6FS_SBLK_RSRV) ? 0             \
+								  : llabs(((b) - (long long)QNX6FS_MIN_RSRV_SIZE))) )
+#define QNX6FS_OVERHEAD_SIZE(b) (QNX6FS_DATA_START((b)) + (((b) <=QNX6FS_SBLK_RSRV) ? QNX6FS_SBLK_RSRV : (b) ))
+
+#define QNX6FS_SBLK_UNSTABLE	0x00000001
+#define QNX6FS_SBLK_V3_LE_RSRV	0x00000002
+#define QNX6FS_VOLUME_LABEL		0x00000004	/* Volume label is a string, not a UUID */
+#define QNX6FS_LFN_CKSUM		0x00000100
+#define QNX6FS_IEXTRA			0x00000200
+#define QNX6FS_CRYPTO_NAME		0x00000400
+#define QNX6FS_OVERSIZED_BITMAP	0x00000800	/* Volume has oversized bitmap */
+#define QNX6FS_QUOTAS			0x00001000
+#define QNX6FS_SBLK_V3_BE_RSRV	0x40000000
+#define QNX6FS_RESERVED1		0x00010000	/* was QNX6FS_DIRBTREE */
+#define QNX6FS_SPARSEFILES		0x00020000
+#define QNX6FS_UDSGATE			0x00040000  /* Layout change on account of UNIX socket file mode support */
+#define QNX6FS_MASK_INCOMPAT	0x00FF0000
+#define QNX6FS_MASK_READONLY	0x0000FF00
+
+
+/*
+ * max volume label length: overlays s_uuid[]
+ */
+#define QNX6FS_MAX_LABEL_LEN	16
+
+/*
+ * Inode checksum types; stored in superblock's .s_ino_cksum field.
+ */
+enum { QNX6FS_INO_CKSUM_NONE  = 0,  /* don't checksum inodes (default) */
+       QNX6FS_INO_CKSUM_CRC32 = 1,  /* POSIX CRC32 checksum in inodes  */
+       QNX6FS_INO_CKSUM_F32   = 2,  /* Fletcher-32 checksum in inodes  */
+       QNX6FS_INO_CKSUM_MAX
+     };
+
+typedef struct __attribute__ ((__packed__, __aligned__(8))) q6_superblock {
+	_Uint32t			s_signature;
+	_Uint32t			s_chksum;
+	_Uint64t			s_seqno;
+	_Uint32t			s_fmttime;
+	_Uint32t			s_wrtime;
+	_Uint32t			s_flags;
+	_Uint16t			s_version;
+	_Uint16t			s_rsrvblks;
+	_Uint8t				s_uuid[16];
+	_Uint32t			s_blksize;
+	_Uint32t			s_ninodes;
+	_Uint32t			s_finodes;
+	_Uint32t			s_nblocks;
+	_Uint32t			s_fblocks;
+	_Uint32t			s_ngroups;
+	q6_iinode_t			s_inodes;
+	q6_iinode_t			s_bitmap;
+	q6_iinode_t			s_lnames;
+	q6_iinode_t			s_iclaim;
+	q6_iinode_t			s_iextra;
+	_Uint32t            s_migrate_blocks;
+	_Uint32t            s_scrub_block;
+	_Uint32t			s_nsparse;
+	_Uint8t				s_ino_cksum;       /* inode cksum; one of QNX6FS_INO_CKSUM_... */
+	_Uint8t				s_spare1[3];
+	_Uint32t			s_nsocket;
+	_Uint8t				s_spare2[20];
+} q6_superblock_t;
+
+#define QNX6FS_BG_DEFRAG		0x4000
+#define QNX6FS_SNAPSHOT_HOLD	0x8000
+
+#define QNX6FS_BOOT_QUIET		0x01
+#define QNX6FS_BOOT_CLS			0x02
+
+typedef struct q6_boothdr {
+	_Uint8t				b_jmp[3];
+	_Uint8t				b_flags;
+	_Uint32t			b_offset;
+	_Uint32t			b_sblk0;
+	_Uint32t			b_sblk1;
+} q6_boothdr_t;
+
+
+#endif /* __FS_QNX6_H_INCLUDED */

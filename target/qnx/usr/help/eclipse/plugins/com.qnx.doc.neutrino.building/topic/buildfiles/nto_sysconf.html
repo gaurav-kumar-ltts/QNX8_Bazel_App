@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="System configuration" />
+<meta name="abstract" content="Before you can use your embedded system, you need to configure it for the drivers, filesystems, and applications it needs to run." />
+<meta name="description" content="Before you can use your embedded system, you need to configure it for the drivers, filesystems, and applications it needs to run." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="sysconf" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>System configuration</title>
+</head>
+<body id="sysconf">
+
+	<h1 class="title topictitle1" id="ariaid-title1">System configuration</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Before you can use your embedded system, you need to configure it for the drivers, filesystems, and
+		applications it needs to run.</p>
+
+		<div class="section">
+			
+			
+			
+			<p class="p">Exactly how you should configure your system depends on the type of system you're building. Below are
+				some very general guidelines to help you understand how to use an <span class="keyword cmdname">mkifs</span> buildfile to
+				configure your system, including which executables should be used in what circumstances, and which
+				shared libraries are required for these executables.</p>
+
+			<p class="p">The general procedure to set up a system is as follows:</p>
+
+			<ol class="ol">
+				<li class="li">Establish an output device (see <q class="q"><a class="xref" href="#sysconf__output">Output device</a></q>).</li>
+
+				<li class="li">Run drivers and filesystems (see <q class="q"><a class="xref" href="#sysconf__drivers">Drivers and filesystems</a></q>).</li>
+
+				<li class="li">Run applications (see <q class="q"><a class="xref" href="#sysconf__apps">Applications</a></q>).</li>
+
+			</ol>
+
+			<p class="p">For changes you make to your <span class="keyword cmdname">mkifs</span> buildfile to affect your system configuration, you must
+				rebuild your system. For instructions on how to build a new system image after you have modified the buildfile,
+				see the chapter <a class="xref" href="../bsp/bsp_about.html" title="Before you attempt to write a new BSP or modify an existing one, it is helpful to know how to use a BSP.">Working with QNX BSPs</a> in this guide.</p>
+
+			<p class="p">See the <a class="xref" href="../config/config.html" title="This appendix contains sample buildfiles that you can modify to support your hardware platform and your implementation requirements.">Sample Buildfiles</a> appendix in this guide for some sample buildfiles.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> If your system will use a watchdog utility, you should start it before you set up your output
+				device. Watchdog utilities are board-specific; see the <q class="q">Driver commands</q> section of the <cite class="cite">BSP
+					User's Guide</cite> for your board for more information.</div>
+
+		</div>
+
+		<div class="section" id="sysconf__output"><h2 class="title sectiontitle">Output device</h2>
+			
+			
+			
+			
+			
+			<p class="p">One of the first things you should do in a buildfile is start a driver to which you
+				can redirect standard input, output, and error. Starting a driver early in the
+				startup sequence provides all subsequent drivers and applications a known location
+				for outputting startup, diagnostics, and error messages.
+				In most cases, the output device you should start will be a serial port driver (e.g.,
+					<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/devc-ser8250.html"><span class="keyword cmdname">devc-ser8250</span></a>).</p>
+
+			<p class="p">If your system doesn't have a serial driver, you may choose to omit this step, or use
+				some other type of device, for which you will need to write a specialized driver. If
+				you don't specify a driver, by default,  output goes to the debug output driver
+				provided by the startup code.</p>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">If you don't redirect output, the default debug output driver may
+				cause performance problems on your system. These problems are often quite difficult
+				to debug.</div>
+
+		</div>
+
+		<div class="section" id="sysconf__drivers"><h2 class="title sectiontitle">Drivers and filesystems</h2>
+			
+			
+			
+			<p class="p">Your embedded system must run drivers and filesystems that will make the hardware
+				accessible to external devices.</p>
+
+			<p class="p">You can include these drivers and filesystems in the image you build before you
+				transfer it to the target. <span class="keyword">QNX OS</span> supports many drivers
+				and filesystems, which are described in the <cite class="cite">Utilities Reference</cite>:</p>
+
+			<ul class="ul">
+				<li class="li">disk drivers (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a>)</li>
+
+				<li class="li">flash filesystems (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devf-*</span></a>)</li>
+
+				<li class="li">network drivers (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devs-*</span></a>)</li>
+
+				<li class="li">input drivers (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devi-*</span></a>)</li>
+
+				<li class="li">USB drivers (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devu-*</span></a>)</li>
+
+				<li class="li">filesystems (<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-f.html"><span class="keyword cmdname">fs-*</span></a>)</li>
+
+			</ul>
+
+			<div class="note"><span class="notetitle">Note:</span> Board-specific drivers aren't documented in the <cite class="cite">Utilities Reference</cite>.
+				For information about these drivers, see your <cite class="cite">BSP User's Guide</cite>. To find
+				the drivers, look in the <span class="ph filepath">src</span> directory and its subdirectories
+				in the BSP itself.</div>
+
+			<h3 class="title sectiontitle">Placing drivers in the startup sequence</h3>
+			<p class="p">For most systems it is best to keep the OS image small. This means not putting all of
+				the executables and shared libraries into the OS image. Instead, do the
+				following:</p>
+
+			<ol class="ol">
+				<li class="li">In some other medium, such as a <a class="xref" href="../os_images/nto_flash.html" title="If your application requires a writable filesystem and you have flash memory devices on your embedded system, you can use a QNX OS flash filesystem driver to provide a POSIX-compatible filesystem.">flash filesystem</a>, a network filesystem, or rotating
+					disk, place the executables and libaries you won't need immediately.</li>
+
+				<li class="li">In the OS image, place the executables that need to be started immediately
+					(e.g., the watchdog and a serial driver), and the drivers the system will need
+					to access the executables from the other media (e.g., start drivers).</li>
+
+			</ol>
+
+			<p class="p">In other words:</p>
+
+			<ul class="ul">
+				<li class="li">Disk, flash, and network drivers all rely on a process that loads one or more
+						<span class="ph filepath">.so</span> files. (These files are selected through either the
+					command line or automatic configuration detection.)</li>
+
+				<li class="li">Since these drivers all use shared object (<span class="ph filepath">.so</span>) files (both
+					their own driver-specific files, and standard ones such as the C library), these
+						<span class="ph filepath">.so</span> files must be present <em class="ph i">before</em> the drivers
+					start.</li>
+
+				<li class="li">Therefore, the <span class="ph filepath">.so</span> files needed to start these drivers must
+					be on a medium <em class="ph i">other</em> than the one for which the driver is being started.
+					(For instance, don't put the executables and libraries the system will need to
+					access a rotating disk on the rotating disk.)</li>
+
+				<li class="li">In short, put the <span class="ph filepath">.so</span> files in the OS image.</li>
+
+			</ul>
+
+			<div class="note"><span class="notetitle">Note:</span> If your system has no secondary storage media, or if it requires everything to be
+				available immediately, without needing to start a driver, then you need to place all
+				of the executables and shared libraries directly into the OS image.</div>
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			<h3 class="title sectiontitle">Disk drivers</h3>
+			<p class="p">When configuring your image to support a rotating or solid-state disk, you must first
+				determine what hardware controls the disk interface. The <span class="keyword">QNX OS</span> supports a number of interfaces, including the EIDE
+				controller. For details on the supported interface controllers, see the various
+					<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a> entries in the <cite class="cite">Utilities
+					Reference</cite>.</p>
+
+			<p class="p">The only instruction you need to put in your buildfile is to start the driver for the
+				appropriate hardware. For example, for the AHCI SATA interfaces driver on an x86
+				board:</p>
+
+			<ul class="ul">
+				<li class="li"> Detect all SATA controllers and list all connected devices:
+					<pre class="pre codeblock">devb-ahci &amp;</pre>
+				</li>
+
+				<li class="li"> Detect all SATA controllers and use DMA-typed memory:
+					<pre class="pre codeblock">devb-ahci mem name=/ram/dma &amp;</pre>
+				</li>
+
+			</ul>
+
+			<p class="p">The driver will then dynamically load the required modules, in this order:</p>
+
+			<ol class="ol">
+				<li class="li"><span class="keyword cmdname">libcam.so</span> — Common Access Method library</li>
+
+				<li class="li"><span class="keyword cmdname">cam-*.so</span> — Common Access Method module(s)</li>
+
+				<li class="li"><span class="keyword cmdname">io-blk.so</span> — block I/O module</li>
+
+				<li class="li"><span class="keyword cmdname">fs-*.so</span> — filesystem personality module(s)</li>
+
+			</ol>
+
+			<p class="p">The CAM <span class="ph filepath">.so</span> files are documented under <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-c.html"><span class="keyword cmdname">cam-*</span></a> in the <cite class="cite">Utilities Reference</cite>.
+				Currently, <span class="keyword">QNX OS</span> supports CD-ROMs
+					(<span class="keyword cmdname">cam-cdrom.so</span>), hard disks (<span class="keyword cmdname">cam-disk.so</span>),
+				and optical disks (<span class="keyword cmdname">cam-optical.so</span>).</p>
+
+			<p class="p">The <span class="keyword cmdname">io-blk.so</span> module is responsible for dealing with a disk on a
+				block-by-block basis. It includes caching support.</p>
+
+			<div class="p">The <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-f.html"><span class="keyword cmdname">fs-*</span></a> modules are responsible for providing the
+				high-level knowledge about how a particular filesystem is structured. <span class="keyword">QNX OS</span> currently supports the following: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:70%" /><col style="width:30%" /></colgroup><thead class="thead" style="text-align:left;">
+							<tr class="row">
+								<th class="entry cellrowborder" style="vertical-align:top;" id="d3087e512">Filesystem</th>
+
+								<th class="entry cellrowborder" style="vertical-align:top;" id="d3087e515">Module</th>
+
+							</tr>
+
+						</thead>
+<tbody class="tbody">
+							<tr class="row">
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e512 ">MS-DOS </td>
+
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e515 "><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html"><span class="keyword cmdname">fs-dos.so</span></a></td>
+
+							</tr>
+
+							
+							<tr class="row">
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e512 ">Power-Safe </td>
+
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e515 "><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="keyword cmdname">fs-qnx6.so</span></a></td>
+
+							</tr>
+
+							<tr class="row">
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e512 ">ISO-9660 CD-ROM, Universal Disk Format (UDF) </td>
+
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d3087e515 "><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html"><span class="keyword cmdname">fs-udf.so</span></a></td>
+
+							</tr>
+
+						</tbody>
+</table>
+</div>
+</div>
+
+			<h3 class="title sectiontitle">Network drivers</h3>
+			
+			
+			
+			
+			<p class="p">Network services are started from the <span class="keyword cmdname">io-sock</span> command, which is
+				responsible for loading the required <span class="ph filepath">.so</span> files.</p>
+
+			<p class="p">The <span class="keyword option">-d</span> option for <span class="keyword cmdname">io-sock</span> specifies the hardware
+				driver or drivers you need for the network card on your system. You can also
+				dynamically load a network driver, using the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a> command. </p>
+<p class="p">For more information, see
+				the <a class="xref" href="../../../com.qnx.doc.neutrino.io_sock/topic/about.html"><em class="ph i">High-Performance Networking Stack User's Guide</em></a>, and
+				the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devs-*</span></a> and <span class="keyword cmdname">io-sock</span> entries in
+				the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/about.html"><em class="ph i">Utilities
+						Reference</em></a>.</p>
+
+			<h3 class="title sectiontitle">Flash filesystems</h3>
+			
+			
+			
+			
+			<p class="p">To run a flash filesystem, you must select the appropriate flash driver for your
+				target system. For details on the supported flash driver, see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/devf-ram.html"><span class="keyword cmdname">devf-ram</span></a> in the <cite class="cite">Utilities
+					Reference</cite>. Note that:</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm">NOR flash</dt>
+
+					<dd class="dd">The NOR flash filesystem drivers don't rely on any flash-specific
+							<span class="ph filepath">.so</span> files, so the only module required is the
+						standard C library (<span class="ph filepath">libc.so</span>).</dd>
+
+					<dd class="dd ddexpand">Since these drivers are written for specific target boards, you can usually
+						start them without command-line options; they'll find the flash filesystem
+						for the board for which they're written.</dd>
+
+				
+				
+					<dt class="dt dlterm">NAND flash</dt>
+
+					<dd class="dd">The <span class="keyword cmdname">devb-nand</span> NAND flash driver isn't shipped with the
+							<span class="keyword">QNX OS</span>. It is included in BSPs for boards that
+						support NAND flash filesystems.</dd>
+
+				
+			</dl>
+
+			<p class="p">For instructions on building the filesystem image, see <q class="q"><a class="xref" href="../os_images/nto_flash.html" title="If your application requires a writable filesystem and you have flash memory devices on your embedded system, you can use a QNX OS flash filesystem driver to provide a POSIX-compatible filesystem.">Building a flash filesystem image</a></q> in the OS Images
+				chapter. For instructions on starting flash filesystem drivers, see your BSP User's
+				Guide.</p>
+
+			<h3 class="title sectiontitle">Network filesystems</h3>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">Before it tries to load a network filesystem, your system must load the network
+				drivers it will need (see <q class="q"><a class="xref" href="#sysconf__nd">Network drivers</a></q>
+				above). Be sure to set the load sequence appropriately in your startup
+				configuration.</p>
+
+			<p class="p"><span class="keyword">QNX OS</span> supports NFS filesystems which allows file access
+				over a network to a UNIX or other system running an NFS server (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html"><span class="keyword cmdname">fs-nfs3</span></a>) in the <cite class="cite">Utilities
+				Reference</cite>).</p>
+
+		</div>
+
+		<div class="section" id="sysconf__apps"><h2 class="title sectiontitle">Applications</h2>
+			
+			
+			
+			<p class="p">Nothing special is required to run applications. Usually, you place them in the script file
+				<em class="ph i">after</em> all the drivers have started, or later in a flash filesystem image that you generate
+				with <span class="keyword cmdname">mkefs</span> (see <q class="q"><a class="xref" href="../os_images/nto_flash.html" title="If your application requires a writable filesystem and you have flash memory devices on your embedded system, you can use a QNX OS flash filesystem driver to provide a POSIX-compatible filesystem.">Building a flash filesystem image</a></q> in the
+				OS Images chapter). If you require a certain driver to be running before
+				you start an application, you typically use the <span class="keyword cmdname">waitfor</span> command in the script part of your 
+				buildfile (see <q class="q"><a class="xref" href="nto_script.html" title="The second section of the buildfile starts with the [+script] attribute. This attribute informs mkifs that the specified file is a script file, a sequence of commands that you want the procnto process manager to execute when it has completed its own startup.">Scripts</a></q> in the OS Image Buildfiles chapter).</p>
+
+			<div class="p">Here's an example. Before it starts, an application called <span class="keyword cmdname">peelmaster</span> needs to wait for a driver 
+				(<span class="keyword cmdname">driver-spud</span>) to be ready. The following sequence is typical:
+<pre class="pre codeblock">driver-spud &amp;
+waitfor /dev/spud
+peelmaster
+</pre></div>
+
+			<p class="p">This sequence causes the driver (<span class="keyword cmdname">driver-spud</span>) to be run in the background (specified
+				by the ampersand character). The expectation is that when the driver is ready, it will register the
+				pathname <span class="ph filepath">/dev/spud</span>. The <span class="keyword cmdname">waitfor</span> command tries to access 
+				(with <span class="keyword apiname">stat()</span>) the pathname <span class="ph filepath">/dev/spud</span> periodically, blocking
+				execution of the script until either the pathname appears or a pre-determined timeout has been reached.</p>
+
+			<p class="p">When the pathname appears in the pathname space, we assume that the driver is ready to accept
+				requests. At this point, the <span class="keyword cmdname">waitfor</span> unblocks, and the next program in the list
+				(in our case, <span class="keyword cmdname">peelmaster</span>) executes.</p>
+
+			<p class="p">Without the <span class="keyword cmdname">waitfor</span> command, the <span class="keyword cmdname">peelmaster</span> program would run
+				immediately after the driver was started, which could cause <span class="keyword cmdname">peelmaster</span> to miss the
+				<span class="ph filepath">/dev/spud</span> pathname and fail.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Boot optimization</h2>
+			
+			
+			<p class="p">For information about how to optimize boot times, or how to get specific components up quickly so
+				they can provide services (e.g., rearview camera in a vehicle), see the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.fastboot/topic/fb_about.html"><em class="ph i">Boot Optimization Guide</em></a>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

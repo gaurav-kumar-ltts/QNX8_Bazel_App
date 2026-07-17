@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Ability ranges" />
+<meta name="abstract" content="The procmgr_ability() function also lets you specify subranges for specific abilities. This is useful for limiting certain abilities to the smallest number of privileges possible." />
+<meta name="description" content="The procmgr_ability() function also lets you specify subranges for specific abilities. This is useful for limiting certain abilities to the smallest number of privileges possible." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Procmgr_abilities.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Ability_ranges" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Ability ranges</title>
+</head>
+<body id="process_Ability_ranges">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Ability ranges</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The <span class="keyword apiname">procmgr_ability()</span> function also lets you specify
+subranges for specific abilities.
+This is useful for limiting certain abilities to the smallest number of privileges possible.
+</p>
+
+
+<p class="p">
+
+
+For example, the <span class="keyword const">PROCMGR_AID_SPAWN_SETUID</span> and
+<span class="keyword const">PROCMGR_AID_SPAWN_SETGID</span> abilities allow a process to
+supply specific abilities to a spawned process.
+Imagine you have a process that needs to spawn child processes that will run
+with a group other than those of the process.
+To accomplish this task, the process must obtain one of these abilities.
+However, the process shouldn't be allowed to simply set arbitrary UIDs and
+GIDs, or else it might be able to elevate its own privileges.
+It's possible to supply a subrange that limits what specific user or group
+identifiers can be supplied.
+</p>
+
+
+<div class="p">
+
+The following example shows how you can provide a specific subrange to a
+requested ability:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT           // Non-root domain
+                  | PROCMGR_AOP_ALLOW         // Allow the ability
+                  | PROCMGR_AOP_SUBRANGE      // Limit ability to a subrange
+                  | PROCMGR_AID_SPAWN_SETUID, // Requested ability
+                (uint64_t)800, (uint64_t)899, // Subrange for ability
+                PROCMGR_AID_EOL               // End of ability list
+);
+</pre>
+</div>
+
+
+<p class="p">
+
+
+
+
+In this case, the <span class="keyword const">PROCMGR_AID_SPAWN_SETUID</span> ability is being
+requested, indicated by the <span class="keyword const">PROCMGR_AOP_ALLOW</span> flag, for
+user IDs in the range from 800 through 899, as indicated by the
+<span class="keyword const">PROCMGR_AOP_SUBRANGE</span> flag.
+The <span class="keyword const">PROCMGR_ADN_NONROOT</span> domain indicates that the process
+wishes to use this ability when it isn't running as <span class="ph filepath">root</span>.
+</p>
+
+
+<p class="p">
+We recommend that you limit the subranges requested to as small a set as
+possible, and include only those values that will explicitly be required.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Procmgr_abilities.html" title="The QNX OS supports procmgr abilities, process-manager settings that govern which operations a particular process is permitted to do.">Procmgr abilities</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Heartbeating clients (liveness detection)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples_Process_heartbeat.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="LIVENESS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Heartbeating clients (liveness detection)</title>
+</head>
+<body id="LIVENESS">
+
+<h1 class="title topictitle1" id="ariaid-title1">Heartbeating clients (liveness detection)</h1>
+
+
+<div class="body conbody">
+
+<p class="p">Sometimes components become unavailable not because of the
+occurrence of a specific <q class="q">bad</q> event, but
+because the components become unresponsive by getting stuck
+somewhere to the extent that the service they provide
+becomes effectively unavailable. 
+
+
+
+</p>
+
+<p class="p">One example of this is when a process or a collection of
+processes/threads enters a state of deadlock or starvation,
+where none or only some of the involved processes can make
+any useful progress. Such situations are often difficult to
+pinpoint since they occur quite randomly.  
+
+</p>
+
+<p class="p">You can have your clients assert <q class="q">liveness</q> 
+properties by actively sending heartbeats to a HAM. When a
+process deadlocks (or starves) and makes no progress, it
+will no longer heartbeat, and the HAM will automatically
+detect this condition and take corrective action.
+
+
+
+</p>
+
+<p class="p">The corrective action can range from simply terminating the
+offending application to restarting it and also delivering
+notifications about its state to other components that
+depend on the safe and correct functioning of this
+component. If necessary, a HAM can restart those other
+components as well.
+
+</p>
+
+<p class="p">We can demonstrate this condition by showing a simple
+process that has two threads that use mutual-exclusion locks
+incorrectly (by a design flaw), which causes them on
+occasion to enter a state of deadlock — each of the
+threads holds a resource that the other wants. 
+
+</p>
+
+<p class="p">Essentially, each thread runs through a segment of code that
+involves the use of two mutexes.
+
+</p>
+
+<pre class="pre codeblock">Thread 1                             Thread 2
+
+...                                  ...
+while true                           while true
+  do                                 do
+    obtain lock a                      obtain lock b
+    (compute section1)                   (compute section1)
+    obtain lock b                        obtain lock a
+        (compute section2)                 (compute section2)
+    release lock b                       release lock a
+    release lock a                     release lock b
+done                                 done
+...                                  ...
+</pre>
+
+<p class="p">The code segments for each thread are shown below. The only
+difference between the two is the order in which the locks
+are obtained. The two threads deadlock upon execution, quite
+randomly; the exact moment of deadlock is related to the
+lengths of the <q class="q">compute sections</q> of the two
+threads.
+
+</p>
+
+
+<pre class="pre codeblock">/* mutexdeadlock.c */
+
+#include &lt;errno.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;process.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/procfs.h&gt;
+#include &lt;sys/procmgr.h&gt;
+#include &lt;ha/ham.h&gt;
+
+pthread_mutex_t mutex_a = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_b = PTHREAD_MUTEX_INITIALIZER;
+
+FILE *logfile;
+pthread_t  threadID;
+int doheartbeat=0;
+
+#define COMPUTE_DELAY 100
+
+void *func1(void *arg)
+{
+    int id;
+    /* obtain the two locks in the order 
+       a -&gt; b 
+       perform some computation and then 
+       release the locks ...
+       do this continuously 
+    */
+
+    id = pthread_self();
+    while (1) {
+        delay(85); /* delay to let the other one go */
+        if (doheartbeat)
+            ham_heartbeat();
+        pthread_mutex_lock(&amp;mutex_a);
+        fprintf(logfile, "Thread 1: Obtained lock a\n");
+        fprintf(logfile, "Thread 1: Waiting for lock b\n");
+        pthread_mutex_lock(&amp;mutex_b);
+        fprintf(logfile, "Thread 1: Obtained lock b\n");
+        fprintf(logfile, "Thread 1: Performing computation\n");
+        delay(rand()%COMPUTE_DELAY+5); /* delay for computation */
+        fprintf(logfile, "Thread 1: Unlocking lock b\n");
+        pthread_mutex_unlock(&amp;mutex_b);
+        fprintf(logfile, "Thread 1: Unlocking lock a\n");
+        pthread_mutex_unlock(&amp;mutex_a);
+    }
+    return(NULL);
+}
+
+void *func2(void *arg)
+{
+    
+    int id;
+    /* obtain the two locks in the order 
+       b -&gt; a 
+       perform some computation and then 
+       release the locks ...
+       do this continuously 
+    */
+
+    id = pthread_self();
+    while (1) {
+        delay(25);
+        if (doheartbeat)
+            ham_heartbeat();
+        pthread_mutex_lock(&amp;mutex_b);
+        fprintf(logfile, "\tThread 2: Obtained lock b\n");
+        fprintf(logfile, "\tThread 2: Waiting for lock a\n");
+        pthread_mutex_lock(&amp;mutex_a);
+        fprintf(logfile, "\tThread 2: Obtained lock a\n");
+        fprintf(logfile, "\tThread 2: Performing computation\n");
+        delay(rand()%COMPUTE_DELAY+5); /* delay for computation */
+        fprintf(logfile, "\tThread 2: Unlocking lock a\n");
+        pthread_mutex_unlock(&amp;mutex_a);
+        fprintf(logfile, "\tThread 2: Unlocking lock b\n");
+        pthread_mutex_unlock(&amp;mutex_b);
+    }
+    return(NULL);
+}
+
+int main(int argc, char *argv[])
+{
+    pthread_attr_t attrib;
+    struct sched_param param;
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+    char c;
+    int prio;
+    
+    logfile = stderr;
+    while ((c = getopt(argc, argv, "f:l" )) != -1 ) {
+        switch(c) {
+            case 'f': /* log file */
+                logfile = fopen(optarg, "w");
+                break;
+            case 'l': /* do liveness heartbeating */
+                if (access("/proc/ham",F_OK) == 0)
+                    doheartbeat=1;
+                break;
+         }
+    }
+
+    setbuf(logfile, NULL);
+    srand(time(NULL));
+    fprintf(logfile, "Creating separate competing compute thread\n");    
+
+    /* Get our priority. */
+    if (SchedGet( 0, 0, &amp;param) != -1)
+    {
+       prio = param.sched_priority;
+    }
+    else
+    {
+       prio = 10;
+    }
+
+    pthread_attr_init (&amp;attrib);
+    pthread_attr_setinheritsched (&amp;attrib, PTHREAD_EXPLICIT_SCHED);
+    pthread_attr_setschedpolicy (&amp;attrib, SCHED_RR);
+    param.sched_priority = prio;
+    pthread_attr_setschedparam (&amp;attrib, &amp;param);
+
+    if (doheartbeat) {
+        /* attach to ham */
+        ehdl = ham_attach_self("mutex-deadlock",1000000000UL,5 ,5, 0);
+        chdl = ham_condition(ehdl, CONDHBEATMISSEDHIGH, "heartbeat-missed-high", 0);
+        ahdl = ham_action_execute(chdl, "terminate", 
+                               "/proc/boot/mutex-deadlock-heartbeat.sh", 0);
+    }
+    /* create competitor thread */
+    pthread_create (&amp;threadID, &amp;attrib, func1, NULL);
+    pthread_detach(threadID);
+    
+    func2(NULL);
+
+    exit(0);
+}
+</pre>
+
+<p class="p">Upon execution, what we see is:
+
+</p>
+
+<ol class="ol">
+<li class="li">Starting two-threaded process.
+
+<p class="p">The threads will execute as described earlier, but will
+eventually deadlock. We'll wait for a reasonable amount
+of time (a few seconds) until they do end in deadlock. The
+threads write a simple execution log in
+<span class="ph filepath">/dev/shmem/mutex-deadlock.log.</span>
+
+</p>
+</li>
+
+<li class="li">Waiting for them to deadlock.
+
+<p class="p">Here's the current state of the threads in process 73746:
+
+</p>
+<pre class="pre codeblock">     pid tid name               prio STATE       Blocked
+   73746   1 oot/mutex-deadlock  10r MUTEX       73746-02 #-21474
+   73746   2 oot/mutex-deadlock  10r MUTEX       73746-01 #-21474
+</pre>
+
+
+<p class="p">And here's the tail from the threads' log file:
+
+</p>
+<pre class="pre codeblock">Thread 2: Obtained lock b
+Thread 2: Waiting for lock a
+Thread 2: Obtained lock a
+Thread 2: Performing computation
+Thread 2: Unlocking lock a
+Thread 2: Unlocking lock b
+Thread 2: Obtained lock b
+Thread 2: Waiting for lock a
+Thread 1: Obtained lock a
+Thread 1: Waiting for lock b
+</pre>
+
+
+</li>
+
+<li class="li">Extracting core current process information:
+    
+<pre class="pre codeblock">/tmp/mutex-deadlock.core:
+ processor=ARM num_cpus=2
+  cpu 1 cpu=602370 name=604e speed=299
+  flags=0xc0000001 FPU MMU EAR
+  cpu 2 cpu=602370 name=604e speed=299
+   flags=0xc0000001 FPU MMU EAR
+ cyc/sec=16666666 tod_adj=999522656000000000 nsec=5190771360840 inc=999960
+ boot=999522656 epoch=1970 intr=-2147483648
+ rate=600000024 scale=-16 load=16666
+   MACHINE="mtx604-smp" HOSTNAME="localhost"
+ hwflags=0x000004
+ pretend_cpu=0 init_msr=36866
+ pid=73746 parent=49169 child=0 pgrp=73746 sid=1
+ flags=0x000300 umask=0 base_addr=0x48040000 init_stack=0x4803fa20
+ ruid=0 euid=0 suid=0  rgid=0 egid=0 sgid=0
+ ign=0000000006801000 queue=ff00000000000000 pending=0000000000000000
+ fds=4 threads=2 timers=0 chans=1
+ thread 1 REQUESTED
+  ip=0xfe32f838 sp=0x4803f920 stkbase=0x47fbf000 stksize=528384
+  state=MUTEX flags=0 last_cpu=1 timeout=00000000
+  pri=10 realpri=10 policy=RR
+ thread 2
+  ip=0xfe32f838 sp=0x47fbef80 stkbase=0x47f9e000 stksize=135168
+  state=MUTEX flags=4020000 last_cpu=2 timeout=00000000
+  pri=10 realpri=10 policy=RR
+</pre>
+</li>
+
+</ol>
+
+<p class="p">The processes are deadlocked, with each process holding one
+lock and waiting for the other. 
+
+</p>
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/examples_Process_heartbeat.html">The process is made to heartbeat</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

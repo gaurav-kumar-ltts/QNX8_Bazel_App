@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="thread_pool_start()" />
+<meta name="abstract" content="Start a thread pool" />
+<meta name="description" content="Start a thread pool" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dispatch_create_channel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/thread_pool_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/thread_pool_destroy.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="thread_pool_start" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>thread_pool_start()</title>
+</head>
+<body id="thread_pool_start">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">thread_pool_start()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Start a thread pool</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/dispatch.h&gt;
+
+int thread_pool_start( void *<var class="keyword varname">pool</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">pool</var></dt>
+
+<dd class="dd">A thread pool handle that was returned by
+  <a class="xref" href="thread_pool_create.html" title="Create a thread pool handle"><span class="keyword apiname">thread_pool_create()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword apiname">thread_pool_start()</span> function
+starts the thread pool <var class="keyword varname">pool</var>.
+The function may or may not return, depending on the flags that you passed to
+<a class="xref" href="thread_pool_create.html" title="Create a thread pool handle"><span class="keyword apiname">thread_pool_create()</span></a>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">EOK</span></dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm">-1</dt>
+
+<dd class="dd">An error occurred.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<pre class="pre codeblock">#include &lt;sys/dispatch.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main( int argc, char **argv ) {
+   thread_pool_attr_t   pool_attr;
+   thread_pool_t        *tpp;
+   dispatch_t           *dpp;
+   resmgr_attr_t        attr;
+   resmgr_context_t     *ctp;
+
+   if( (dpp = dispatch_create()) == NULL ) {
+     fprintf( stderr, "%s: Unable to allocate \
+              dispatch context.\n", argv[0] );
+     return EXIT_FAILURE;
+   }
+
+   memset( &amp;pool_attr, 0, sizeof (pool_attr) );
+   pool_attr.handle = dpp; 
+   pool_attr.context_alloc = dispatch_context_alloc; 
+   pool_attr.block_func = dispatch_block; 
+   pool_attr.unblock_func = dispatch_unblock; 
+   pool_attr.handler_func = dispatch_handler; 
+   pool_attr.context_free = dispatch_context_free;
+   pool_attr.lo_water = 2;
+   pool_attr.hi_water = 4;
+   pool_attr.increment = 1;
+   pool_attr.maximum = 50;
+
+   if( (tpp = thread_pool_create( &amp;pool_attr,
+              POOL_FLAG_EXIT_SELF )) == NULL ) {
+     fprintf( stderr, "%s: Unable to initialize \
+              thread pool.\n", argv[0] );
+     return EXIT_FAILURE;
+   }
+
+   …
+
+   /* Never returns */
+   thread_pool_start( tpp );
+}
+</pre>
+
+<p class="p">
+For examples using the dispatch interface, see
+<a class="xref" href="../d/dispatch_create.html" title="Allocate a dispatch structure and create the channel associated with it"><span class="keyword apiname">dispatch_create()</span></a>,
+<a class="xref" href="../m/message_attach.html" title="Attach a message range"><span class="keyword apiname">message_attach()</span></a>,
+<a class="xref" href="../r/resmgr_attach.html" title="Attach a path to the pathname space"><span class="keyword apiname">resmgr_attach()</span></a>,
+and
+<a class="xref" href="thread_pool_create.html" title="Create a thread pool handle"><span class="keyword apiname">thread_pool_create()</span></a>.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d674808e245">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d674808e247"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e245 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e247 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e245 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e247 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e245 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d674808e247 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_procs.html">Processes and Threads (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_create.html" title="Allocate a dispatch structure and create the channel associated with it">dispatch_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/d/dispatch_create_channel.html" title="Allocate a dispatch structure, specifying a channel ID">dispatch_create_channel()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/thread_pool_create.html" title="Create a thread pool handle">thread_pool_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/thread_pool_destroy.html" title="Free the memory allocated to a thread pool">thread_pool_destroy()</a></li></ul></div>
+</div></body>
+</html>

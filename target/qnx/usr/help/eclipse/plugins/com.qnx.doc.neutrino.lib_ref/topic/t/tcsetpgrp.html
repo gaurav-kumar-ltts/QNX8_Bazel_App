@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="tcsetpgrp()" />
+<meta name="abstract" content="Set the process group ID for a device" />
+<meta name="description" content="Set the process group ID for a device" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signal.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/tcgetpgrp.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tcsetpgrp" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>tcsetpgrp()</title>
+</head>
+<body id="tcsetpgrp">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">tcsetpgrp()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Set the process group ID for a device</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;unistd.h&gt;
+
+int tcsetpgrp( int <var class="keyword varname">filedes</var>,
+               pid_t <var class="keyword varname">pgrp_id</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">filedes</var></dt>
+
+<dd class="dd">A file descriptor that's associated with the device whose process
+  group ID you want to set.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">pgrp_id</var></dt>
+
+<dd class="dd">The process group ID that you want to assign to the device.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+<p class="p">Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+If the process has a controlling terminal, <span class="keyword apiname">tcsetpgrp()</span> sets the process group ID associated
+with the device indicated by <var class="keyword varname">filedes</var> to be <var class="keyword varname">pgrp_id</var>.
+</p>
+
+
+<p class="p">
+It's up to the application to ensure that the file associated with <var class="keyword varname">filedes</var>
+is the controlling terminal of the calling process and that the controlling terminal is
+currently associated with the session of the calling process.
+The application must ensure that the value of <var class="keyword varname">pgrp_id</var> matches a
+process group ID of a process in the same session as the calling process.
+</p>
+
+
+<p class="p">
+Attempts to use <span class="keyword apiname">tcsetpgrp()</span> from a process that's a member of a
+background process group on a <var class="keyword varname">filedes</var> associated with its
+controlling terminal cause the process group to be sent a <span class="keyword const">SIGTTOU</span> signal.
+If the calling thread is blocking <span class="keyword const">SIGTTOU</span> signals or the process is
+ignoring <span class="keyword const">SIGTTOU</span> signals, the process is allowed to perform the operation, and no signal is sent.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In order to set the process group ID, your process must have the
+<span class="keyword const">PROCMGR_AID_SESSION</span> ability enabled.
+For more information, see
+<a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+
+</div>
+
+
+<p class="p">
+
+If successful, the <span class="keyword apiname">tcsetpgrp()</span> function causes subsequent
+breaks on the indicated terminal device to generate a <span class="keyword const">SIGINT</span> 
+on all process in the given process group.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm">-1</dt>
+
+<dd class="dd">An error occurred
+  (<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+<dd class="dd">The argument <var class="keyword varname">filedes</var> is invalid.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The argument <var class="keyword varname">pgrp_id</var> is invalid.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOSYS</span></dt>
+
+<dd class="dd">The resource manager associated with <var class="keyword varname">filedes</var> doesn't support this call.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOTTY</span></dt>
+
+<dd class="dd">The argument <var class="keyword varname">filedes</var> isn't associated with a terminal device.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The argument <var class="keyword varname">pgrp_id</var> isn't part of the same session as the calling process.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<pre class="pre codeblock">#include &lt;unistd.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main( void )
+  {
+    /*
+     * Direct breaks on stdin to me
+     */
+    tcsetpgrp( 0, getpid() );
+    return EXIT_SUCCESS;
+  }
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d791083e345">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d791083e347"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e345 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e347 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e345 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e347 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e345 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d791083e347 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signal.html" title="Set handling for exceptional conditions">signal()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/tcgetpgrp.html" title="Get the process group ID associated with a device">tcgetpgrp()</a></li></ul></div>
+</div></body>
+</html>

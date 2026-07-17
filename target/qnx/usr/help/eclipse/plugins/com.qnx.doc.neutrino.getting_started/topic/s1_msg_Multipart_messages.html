@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Multipart messages" />
+<meta name="abstract" content="Until now, we've shown only message transfers happening from one buffer in the client's address space into another buffer in the server's address space. (And one buffer in the server's space into another buffer in the client's space during the reply.)" />
+<meta name="description" content="Until now, we've shown only message transfers happening from one buffer in the client's address space into another buffer in the server's address space. (And one buffer in the server's space into another buffer in the client's space during the reply.)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Using.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Other_forms_of_functions.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Implementation.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Multipart_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Multipart messages</title>
+</head>
+<body id="Multipart_messages">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Multipart messages</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Until now, we've shown only message transfers happening from one buffer
+in the client's address space into another buffer in the server's address space.
+(And one buffer in the server's space into another buffer in the
+client's space during the reply.)
+</p>
+
+
+<div class="p">
+
+While this approach is good enough for most applications, it can lead to inefficiencies.
+Recall that our <span class="keyword apiname">write()</span> C library code took the buffer that you
+passed to it, and stuck a small header on the front of it.
+Using what we've learned so far, you'd expect that the C library
+would implement <span class="keyword apiname">write()</span> something like this
+(this isn't the real source):
+
+
+
+
+<pre class="pre codeblock">ssize_t write (int fd, const void *buf, size_t nbytes)
+{
+    char        *newbuf;
+    io_write_t  *wptr;
+    ssize_t     nwritten;
+
+    newbuf = malloc (nbytes + sizeof (io_write_t));
+
+    // fill in the write_header at the beginning
+    wptr = (io_write_t *) newbuf;
+    wptr -&gt; type = _IO_WRITE;
+    wptr -&gt; nbytes = nbytes;
+
+    // store the actual data from the client
+    memcpy (newbuf + sizeof (io_write_t), buf, nbytes);
+
+    // send the message to the server
+    nwritten = MsgSend (fd,
+                        newbuf, 
+                        nbytes + sizeof (io_write_t), 
+                        newbuf, 
+                        sizeof (io_write_t));
+    free (newbuf);
+    return (nwritten);
+}
+</pre>
+</div>
+
+
+<p class="p">
+See what happened?
+A few bad things:
+</p>
+
+
+<ul class="ul">
+<li class="li">The <span class="keyword apiname">write()</span> now has to be able to <span class="keyword apiname">malloc()</span>
+  a buffer big enough for both the client data (which can
+  be fairly big) and the header.
+  The size of the header isn't the issue—in this case,
+  it was 12 bytes.
+</li>
+
+
+<li class="li">We had to <em class="ph i">copy</em> the data twice: once via the <span class="keyword apiname">memcpy()</span>,
+  and then again during the message transfer.
+</li>
+
+
+<li class="li">We had to establish a pointer to the <span class="keyword dtype">io_write_t</span>
+  type and point it to the beginning of the buffer, rather than
+  access it natively (this is a minor annoyance).
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Since the kernel is going to copy the data anyway, it would be
+nice if we could tell it that one part of the data (the header) is
+located at a certain address, and that the other part (the
+data itself) is located somewhere else, <em class="ph i">without</em> the need for us to
+manually assemble the buffers and to copy the data.
+
+
+</p>
+
+
+<p class="p">
+As luck would have it, <span class="keyword">QNX OS</span> implements a mechanism that lets us do just that!
+The mechanism is something called an <em class="ph i">IOV</em>,
+standing for <q class="q">Input/Output Vector.</q>
+
+</p>
+
+
+<div class="p">
+Let's look at some code first, then we'll discuss what happens:
+
+
+
+
+
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+ssize_t write (int fd, const void *buf, size_t nbytes)
+{
+    io_write_t  whdr;
+    iov_t       iov [2];
+
+    // set up the IOV to point to both parts:
+    SETIOV (iov + 0, &amp;whdr, sizeof (whdr));
+    SETIOV (iov + 1, buf, nbytes);
+
+    // fill in the io_write_t at the beginning
+    whdr.type = _IO_WRITE;
+    whdr.nbytes = nbytes;
+
+    // send the message to the server
+    return (MsgSendv (coid, iov, 2, iov, 1));
+}
+</pre>
+</div>
+
+
+<p class="p">
+First of all, notice there's no <span class="keyword apiname">malloc()</span> and
+no <span class="keyword apiname">memcpy()</span>.
+Next, notice the use of the <span class="keyword dtype">iov_t</span> type.
+This is a structure that contains an address and length pair, and
+we've allocated two of them (named <var class="keyword varname">iov</var>).
+
+
+</p>
+
+
+<div class="p">
+The <span class="keyword dtype">iov_t</span> type definition is automatically included
+by <span class="ph filepath">&lt;sys/neutrino.h&gt;</span>, and is defined as:
+
+<pre class="pre codeblock">typedef struct iovec {
+    union {
+        void          *<var class="keyword varname">iov_base</var>;
+        const void    *<var class="keyword varname">iov_base_const</var>;
+    };
+    _Sizet   <var class="keyword varname">iov_len</var>;
+} iov_t;
+</pre>
+</div>
+
+
+<div class="p">
+Given this structure, we fill the address and length pairs with the write header
+(for the first part) and the data from the client (in the second part).
+There's a convenience macro called
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/setiov.html"><span class="keyword apiname">SETIOV()</span></a>
+that does the assignments for us.
+It's formally defined as:
+
+
+
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+#define SETIOV(_iov, _addr, _len) \
+    *(__iov) = (iov_t){ .iov_base = (void *)(__addr), .iov_len = (__len) }
+</pre>
+</div>
+
+
+<p class="p">
+<span class="keyword apiname">SETIOV()</span> accepts an <span class="keyword dtype">iov_t</span>, and the address and
+length data to be stuffed into the IOV.
+</p>
+
+
+<p class="p">
+Also notice that since we're creating an IOV to point to the header,
+we can allocate the header on the stack without using <span class="keyword apiname">malloc()</span>.
+This can be a blessing and a curse—it's a blessing when the
+header is quite small, because you avoid the headaches of dynamic memory allocation,
+but it can be a curse when the header is huge, because it can consume a fair
+chunk of stack space.
+Generally, the headers are quite small.
+</p>
+
+
+<div class="p">
+In any event, the important work is done by <span class="keyword apiname">MsgSendv()</span>,
+which takes almost the same arguments as the <span class="keyword apiname">MsgSend()</span> function
+that we used in the previous example:
+
+
+
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+long MsgSendv (int <var class="keyword varname">coid</var>,
+               const iov_t *<var class="keyword varname">siov</var>,
+               size_t <var class="keyword varname">sparts</var>,
+               const iov_t *<var class="keyword varname">riov</var>,
+               size_t <var class="keyword varname">rparts</var>);
+</pre>
+</div>
+
+
+<p class="p">
+Let's examine the arguments:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">coid</var></dt>
+
+<dd class="dd">The connection ID that we're sending to, just as with <span class="keyword apiname">MsgSend()</span>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">sparts</var> and <var class="keyword varname">rparts</var></dt>
+
+<dd class="dd">The number of send and receive parts specified by the
+  <span class="keyword dtype">iov_t</span> parameters.
+  In our example, we set <var class="keyword varname">sparts</var> to 2
+  indicating that we're sending a one-part message, and
+  <var class="keyword varname">rparts</var> to 1 indicating that we're receiving a one-part reply.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">siov</var> and <var class="keyword varname">riov</var></dt>
+
+<dd class="dd">The <span class="keyword dtype">iov_t</span> arrays indicate the address
+  and length pairs that we wish to send.
+  In the above example, we set up the two-part <var class="keyword varname">siov</var> to point
+  to the header and the client data, and the one-part <var class="keyword varname">riov</var>
+  to point to just the header.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+This is how the kernel views the data:
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>How the kernel sees a multipart message.</span>
+  
+  <br /><img class="image" src="../images/d0802.svg" width="576" alt="Kernel's view of multipart message" /><br />
+</div>
+
+
+<p class="p">
+The kernel just copies the data seamlessly from each part of the
+IOV in the client's space into the server's space (and back, for the reply).
+Effectively, the kernel is performing a gather-scatter operation.
+
+
+</p>
+
+
+<p class="p">
+A few points to keep in mind:
+</p>
+
+
+<ul class="ul">
+<li class="li">The number of parts is <q class="q">limited</q> to 524288; 
+  however, our example of 2 is typical.
+  
+  
+</li>
+
+
+<li class="li">The kernel simply copies the data specified in one IOV from one address space into another.</li>
+
+
+<li class="li"><em class="ph i">The source and the target IOVs don't have to be identical.</em></li>
+
+
+</ul>
+
+
+<div class="p">
+Why is the last point so important?
+To answer that, let's take a look at the big picture.
+On the client side, let's say we issued:
+
+<pre class="pre codeblock">write (fd, buf, 12000);
+</pre>
+
+which generated a two-part IOV of:
+</div>
+
+
+<ul class="ul">
+<li class="li">header (12 bytes)</li>
+
+<li class="li">data (12000 bytes)</li>
+
+</ul>
+
+
+<div class="p">
+On the server side, (let's say it's the filesystem, <span class="keyword cmdname">fs-qnx6</span>),
+we have a number of 4 KB cache blocks, and we'd like to efficiently
+receive the message directly into the cache blocks.
+Ideally, we'd like to write some code like this:
+
+
+
+
+
+
+
+<pre class="pre codeblock">// set up the IOV structure to receive into:
+SETIOV (iov + 0, &amp;header, sizeof (header.io_write));
+SETIOV (iov + 1, &amp;cache_buffer [37], 4096);
+SETIOV (iov + 2, &amp;cache_buffer [16], 4096);
+SETIOV (iov + 3, &amp;cache_buffer [22], 4096);
+rcvid = MsgReceivev (chid, iov, 4, NULL);
+</pre>
+</div>
+
+
+<p class="p">
+This code does pretty much what you'd expect:
+it sets up a four-part IOV structure, sets the first part of the
+structure to point to the header, and the next three parts
+to point to cache blocks 37, 16, and 22.
+(These numbers represent cache blocks that just happened to be
+available at that particular time.)
+Here's a graphical representation:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Converting contiguous data to separate buffers.</span>
+  
+  <br /><img class="image" src="../images/mpx7.svg" width="576" alt="Decontiguization of data" /><br />
+</div>
+
+
+<p class="p">
+Then the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceivev()</span></a>
+function is called, indicating
+that we'll receive a message from the specified channel (the <var class="keyword varname">chid</var> parameter) and
+that we're supplying a four-part IOV structure.
+This also shows the IOV structure itself.
+(Apart from its IOV functionality, <span class="keyword apiname">MsgReceivev()</span> operates just like <span class="keyword apiname">MsgReceive()</span>.)
+
+</p>
+
+
+<p class="p">
+Oops!
+We made the same mistake as we did before, when we introduced
+the <span class="keyword apiname">MsgReceive()</span> function.
+How do we know what kind of message we're receiving, and how much data is associated
+with it, until we actually receive the message?
+</p>
+
+
+<div class="p">
+We can solve this the same way as before:
+
+
+
+
+
+
+
+<pre class="pre codeblock">rcvid = MsgReceive (chid, &amp;header, sizeof (header), NULL);
+switch (header.message_type) {
+…
+case    _IO_WRITE:
+    number_of_bytes = header.io_write.nbytes;
+    // allocate / find cache buffer entries
+    // fill three-part IOV with cache buffers
+    MsgReadv (rcvid, iov, 3, sizeof (header.io_write));
+</pre>
+</div>
+
+
+<p class="p">
+This does the initial <span class="keyword apiname">MsgReceive()</span> (note that we didn't
+use the IOV form for this—there's really no need to do
+that with a one-part message), figures out what kind of message
+it is, and then continues reading the data out of the client's
+address space (starting at offset <span class="ph codeph">sizeof (header.io_write)</span>) into
+the cache buffers specified by the three-part IOV.
+</p>
+
+
+<p class="p">
+Notice that we switched from using a four-part IOV (in the first example) to a
+three-part IOV.
+That's because in the first example, the first part of the four-part IOV was the header,
+which we read directly using <span class="keyword apiname">MsgReceive()</span>, and the last three parts of
+the four-part IOV are the same as the three-part IOV—they specify where we'd like
+the data to go.
+</p>
+
+
+<p class="p">
+You can imagine how we'd perform the reply for a read request:
+</p>
+
+
+<ol class="ol">
+<li class="li">Find the cache entries that correspond to the requested data.</li>
+
+<li class="li">Fill an IOV structure with those entries.</li>
+
+<li class="li">Use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html"><span class="keyword apiname">MsgWritev()</span></a>
+  (or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html"><span class="keyword apiname">MsgReplyv()</span></a>)
+  to transfer the data to the client.
+  
+  
+  
+  
+</li>
+
+
+</ol>
+
+
+<p class="p">
+Note that if the data doesn't start right at the beginning of a cache block (or other data structure),
+this isn't a problem.  Simply offset the first IOV to point to where the data does start, and modify
+the size.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_msg_Other_forms_of_functions.html">What about the other versions?</a></strong><br />
+ All the message-passing functions except the <span class="keyword apiname">MsgSend*()</span> family have the same general form:  if the function has a <tt class="ph tt">v</tt> at the end of it, it takes an IOV and a number-of-parts; otherwise, it takes a pointer and a length. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_msg_Implementation.html">Implementation</a></strong><br />
+ You've probably already suspected that all the variants of the <span class="keyword apiname">MsgRead()</span>, <span class="keyword apiname">MsgReceive()</span>, <span class="keyword apiname">MsgSend()</span>, and <span class="keyword apiname">MsgWrite()</span> functions are closely related. (The only exception is <span class="keyword apiname">MsgReceivePulse()</span>—we'll look at this one shortly.) </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_msg_Using.html" title="Now that we've seen the basic concepts involved in message passing, and learned that even common everyday things like the C library use it, let's take a look at some of the details.">Using message passing</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html">Synchronous message passing (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html">MsgCurrent(), MsgCurrent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html">MsgError(), MsgError_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html">MsgRead(), MsgRead_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html">MsgReadv(), MsgReadv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive(), MsgReceive_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html">MsgReceivePulse(), MsgReceivePulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html">MsgReceivev(), MsgReceivev_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html">MsgReplyv(), MsgReplyv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html">MsgSendnc(), MsgSendnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html">MsgSendsv(), MsgSendsv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html">MsgSendsvnc(), MsgSendsvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html">MsgSendvnc(), MsgSendvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html">MsgSendvs(), MsgSendvs_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html">MsgSendvsnc(), MsgSendvsnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html">MsgVerifyEvent(), MsgVerifyEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html">MsgWrite(), MsgWrite_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html">MsgWritev(), MsgWritev_r()</a></li></ul></div>
+</div></body>
+</html>

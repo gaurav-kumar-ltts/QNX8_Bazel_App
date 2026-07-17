@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="chroot (change root)" />
+<meta name="abstract" content="The QNX OS chroot() function allows you to set the root directory of a process to a path other than the system's root directory, a feature common to most UNIX-like operating systems." />
+<meta name="description" content="The QNX OS chroot() function allows you to set the root directory of a process to a path other than the system's root directory, a feature common to most UNIX-like operating systems." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="chroot" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>chroot (change root)</title>
+</head>
+<body id="chroot">
+
+
+	<h1 class="title topictitle1" id="ariaid-title1">chroot (change root)</h1>
+
+	
+
+	
+
+	<div class="body conbody"><p class="shortdesc"> The <span class="keyword">QNX OS</span>
+		<span class="keyword apiname">chroot()</span> function allows you to set the root directory of a process to a
+		path other than the system's root directory, a feature common to most UNIX-like operating
+		systems. </p>
+
+		<div class="section"><p class="p">You can use chroot to increase system security by limiting a process’s access to a filesystem.
+				However, you have to be aware of potential pitfalls. </p>
+<p class="p">If a process whose root directory has been changed via <span class="keyword apiname">chroot()</span> (i.e., a
+				chrooted process) has the ability to run a setuid program, it might be able to
+				direct the setuid program to access files that are under its control. For example, a
+				process is chrooted to <span class="ph filepath">/new_root</span>, which allows it to create the
+				file <span class="ph filepath">/new_root/etc/shadow</span>. If the setuid program tries to open
+					<span class="ph filepath">/etc/shadow</span> to check passwords, it opens
+					<span class="ph filepath">/new_root/etc/shadow</span> instead and accesses passwords that
+					are chosen by the chrooted process—a serious security problem. Similarly, a
+				chrooted program might be able to create shared objects that the setuid program
+				loads. These shared objects could be the source of code that the chrooted program
+				then runs in the context of a privileged process.</p>
+
+			<p class="p">(For more information, go to the <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/chroot.html">
+					<span class="keyword apiname">chroot()</span></a> entry in the <cite class="cite">C Library
+					Reference</cite>.)</p>
+</div>
+
+		    <div class="section"><h2 class="title sectiontitle">Accessing paths outside of a process's root directory</h2>
+			<p class="p">Ordinarily, a process is restricted to accessing paths that are within its root directory.
+				This restriction is a problem if a process needs to access resource managers or
+				files that are located outside of the chroot path. If the process needs to spawn
+				other processes, common shared objects such as <span class="ph filepath">ldqnx-64.so</span> and
+					<span class="ph filepath">libc.so.x</span> will also be outside its root directory (unless
+				copies were made at the appropriate locations).</p>
+
+		    <p class="p">To get around this issue, before <span class="keyword apiname">chroot()</span> is called, create a process
+				manager symbolic link (symlink) at a location that will be within the chroot. This
+				symlink must be created before <span class="keyword apiname">chroot()</span> is called to grant access
+				to the path outside the chroot. For example, you create the symlink
+					<span class="ph filepath">/new_root/dev/random</span> that points to
+					<span class="ph filepath">/dev/random</span>. A process that subsequently calls
+					<span class="keyword apiname">chroot()</span> to change the root directory to
+					<span class="ph filepath">/new_root</span> and then tries to open the path
+					<span class="ph filepath">/dev/random</span> can successfully open the system-relative path
+					<span class="ph filepath">/dev/random</span>. You can also use this method to make whole
+				directories available. For example, a symlink
+					<span class="ph filepath">/new_root/system/lib</span> that points to
+					<span class="ph filepath">/system/lib</span> provides access to all shared objects contained
+				in <span class="ph filepath">/system/lib</span>.</p>
+
+            <p class="p">Note that you can only use process manager symlinks, not regular symlinks, for this
+				purpose. In this context, the symlinks serve a dual function: they provide the usual
+				symlink function of redirecting one path to another, and also authorize the
+				process's access to the path that it points to.</p>
+
+		    	<p class="p">(For more information, go to <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/proc_Procmgr_symlinks.html">Process manager symbolic links</a></q> in <cite class="cite">System
+					Architecture</cite> and the <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/pathmgr_symlink.html"><span class="keyword apiname">pathmgr_symlink()</span></a> entry in the <cite class="cite">C
+					Library Reference</cite>.)</p>
+
+		    </div>
+
+		<div class="section"><h2 class="title sectiontitle">Reference to system-relative, absolute paths</h2>
+			
+			<p class="p">For any filesystem operation that involves a path, if the path begins with at least three
+				forward slashes (/), it is interpreted as being system absolute instead of relative
+				to the root path of the process.</p>
+
+			<p class="p">Although a chrooted process can specify paths that are system absolute, this configuration by
+				itself does not permit the process to access the path. A process is allowed to
+				access:</p>
+
+			<ul class="ul">
+				<li class="li">paths that are in the process's root directory and its subdirectories, or</li>
+
+				<li class="li">a path pointed to, or whose parent directory is pointed to, by a process manager symlink in
+					the process's root directory or one of its subdirectories. This symlink must be
+					created before the process is chrooted.</li>
+
+			</ul>
+
+			<p class="p">As an example of using system absolute paths, the dynamic loader is, by default, accessed at
+					<span class="ph filepath">/usr/lib/ldqnx-64.so.2</span>. You can set the
+					<span class="keyword cmdname">procnto</span>
+				<span class="keyword envar">LDQNX</span> environment variable in the buildfile for the IFS to override
+				the dynamic loader to be a system-absolute path. For example, a buildfile includes
+				the following entry:</p>
+
+			<pre class="pre codeblock">LDQNX=///proc/boot/ldqnx-64.so.2
+procnto-smp-instr -v -mr -d 0777 -u 0777</pre>
+			<p class="p">When <span class="keyword envar">LDQNX</span> is set to this value, the dynamic loader is always accessed from the
+				system absolute path <span class="ph filepath">/proc/boot/ldqnx-64.so.2</span>, even within a
+				chroot. A procmgr symlink within the chroot must still point to either
+					<span class="ph filepath">/proc/boot/ldqnx-64.so.2</span> or a parent path for access to be
+				granted.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">The CHROOT ability</h2>
+			
+			<p class="p">Because chrooting a process can affect system security, the ability to use chroot is
+				controlled by the CHROOT ability. For more information, go to the <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/chroot.html">
+					<span class="keyword apiname">chroot()</span></a> entry in the <cite class="cite">C Library
+				Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

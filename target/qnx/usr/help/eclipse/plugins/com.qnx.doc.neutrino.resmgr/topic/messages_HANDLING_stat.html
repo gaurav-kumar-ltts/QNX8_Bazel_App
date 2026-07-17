@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling stat()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_stat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling stat()</title>
+</head>
+<body id="HANDLING_stat">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">stat()</span></h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+
+
+
+
+Your resource manager will receive an <span class="keyword const">_IO_STAT</span> message when a client calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lstat.html"><span class="keyword apiname">lstat()</span></a>,
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fstat.html"><span class="keyword apiname">fstat()</span></a>.
+You usually don't need to provide your own handler for this message.
+The prototype for the <var class="keyword varname">io_stat</var> handler is as follows:
+
+<pre class="pre codeblock">int io_stat ( resmgr_context_t *<var class="keyword varname">ctp</var>,
+              io_stat_t *<var class="keyword varname">msg</var>,
+              RESMGR_OCB_T *<var class="keyword varname">ocb</var> )
+</pre>
+</div>
+
+
+<p class="p">
+
+
+
+
+The default handler for the <span class="keyword const">_IO_STAT</span> message,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat_default.html"><span class="keyword apiname">iofunc_stat_default()</span></a>,
+calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_time_update.html"><span class="keyword apiname">iofunc_time_update()</span></a>
+to ensure that the time entries in
+the <var class="keyword varname">ocb</var>-&gt;<var class="keyword varname">attr</var> structure are current and valid,
+and then calls the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat.html"><span class="keyword apiname">iofunc_stat_format()</span></a>
+helper function to fill in the <span class="keyword dtype">stat</span> structure
+based on the information in the <var class="keyword varname">ocb</var>-&gt;<var class="keyword varname">attr</var> structure.
+</p>
+
+
+<div class="p">
+
+The <span class="keyword dtype">io_stat_t</span> structure holds the <span class="keyword const">_IO_STAT</span>
+message received by the resource manager:
+
+<pre class="pre codeblock">struct _io_stat {
+    uint16_t           type;
+    uint16_t           combine_len;
+    union {
+       uint32_t        zero;
+       uint32_t        format;
+    };
+};
+
+typedef union {
+    struct _io_stat             i;
+    struct __stat_t32_2001      o_t32_2001;
+    struct __stat_t32_2008      o_t32_2008;
+    struct __stat_t64_2008      o_t64_2008;
+    struct stat                 o;
+} io_stat_t;
+</pre>
+</div>
+
+
+<p class="p">
+As with all the I/O messages, this structure is a union of an input message
+(coming to the resource manager) and an output or reply message (going back to the client).
+The <var class="keyword varname">i</var> member is a structure of type <span class="keyword dtype">_io_stat</span> that
+contains the following members:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+<dd class="dd"><span class="keyword const">_IO_STAT</span></dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">combine_len</var></dt>
+
+<dd class="dd">If the message is a combine message, <span class="keyword const">_IO_COMBINE_FLAG</span> is set in this member.
+  For more information, see the <a class="xref" href="combine.html" title="To conserve bandwidth and to support atomic operations, combine messages are supported. A combine message is constructed by the client's C library and consists of multiple I/O and/or connect messages packaged together into one.">Combine Messages</a> chapter of this guide.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">format</var></dt>
+
+<dd class="dd">The form of the information; one of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">_STAT_FORM_UNSET</span> — unknown; this is assumed to be the same as
+    <span class="keyword const">_STAT_FORM_T32_2001</span>
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_STAT_FORM_T32_2001</span> — 32-bit fields, POSIX 2001</li>
+
+
+  <li class="li"><span class="keyword const">_STAT_FORM_T32_2008</span> — 32-bit fields, POSIX 2008</li>
+
+
+  <li class="li"><span class="keyword const">_STAT_FORM_T64_2008</span> — 64-bit fields, POSIX 2008</li>
+
+
+  <li class="li"><span class="keyword const">_STAT_FORM_SYS_2008</span> — <span class="keyword const">_STAT_FORM_T32_2008</span> in programs compiled
+    for a 32-bit architecture, or <span class="keyword const">_STAT_FORM_T64_2008</span> in programs compiled for a 64-bit architecture.
+  </li>
+
+
+  <li class="li"><span class="keyword const">_STAT_FORM_PREFERRED</span> — the preferred form:
+    <span class="keyword const">_STAT_FORM_T32_2001</span> in programs compiled for a 32-bit architecture,
+    or <span class="keyword const">_STAT_FORM_T64_2008</span> in programs compiled for a 64-bit architecture.
+  </li>
+
+
+  </ul>
+
+
+  
+  <div class="note"><span class="notetitle">Note:</span> 
+    The <span class="keyword const">_STAT_FORM_UNSET</span>, <span class="keyword const">_STAT_FORM_T32_2001</span>, and <span class="keyword const">_STAT_FORM_T32_2008</span>
+    values are legacy values for 32-bit targets and shouldn't be used in this release.
+    Also, <span class="keyword const">_STAT_FORM_SYS_2008</span> and <span class="keyword const">_STAT_FORM_PREFERRED</span> are always the same as
+    <span class="keyword const">_STAT_FORM_T64_2008</span> because only 64-bit targets are supported.
+  </div>
+
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The <var class="keyword varname">o*</var> members are variants of a <span class="keyword dtype">struct stat</span>, corresponding to the requested form;
+for more information, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<p class="p">
+
+If you write your own handler, it should return
+the status via the helper macro <span class="keyword apiname">_RESMGR_STATUS()</span> and the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a>
+via message reply.
+</p>
+
+
+<p class="p">
+If your resource manager is for a filesystem, you might want to include
+the <span class="keyword dtype">stat</span> information in the reply for other messages.
+For more information, see
+<q class="q"><a class="xref" href="fsystems_ReturnEntries.html">Returning directory entries from <span class="keyword const">_IO_READ</span></a></q>
+in the Filesystem Resource Managers chapter of this guide.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

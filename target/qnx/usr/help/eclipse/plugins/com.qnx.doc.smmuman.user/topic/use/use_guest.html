@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="SMMUMAN in a QNX hypervisor system" />
+<meta name="abstract" content="The smmuman service is required to support pass-through DMA devices in a QNX hypervisor system." />
+<meta name="description" content="The smmuman service is required to support pass-through DMA devices in a QNX hypervisor system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="use_guest" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>SMMUMAN in a QNX hypervisor system</title>
+</head>
+<body id="use_guest">
+
+	<h1 class="title topictitle1" id="ariaid-title1">SMMUMAN in a QNX hypervisor system</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The <span class="keyword cmdname">smmuman</span> service is required to support pass-through DMA
+		devices in a QNX hypervisor system.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">In a QNX hypervisor system, the <span class="keyword cmdname">smmuman</span> service is required, not just
+				to program the DMA device memory regions and permissions into the board IOMMU/SMMUs,
+				but also to manage guest-physical memory to host-physical memory translations and
+				access for DMA devices passed through to a guest running in a hypervisor VM (see
+				<q class="q"><a class="xref" href="../arch/inguest.html" title="SMMUMAN can be used in a QNX guest running in a QNX hypervisor VM.">SMMUMAN in a QNX hypervisor guest</a></q> in the <q class="q"><a class="xref" href="../arch/arch.html" title="This chapter presents the architecture of the SMMUMAN, and its responsibilities and behavior.">SMMUMAN Architecture</a></q> chapter).</p>
+
+			<div class="note"><span class="notetitle">Note:</span> These memory translations require hardware support for virtualization,
+				specifically, two-stage IOMMU/SMMUs that can map the two translation levels.</div>
+
+			<p class="p">Each VM (<span class="keyword cmdname">qvm</span> process instance) in the hypervisor host configures
+				the <span class="keyword cmdname">smmuman</span> service to program the board IOMMU/SMMUs to limit the
+				host-physical memory to which DMA devices passed through to its guest have access.
+				Any DMA device passed through to a guest is limited to the host-physical memory
+				region(s) assigned to that VM in its configuration (see the <cite class="cite">QNX Hypervisor
+					User's Guide</cite>).</p>
+
+			<p class="p">This configuration protects the hypervisor host and guests running in other
+				hypervisor VMs from errant DMA devices in the guest, but it doesn't protect the
+				guest from its own DMA devices (DMA devices passed through to that guest).</p>
+
+			<p class="p">The guest must configure its own <span class="keyword cmdname">smmuman</span> service with the memory
+				regions and permissions it requires for each pass-through DMA device it controls.
+				The <span class="keyword cmdname">smmuman</span> service running in the guest uses the
+				<span class="keyword option">smmu</span> virtual device (<span class="ph filepath">vdev-smmu.so</span>) to pass
+				on these memory regions and permissions to the <span class="keyword cmdname">smmuman</span> service
+				running in the host, which in turn programs the board IOMMU/SMMUs.</p>
+
+			<div class="p">The figure below illustrates how the <span class="keyword cmdname">smmuman</span> service is
+				implemented in a QNX hypervisor guest to constrain a pass-through DMA device to its
+				assigned memory region:
+				<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The <span class="keyword cmdname">smmuman</span> service running in a guest uses the
+							<span class="keyword cmdname">smmuman</span> service running in the hypervisor.</span>
+					
+					<br /><img class="image" src="../../images/smmu_guest.svg" width="624" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">For simplicity, the diagram shows a single guest with a single pass-through DMA
+				device. The <span class="keyword cmdname">smmuman</span> service in the guest works with the
+				<span class="keyword cmdname">smmuman</span> service in the hypervisor host as follows
+				to restrict the passed-through device's memory access:
+				<ol class="ol">
+					<li class="li">
+						<p class="p">In the hypervisor host, the VM (<span class="keyword cmdname">qvm</span> process instance) that
+							will host the guest uses the <span class="keyword cmdname">smmuman</span> service to program
+							the IOMMU/SMMU with the memory range and permissions (A) for the entire
+							physical memory regions that it will present to its guest (e.g.,
+							<span class="ph codeph">0x20000000</span> to <span class="ph codeph">0xB0000000</span>).</p>
+
+						<p class="p">This protects the hypervisor host and other guests if DMA devices passed
+							through to the guest erroneously or maliciously attempt to access their
+							memory. It doesn't prevent DMA devices passed through to the guest from
+							improperly accessing memory assigned to that guest, however.</p>
+
+					</li>
+
+					<li class="li">In the guest, the driver for the pass-through DMA device uses the SMMUMAN
+						client-side API to program the memory allocation and permissions (B) it needs
+						into the <span class="keyword cmdname">smmuman</span> service running <em class="ph i">in the guest</em>.</li>
+
+					<li class="li">The guest's <span class="keyword cmdname">smmuman</span> service programs the
+						<span class="keyword option">smmu</span> virtual device running in its hosting VM as it would
+						an IOMMU/SMMU in hardware: it programs into the <span class="keyword cmdname">smmu</span> virtual
+						device the DMA device's memory allocation and permissions.</li>
+
+					<li class="li">The <span class="keyword option">smmu</span> virtual device uses the client-side API for the
+						<span class="keyword cmdname">smmuman</span> service running in the hypervisor host to ask it
+						to program the memory allocation and permissions (B) requested by the guest's
+						<span class="keyword cmdname">smmuman</span> service into the board's IOMMU/SMMU(s).</li>
+
+					<li class="li">The host's <span class="keyword cmdname">smmuman</span> service programs the pass-through DMA
+						device's memory allocation and permissions (B) into the board IOMMU/SMMU.</li>
+
+				</ol>
+
+			</div>
+
+			<p class="p">The DMA device's access to memory (C) is now limited to the region and permissions
+				requested by the DMA device driver in the guest (B), and the guest OS and other
+				components are protected from this device erroneously or maliciously accessing their
+				memory.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				You can't use <a class="xref" href="use_startup.html" title="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up.">startup mappings</a>
+				in the configuration for the <span class="keyword cmdname">smmuman</span> service running in the
+				hypervisor host to map DMA devices that are passed through to a guest in a
+				hypervisor VM. You can use startup mappings in the configuration for the
+				<span class="keyword cmdname">smmuman</span> service running in a guest, however.
+			</div>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

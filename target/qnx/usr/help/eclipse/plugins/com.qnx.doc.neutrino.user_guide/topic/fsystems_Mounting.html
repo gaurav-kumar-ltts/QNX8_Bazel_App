@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Mounting and unmounting filesystems" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Mounting" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Mounting and unmounting filesystems</title>
+</head>
+<body id="Mounting">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Mounting and unmounting filesystems</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+The following utilities work with filesystems:
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a></dt>
+
+<dd class="dd">Mount a block-special device or remote filesystem.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html"><span class="keyword cmdname">umount</span></a></dt>
+
+<dd class="dd">Unmount a device or filesystem.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+For example, if a block device is attached to your system and the necessary block device
+(<span class="keyword cmdname">devb-*</span>) driver is already running, you can mount a Power-Safe filesystem
+to access files on that device like this:
+
+<pre class="pre codeblock">mount -t qnx6 /dev/hd0t177 /mnt
+</pre>
+</div>
+
+
+<p class="p">
+
+
+By default, filesystems are mounted as read-write if the physical media permit it.
+You can use the <span class="keyword option">-r</span> option for <span class="keyword cmdname">mount</span> to mount
+the filesystem as read-only.
+The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk.so</span></a>
+library also supports an <span class="keyword option">ro</span> option for mounting
+block I/O filesystems as read-only.
+</p>
+
+
+<div class="p">
+
+You can also use the <span class="keyword option">-u</span> option for <span class="keyword cmdname">mount</span> to
+temporarily change the way the filesystem is mounted.
+For example, if a filesystem is usually mounted as read-only, and you need
+to remount it as read-write, you can update the mounting by specifying
+<span class="keyword option">-uw</span>.
+For example:
+
+<pre class="pre codeblock">mount -uw /
+</pre>
+</div>
+
+
+<div class="p">
+To return to read-only mode, use the <span class="keyword option">-ur</span> options:
+
+<pre class="pre codeblock">mount -ur /
+</pre>
+</div>
+
+
+<div class="p">
+Block device drivers can use <span class="keyword cmdname">io-blk.so</span>
+to implicitly mount filesystem images that are stored as files on another filesystem owned by the same process.
+This is done through an implicit loopback mechanism handled internally by <span class="keyword cmdname">io-blk.so</span>.
+Suppose you have a <span class="keyword cmdname">devb-*</span> process that services a Power-Safe filesystem partition at <span class="ph filepath">/mnt/q6</span>.
+You can then mount any filesystem type that's supported by the block driver and stored as an image file on that partition by doing:
+<pre class="pre codeblock">mount -t <var class="keyword varname">type</var> -o ... /mnt/q6/file.img /newmnt
+</pre>
+</div>
+
+
+<p class="p">
+By mounting file images in this way, you can treat them as applications or optional packages, which can be protected using 
+QNX Trusted Disk. On other OSs, you have to take an extra step and create a loop device before you can mount a filesystem image.
+</p>
+
+
+<div class="p">
+If the image file is located on a foreign storage solution or serviced by a resource manager that's not based on a
+block device driver, then you have to use <span class="ph filepath">devb-loopback</span> to wrap the image file 
+with a block device driver before mounting it. This is done as follows:
+<pre class="pre codeblock">devb-loopback fd=/mnt/q6/file.img ...
+mount -t <var class="keyword varname">type</var> -o ... /dev/lo0 /newmnt
+</pre>
+</div>
+
+
+<p class="p">
+You should use <span class="keyword cmdname">umount</span> to unmount a read-write filesystem before
+removing or ejecting removable media.
+</p>
+
+
+<p class="p">
+See the <cite class="cite">Utilities Reference</cite> for details on usage and syntax.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems.html" title="The QNX OS provides a variety of filesystems, so that you can easily access DOS, Linux, as well as native Power-Safe disks.">Working with Filesystems</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html">mount</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/u/umount.html">umount</a></li></ul></div>
+</div></body>
+</html>

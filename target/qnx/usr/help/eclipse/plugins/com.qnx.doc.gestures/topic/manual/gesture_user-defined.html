@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Custom Gestures" />
+<meta name="abstract" content="You can define gesture recognizers to detect gestures that are not already supported by the Gestures library (custom gestures). Gesture recognizers that are used to detect custom gestures can be compiled with the application code and added to a gesture set in the same way that system gesture recognizers are added to a gesture set." />
+<meta name="description" content="You can define gesture recognizers to detect gestures that are not already supported by the Gestures library (custom gestures). Gesture recognizers that are used to detect custom gestures can be compiled with the application code and added to a gesture set in the same way that system gesture recognizers are added to a gesture set." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="user-defined-gestures" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Custom Gestures</title>
+</head>
+<body class="reftable" id="user-defined-gestures">
+
+   <h1 class="title topictitle1" id="ariaid-title1">Custom Gestures</h1>
+
+   
+   
+   <div class="body conbody"><p class="shortdesc"> You can define gesture recognizers to detect gestures that are not already supported
+      by the Gestures library (custom gestures). Gesture recognizers that are used to detect custom
+      gestures can be compiled with the application code and added to a gesture set in the same way
+      that system gesture recognizers are added to a gesture set. </p>
+
+   <div class="section"><h2 class="title sectiontitle">Custom gesture recognizer data types and functions</h2>
+      
+      <p class="p"> If you're defining your own custom gesture recognizers, you will need to provide the
+            following as part of the definition and implementation of your own gesture recognizer: </p>
+       
+            <p class="p"><strong class="ph b">Definition of your custom gesture</strong></p>
+
+            <pre class="pre codeblock">typedef struct {
+   gesture_base_t base; /* The gesture base data structure. */
+   ...                  /* The information specific to your custom gesture */
+   int timer_id; /* The ID of the timer for this custom gesture (if needed) */
+} gesture_custom_t;
+            </pre>
+            <p class="p"> This structure represents information for your custom gesture recognizer; this
+            structure must include <span class="keyword const">gesture_base_t</span> followed by additional members to
+            capture your specific information. For example, if your custom gesture recognizer uses a
+            timer, you need to include the ID of the timer as a specific parameter. </p>
+
+            <p class="p"><strong class="ph b">Definition and implementation of the <span class="keyword apiname">alloc()</span> function</strong></p>
+
+               <pre class="pre codeblock">gesture_custom_t* custom_gesture_alloc(gesture_custom_params_t* params,
+                                       gesture_callback_f callback,
+                                       struct gestures_set* set);
+               </pre>
+              <div class="p">where types and parameters are as follows:
+                 <dl class="dl">
+                    
+                       <dt class="dt dlterm"><var class="keyword varname">gesture_custom_t</var></dt>
+
+                       <dd class="dd">The structure of your custom gesture recognizer.</dd>
+
+                    
+                    
+                       <dt class="dt dlterm"><var class="keyword varname">custom_gesture_alloc</var></dt>
+
+                       <dd class="dd">The name of your gesture's <span class="keyword apiname">alloc()</span>
+                           function.
+                       </dd>
+
+                    
+                    
+                       <dt class="dt dlterm"><var class="keyword varname">gesture_custom_params_t</var></dt>
+
+                       <dd class="dd">A structure that represents the parameters of your
+                          custom gesture recognizer.
+                       </dd>
+
+                    
+                    
+                       <dt class="dt dlterm"><var class="keyword varname">callback</var></dt>
+
+                       <dd class="dd">The application gesture callback.
+                       </dd>
+
+                    
+                    
+                       <dt class="dt dlterm"><var class="keyword varname">set</var></dt>
+
+                       <dd class="dd">A gesture set that your custom gesture recognizer is
+                           to be added to.
+                       </dd>
+
+                    
+                 </dl>
+
+              </div>
+
+             <div class="p" id="user-defined-gestures__alloc_function"> Your <span class="keyword apiname">alloc()</span> function must:
+               <ol class="ol">
+                  <li class="li">
+                      Allocate the memory necessary for your custom gesture recognizer.
+                  </li>
+
+                  <li class="li">
+                      Invoke <span class="keyword apiname">gesture_base_init()</span> to initialize the gesture base
+                      data structure.
+                  </li>
+
+                  <li class="li">
+                      Invoke <span class="keyword apiname">gesture_set_add()</span> to add your
+                      custom gesture to the gesture set.
+                  </li>
+
+                  <li class="li">
+                      Set the gesture recognizer type as <span class="keyword const">GESTURE_USER</span>.
+                  </li>
+
+                  <li class="li">
+                      Set the <span class="keyword apiname">process_event()</span>, the
+                      <span class="keyword apiname">reset()</span>, and the <span class="keyword apiname">free()</span>
+                      functions.
+                  </li>
+
+                  <li class="li">
+                      Set the gesture callback: <span class="keyword parmname">callback</span>.
+                  </li>
+
+                  <li class="li">
+                      Perform any custom gesture-specific initialization that isn't
+                      part of the reset.
+                  </li>
+
+                  <li class="li">
+                      Store the custom gesture-specific parameters with the
+                      gesture recognizer, and set default parameters. If your 
+                      custom gesture recognizer uses a timer, use
+                      <span class="keyword apiname">gesture_timer_create()</span> to obtain the ID
+                      for your timer.
+                  </li>
+
+               </ol>
+
+            </div>
+
+            <p class="p"><strong class="ph b">Definition and implementation of the <span class="keyword apiname">process_event()</span> function</strong></p>
+
+            <div class="p">
+               <pre class="pre codeblock">gesture_state_e (*process_event)(struct contact_id_map* map,
+                                 struct gesture_base* gesture,
+                                 mtouch_event_t* event, int* consumed)
+               </pre>
+               Your <span class="keyword apiname">process_event()</span> function must handle
+               state transitions and return the new, or unchanged, gesture
+               recognizer state. If your custom gesture is time-based, you
+               will need to adjust the timers accordingly. The Gestures
+               library provides API functions for you to set and reset your
+               timers.
+            </div>
+
+            <p class="p"><strong class="ph b">Definition and implementation of the <span class="keyword apiname">free()</span> function</strong></p>
+
+             <pre class="pre codeblock">void (*free)(struct gesture_base* gesture)
+             </pre>
+            <p class="p">
+               Your <span class="keyword apiname">free()</span> function must release all
+               the memory that's associated with your gesture recognizer that
+               was allocated by your <span class="keyword apiname">alloc()</span> function.
+            </p>
+
+            <p class="p"><strong class="ph b">Definition and implementation of the <span class="keyword apiname">reset()</span> function</strong></p>
+
+               <pre class="pre codeblock">void (*reset)(struct gesture_base* gesture);
+               </pre>
+            <p class="p">
+               Your <span class="keyword apiname">reset()</span> function must reset the
+               gesture-specific data structures to their initial states.
+            </p>
+
+            <p class="p"><strong class="ph b">Definition of parameters specific to your custom gesture (optional)</strong></p>
+
+            <p class="p">This is a structure that represents the parameters specific to
+               your custom gesture recognizer.
+            </p>
+
+            <p class="p"><strong class="ph b">Definition of states specific to your custom gesture (optional)</strong></p>
+
+            <p class="p">These are constants that represent the states specific to your
+               custom gesture recognizer; these states are <strong class="ph b">in addition</strong> to
+               the set of states defined in <span class="keyword const">gesture_state_e</span>.
+            </p>
+
+            <p class="p" id="user-defined-gestures__gesture_timer_callback"><strong class="ph b">Definition and implementation of the <span class="keyword apiname">gesture_timer_callback()</span> function (optional)</strong></p>
+
+                <pre class="pre codeblock">gesture_state_e(*gesture_timer_callback_t)(struct gesture_base* gesture, void* param);
+                </pre>
+               <p class="p">Gesture sets provide time-based notifications to gesture
+                  recognizers that use timers. A notification is implemented as
+                  a callback function to the gesture recognizer. If your
+                  custom gesture recognizer is timer-based, you need to
+                  implement this timer callback function.
+               </p>
+
+               <p class="p">A gesture recognizer can transition states on timer events.
+                  Similar to the <span class="keyword apiname">process_event()</span> function for
+                  mtouch events, the gesture recognizer's time-based state
+                  transitions are accomplished by its timer callback function.
+                  This function returns the new, or unchanged, state based on
+                  the timer event received.
+                </p>
+
+   </div>
+
+   <div class="section"><h2 class="title sectiontitle">Contact ID map</h2>
+      
+      <p class="p">A contact ID is an identifier that is used to identify mtouch events. The
+         mtouch event data structure contains the <span class="keyword parmname">contact_id</span>
+         element that is assigned a value from a zero-based index and corresponds
+         to the individual fingers that touch the screen. The contact ID doesn't
+         change until that finger is released.
+      </p>
+
+      <p class="p">User-defined gestures typically need to associate a specific mtouch
+         event with a contact ID for the purpose of associating the streams of
+         events with the finger that caused them. The contact ID from the mtouch
+         event can't be used directly by the custom gesture. Instead, user-defined
+         gestures need to invoke <span class="keyword apiname">map_contact_id()</span> to
+         obtain a zero-based contact ID that is remapped from the gesture set's
+         perspective.
+      </p>
+
+      <p class="p">The remapping is necessary because a contact ID of 1 for an mtouch
+         event could actually correspond to a gesture set's contact ID 0. This
+         mapping could be the case if there are multiple gesture sets in
+         play, or if the user's finger is resting on the touch-sensitive bevel.
+      </p>
+
+   </div>
+
+      <div class="section"><h2 class="title sectiontitle">Helper functions</h2>
+         
+         <p class="p">Helper functions are available if you are defining your own
+            gestures. These functions are:
+         </p>
+
+         <dl class="dl">
+            
+               <dt class="dt dlterm"><span class="keyword apiname">void save_coords(mtouch_event_t *event,gesture_coords_t *coords)</span></dt>
+
+               <dd class="dd">This function saves the coordinates of a mtouch event in the
+                   specified <span class="ph codeph">gesture_coords_t</span> data structure.
+                   This is useful if your gesture is sensitive to the placement
+                   of the touch event. For example, in a double-tap gesture, the
+                   coordinates of the first tap are saved and compared to the
+                   coordinates of the second tap. If these coordinates are
+                   within an acceptable range, the gesture recognizer can
+                   consider the gesture to be a double tap. 
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int32_t diff_time_ms(gesture_coords_t *coords1, gesture_coords_t *coords2)</span></dt>
+
+               <dd class="dd">This function returns the elapsed time between the two
+                   specified gesture events. This is useful if your gesture is
+                   dependent on the receipt of multiple mtouch events. For
+                   example, in a double-tap gesture, the time elapsed between
+                   the first and second tap cannot exceed an acceptable time. If
+                   too much time has elapsed between the two taps, the double-tap
+                   gesture is considered to have failed.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">uint32_t max_displacement_abs(gesture_coords_t *coords1, gesture_coords_t *coords2)</span></dt>
+
+               <dd class="dd">This function returns the maximum displacement, in
+                    pixels, between two gesture events. For example, if the
+                    absolute value of the difference between the x coordinates
+                    of the two gestures is greater than the absolute value of
+                    the difference between the y coordinates, the former is
+                    returned by the function. For example, in a double-tap
+                    gesture, this function can be used to help determine
+                    whether or not the two taps received are close enough
+                    together on the screen to be considered a double-tap
+                    gesture.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int map_contact_id(struct contact_id_map *map, unsigned contact_id)</span></dt>
+
+               <dd class="dd">This function remaps contact identifiers from mtouch events to
+                   contact identifiers to be used by gestures. This function is
+                   typically one of the first calls in your custom gesture
+                   recognizer's <span class="keyword apiname">process_event()</span> function. You
+                   need to first map the <span class="keyword parmname">contact_id</span> from
+                   the mtouch event received to a <span class="keyword parmname">contact_id</span>
+                   that can be used by your custom gesture recognizer.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int gesture_timer_create(struct gesture_base* gesture, gesture_timer_callback_t callback, void* param)</span></dt>
+
+               <dd class="dd">This function creates a new timer that invokes your gesture
+                   recognizer's timer callback function when expired. You need
+                   to use this function if your gesture recognizer is time-based. 
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int gesture_timer_set_now(struct gesture_base* gesture, int timer_id, unsigned ms)</span></dt>
+
+               <dd class="dd">This function sets a timer using the current time as the
+                  reference time. You can use this if your gesture recognizer is
+                  time-based.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int gesture_timer_set_ms(struct gesture_base* gesture, int timer_id, unsigned ms, _Uint64t base_nsec)</span></dt>
+
+               <dd class="dd">This function sets a timer using a specified timestamp as the
+                   reference time. You can use this if your gesture recognizer
+                   is time-based.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int gesture_timer_set_event(struct gesture_base* gesture, int timer_id, unsigned ms, struct mtouch_event* base_event)</span></dt>
+
+               <dd class="dd">This function sets a timer using an mtouch event timestamp as
+                   the reference time. You can use this if your gesture
+                   recognizer is time-based.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">void gesture_timer_destroy(struct gesture_base* gesture, int timer_id)</span></dt>
+
+               <dd class="dd">This function resets the specified timer. You can use this if
+                  your gesture recognizer is time-based.
+               </dd>
+
+            
+            
+               <dt class="dt dlterm"><span class="keyword apiname">int gesture_timer_query(struct gesture_base* gesture, int timer_id, int* pending, _Uint64t* expiry)</span></dt>
+
+               <dd class="dd">This function queries the information for the specified timer.
+                  You can use this if your gesture recognizer is time-based.
+               </dd>
+
+            
+         </dl>
+
+      </div>
+
+   </div>
+
+</body>
+</html>

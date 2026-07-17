@@ -1,0 +1,1320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="dhcpcd.conf" />
+<meta name="abstract" content="Dynamic Host Configuration Protocol client (dhcpcd) configuration file" />
+<meta name="description" content="Dynamic Host Configuration Protocol client (dhcpcd) configuration file" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-d.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dhcpcd.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dhcpcd.conf" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>dhcpcd.conf</title>
+</head>
+<body id="dhcpcd.conf">
+
+
+  <h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">dhcpcd.conf</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Dynamic Host Configuration Protocol client (<span class="keyword cmdname">dhcpcd</span>) configuration file</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+
+</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Name:</h2>
+
+
+  <p class="p"><span class="ph filepath">/etc/dhcpcd.conf</span></p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+  
+  <p class="p">Although <span class="keyword cmdname">dhcpcd</span> can do everything from the command line, there are cases
+        where it's easier to do it once in a configuration file. Most of the options found in <span class="keyword cmdname">dhcpcd</span>
+        can be used here. The first word on the line is the option, and the rest of the line is the
+        value. Leading and trailing whitespace for the option and value are trimmed. You can escape
+        characters in the value using the \ character. Comments can be prefixed with the #
+        character. String values should be quoted with the " character.</p>
+
+
+<p class="p">Here's a list of available options:</p>
+
+  
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">allowinterfaces</span> <var class="keyword varname">pattern</var></dt>
+
+      <dd class="dd">When discovering interfaces, the interface name must match
+        the specified pattern, which is a space- or comma-separated
+        list of patterns passed to <span class="keyword apiname">fnmatch()</span>.
+        If the same interface is matched in <span class="keyword option">denyinterfaces</span>,
+        then it is still denied.</dd>
+
+    
+
+    
+      <dt class="dt dlterm"><span class="keyword option">denyinterfaces</span> <var class="keyword varname">pattern</var></dt>
+
+      <dd class="dd">When discovering interfaces, the interface name must not match
+        the specified pattern, which is a space- or comma-separated list
+        of patterns passed to <span class="keyword apiname">fnmatch()</span>.</dd>
+
+    
+
+    
+      <dt class="dt dlterm">anonymous</dt>
+
+      <dd class="dd">Enable Anonymity Profiles for DHCP, RFC 7844.
+        Any DUID is ignored and ClientID is set to LL only.
+        All non-essential options are then masked at this point,
+        but they could be unmasked by explicitly requesting the option
+        after <span class="keyword option">anonymous</span> is processed.
+        As such, <span class="keyword option">anonymous</span> should
+        be the last option in the configuration unless you really want to
+        send something that could identify you. The <span class="keyword cmdname">dhcpcd</span>
+        utility does not try to reboot an old lease; it goes straight into
+        DISCOVER/SOLICIT.</dd>
+
+    
+
+
+  <dt class="dt dlterm"><span class="keyword option">randomise_hwaddr</span></dt>
+
+  <dd class="dd">Forces a hardware address randomisation when the interface is brought
+    up or when the carrier is lost. This option is generally used in tandem
+    with <span class="keyword option">anonymous</span>.
+    </dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">arping</span>
+            <var class="keyword varname">address</var> [address]</dt>
+
+  <dd class="dd">Instruct <span class="keyword cmdname">dhcpcd</span> to <span class="keyword cmdname">arping</span> each address in order before
+    attempting DHCP. If an address is found, the replying hardware address is
+    selected as the profile; otherwise, the IP address.
+    <p class="p">For example:</p>
+
+    <pre class="pre codeblock">interface bge0
+arping 192.168.0.1
+# My specific 192.168.0.1 network
+profile dd:ee:aa:dd:bb:ee
+static ip_address=192.168.0.10/24
+# A generic 192.168.0.1 network
+profile 192.168.0.1
+static ip_address=192.168.0.98/24
+    </pre>
+  </dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">authprotocol</span> <var class="keyword varname">protocol</var> 
+    [<var class="keyword varname">algorithm</var> [<var class="keyword varname">rdm</var>]</dt>
+
+  <dd class="dd">Authenticate DHCP messages. See the Supported Authentication Protocols section. If the
+            specified protocol is token, then the specified algorithm is
+              <span class="keyword envar">snd_secretid</span>/<span class="keyword envar">rcv_secretid</span> so that you can send and
+            receive different tokens. </dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">authtoken</span> <var class="keyword varname">secretid</var> <var class="keyword varname">realm</var>
+    <var class="keyword varname">expire</var> <var class="keyword varname">key</var></dt>
+
+  <dd class="dd">Define a shared key for use in authentication. The realm can be in quotes ("") to use with the
+            protocol specified by <span class="keyword option">delayed</span>. The <var class="keyword varname">expire</var> value is
+            the date the token expires and should be formatted as "yyy-mm-dd HH:MM". You can use the
+            keyword <tt class="ph tt">forever</tt> or 0, which means the token never expires. For the token
+            protocol, <var class="keyword varname">secretid</var> needs to be 0 and <var class="keyword varname">realm</var> needs
+            to be <tt class="ph tt">""</tt>. If <span class="keyword cmdname">dhcpcd</span> has the error <span class="ph codeph">dhcp_auth_encode:
+              Invalid argument</span>, it means that <span class="keyword cmdname">dhcpcd</span> could not find the
+            correct authentication token in your configuration.</dd>
+
+
+    
+
+  <dt class="dt dlterm">background</dt>
+
+  <dd class="dd">Fork to the background immediately.
+    This is useful for startup scripts that don't disable link messages for
+    carrier status.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">blacklist</span> <var class="keyword varname">address</var> [/<var class="keyword varname">cidr</var>]</dt>
+
+  <dd class="dd">Ignores all packets from the specified address.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">whitelist</span> <var class="keyword varname">address</var> [/<var class="keyword varname">cidr</var>]</dt>
+
+  <dd class="dd">Only accept packets from the specified address. If <span class="keyword option">whitelist</span> and
+              <span class="keyword option">blacklist</span> specify the same address, the address is accepted.</dd>
+
+
+
+
+  <dt class="dt dlterm">bootp</dt>
+
+  <dd class="dd">Be a BOOTP client.
+    Basically, this option configures <span class="keyword cmdname">dchpcd</span> to not send a
+    DHCP Message Type
+    option and to only interact with a BOOTP server.
+    All other DHCP options still work.</dd>
+
+
+    
+
+  <dt class="dt dlterm">broadcast</dt>
+
+  <dd class="dd">Instruct the DHCP server to broadcast replies back to the client.
+    Normally this is only set for non-Ethernet interfaces,
+    such as FireWire and InfiniBand.
+    In most cases, <span class="keyword cmdname">dhcpcd</span> sets this automatically.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">controlgroup</span> <var class="keyword varname">group</var></dt>
+
+  <dd class="dd">Sets the group ownership of <span class="ph filepath">/var/run/dhcpcd/sock</span>
+    so that users other than <span class="ph filepath">root</span> can connect to
+    <span class="keyword cmdname">dhcpcd</span>.</dd>
+
+
+
+
+  <dt class="dt dlterm">debug</dt>
+
+  <dd class="dd">Echo debug messages to <var class="keyword varname">stderr</var> and system log.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">dev</span> <var class="keyword varname">value</var></dt>
+
+  <dd class="dd">Load the specified <span class="ph filepath">/dev</span> management module.
+    The <span class="keyword cmdname">dhcpcd</span> loads the first one found to work, if any.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">env</span> <var class="keyword varname">value</var></dt>
+
+  <dd class="dd">Push the specified value to the environment for use in <span class="ph filepath">dhcpcd-run-hooks</span>.
+            For example, you can force the hostname hook to always set the hostname with <span class="keyword option">env
+              force_hostname=YES</span>. Or, to set which driver <span class="keyword cmdname">wpa_supplicant</span>
+            should use, use <span class="keyword option">env wpa_supplicant_driver=nl80211</span>. <p class="p">If the hostname
+              is set, it is set to the FQDN if possible as per RFC 4702, section 3.1. If the FQDN
+              option is missing,<span class="keyword cmdname">dhcpcd</span> still tries to set a FQDN from the
+              hostname and domain options for consistency. To override this behavior, specify the
+              option with the following format: </p>
+
+            <pre class="pre codeblock">env hostname_fqdn=[ YES|NO|SERVER ]</pre>
+            <p class="p">Where SERVER means just what the server says, don't manipulate it. This could lead to
+              an inconsistent hostname on a DHCPv4 and DHCPv6 network where the DHCPv4 hostname is
+              short and the DHCPv6 has an FQDN. DHCPv6 has no hostname option.</p>
+</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">clientid</span> <var class="keyword varname">string</var></dt>
+
+  <dd class="dd">Send the specified client ID.
+    If the string is of the format 01:02:03, it is encoded as hex.
+    For interfaces whose hardware address is longer than 8 bytes, or if the
+    value is an empty string, <span class="keyword cmdname">dhcpcd</span>
+    sends a default client ID
+    of the hardware family and the hardware address.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">duid</span> [ <var class="keyword varname">ll</var>|<var class="keyword varname">lt</var>|
+    <var class="keyword varname">uuid</var>|<var class="keyword varname">value</var>]</dt>
+
+  <dd class="dd">Use a DHCP Unique Identifier. If a system UUID is available, that is used to create a
+            DUID-UUID. If no system UUID is available and persistent storage is available, a
+            DUID-LLT (link local address + time) is generated; otherwise, DUID-LL is generated (link
+            local address). The DUID type can be hinted as an optional parameter if the file
+              <span class="ph filepath">/var/db/duid</span> does not exist. If none of <var class="keyword varname">ll</var>,
+              <var class="keyword varname">lt</var>, or <var class="keyword varname">uuid</var> is specified,
+              <var class="keyword varname">value</var> is converted from 00:11:22:33 format. This value, plus the
+            IAID is used as the <span class="keyword option">clientid</span> value. The DUID generated is held in
+              <span class="ph filepath">/var/db/duid</span> and should not be copied to other hosts. This file
+            also takes precedence over the above rules except for setting a value.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">iaid</span> <var class="keyword varname">iaid</var></dt>
+
+  <dd class="dd">Set the Interface Association Identifier to the specified value.
+    This option must be used in an <span class="keyword option">interface</span>
+    block. This value defaults to the VLANID (prefixed with 0xff) for the interface
+    if set; otherwise, the last 4 bytes of the hardware address assigned to the
+    interface.
+    Each instance of this should be unique within the scope of the client and
+    <span class="keyword cmdname">dhcpcd</span> warns if a conflict is detected.
+    If there is a conflict, it is only a problem if the conflicted IAIDs are
+    used on the same network.</dd>
+
+
+ 
+
+  <dt class="dt dlterm"><span class="keyword option">dhcp</span></dt>
+
+  <dd class="dd">Enable DHCP on the interface, on by default.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">dhcp6</span></dt>
+
+  <dd class="dd">Enable DHCPv6 on the interface, on by default.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv4</span></dt>
+
+  <dd class="dd">Enable IPv4 on the interface, on by default.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">ipv6</span></dt>
+
+<dd class="dd">Enable IPv6 on the interface, on by default.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">request</span> [<var class="keyword varname">address</var>]</dt>
+
+  <dd class="dd">Request the specified address
+    in the DHCP DISCOVER message.
+    There is no guarantee this is the address the DHCP server will actually give.
+    If no address is given, the first address currently assigned to the
+    interface specified by <span class="keyword option">interface</span> is used.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">inform</span> [<var class="keyword varname">address</var>
+    [<var class="keyword varname">cidr</var>[<var class="keyword varname">broadcast_address</var>]]]</dt>
+
+  <dd class="dd">Behaves like <span class="keyword option">request</span>,
+    but sends a DHCP INFORM instead of DISCOVER/REQUEST.
+    This option does not get a lease as such, just notifies the DHCP server
+    of the address in use.
+    You should also include the optional <var class="keyword varname">cidr</var>
+    network number in case the address is not already configured on the interface.
+    The <span class="keyword cmdname">dhcpcd</span> utility remains running and pretends it has an infinite lease.
+    It does not de-configure the interface when it exits.
+    If <span class="keyword cmdname">dhcpcd</span>
+    fails to contact a DHCP server, it returns a failure instead of falling
+    back on IPv4LL.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">inform6</span></dt>
+
+  <dd class="dd">Performs a DHCPv6 Information Request.
+    No address is requested or specified, but all other DHCPv6 options are allowed.
+    This is normally performed automatically when an IPv6 Router Advertisement
+    indicates that the client should perform this operation.
+    This option is only needed when <span class="keyword cmdname">dhcpcd</span>
+    is not processing IPv6 RA messages and the need for a DHCPv6 Information Request
+    exists.</dd>
+
+
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">persistent</span></dt>
+
+      <dd class="dd">The <span class="keyword cmdname">dhcpcd</span> utility
+        normally de-configures the interface and configuration when it exits.
+        Sometimes, this isn't desirable if, for example, you have <span class="ph filepath">root</span> mounted over
+        NFS or SSH clients connect to this host and they need to be notified of
+        the host shutting down.
+        You can use this option to stop this action from happening.</dd>
+
+    
+    
+
+  <dt class="dt dlterm"><span class="keyword option">fallback</span> <var class="keyword varname">profile</var></dt>
+
+  <dd class="dd">Fall back to using this profile if DHCP fails.
+    This option allows you to configure a static profile instead of using ZeroConf.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">hostname</span> <var class="keyword varname">name</var></dt>
+
+  <dd class="dd">Sends the specified hostname to the DHCP server so it can be registered in DNS. If the
+            specified name is an empty string, then the current system hostname is sent. If the name
+            is a FQDN (i.e., contains a "."), then that's how it's encoded.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">hostname_short</span></dt>
+
+  <dd class="dd">Sends the short hostname to the DHCP server instead of the FQDN,
+    which is useful because DHCP servers do not register the FQDN in their
+    DNS if the domain part does not match theirs.
+    <p class="p">Also, see <span class="keyword option">env</span>
+    to control how the hostname is set on the host.</p>
+</dd>
+
+
+
+
+  <dt class="dt dlterm">ia_na [<var class="keyword varname">iaid</var>[/<var class="keyword varname">address</var>]]</dt>
+
+  <dd class="dd">Request a DHCPv6 Normal Address for the specified 
+    Identity Association Identifier (IAID).
+    The ID defaults to the one specified by <span class="keyword option">iaid</span>.
+    You can request more than one DHCPv6 Normal Address by specifying a unique
+    IAID for each one.
+  </dd>
+
+
+    
+
+  <dt class="dt dlterm">ia_ta [<var class="keyword varname">iaid</var>]</dt>
+
+  <dd class="dd">Request a DHCPv6 Temporary Address for the specified 
+    IAID. You can request more than one DHCPv6 Temporary Address
+    by specifying a unique IAID for each one.
+  </dd>
+
+
+
+
+  <dt class="dt dlterm">ia_pd [<var class="keyword varname">iaid</var> [/ <var class="keyword varname">prefix</var> / <var class="keyword varname">prefix_len</var>]
+    [<var class="keyword varname">interface</var> [/ <var class="keyword varname">sla_id</var> [/ <var class="keyword varname">prefix_len</var> 
+    [/ <var class="keyword varname">suffix</var>]]]]]</dt>
+
+  <dd class="dd">Request a DHCPv6 Delegated Prefix for the specified IAID. This option must be used in an
+              <span class="keyword option">interface</span> block. Unless <var class="keyword varname">sla_id</var> is 0 with the same
+            resultant prefix length as the delegation, a reject route is installed for the Delegated
+            Prefix to stop unallocated addresses being resolved upstream. If no interface is given,
+            a prefix is assigned to every other interface with a <var class="keyword varname">sla_id</var>
+            equivalent to the interface index assigned by <span class="keyword cmdname">io-sock</span>. Otherwise,
+            addresses are only assigned for each interface and <var class="keyword varname">sla_id</var>. Each
+            assigned address has a suffix, defaulting to 1. If the suffix is 0, a stateless address
+            autoconfiguration (SLAAC) address is assigned. You cannot assign a prefix to the
+            requesting interface unless the DHCPv6 server supports the RFC 6603 Prefix Exclude
+            Option. The <span class="keyword cmdname">dhcpcd</span> utility has to be running for all the interfaces
+            it is delegating to. A default <var class="keyword varname">prefix_len</var> of 64 is assumed, unless
+            the maximum <var class="keyword varname">sla_id</var> does not fit. In this case,
+              <var class="keyword varname">prefix_len</var> is increased to the highest multiple of 8 that can
+            accommodate the <var class="keyword varname">sla_id</var>. The <var class="keyword varname">sla_id</var> value is an
+            integer that must be unique inside the <var class="keyword varname">iaid</var> and is added to the
+            prefix, which must fit inside <var class="keyword varname">prefix_len</var> less the length of the
+            delegated prefix. You can specify multiple <var class="keyword varname">interface</var>,
+              <var class="keyword varname">sla_id</var>, and <var class="keyword varname">prefix_len</var> values per
+              <var class="keyword varname">ia_pd</var>, space separated. IPv6RS should be disabled globally when
+            requesting a Prefix Delegation. <p class="p">In the following example, eth0 is the externally
+              facing interface to be configured for both IPv4 and IPv6. The DHCPv4 server provides
+              an IPv4 address and a default route. The DHCPv6 server provides an IPv6 address, a
+              default route and a /64 subnet to be delegated to the internal interface. The eth1
+              interface is automatically configured for IPv6 using the first address (::1) from the
+              delegated prefix. A second prefix is requested and assigned to two other interfaces.
+              The <span class="keyword cmdname">rtadvd</span> utility can be used with an empty configuration file on
+              eth1, eth2, and eth3, to provide automatic IPv6 address configuration for the internal
+              network.</p>
+
+            <pre class="pre codeblock">noipv6rs                 # disable routing solicitation
+denyinterfaces eth2      # Don't touch eth2 at all
+interface eth0
+  ipv6rs                 # enable routing solicitation for eth0
+  ia_na 1                # request an IPv6 address
+  ia_pd 2 eth1/0         # request a prefix delegation and assign it to eth1
+  ia_pd 3 eth2/1 eth3/2  # request a prefix delegation and assign it to eth2 and eth3</pre>
+          </dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv4only</span></dt>
+
+  <dd class="dd">Only configure IPv4.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv6only</span></dt>
+
+  <dd class="dd">Only configure IPv6.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">fqdn</span> [ <span class="keyword option">disable</span> | <span class="keyword option">none</span> | <span class="keyword option">ptr</span> | <span class="keyword option">both</span> ]</dt>
+
+    <dd class="dd">Specify <span class="keyword option">none</span> to not ask the DHCP server to update DNS. Specify
+              <span class="keyword option">ptr</span> to ask the DHCP server to update the PTR record of the host in
+            DNS, or <span class="keyword option">both</span> to update both the PTR and A records. Specify
+              <span class="keyword option">disable</span> to disable the FQDN option. The default is both. The
+              <span class="keyword cmdname">dhcpcd</span> utility itself never does any DNS updates, and it encodes
+            the FQDN hostname as specified in RFC 1035.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">interface</span> <var class="keyword varname">interface</var></dt>
+
+  <dd class="dd">Parse subsequent options for the specified interface only.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv6ra_autoconf</span></dt>
+
+  <dd class="dd">Generate SLAAC addresses for each prefix advertised by an IPv6
+    Router Advertisement message with the Auto flag set.
+    On by default.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv6ra_noautoconf</span></dt>
+
+  <dd class="dd">Disables <span class="keyword option">ipv6ra_autoconf</span>.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv6ra_fork</span></dt>
+
+  <dd class="dd">Make <span class="keyword cmdname">dhcpcd</span> always fork on a IPv6 Router Advertisement (RA). By default,
+            when <span class="keyword cmdname">dhcpcd</span> receives an RA, it only forks to the background if the RA
+            contains at least one unexpired RDNSS option and a valid prefix or no DHCPv6
+            instruction.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">ipv6rs</span></dt>
+
+  <dd class="dd">Enable IPv6 Router Advertisement solicitation.
+    This setting is on by default, but this option allows you to
+    enable it for one interface in cases where it is disabled
+    globally.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">leasetime</span> <var class="keyword varname">seconds</var></dt>
+
+  <dd class="dd">Set a lease time of the specified number of seconds.
+    Specify -1 to set an infinite lease time.
+    By default, <span class="keyword cmdname">dhcpcd</span>
+    does not request any lease time and DHCP server sets it.
+    It is not possible to request a DHCPv6 lease time
+    as this is not RFC compliant. See RFC 8415 21.4, 21.6, 21.21 and 21.22.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">link_rcvbuf</span> <var class="keyword varname">size</var></dt>
+
+  <dd class="dd">Override the size of the link receive buffer from
+    the <span class="keyword cmdname">io-sock</span> default.
+    While <span class="keyword cmdname">dhcpcd</span> recovers from link buffer overflows,
+    this may not be desirable on heavily loaded systems.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">logfile</span> <var class="keyword varname">logfile</var></dt>
+
+  <dd class="dd">Write to the specified log file. The
+    <span class="keyword cmdname">dhcpcd</span> still writes to
+    the system log. The log file is reopened when
+    <span class="keyword cmdname">dhcpcd</span> receives the SIGUSR2
+    signal.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">metric</span> <var class="keyword varname">metric</var></dt>
+
+  <dd class="dd">Use the specified metric to prefer an interface over another one, lowest wins.
+    The <span class="keyword cmdname">dhcpcd</span> utility supplies a default metric of 1000 +
+    <span class="keyword apiname">if_nametoindex()</span>.
+    This value is offset by 2000 for wireless interfaces, with additional offsets
+    of 1000000 for IPv4LL and 2000000 for roaming interfaces.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">mudurl</span> <var class="keyword varname">url</var></dt>
+
+  <dd class="dd">Specify the URL for a Manufacturer Usage Description (MUD).
+    The description is used by upstream network devices to instantiate any
+    desired access lists.
+    For more information, see documentation provided by
+    the Internet Engineering Task Force
+    (e.g., <span class="ph filepath">draft-ietf-opsawg-mud-tls-12</span>).</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noalias</span></dt>
+
+  <dd class="dd">Remove any pre-existing IPv4 addresses from the interface when
+    adding a new IPv4 address.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noarp</span></dt>
+
+  <dd class="dd">Don't send any ARP requests. This option also disables IPv4LL.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noauthrequired</span></dt>
+
+  <dd class="dd">Don't require authentication even though <span class="keyword cmdname">dhcpcd</span> requests it.
+    Also allows FORCERENEW and RECONFIGURE messages without authentication.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nodelay</span></dt>
+
+  <dd class="dd">Don't delay for an initial randomised time when starting protocols.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nodev</span></dt>
+
+  <dd class="dd">Don't load <span class="ph filepath">/dev</span> management modules.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nodhcp</span></dt>
+
+  <dd class="dd">Don't start DHCP or listen to DHCP messages.
+    This option is only useful when you allow IPv4LL.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nodhcp6</span></dt>
+
+  <dd class="dd">Don't start DHCPv6 or listen to DHCPv6 messages.
+    Normally DHCPv6 is started by an IPv6 Router Advertisement instruction or
+    configuration.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nogateway</span></dt>
+
+  <dd class="dd">Don't install any default routes.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">gateway</span></dt>
+
+  <dd class="dd">Install a default route if available (default).</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nohook</span> <var class="keyword varname">script</var></dt>
+
+  <dd class="dd">Don't run this hook script. Matches full name, or prefixed with 2 numbers optionally ending
+            with .sh. Do the following to stop <span class="keyword cmdname">dhcpcd</span> from touching your DNS settings or starting
+            wpa_supplicant: <pre class="pre codeblock">nohook resolv.conf, wpa_supplicant</pre></dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noipv4</span></dt>
+
+  <dd class="dd">Don't attempt to configure an IPv4 address.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noipv4ll</span></dt>
+
+  <dd class="dd">Instruct <span class="keyword cmdname">dhcpcd</span> to not attempt to obtain an IPv4LL address if it fails to get one via DHCP.
+    See <cite class="cite">RFC 3927</cite>.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">noipv6</span></dt>
+
+  <dd class="dd">Don't solicit or accept IPv6 Router Advertisements and DHCPv6.</dd>
+
+
+  
+
+  <dt class="dt dlterm"><span class="keyword option">noipv6rs</span></dt>
+
+  <dd class="dd">Don't solicit or accept IPv6 Router Advertisements.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nolink</span></dt>
+
+  <dd class="dd">Don't receive link messages about carrier status.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">noup</span></dt>
+
+  <dd class="dd">Don't bring the interface up when in manager mode.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">option</span> <var class="keyword varname">option</var></dt>
+
+  <dd class="dd">Requests the option from the server. It can be a variable to be used in
+              <span class="ph filepath">dhcpcd-run-hooks</span> or the numerical value. You can specify more
+            options separated by commas, spaces or more option lines. Prepend <tt class="ph tt">dhcp6_</tt> to
+              <var class="keyword varname">option</var> to request a DHCPv6 option. If no DHCPv6 options are
+            configured, then DHCPv4 options are mapped to the equivalent DHCPv6 options. <p class="p">Prepend
+                <tt class="ph tt">nd_</tt> to <var class="keyword varname">option</var> to handle ND options, but this only works
+              for <span class="keyword option">nooption</span>, <span class="keyword option">reject</span>, and <span class="keyword option">require</span>
+              options.</p>
+<p class="p">To see a list of options you can use, call <span class="keyword cmdname">dhcpcd</span> with
+                <span class="keyword option">-V</span> or <span class="keyword option">--variables</span>.</p>
+</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">nooption</span> <span class="keyword option">option</span></dt>
+
+  <dd class="dd">Remove the option from the message before it's processed.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">require</span> <span class="keyword option">option</span></dt>
+
+  <dd class="dd">Requires the specified option to be present in all messages; otherwise, the message is ignored.
+    To enforce that <span class="keyword cmdname">dhcpcd</span> only responds to DHCP servers and not BOOTP servers, you can
+    require <tt class="ph tt">dhcp_message_type</tt>. This isn't an exact science though because a BOOTP server can
+    send DHCP-like options.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">reject</span> <var class="keyword varname">option</var></dt>
+
+          <dd class="dd">Reject a message that contains the specified option. This option is useful when you
+            cannot use <span class="keyword option">require</span> to select or de-select BOOTP messages.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">destination</span>
+    <span class="keyword option">option</span></dt>
+
+  <dd class="dd">If <span class="ph filepath">dhcpcd.conf</span> detects an address added to a point to point
+    interface (PPP, TUN, etc.), it sets the listed DHCP options to the destination address
+    of the interface.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">profile</span> <span class="keyword option">name</span></dt>
+
+  <dd class="dd">Parse subsequent options for the specified profile only.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">quiet</span></dt>
+
+  <dd class="dd">Suppress any <span class="keyword cmdname">dhcpcd</span> output to the console, except for errors.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">reboot</span>
+    <span class="keyword option">seconds</span></dt>
+
+  <dd class="dd">Wait the specified number of seconds before moving to the DISCOVER phase if <span class="keyword cmdname">dhcpcd</span> has
+    an old lease to use. Wait the specified number of seconds before starting fallback
+    states from the DISCOVER phase. IPv4LL is started when the first reboot timeout is
+    reached. The default is 5 seconds. A setting of 0 seconds causes
+      <span class="ph filepath">dhcpcd.conf</span> to skip the reboot phase and go straight into
+    DISCOVER. This behavior is desirable for mobile users because if you change from network
+    A to network B and they use the same subnet and the address from network A isn't in use
+    on network B, then the DHCP server remains silent even if authoritative, which means
+    <span class="keyword cmdname">dhcpcd</span> times out before moving back to the DISCOVER phase. This option has no effect on
+    DHCPv6 other than skipping the reboot phase.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">release</span></dt>
+
+  <dd class="dd">Release the lease prior to stopping the interface.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">script</span> <var class="keyword varname">script</var></dt>
+
+  <dd class="dd">Use the specified script instead of the default one (<span class="ph filepath">/usr/lib/dhcpcd/dhcpcd-run-hooks</span>).</dd>
+
+
+
+    
+      <dt class="dt dlterm"><span class="keyword option">ssid</span> <span class="keyword option">ssid</span></dt>
+
+      <dd class="dd">Parse subsequent options for the specified wireless SSID only.</dd>
+
+    
+    
+
+  <dt class="dt dlterm"><span class="keyword option">slaac hwaddr | private [ temp | temporary]</span></dt>
+
+  <dd class="dd">Set the interface identifier used for SLAAC generated IPv6 addresses. If
+      <span class="keyword option">private</span> is specified, a RFC 7217 address is generated. If
+      <span class="keyword option">temporary</span> is specified, a temporary address is created for the prefix.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">static</span>
+    <var class="keyword varname">value</var></dt>
+
+  <dd class="dd">Configure a static value. If you set <span class="keyword option">ip_address</span>, <span class="keyword cmdname">dhcpcd</span>
+            won't attempt to obtain a lease and just uses the value for the address with an infinite
+            lease time. If you set <span class="keyword option">ip6_address</span>, <span class="keyword cmdname">dhcpcd</span> continues
+            auto-configuration as normal. <p class="p">The following example configures two static addresses,
+              an IPv4 router, DNS and disables IPv6 auto-configuration. You could also use the
+                <span class="keyword cmdname">inform6</span> command here to obtain more information via DHCPv6. For
+              IPv4, you should use the <span class="keyword option">inform</span>
+              <var class="keyword varname">ipaddress</var> option instead of setting a static
+              address.</p>
+
+    <pre class="pre codeblock">interface eth0
+noipv6rs
+static ip_address=192.168.0.10/24
+static broadcast_address=192.168.0.63
+static ip6_address=fd51:42f8:caae:d92e::ff/64
+static routers=192.168.0.1
+static domain_name_servers=192.168.0.1 fd51:42f8:caae:d92e::1</pre><p class="p"> The
+              following example for PPP gives the destination a default route. It uses the special
+                <var class="keyword varname">destination</var> keyword to insert the destination address into the
+              value.</p>
+
+    <pre class="pre codeblock">interface ppp0
+static ip_address=
+destination routers</pre></dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">timeout</span> <var class="keyword varname">seconds</var></dt>
+
+  <dd class="dd">Time out after the specified number of seconds, instead of the default 30. A setting of 0 seconds causes
+    <span class="keyword cmdname">dhcpcd</span> to wait forever to get a lease. If <span class="keyword cmdname">dhcpcd</span> is working on a single interface then
+    <span class="keyword cmdname">dhcpcd</span> exits when a timeout occurs; otherwise, <span class="keyword cmdname">dhcpcd</span> forks into the background.
+    If using IPv4LL, <span class="keyword cmdname">dhcpcd</span> starts the IPv4LL process after the timeout and then waits a
+    little longer before really timing out.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">userclass</span> <var class="keyword varname">string</var></dt>
+
+  <dd class="dd">Tag the DHCPv4 message with the specified userclass.
+    You can specify more than one.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">msuserclass</span> <span class="keyword option">string</span></dt>
+
+  <dd class="dd">Tag the DHCPv4 message with the Microsoft userclass. Unlike
+    <span class="keyword option">userclass</span>, this option can only be added once. It should only be used for
+    Microsoft DHCP servers and the <span class="keyword option">vendorclassid</span> should be set to <tt class="ph tt">MSFT
+      98</tt> or <tt class="ph tt">MSFT 5.0</tt>. This option is not RFC compliant.</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">vendor</span> <var class="keyword varname">code</var>,<var class="keyword varname">value</var></dt>
+
+  <dd class="dd">Add an encapsulated vendor option. The value of <var class="keyword varname">code</var> should be between 1 and 254 inclusive. To add a raw vendor string, omit <var class="keyword varname">code</var> but keep the comma. 
+    <p class="p">Examples:</p>
+
+    <p class="p">Set the vendor option 01 with an IP address:</p>
+
+    <pre class="pre codeblock">vendor 01,192.168.0.2</pre>
+    <p class="p">Set the vendor option 02 with a hex code:</p>
+
+    <pre class="pre codeblock">vendor 02,01:02:03:04:05</pre>
+    <p class="p">Set the vendor option 03 with an IP address as a string:</p>
+
+    <pre class="pre codeblock">vendor 03,\"192.168.0.2\"</pre>
+    <p class="p">Set un-encapsulated vendor option to <q class="q">hello world.</q></p>
+
+    <pre class="pre codeblock">vendor ,"hello world"</pre></dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">vendorclassid</span> <var class="keyword varname">string</var></dt>
+
+  <dd class="dd">Set the DHCP Vendor Class. DHCPv6 has its own option, as shown below. The default format is:
+      dhcpcd-<var class="keyword varname">version</var>:<var class="keyword varname">os</var>:<var class="keyword varname">machine</var>:<var class="keyword varname">platform</var>.
+    For example:
+    <pre class="pre codeblock">dhcpcd-5.5.6:NetBSD-6.99.5:i386:i386</pre>
+    If not set, <tt class="ph tt">none</tt> is sent. Some
+    badly configured DHCP servers reject unknown vendor class IDs. To work around it, try and
+    impersonate Windows by using the MSFT vendor class ID.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">vendclass</span> <var class="keyword varname">en</var> <var class="keyword varname">data</var></dt>
+
+  <dd class="dd">Add the DHCPv4 Vendor Identifying Vendor Class with the IANA-assigned Enterprise
+    Number specified by <var class="keyword varname">en</var> with the specified data. This option can be
+    set more than once to add more data, but the behaviour, as per RFC(3925), is undefined if the Enterprise Number differs.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">waitip [4 | 6]</span></dt>
+
+  <dd class="dd">Wait for an address to be assigned before forking to the background. <span class="keyword option">4</span> means wait for
+    an IPv4 address to be assigned. <span class="keyword option">6</span> means wait for an IPv6 address to be assigned. If no
+    argument is given, <span class="ph filepath">dhcpcd.conf</span> will wait for any address protocol to be assigned. It is possible
+    to wait for more than one address protocol and <span class="ph filepath">dhcpcd.conf</span> will only fork to the background when
+    all waiting conditions are satisfied.</dd>
+
+
+    
+
+  <dt class="dt dlterm"><span class="keyword option">xidhwaddr</span></dt>
+
+  <dd class="dd">Use the last four bytes of the hardware address as the DHCP XID instead of a randomly
+    generated number.</dd>
+
+
+    
+</dl>
+
+
+</div>
+    
+    
+<div class="section"><h2 class="title sectiontitle">Defining new options</h2>
+  
+    <p class="p">DHCP, ND and DHCPv6 allow for the use of custom options. Each option needs to be started with
+        the <span class="keyword option">define</span> or <span class="keyword option">define6</span> directive. This initial directive
+        can optionally be followed by both <span class="keyword option">embed</span> or <span class="keyword option">encap</span> options.
+        Both can be specified more than once, and <span class="keyword option">embed</span> must come before
+          <span class="keyword option">encap</span>.</p>
+
+</div>
+
+
+<div class="section">
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">define</span><var class="keyword varname">code</var><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines the DHCP option <var class="keyword varname">code</var> of <var class="keyword varname">type</var> with a name of
+              <var class="keyword varname">variable</var> exported to <span class="keyword cmdname">dhcpcd-run-hooks</span>.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">definend</span><var class="keyword varname">code</var><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines the ND option <var class="keyword varname">code</var> of <var class="keyword varname">type</var> with a name
+        of <var class="keyword varname">variable</var> exported to<span class="keyword cmdname">dhcpcd-run-hooks</span> with a prefix of <var class="keyword varname">nd_.</var></dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">define6</span><var class="keyword varname">code</var><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines the DHCPv6 option <var class="keyword varname">code</var> of <var class="keyword varname">type</var> with a name
+            of <var class="keyword varname">variable</var> exported to <span class="ph filepath">dhcpcd-run-hooks</span> with a
+            prefix of <var class="keyword varname">dhcp6_</var>.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">vendopt</span><var class="keyword varname">code</var><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines the Vendor-Identifying Vendor Options. The <var class="keyword varname">code</var> is the IANA
+            Enterprise Number which will uniquely describe the encapsulated options.
+              <var class="keyword varname">type</var> is normally <var class="keyword varname">encap</var>.
+              <var class="keyword varname">variable</var> names the Vendor option to be exported.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">embed</span><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines an embedded variable within the defined option. The length is determined by the
+            specified <var class="keyword varname">type</var>. If the <var class="keyword varname">variable</var> is not the same as
+            defined in the parent option, it is prefixed with the parent <var class="keyword varname">variable</var>
+            first with an underscore. The <var class="keyword varname">variable</var> is not processed if it has the
+            name of <var class="keyword varname">reserved</var>.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">encap</span><var class="keyword varname">code</var><var class="keyword varname">type</var><var class="keyword varname">variable</var></dt>
+
+      <dd class="dd">Defines an encapsulated variable within the defined option. The length is determined
+        by the <var class="keyword varname">type</var>. If the <var class="keyword varname">variable</var> is not the same as
+        defined in the parent option, it is prefixed with the parent <var class="keyword varname">variable</var>
+        first with an underscore.</dd>
+
+    
+  </dl>
+
+</div>
+
+  
+<div class="section"><h2 class="title sectiontitle">Type Prefix</h2>
+  
+  <p class="p">These keywords come before the type itself, to describe it more fully.
+    You can use more than one, but they must appear in the order listed below.</p>
+
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">request</span></dt>
+
+      <dd class="dd">Requests the option by default without having to be specified in user
+        configuration.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">norequest</span></dt>
+
+      <dd class="dd">This option cannot be requested, regardless of user configuration.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">optional</span></dt>
+
+      <dd class="dd">This one  is optional. Only makes sense for embedded options like the client FQDN
+            option.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">index</span></dt>
+
+      <dd class="dd">The option can appear more than once, and is indexed.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">array</span></dt>
+
+      <dd class="dd">The option data is split into a space separated array, with each element being the same
+            type.</dd>
+
+    
+  </dl>
+
+</div>
+
+  
+<div class="section"><h2 class="title sectiontitle">Types to define</h2>
+  
+  <p class="p">The type directly affects the length of data consumed inside
+    the option. Any remaining data is normally discarded. Lengths can be specified for
+    string and binhex types, but this is generally with other data embedded afterwards in
+    the same option.</p>
+
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">ipaddress</span></dt>
+
+      <dd class="dd">An IPv4 address (4 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">ip6address</span></dt>
+
+      <dd class="dd">An IPv6 address (16 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">string [: length]</span></dt>
+
+      <dd class="dd">A NVT ASCII string of printable characters.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">byte</span></dt>
+
+      <dd class="dd">A byte.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">bitflags : flags</span></dt>
+
+      <dd class="dd">A byte represented as a string of flags, with the most significant bit placed first. For
+            example, if using the string ABCDEFGH, A would equal 10000000, B 01000000, C 00100000,
+            etc. If the bit is not set, the flag is not printed. A flag of 0 is not printed even if
+            the bit position is set. This is to reserve the first bits while the last bits are being
+            assigned.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">int16</span></dt>
+
+      <dd class="dd">A signed 16bit integer (2 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">unit16</span></dt>
+
+      <dd class="dd">An unsigned 16bit integer (2 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">int32</span></dt>
+
+      <dd class="dd">A signed 32bit integer (4 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">uint32</span></dt>
+
+      <dd class="dd">An unsigned 32bit integer (4 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">flag</span></dt>
+
+      <dd class="dd">A fixed value (1) to indicate that the option is present (0 bytes).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">domain</span></dt>
+
+      <dd class="dd">An RFC 3397 encoded string.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">dname</span></dt>
+
+      <dd class="dd">An RFC 1035 validated string.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">binhex [: length]</span></dt>
+
+      <dd class="dd">Binary data expressed as hexadecimal.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">embed</span></dt>
+
+      <dd class="dd">Contains embedded options (implies encap as well).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">encap</span></dt>
+
+      <dd class="dd">Contains encapsulated options (implies embed as well).</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">option</span></dt>
+
+      <dd class="dd">References an option from the global definition.</dd>
+
+    
+  </dl>
+
+</div>
+
+  
+<div class="section"><h2 class="title sectiontitle">Example Definition</h2>
+  
+  <pre class="pre codeblock"># DHCP option 81, Fully Qualified Domain Name, RFC 4702
+define 81 embed fqdn
+embed byte flags
+embed byte rcode1
+embed byte rcode2
+embed domain fqdn
+
+# DHCP option 125, Vendor Specific Information Option, RFC 3925
+define 125 encap vsio
+embed uint32 enterprise_number
+# Options defined for the enterprise number
+encap 1 ipaddress ipaddress
+  </pre>
+  
+</div>
+
+    
+<div class="section"><h2 class="title sectiontitle">Supported Authentication Protocols</h2>
+  
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">token</span></dt>
+
+      <dd class="dd">Sends a plain text token the server expects and matches it with a token sent by the
+            server. The tokens do not have to be the same. If unspecified, the token with a
+              <var class="keyword varname">secretid</var> of 0 will be used in sending messages and validating
+            received messages.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">delayedrealm</span></dt>
+
+      <dd class="dd">Delayed Authentication. <span class="keyword cmdname">dhcpcd</span> will send an authentication option with
+            no key or MAC. The server will see this option, and select a key for
+              <span class="ph filepath">dhcpcd.conf</span> , writing the <var class="keyword varname">realm</var> and
+              <var class="keyword varname">secretid</var> in it. <span class="keyword cmdname">dhcpcd</span> looks for an unexpired
+            token with a matching <var class="keyword varname">realm</var>and <var class="keyword varname">secretid</var>. This
+            token is used to authenticate all other messages.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">delayed</span></dt>
+
+      <dd class="dd">Same as <span class="keyword option">delayedrealm</span> but without a realm.</dd>
+
+    
+
+  </dl>
+
+</div>
+
+  
+<div class="section"><h2 class="title sectiontitle">Supported Authentication Algorithms</h2>
+  
+  <p class="p">If no algorithms are specified, <var class="keyword varname">hmac-md5</var> is the default.</p>
+
+  <pre class="pre codeblock">hmac-md5</pre>
+</div>
+
+  
+<div class="section"><h2 class="title sectiontitle">Supported Replay Detection Mechanisms</h2>
+  
+  <p class="p">If none specified, <span class="keyword option">monotonic</span> is the default. If this is changed from what was
+        previously used, or the means of calculating or storing it is broken, then the DHCP server
+        resets its notion of the client's Replay Detection Value reset.</p>
+
+  <dl class="dl">
+    
+      <dt class="dt dlterm"><span class="keyword option">monocounter</span></dt>
+
+      <dd class="dd">Read the number in the file <span class="ph filepath">/var/db/dhcpcd-rdm.monotonic</span> and add one to it.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">monotime</span></dt>
+
+      <dd class="dd">Create an NTP timestamp from the system time.</dd>
+
+    
+    
+    
+      <dt class="dt dlterm"><span class="keyword option">monotonic</span></dt>
+
+      <dd class="dd">Same as <span class="keyword option">monotime</span></dd>
+
+    
+  </dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Contributing author:</h2>Roy Marples <span class="ph filepath">roy@marples.name</span></div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-d.html">D</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/d/dhcpcd.html" title="Dynamic Host Configuration Protocol client">dhcpcd</a></li></ul></div>
+</div></body>
+</html>

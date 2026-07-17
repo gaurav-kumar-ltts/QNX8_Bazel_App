@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Changing where mkifs looks for files" />
+<meta name="abstract" content="You can change where mkifs looks for files it includes in the OS image." />
+<meta name="description" content="You can change where mkifs looks for files it includes in the OS image." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="change_file_sources" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Changing where mkifs looks for files</title>
+</head>
+<body id="change_file_sources">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Changing where <span class="keyword cmdname">mkifs</span> looks for files</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">You can change where <span class="keyword cmdname">mkifs</span> looks for files it includes in the OS image.</p>
+
+		<div class="p">
+			
+			
+			To include files from host locations other than the standard set of paths for binary files in your QNX SDP installation,
+			you have a number of options:
+			<ul class="ul">
+				<li class="li">Modify the <span class="keyword envar">MKIFS_PATH</span> environment variable.</li>
+
+				<li class="li">Add the <span class="keyword option">-r</span> command option to <span class="keyword cmdname">mkifs</span> to modify the search path.</li>
+
+				<li class="li">Modify the search path with the <span class="keyword cmdname">[search]</span> attribute.</li>
+
+				<li class="li">Specify the pathname explicitly.</li>
+
+				<li class="li">Create the contents of the file in line.</li>
+
+			</ul>
+
+		</div>
+
+		<div class="note"><span class="notetitle">Note:</span> The examples below are for a Linux host. Commands on a Windows host may differ.</div>
+
+		<div class="section"><h2 class="title sectiontitle">Modify <span class="keyword envar">MKIFS_PATH</span></h2>
+			
+			<div class="p">To set <span class="keyword envar">MKIFS_PATH</span>, on your host system use the shell command
+				<span class="ph codeph">export MKIFS_PATH=<var class="keyword varname">newpaths</var></span>. For example:
+<pre class="pre codeblock">export MKIFS_PATH=/usr/nto/x86_64/bin:/usr/nto/x86_64/sys:/usr/nto/x86_64/dll:/usr/nto/x86_64/lib:/project/bin</pre>
+			</div>
+
+			<p class="p">This variable determines the default set of host search paths for all files specified in the buildfile.
+				
+				Note that you can augment the search paths for all files with the <span class="keyword option">-r</span> option or
+				for specific files with the <span class="keyword cmdname">[search]</span> attribute (see the next sections).</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Add the <span class="keyword option">-r</span> command option to <span class="keyword cmdname">mkifs</span></h2>
+		
+			<div class="p">In the Makefile, you can provide the <span class="keyword option">-r</span> option to the <span class="keyword cmdname">mkifs</span> command
+				to modify the search paths. With this option, a set of standard paths within the specified directories
+				will be searched for files to include in the image.
+				Suppose you specify:
+<pre class="pre codeblock">mkifs -r /scratch</pre></div>
+
+			<p class="p">The <span class="keyword cmdname">mkifs</span> utility would then search the standard paths for storing binaries
+				within <span class="ph filepath">/scratch</span> before searching any other host paths.
+				The exact paths searched are based on the target CPU architecture, which you can set through the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__PROCESSOR"><span class="keyword envar">PROCESSOR</span> environment variable</a>.
+				Suppose you set <span class="keyword envar">PROCESSOR</span> to <tt class="ph tt">x86_64</tt> and then run <span class="keyword cmdname">mkifs</span> with the
+				<span class="keyword option">-r</span> setting above. This would cause <span class="keyword cmdname">mkifs</span> to search paths such as
+				<span class="ph filepath">/scratch/x86_64/sbin</span> (and others within <span class="ph filepath">/scratch/x86_64/</span>)
+				before searching those specified in <span class="keyword envar">MKIFS_PATH</span>.
+				For more details, see the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__rootdir"><span class="keyword option">-r</span> option</a>
+				in the <span class="keyword cmdname">mkifs</span> reference.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Modify the search path</h2>
+			
+			
+			
+			<div class="p">
+				By specifying the <span class="ph codeph">[search=<var class="keyword varname">newpaths</var>]</span> attribute,
+				you can make <span class="keyword cmdname">mkifs</span> look in paths other than those in <span class="keyword envar">MKIFS_PATH</span>,
+				for a specific set of files listed in the buildfile.
+				The <var class="keyword varname">newpaths</var> component is a colon-separated list of pathnames, which can include environment
+				variables. For instance, to augment the existing <span class="keyword envar">MKIFS_PATH</span> pathnames to also include the
+				directory <span class="ph filepath">/mystuff</span>, you would specify:
+<pre class="pre codeblock">[search=${MKIFS_PATH}:/mystuff]
+</pre></div>
+
+			<p class="p">For more information, see the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__search"><span class="keyword cmdname">search</span> attribute description</a> in the <span class="keyword cmdname">mkifs</span> entry.
+			</p>
+
+		</div>
+
+		<div class="section" id="change_file_sources__explicit"><h2 class="title sectiontitle">Specify the pathname explicitly</h2>
+			
+			<div class="p">You can explicitly specify the pathname for a file you want <span class="keyword cmdname">mkifs</span> to include in the OS
+				image, by using a leading <q class="q"><span class="ph filepath">/</span></q> character
+				(e.g., <span class="ph filepath">/release/data1</span>). However, with this instruction, <span class="keyword cmdname">mkifs</span> 
+				places the file at the default path in the image (<span class="ph filepath">/proc/boot/data1</span> in our example).
+				To place it elsewhere, you must also specify the target location; for example:
+<pre class="pre codeblock">/some_other_location/data1 = /release/data1</pre>
+			</div>
+
+			<p class="p">See also <q class="q"><a class="xref" href="nto_files_target.html" title="After the QNX OS has started running on the target, the OS image files will be in /proc/boot or any other locations that you explicitly specified as well.">Location of files on the target</a></q> later in this chapter.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Create the contents of a file in line</h2>
+			
+			<div class="p">
+				
+				
+				In some cases it may be simplest to create the contents of a file in line. That is, instead of
+				having an external file on the host system and instructing <span class="keyword cmdname">mkifs</span> is to include it in the image,
+				you can include an inline file's contents right in the buildfile. For example:
+<pre class="pre codeblock">data1 = {
+ This is a data file, called data1, contained in the image.
+ This is a convenient way of associating data files with your programs.
+}
+</pre>
+			</div>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">If your inline file includes special characters, such as a  closing brace (<q class="q">}</q>)
+				or a backslash (<q class="q"><span class="ph codeph">\</span></q>), then you must escape these characters (see the <q class="q"><a class="xref" href="buildfile_syntax.html#buildfile_syntax__inline">Inline files</a></q> section).</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

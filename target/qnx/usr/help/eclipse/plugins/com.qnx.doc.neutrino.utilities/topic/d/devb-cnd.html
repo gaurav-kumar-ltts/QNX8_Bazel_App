@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="devb-cnd" />
+<meta name="abstract" content="Condensed media image block device driver (QNX OS)" />
+<meta name="description" content="Condensed media image block device driver (QNX OS)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-d.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cndfs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>devb-cnd</title>
+</head>
+<body id="cndfs">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">devb-cnd</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Condensed media image block device driver (<span class="keyword">QNX OS</span>)</em></p>
+
+
+<div class="section">
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">devb-cnd [blk <var class="keyword varname">option[,option]</var>...]
+         [cnd <var class="keyword varname">option[,option]</var>...] &amp;
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+<p class="p">(<span class="keyword">QNX OS</span>)</p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">blk</span> <var class="keyword varname">options</var></dt>
+
+<dd class="dd">The <span class="keyword option">blk</span> options control
+  <a class="xref" href="../i/io-blk.so.html" title="Block I/O support"><span class="keyword cmdname">io-blk.so</span></a>.
+  If specified, they must follow the <span class="keyword option">blk</span> keyword.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">cnd</span> <var class="keyword varname">options</var></dt>
+
+<dd class="dd"><dl class="dl">
+                        
+                            <dt class="dt dlterm"><span class="keyword option">blksz</span>=<var class="keyword varname">size</var></dt>
+
+                            <dd class="dd">Override the device blocksize. The default is 512 bytes.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">dll</span>=<var class="keyword varname">dll</var></dt>
+
+                            <dd class="dd">The key provider dll used for decryption.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">fd</span>=<var class="keyword varname">filename</var></dt>
+
+                            <dd class="dd">The name of the condensed file.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">ncc</span>=<var class="keyword varname">num</var></dt>
+
+                            <dd class="dd">The number of cluster-cache entries. The default is 16.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">nio</span>=<var class="keyword varname">num</var></dt>
+
+                            <dd class="dd">The number of async I/O threads. The default is 1.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">pass</span>=<var class="keyword varname">passwd</var></dt>
+
+                            <dd class="dd">The password used for decryption.</dd>
+
+                        
+                        
+                            <dt class="dt dlterm"><span class="keyword option">pfx</span>=<var class="keyword varname">prefix</var></dt>
+
+                            <dd class="dd">The device name prefix. The default is <var class="keyword varname">cnd</var> .</dd>
+
+                        
+                        </dl>
+</dd>
+
+
+</dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p"> The <span class="keyword cmdname">devb-cnd</span> driver is the driver for the condensed media image block device. </p>
+
+            <p class="p">The uncondensed content in a condensed image is presented as a raw block device using
+                the <span class="keyword cmdname">devb-cnd</span> driver. The block device can be mounted like an
+                ordinary filesystem partition. The device will always be read-only because the
+                underlying condensed file must not be altered. </p>
+
+            <p class="p">To read a given block from the block device, <span class="keyword cmdname">devb-cnd</span> looks up the
+                block's location in the extents table. If no extent in the file covers any part of
+                the requested block, it returns a block of zeroes. If there are one or more extents
+                that cover the requested area, the data is read into the appropriate areas of the
+                returned block. The driver looks at the cluster information recorded in each extent
+                descriptor. Using this information, it gets the positions and sizes of the required
+                clusters in the file. The necessary clusters are then read, decrypted, verified, and
+                uncompressed. Finally, the requested portions from the raw clusters are copied to
+                the returned block. </p>
+
+            <p class="p">If you want to mount a condensed filesystem, the optimal cluster size is most likely
+                equal to or smaller than your average read size. Reading even a single byte from one
+                cluster will require processing the entire cluster.</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-d.html">D</a></div>
+</div>
+</div></body>
+</html>

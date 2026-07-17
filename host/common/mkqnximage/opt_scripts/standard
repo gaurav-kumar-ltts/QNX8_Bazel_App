@@ -1,0 +1,181 @@
+#!/bin/bash
+# While not providing an option, this script is still run along with other option scripts and
+# performs various built in validation.
+
+. ${TOOL_DIR}/functions
+
+function validate()
+{
+	rc=0
+
+	if [ "${OPT_BOOT_MODE}" != default -a "${OPT_BOOT_MODE}" != uefi -a "${OPT_BOOT_MODE}" != qemu ]; then
+		echo "--boot-mode ${OPT_BOOT_MODE} not one of default, uefi or qemu"
+		rc=1
+	fi
+
+	if [ "$OPT_SECURE_DATA" != no -a "$OPT_SECURE_DATA" != nosuid -a "$OPT_SECURE_DATA" != noexec ]; then
+		echo "--secure-data not one of no, nosuid or noexec"
+		rc=1
+	fi
+
+	if [ "$OPT_ROOT" != yes -a "$OPT_ROOT" != no ]; then
+		echo "--root must be set to 'yes' or 'no'"
+		rc=1
+	fi
+
+	if [ "$OPT_IO_SOCK_DIAG" != yes -a "$OPT_IO_SOCK_DIAG" != no ]; then
+		echo "--io-sock-diag must be set to 'yes' or 'no'"
+		rc=1
+	fi
+
+	if (($OPT_CPU < 1 || $OPT_CPU > 4)); then
+		echo "--cpu must be set to a number from '1' to '4'"
+		rc=1
+	fi
+
+	if [ "${OPT_PART_SIZES}" != full ]; then
+		IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+		if [ ${#PART_SIZES[@]} -lt 2 ]; then
+			echo "Invalid --part-sizes option"
+			rc=1
+		fi
+	fi
+
+	exit $rc
+}
+
+function configure_dhcp()
+{
+	if [ "$IMAGE_TYPE" = "other" ]; then
+		cat >output/option_files/system_files.standard <<EOF
+bin/mdnsd=usr/sbin/mdnsd
+lib/__LIBDNS_SD__=usr/lib/__LIBDNS_SD__
+
+[perms=555] etc/startup/pinger.sh={
+#!/bin/sh
+# Script to enable pinging by --getip option
+if slay -p mdnsd >/dev/null 2>&1; then
+	START_P(mdnsd_t) SUBST_P(-u 0:0) mdnsd DROPROOT_NP(__MDNSD_ID__) -z
+fi
+}
+EOF
+		cat >output/option_files/data_files.standard <<EOF
+[type=dir uid=__MDNSD_ID__ gid=__MDNSD_ID__] var/run/mdnsd
+EOF
+	else
+		cat >output/option_files/system_files.standard <<EOF
+[perms=555] etc/startup/pinger.sh={
+#!/bin/sh
+# Script to ping all interfaces of our host as a means of getting our own address into the arp cache
+if ! ifconfig | grep 'inet .*broadcast' | grep -v 0.0.0.0 >/dev/null; then
+	exit
+fi
+if [ "\$1" = delay ]; then
+	# It can take several seconds after start-up before io-sock is capable of pinging.
+	sleep 6
+fi
+# Also use an address by replacing the last octet of our address with 1.
+guessed_addr=\`ifconfig | grep broad | sed -r 's/.*broadcast ([0-9]+\\\\.[0-9]+\\\\.[0-9]+)\\\\..*/\\\\1.1/'\`
+addr_list=${addr_list:1}:\$guessed_addr
+IFS=:
+for ip in \$addr_list; do
+	ping -c 1 -t 1 \$ip >/dev/null 2>&1 &
+done
+}
+EOF
+	fi
+
+	cat >output/option_files/dhcp.standard <<EOF
+/system/etc/startup/pinger.sh
+EOF
+
+	if [ ! -f output/build/dhcpcd-run-hooks ]; then
+		cp $QNX_TARGET/sbin/dhcpcd-run-hooks output/build/dhcpcd-run-hooks
+		sed -ix -e "{
+					s!/etc/dhcpcd!/system/etc/dhcpcd/dhcpcd!
+					s!/sbin/dhcpcd!/system/etc/dhcpcd/dhcpcd!
+				}" output/build/dhcpcd-run-hooks
+		rm -f output/build/dhcpcd-run-hooksx
+
+		# We don't want dhcpcd writing to /etc
+		cp $QNX_TARGET/sbin/dhcpcd-hooks/20-resolv.conf output/build/20-resolv.conf
+		sed -ix -e "{
+					s!/etc/resolv.conf!/data/var/dhcpcd/resolv.conf!
+				}" output/build/20-resolv.conf
+		rm -f output/build/20-resolv.confx
+	fi
+}
+
+function configure()
+{
+	rc=0
+	. output/option_files/standard
+	# OPT_REPOS may contain environment variables that will get expanded.  So while the option might
+	# not change, the result of using that option might.  Also detect any change in QNX_TARGET since
+	# some scripts check things based on it.
+	eval expanded_repos="$OPT_REPOS"
+	if [ "$expanded_repos" != "$LAST_OPT_REPOS" -o "$QNX_TARGET" != "$LAST_QNX_TARGET" -o "${OPTIONS_CHANGED}" = 1 ]; then
+		rm -f output/option_files/standard
+		rm -f output/option_files/*.standard
+
+		echo "LAST_QNX_TARGET=\"$QNX_TARGET\"" >output/option_files/standard
+		echo "LAST_OPT_REPOS=\"$expanded_repos\"" >>output/option_files/standard
+		echo "LAST_OPT_TYPE=\"$OPT_TYPE\"" >>output/option_files/standard
+
+		extra_prefixes=
+		rc=1
+
+		get_sonames ${TOOL_DIR}/inputs/solist.standard output/option_files/definitions.standard
+		if check_dependency usr/bin/gdbserver; then
+			echo '#define __HAS_GDBSERVER__' >>output/option_files/definitions.standard
+		fi
+
+		addr_list=
+		if [ "$HOST_UNAME" = WINNT ]; then
+			cmd="ipconfig | grep IPv4 | sed -E 's/.*: ([0-9.]*).*/\1/'"
+		elif [ -n "$(which ifconfig)" ]; then
+			cmd="ifconfig | grep 'inet ' | sed -E 's/.*inet ([0-9.]+) .*/\1/'"
+		elif [ -n "$(which ip)" ]; then
+			cmd="ip addr | grep 'inet ' | sed -E 's/.*inet ([0-9.]+)\/.*/\1/'"
+		else
+			echo "Could not determine IP address of build machine. Will not be able to automatically detect IP address."
+			cmd=""
+		fi
+		for ip in `eval $cmd`; do
+			if [ "$ip" != 127.0.0.1 ]; then
+				addr_list=$addr_list:$ip
+			fi
+		done
+
+		configure_dhcp
+
+		# If we're creating individual partitions we can support OTA updates
+		if [ "$OPT_PART_SIZES" != "full" ]; then
+			extra_prefixes=(${extra_prefixes[@]} update)
+			cat >>output/option_files/generate.standard <<EOF
+generate_file ${TOOL_DIR}/inputs/systemupdate.sh
+EOF
+			cat >>output/option_files/system_files.standard <<EOF
+etc/systemupdate.sh=output/build/systemupdate.sh
+bin/diskimage=usr/bin/diskimage
+EOF
+			cat >>output/option_files/ifs_files.standard <<EOF
+sbin/shutdown
+EOF
+		fi
+		if [ -n "$extra_prefixes" ]; then
+			cat >>output/option_files/options.standard <<EOF
+EXTRA_FILE_PREFIX=(${extra_prefixes[@]})
+EOF
+		fi
+	fi
+	touch -t 200001010000 output/option_files/standard
+	exit $rc
+}
+
+case "$1" in
+	validate)
+		validate;;
+	configure)
+		configure;;
+esac

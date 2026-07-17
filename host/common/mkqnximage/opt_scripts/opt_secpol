@@ -1,0 +1,347 @@
+#!/bin/bash
+
+. ${TOOL_DIR}/functions
+
+IFS_PRE_FILE="output/option_files/ifs_start.60.opt_secpol"
+# The secpolgenerate start-up script is split into two to allow
+# other commands to be executed after starting devb but before
+# mounting file systems.
+SECPOLGEN_FILE1="output/option_files/secpolgen.20.opt_secpol"
+SECPOLGEN_FILE2="output/option_files/secpolgen.~20.opt_secpol"
+
+
+function brief()
+{
+    echo "--secpol=[no|develop|open|secure]"
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If no, don't use security polices. May also be 'secure' to use a policy in secure mode,
+    'develop' to use in normal developer mode or 'open' to be unrestricted by default.
+
+    The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_SECPOL" != "no" -a "$OPT_SECPOL" != "secure" -a "$OPT_SECPOL" != "develop" -a "$OPT_SECPOL" != "open" ]; then
+        echo "--secpol not one of no, secure, develop or open"
+        exit 1
+    fi
+    if [ "$OPT_SECPOL" != "no" -a ! -e $QNX_TARGET/$OPT_ARCH/bin/secpolgenerate ]; then
+        echo '--secpol option requires the "Security - Security Policy - Support" package'
+        exit 1
+    fi
+    exit 0
+}
+
+function configure_secpol_start()
+{
+    cat >>$IFS_PRE_FILE <<EOF
+    display_msg "---> Loading security policy"
+    secpolpush
+EOF
+}
+
+function configure_secpol_files()
+{
+    # Add files to IFS
+    cat >>output/option_files/ifs_files.opt_secpol <<EOF
+#############################################
+### secpol components (opt_secpol)
+#############################################
+bin/secpol
+bin/secpolpush
+[perms=ugo=rx,u+s] bin/secpollaunch
+EOF
+}
+
+function configure_secpolgen_start()
+{
+    # We define a file prefix secpolgen that can have user supplied content
+    cat >>output/option_files/options.opt_secpol <<EOF
+EXTRA_FILE_PREFIX=(secpolgen secpolused)
+EOF
+    # We generate some files from snippets. secpolgen_start.sh is commands to execute
+    # to start secpolgenerate, secpolused represents events that will be used to
+    # populate events for /data/var/secpol/saved-state
+    cat >>output/option_files/generate.opt_secpol <<EOF
+generate_file ${TOOL_DIR}/inputs/secpolgen_start.sh
+generate_file ${TOOL_DIR}/inputs/secpolused
+${TOOL_DIR}/opt_scripts/opt_secpol make_saved
+EOF
+
+    cat >>$SECPOLGEN_FILE1 <<EOF
+# To allow for a writable secpolgenerate config file, temporarily start up
+# pci-server and devb so that secpolgenerate can access its file.  Once
+# secpolgenerate is running we can kill them off and everything starts as it
+# should.
+
+slogger2
+#if defined (__HAS_PCI__)
+pci-server --config=__IFS_PATH__/pci_server.cfg
+waitfor /dev/pci
+#endif
+__DEVB_NAME__ blk cache=64M,auto=partition,vnode=2000,ncache=2000,noatime,commit=low __DEVB_OPTS__
+waitfor /dev/hd0
+#if defined(__OPT_PART_SIZES__) && ! defined(OPT_PART_SIZES_full)
+updatefs.sh
+expandfs.sh
+#endif
+EOF
+
+    cat >>$SECPOLGEN_FILE2 <<EOF
+mount -t qnx6 -r __DATA_PART__ __DATA_MOUNT_PT__
+slay slogger2
+
+if [ -e /data/var/secpol/config ]; then
+   secpolgenerate -vl -t 100 -S /data/var/secpol/secpol.bin -c /data/var/secpol/config -s /data/var/secpol/saved-state
+else
+   secpolgenerate -vl -t 100 -S /data/var/secpol/secpol.bin -s /data/var/secpol/saved-state
+fi
+
+slay -s SIGKILL __DEVB_NAME__
+#if defined (__HAS_PCI__)
+slay pci-server
+rm /dev/shmem/pci/pci_*
+#endif
+rm /dev/shmem/slogger2/*
+
+ln -sPf __IFS_PATH__/libsecpol-gen.so.1 __IFS_PATH__/libsecpol.so.1
+EOF
+
+    cat >>$IFS_PRE_FILE <<EOF
+    secpolgen_start.sh
+    LD_PRELOAD=secpol-preload.so
+EOF
+}
+
+function configure_secpolgen_files()
+{
+    if [ "$OPT_SECPOL" = "develop" ]; then
+        default_restrict="#option unrestricted"
+    else
+        default_restrict="option unrestricted"
+    fi
+    cat >>output/option_files/ifs_files.opt_secpol <<EOF
+bin/secpolgenerate
+lib/libsecpol-gen.so.1
+lib/dll/secpol-preload.so
+output/build/secpolgen_start.sh
+bin/slay
+lib/__LIBTRACELOG__
+EOF
+    cat >>output/option_files/data_files.opt_secpol <<EOF
+#############################################
+### secpolgenerate (opt_secpol)
+#############################################
+# Note permissions are deliberately generous.  Secpolgenerate is intended only
+# for development systems and configuration should be easily changed
+[gid=0 uid=0 dperms=777 type=dir] var/secpol
+
+# If using secpolgenerate, we want to include a config file on a writable partition
+[gid=0 uid=0 dperms=666] var/secpol/config {
+$default_restrict
+option deny_read_exec
+#if ! defined(OPT_ABLELOCK_yes)
+# In case we're using pathtrust, protect the ability as some processes try to give it
+# away
+ability path_trust protect
+#endif
+# By default allow console to do anything
+type console_t unrestricted
+}
+
+[gid=0 uid=0 dperms=666] var/secpol/saved-state = output/build/saved-state
+EOF
+}
+
+
+function configure_pam()
+{
+    # If we're not using security policies, we just start things up directly otherwise we
+    # use 'on' with a type.  For processes that don't support switching uids, we can also
+    # start with a non-root uid if we're using policies.
+    if [ "$OPT_SECPOL" != "no" ]; then
+        cat >>output/option_files/system_files.opt_secpol <<EOF
+lib/dll/pam/pam_secpol.so=usr/lib/pam_secpol.so.2
+# File mapping user names to types.  Mainly used so that logins over ssh switch to
+# a different type than sshd. Users user5 and user6 are omitted, they will
+# make use of secpol derived types.
+[perms=444] etc/pam/pam_secpol_users = {
+EOF
+        IFS=':'
+        for user in $OPT_USERS; do
+            if [ $user != '-' -a $user != user5 -a $user != user6 ]; then
+                echo $user:user_${user}_t >>output/option_files/system_files.opt_secpol
+            fi
+        done
+        IFS=' '
+        cat >>output/option_files/system_files.opt_secpol <<EOF
+rootish:pre_rootish_t
+*:-
+}
+EOF
+        cat >>output/option_files/definitions.opt_secpol <<EOF
+#define __PAM_SECPOL_CONFIG__ session requisite pam_secpol.so config=/system/etc/pam/pam_secpol_users
+EOF
+    else
+        cat >>output/option_files/definitions.opt_secpol <<EOF
+#define __PAM_SECPOL_CONFIG__
+EOF
+    fi
+}
+
+# Create the rootish user.
+function configure_rootish_user()
+{
+    # There are two UIDs, the initial one that sshd switches to on login and
+    # the final one resulting from invoking secpollaunch.
+    cat >>output/option_files/uids.opt_secpol <<EOF
+#define __ROOTISH_ID__       900
+#define __PRE_ROOTISH_ID__   901
+EOF
+
+    cat >>output/option_files/data_files.opt_secpol <<EOF
+[uid=__PRE_ROOTISH_ID__ gid=__PRE_ROOTISH_ID__ perms=600 dperms=700]
+[type=dir acl=u:__SSHD_ID__:x] home/prerootish
+[type=dir acl=u:__SSHD_ID__:x] home/prerootish/.ssh
+[uid=__ROOTISH_ID__ gid=__ROOTISH_ID__ perms=600 dperms=700]
+[type=dir] home/rootish
+home/rootish/.profile = {
+PATH=/system/launcher:\$PATH
+}
+__DEFAULT_PERMISSIONS__
+EOF
+
+    if [ "$OPT_SSH_IDENT" != none -a "$OPT_SSH_IDENT" != prompt ]; then
+        cat >>output/option_files/data_files.opt_secpol <<EOF
+[uid=__PRE_ROOTISH_ID__ gid=__PRE_ROOTISH_ID__] home/prerootish/.ssh/authorized_keys=$OPT_SSH_IDENT
+EOF
+    fi
+
+    # paswd file has two rootish entries. The first is used so that a login to rootish
+    # creates a process with an intermediate UID that is then switched to the real
+    # one (the second entry) by secpollaunch.
+    cat >>output/option_files/passwd_file.opt_secpol <<EOF
+rootish:x:__PRE_ROOTISH_ID__:__PRE_ROOTISH_ID__:Pre-Rootish:/data/home/prerootish:/system/bin/splsh
+rootish:x:__ROOTISH_ID__:__ROOTISH_ID__:Rootish:/data/home/rootish:/system/bin/false
+EOF
+    mkshadow -u rootish -p rootish -o output/option_files/shadow_file.opt_secpol
+}
+
+# Configure settings for secpollaunch
+function configure_launcher()
+{
+    cat >>output/option_files/system_files.opt_secpol <<EOF
+[type=link] launcher/pidin = __IFS_PATH__/secpollaunch
+# Something to act as the shell for rootish. It has a different name
+[type=link] bin/splsh = __IFS_PATH__/secpollaunch
+[perms=555] bin/rootish_allowed = {
+#!/bin/sh
+# This script controls the ability for rootish to log in. This version simply
+# looks for the existence of a file. A real one might check some token that can
+# be installed on the target.
+if [ ! -e /data/var/tokens/rootish ]; then
+   echo Rootish login not permitted
+   exit 1
+fi
+exit 0
+}
+EOF
+    cat >>output/option_files/data_files.opt_secpol <<EOF
+[type=dir] var/tokens
+var/tokens/rootish = {
+Dummy token. If this file is deleted, rootish will not be allowed to connect
+}
+EOF
+
+    cat >>output/option_files/ifs_files.opt_secpol <<EOF
+secpollaunch-rootish_t.cfg = {
+[pidin]
+    cmd = __IFS_PATH__/pidin %*
+    type = rootish_pidin_t
+}
+secpollaunch-pre_rootish_t.cfg = {
+[global]
+    type = rootish_t
+    launch_if = cmd /system/bin/rootish_allowed
+    dir = /data/home/rootish
+    creds = __ROOTISH_ID__:__ROOTISH_ID__
+    set_env = HOME=/data/home/rootish USER=rootish LOGNAME=rootish
+    keep_env = SSH_CLIENT SSH_TTY SSH_CONNECTION
+[splsh]
+    cmd = __IFS_PATH__/ksh %*
+# sshd prepends a - when you're logging in signaling the need for a login shell
+[-splsh]
+    cmd = __IFS_PATH__/ksh -l %*
+    set_env = SHELL=/bin/sh
+}
+EOF
+
+    if [ "${OPT_UNION}" = no ]; then
+        cat >>output/option_files/ifs_env.opt_secpol <<EOF
+    procmgr_symlink /ifs/secpollaunch-rootish_t.cfg /proc/boot/secpollaunch-rootish_t.cfg
+    procmgr_symlink /ifs/secpollaunch-pre_rootish_t.cfg /proc/boot/secpollaunch-pre_rootish_t.cfg
+EOF
+    fi
+}
+
+function make_saved()
+{
+    echo Compiling the secpol used events . . .
+	echo -ne $clr_red
+    if secpolcompile -e -o output/build/saved-state.tmp output/build/secpolused; then
+        cat >output/build/saved-state <<EOF
+# File used by secpolgenerate to save its state in. Initial contents are used
+# to ensure particular uses of privileges are represented in the policy
+# irrespective of whether they actually occured. These can be augmented using
+# secpolused snippet files.
+EOF
+        cat output/build/saved-state.tmp >>output/build/saved-state
+        rm -f output/build/saved-state.tmp
+    else
+        rm -f output/build/saved-state*
+        echo Problem in one or more secpolused snippet files
+    fi
+	echo -ne $clr_normal
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_secpol
+
+    if [ "$OPT_SECPOL" = "develop" -o "$OPT_SECPOL" = "open" ]; then
+        configure_secpolgen_start
+        configure_secpolgen_files
+    fi
+
+    if [ "$OPT_SECPOL" != "no" ]; then
+        configure_secpol_start
+        configure_secpol_files
+        configure_launcher
+        configure_rootish_user
+    fi
+
+    configure_pam
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+    make_saved)
+        make_saved;;
+	default)
+		echo no;;
+esac

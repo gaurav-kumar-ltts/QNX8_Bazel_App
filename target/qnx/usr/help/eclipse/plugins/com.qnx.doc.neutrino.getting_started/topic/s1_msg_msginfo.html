@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Who sent the message?" />
+<meta name="abstract" content="Often a server will need to know who sent it a message. There are a number of reasons for this." />
+<meta name="description" content="Often a server will need to know who sent it a message. There are a number of reasons for this." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Receive_IDs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="msginfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Who sent the message?</title>
+</head>
+<body id="msginfo">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Who sent the message?</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Often a server will need to know who sent it a message.
+There are a number of reasons for this.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+</p>
+
+
+<ul class="ul">
+<li class="li">accounting</li>
+
+<li class="li">access control</li>
+
+<li class="li">context association</li>
+
+<li class="li">class of service</li>
+
+<li class="li">compatibility</li>
+
+</ul>
+
+
+<div class="p">
+It would be cumbersome (and a security hole) to have the client provide
+this information with each and every message sent.
+Therefore, there's a structure filled in by the kernel whenever the
+<span class="keyword apiname">MsgReceive()</span> function unblocks because it got a message.
+This structure is of type
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/_msg_info.html"><span class="keyword dtype">struct _msg_info</span></a>,
+and contains at least the following:
+
+
+
+
+
+<pre class="pre codeblock">struct _msg_info
+{
+    pid_t     <var class="keyword varname">pid</var>;
+    int32_t   <var class="keyword varname">tid</var>;
+    int32_t   <var class="keyword varname">chid</var>;
+    int32_t   <var class="keyword varname">scoid</var>;
+    int32_t   <var class="keyword varname">coid</var>;
+    int16_t   <var class="keyword varname">priority</var>;
+    int16_t   <var class="keyword varname">flags</var>;
+    ssize64_t <var class="keyword varname">msglen</var>;
+    ssize64_t <var class="keyword varname">srcmsglen</var>;
+    ssize64_t <var class="keyword varname">dstmsglen</var>;
+};
+</pre>
+</div>
+
+
+<p class="p">
+You pass it to the <span class="keyword apiname">MsgReceive()</span> function as the last argument.
+If you pass a <span class="keyword const">NULL</span>, then nothing happens.
+(The information can be retrieved later via the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html"><span class="keyword apiname">MsgInfo()</span></a>
+call, so it's not gone forever!)
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+Let's look at the fields:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">pid</var>, and <var class="keyword varname">tid</var></dt>
+
+<dd class="dd">Process ID, and thread ID of the client.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">priority</var></dt>
+
+<dd class="dd">The priority of the sending thread.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">chid</var>, <var class="keyword varname">coid</var></dt>
+
+<dd class="dd">Channel ID that the message was sent to, and the connection ID used.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">scoid</var></dt>
+
+<dd class="dd">Server Connection ID.
+  This is an internal identifier used by the kernel to route
+  the message from the server back to the client.
+  You don't need to know about it, except for the interesting
+  fact that it will be a small integer that uniquely represents the client.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Contains a variety of flag bits, including the following:
+
+  <ul class="ul">
+
+  <li class="li">We'll look at <span class="keyword const">_NTO_MI_UNBLOCK_REQ</span> in the section
+  <a class="xref" href="s1_msg_nto_mi_unblock_req.html" title="Luckily, the kernel keeps track of the flag for you as a single bit in the message info structure (the struct _msg_info that you pass as the last parameter to MsgReceive(), or that you can fetch later, given the receive ID, by calling MsgInfo())."><q class="q">Using the <span class="keyword const">_NTO_MI_UNBLOCK_REQ</span>,</q></a> below.
+  
+  </li>
+
+
+  </ul>
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">msglen</var></dt>
+
+<dd class="dd">Number of bytes received.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">srcmsglen</var></dt>
+
+<dd class="dd">The length of the source message, in bytes, as sent by the client.
+  This may be greater than the value in <var class="keyword varname">msglen</var>, as would be
+  the case when receiving less data than what was sent.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">dstmsglen</var></dt>
+
+<dd class="dd">The length of the client's reply buffer, in bytes.
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_msg_Receive_IDs.html" title="We haven't talked about the various parameters in the examples above so that we could focus just on the message passing. Now let's take a look.">Receive IDs, channels, and other parameters</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html">Synchronous message passing (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html">MsgCurrent(), MsgCurrent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html">MsgError(), MsgError_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html">MsgRead(), MsgRead_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html">MsgReadv(), MsgReadv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive(), MsgReceive_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html">MsgReceivePulse(), MsgReceivePulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html">MsgReceivev(), MsgReceivev_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html">MsgReplyv(), MsgReplyv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html">MsgSendnc(), MsgSendnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html">MsgSendsv(), MsgSendsv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html">MsgSendsvnc(), MsgSendsvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html">MsgSendvnc(), MsgSendvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html">MsgSendvs(), MsgSendvs_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html">MsgSendvsnc(), MsgSendvsnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html">MsgVerifyEvent(), MsgVerifyEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html">MsgWrite(), MsgWrite_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html">MsgWritev(), MsgWritev_r()</a></li></ul></div>
+</div></body>
+</html>

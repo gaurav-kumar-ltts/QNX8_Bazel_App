@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="getsubopt()" />
+<meta name="abstract" content="Parse suboptions from a string" />
+<meta name="description" content="Parse suboptions from a string" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-g.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/g/getopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/g/getopt_long.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="getsubopt" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>getsubopt()</title>
+</head>
+<body id="getsubopt">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">getsubopt()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Parse suboptions from a string</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+
+int getsubopt( char** <var class="keyword varname">optionp</var>,
+               char* const* <var class="keyword varname">tokens</var>,
+               char** <var class="keyword varname">valuep</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">optionp</var></dt>
+
+<dd class="dd">The address of a pointer to the string of options that you want to parse.
+  The function updates this pointer as it parses the options; see below.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">tokens</var></dt>
+
+<dd class="dd">A vector of possible tokens.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">valuep</var></dt>
+
+<dd class="dd">The address of a pointer that the function updates to point to the 
+  first character of a value that's associated with an option; see below.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+<p class="p">Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+                    
+                    
+                    
+                     The
+                         <span class="keyword apiname">getsubopt()</span> function parses suboptions in a flag
+                    argument that was initially parsed by <a class="xref" href="getopt.html" title="Parse options from a command line"><span class="keyword apiname">getopt()</span></a>. These suboptions are separated by
+                    commas and may consist of either a single token or a token-value pair separated
+                    by an equal sign. Since commas delimit suboptions in the option string, they
+                    aren't allowed to be part of the suboption or the value of a suboption. A
+                    command that uses this syntax is <span class="keyword cmdname">mount</span>, which allows the user
+                    to specify mount parameters with the <span class="keyword option">-o</span> option as follows: </p>
+
+
+<pre class="pre codeblock">mount -o rw,hard,bg,wsize=1024 speed:/usr /usr
+</pre>
+
+<p class="p">
+In this example there are four suboptions: <span class="keyword option">rw</span>, <span class="keyword option">hard</span>,
+<span class="keyword option">bg</span>, and <span class="keyword option">wsize</span>, the last of which has an associated
+value of 1024.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">getsubopt()</span> function takes the address of a pointer to the
+option string, a vector of possible tokens, and the address of a
+value string pointer. It returns the index of the token
+that matched the suboption in the input string, or -1 if
+there was no match. If the option string at <var class="keyword varname">optionp</var> contains
+only one suboption, <span class="keyword apiname">getsubopt()</span> updates <var class="keyword varname">optionp</var> to
+point to the null character at the end of the string; otherwise, it 
+isolates the suboption by replacing the comma
+separator with a null character, and updates <var class="keyword varname">optionp</var> to
+point to the start of the next suboption. If the suboption
+has an associated value, <span class="keyword apiname">getsubopt()</span> updates <var class="keyword varname">valuep</var> 
+to point to the value's first character. 
+Otherwise, it sets <var class="keyword varname">valuep</var> to <span class="keyword const">NULL</span>.
+</p>
+
+
+<p class="p">
+The token vector is organized as a series of pointers to
+null strings. The end of the token vector is identified by
+a <span class="keyword const">NULL</span> pointer.
+</p>
+
+
+<p class="p">
+When <span class="keyword apiname">getsubopt()</span> returns, if <var class="keyword varname">valuep</var> isn't
+<span class="keyword const">NULL</span>, the
+suboption processed included a value. The calling program
+may use this information to determine if the presence or
+lack of a value for this suboption is an error.
+</p>
+
+
+<p class="p">
+Additionally, when <span class="keyword apiname">getsubopt()</span> fails to match the suboption
+with the tokens in the <var class="keyword varname">tokens</var> array, the calling program
+should decide if this is an error, or if the unrecognized
+option should be passed to another program.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">getsubopt()</span> function returns -1 when the token it's 
+scanning isn't in the <var class="keyword varname">tokens</var> vector. 
+The variable addressed by <var class="keyword varname">valuep</var> contains 
+a pointer to the first character of the token that wasn't
+recognized rather than a pointer to a value for that token.
+</p>
+
+
+<p class="p">
+The variable addressed by <var class="keyword varname">optionp</var> points to the next option
+to be parsed, or a null character if there are no more options.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">The following code fragment shows how to process options to the <span class="keyword cmdname">mount</span> command
+                    using <span class="keyword apiname">getsubopt()</span>.</p>
+
+               <p class="p">When <span class="keyword apiname">getsubopt()</span> parses an option input string, it changes any
+                    commas to null characters. If the original <var class="keyword varname">optarg</var> pointer
+                    were passed directly to <span class="keyword apiname">getsubopt()</span>, these modifications
+                    would cause <span class="keyword cmdname">pidin</span> to see a truncated argument list. To avoid
+                    this problem, the following example uses <span class="keyword apiname">strdup()</span> to copy the
+                    string and then calls <span class="keyword apiname">getsubopt()</span> on the copy. Alternatively,
+                    you can restore the characters that were replaced with null bytes.</p>
+
+
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+
+char *myopts[] = {
+#define READONLY    0
+               "ro",
+#define READWRITE   1
+               "rw",
+#define WRITESIZE   2
+               "wsize",
+#define READSIZE    3
+               "rsize",
+               NULL};
+
+int main(int argc, char **argv)
+{
+     int sc, c, errflag;
+     char *options, *value;
+     extern char *optarg;
+     extern int optind;
+     .
+     .
+     .
+     while((c = getopt(argc, argv, "abf:o:")) != -1) {
+          switch (c) {
+          case 'a': /* process a option */
+               break;
+          case 'b': /* process b option */
+               break;
+          case 'f':
+               ofile = optarg;
+               break;
+          case '?':
+               errflag++;
+               break;
+          case 'o':
+               if ((optarg = strdup(optarg)) == NULL)  {
+                   error_no_memory();
+                   errflag++;
+                    break;
+               }
+               options = optarg;
+               while (*options != '\0') {
+                    switch(getsubopt(&amp;options,myopts,&amp;value)) {
+                    case READONLY : /* process ro option */
+                         break;
+                    case READWRITE : /* process rw option */
+                         break;
+
+                    case WRITESIZE : /* process wsize option */
+                         if (value == NULL) {
+                              error_no_arg();
+                              errflag++;
+                         } else
+                              write_size = atoi(value);
+                         break;
+                    case READSIZE : /* process rsize option */
+                         if (value == NULL) {
+                              error_no_arg();
+                              errflag++;
+                         } else
+                              read_size = atoi(value);
+                         break;
+                    default :
+                         /* process unknown token */
+                         error_bad_token(value);
+                         errflag++;
+                         break;
+                    }
+               }
+               free(optarg);
+               break;
+          }
+     }
+     if (errflag) {
+          /* print usage instructions etc. */
+     }     
+     for (; optind &lt; argc; optind++) {
+          /* process remaining arguments */
+     }
+     ...
+}
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d180705e330">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d180705e332"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e330 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e332 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e330 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e332 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e330 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d180705e332 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p"> During parsing, commas in the option input string are changed to null characters. </p>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-g.html">G</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/g/getopt.html" title="Parse options from a command line">getopt()</a></li>
+<li class="linklist"><a class="link" href="../../topic/g/getopt_long.html" title="Get long and short options from a command-line argument list">getopt_long(), getopt_long_only()</a></li></ul></div>
+</div></body>
+</html>

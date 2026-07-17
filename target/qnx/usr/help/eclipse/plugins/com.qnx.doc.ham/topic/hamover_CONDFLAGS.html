@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Condition flags" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_CONDFNS.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="CONDFLAGS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Condition flags</title>
+</head>
+<body id="CONDFLAGS">
+
+<h1 class="title topictitle1" id="ariaid-title1">Condition flags</h1>
+
+
+<div class="body conbody">
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword const">HCONDNOWAIT</span></dt>
+
+
+<dd class="dd">Guarantees that there can be no <q class="q">waitfor</q>
+statements in the list of actions in this condition. All
+conditions that are flagged <span class="keyword const">HCONDNOWAIT</span> are
+handled in a separate thread, and thus aren't delayed in any
+way by the nature of the actions in other conditions.
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">HCONDINDEPENDENT</span></dt>
+
+
+<dd class="dd">If this flag is set, then
+all actions in this condition are executed in a separate thread. This lets you
+insert delays into a condition, without incurring any delays in other 
+conditions.</dd>
+
+
+
+</dl>
+
+
+<p class="p">If a condition is flagged with both
+<span class="keyword const">HCONDINDEPENDENT</span> and
+<span class="keyword const">HCONDNOWAIT</span>, then <span class="keyword const">HCONDNOWAIT</span> takes
+precedence, and all actions in this condition are executed
+in the same thread as <em class="ph i">all</em> other conditions that are also
+flagged as <span class="keyword const">HCONDNOWAIT</span>. This is because all <span class="keyword const">HCONDNOWAIT</span>
+conditions are guaranteed to have minimal delays already.  
+
+</p>
+
+<p class="p">If a condition is flagged with neither
+<span class="keyword const">HCONDNOWAIT</span> nor
+<span class="keyword const">HCONDINDEPENDENT</span>, it is treated as an
+<span class="keyword const">HCONDOTHER</span> condition, implying that it will be
+executed in the FIFO order among all conditions that are
+true.
+
+</p>
+
+<p class="p">To sum up:
+
+
+
+</p>
+
+<ol class="ol">
+<li class="li">Whenever a condition (e.g., <span class="keyword const">CONDDEATH</span>, 
+<span class="keyword const">CONDDETACH</span>, etc.) occurs, 
+all conditions flagged <span class="keyword const">HCONDNOWAIT</span> are executed in FIFO order 
+in a single thread.
+
+</li>
+
+<li class="li">All conditions flagged <span class="keyword const">HCONDINDEPENDENT</span> (but not 
+<span class="keyword const">HCONDNOWAIT</span>) are executed each in a separate thread. 
+
+</li>
+
+<li class="li">All other conditions
+are executed in FIFO order in one single thread.</li>
+
+</ol>
+
+<p class="p">This limits the number of threads in all to be at most:
+
+</p>
+
+<p class="p"><em class="ph i">(number of HCONDINDEPENDENT conditions) + 2</em>
+
+
+</p>
+
+<p class="p">That is, one for all the conditions flagged
+<span class="keyword const">HCONDNOWAIT</span>, and one for all 
+<span class="keyword const">OTHER</span> conditions.
+
+
+</p>
+
+<p class="p">In addition, within a condition, all actions are also executed in FIFO order.
+This is true irrespective of whether the conditions are 
+<span class="keyword const">HCONDNOWAIT</span> or <span class="keyword const">HCONDINDEPENDENT</span>.
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_CONDFNS.html">Condition functions</a></div>
+</div>
+</div></body>
+</html>

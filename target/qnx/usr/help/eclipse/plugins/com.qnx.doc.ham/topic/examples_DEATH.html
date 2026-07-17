@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Death/condition notification" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DEATH" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Death/condition notification</title>
+</head>
+<body id="DEATH">
+
+<h1 class="title topictitle1" id="ariaid-title1">Death/condition notification</h1>
+
+
+<div class="body conbody">
+
+<p class="p">Fault notification is a crucial part of the availability of
+a system. Apart from performing recovery per se, we also
+need to keep track of failures in order to be able to
+analyze the system at a later point.
+
+
+
+</p>
+
+<p class="p">For fault notification, you can use standard notification
+mechanisms such as pulses or signals. Clients specify what
+pulse/signal with specific values they want for each
+notification, and a HAM delivers the notifications at the
+appropriate times.
+
+</p>
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/iomsg.h&gt;
+#include &lt;sys/netmgr.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;ha/ham.h&gt;
+
+#define PCODE_PTPD_DEATH      (_PULSE_CODE_MINAVAIL+1)
+#define PCODE_PTPD_DETACH     (_PULSE_CODE_MINAVAIL+2)
+#define PCODE_NFS_DELAYED     (_PULSE_CODE_MINAVAIL+3)
+#define PCODE_PTPD_RESTART1   (_PULSE_CODE_MINAVAIL+4)
+#define PCODE_PTPD_RESTART2   (_PULSE_CODE_MINAVAIL+5)
+
+#define MYSIG (SIGRTMIN+1)
+
+int fsnfs_value;
+
+/* Signal handler to handle the death notify of fs-nfs3 */
+void MySigHandler(int signo, siginfo_t *info, void *extra)
+{
+    printf("Received signal %d, with code = %d, value %d\n",
+            signo, info-&gt;si_code, info-&gt;si_value.sival_int);
+    if (info-&gt;si_value.sival_int == fsnfs_value)
+        printf("FS-nfs3 died, this is the notify signal\n");
+    return;
+}
+
+int main(int argc, char *argv[])
+{
+    int chid, rc;
+    struct _pulse pulse;
+    pid_t pid;
+    int value;
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+    struct sigaction sa;
+    int scode;
+    int svalue;
+
+    /* We need a channel to receive the pulse notification on. */
+    chid = ChannelCreate( _NTO_CHF_PRIVATE );
+
+    pid = getpid();
+    value = 13;
+    ham_connect(0);
+    /* Assumes there is already an entity by the name "ptpd2" */
+    chdl = ham_condition_handle(0, "ptpd2","death",0);
+    ahdl = ham_action_notify_pulse(chdl, "notifypulsedeath",0, pid,
+            chid, PCODE_PTPD_DEATH, value, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+    ham_condition_handle_free(chdl);
+    ehdl = ham_entity_handle(0, "ptpd2", 0);
+    chdl = ham_condition(ehdl, CONDDETACH, "detach", HREARMAFTERRESTART);
+    ahdl = ham_action_notify_pulse(chdl, "notifypulsedetach",0, pid,
+            chid, PCODE_PTPD_DETACH, value, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+    ham_condition_handle_free(chdl);
+    ham_entity_handle_free(ehdl);
+    fsnfs_value = 18; /* value we expect when fs-nfs dies */
+    scode = 0;
+    svalue = fsnfs_value;
+    sa.sa_sigaction = MySigHandler;
+    sigemptyset(&amp;sa.sa_mask);
+    sa.sa_flags = SA_SIGINFO;
+    sigaction(MYSIG, &amp;sa, NULL);
+    /*
+     Assumes there is an entity by the name "Fs-nfs3".
+      We use "Fs-nfs3" to symbolically represent the entity
+      fs-nfs3. Any name can be used to represent the
+      entity, but it's best to use a readable and meaningful name.
+    */
+    ehdl = ham_entity_handle(0, "Fs-nfs3", 0);
+
+    /*
+     Add a new condition, which will be an "independent" condition.
+      This means that notifications/actions inside this condition
+      are not affected by "waitfor" delays in other action
+      sequence threads.
+    */
+    chdl = ham_condition(ehdl,CONDDEATH, "DeathSep",
+            HCONDINDEPENDENT|HREARMAFTERRESTART);
+    ahdl = ham_action_notify_signal(chdl, "notifysignaldeath",0, pid,
+            MYSIG, scode, svalue, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+    ham_condition_handle_free(chdl);
+    ham_entity_handle_free(ehdl);
+
+    /* Get the condition handle directly without getting the entity first. */
+    chdl = ham_condition_handle(0, "Fs-nfs3","Death",0);
+    /*
+     This action is added to a condition that does not
+      have a HCONDNOWAIT. Since we are unaware what the condition
+      already contains, we might end up getting a delayed notification
+      since the action sequence might have "arbitrary" delays and
+      "waits" in it.
+    */
+    ahdl = ham_action_notify_pulse(chdl, "delayednfsdeathpulse", 0,
+            pid, chid, PCODE_NFS_DELAYED, value, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+    ham_condition_handle_free(chdl);
+
+    ehdl = ham_entity_handle(0, "ptpd2", 0);
+
+    /* We force this condition to be independent of all others. */
+    chdl = ham_condition(ehdl, CONDRESTART, "restart",
+            HREARMAFTERRESTART|HCONDINDEPENDENT);
+
+    ahdl = ham_action_notify_pulse(chdl, "notifyrestart_imm", 0,
+            pid, chid, PCODE_PTPD_RESTART1, value, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+
+    ahdl = ham_action_waitfor(chdl, "delay",NULL,6532, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+
+    ahdl = ham_action_notify_pulse(chdl, "notifyrestart_delayed", 0,
+            pid, chid, PCODE_PTPD_RESTART2, value, HREARMAFTERRESTART);
+    ham_action_handle_free(ahdl);
+
+    ham_condition_handle_free(chdl);
+    ham_entity_handle_free(ehdl);
+
+    while (1) {
+        rc = MsgReceivePulse( chid, &amp;pulse, sizeof( pulse ), NULL );
+        if (rc &lt; 0) {
+            if (errno != EINTR) {
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            switch (pulse.code) {
+                case PCODE_PTPD_DEATH:
+                    printf("ptpd2 Death Pulse\n");
+                    break;
+                case PCODE_NFS_DELAYED:
+                    printf("fs-nfs3 died: this is the possibly delayed pulse\n");
+                    break;
+                case PCODE_PTPD_DETACH:
+                    printf("ptpd2 detached, so quitting\n");
+                    goto the_end;
+                case PCODE_PTPD_RESTART1:
+                    printf("ptpd2 Restart Pulse: Immediate\n");
+                    break;
+                case PCODE_PTPD_RESTART2:
+                    printf("ptpd2 Restart Pulse: Delayed\n");
+                    break;
+            }
+        }
+    }
+    /*
+     At this point we are no longer waiting for the
+      information about ptpd2, since we know that monitoring
+      for it has been removed.
+
+     We would still continue to obtain information about the
+      death of fs-nfs3, since we did not remove those actions.
+
+     If we exit now, the next time those actions are executed
+      they will fail (notifications fail if the receiver does
+      exist anymore), and they will automatically get removed and
+      cleaned up.
+    */
+    the_end:
+    ham_disconnect(0);
+    exit(0);
+}
+</pre>
+
+<p class="p">In the above example a client registers for various
+different types of notifications relating to significant
+events concerning <span class="keyword cmdname">ptpd2</span> and <span class="keyword cmdname">fs-nfs3</span>.
+Notifications can be sent immediately or after a certain
+delay.
+
+</p>
+
+<p class="p">The notifications can also be received for each condition
+<em class="ph i">independently</em> — for the entity's death
+(<span class="keyword const">CONDDEATH</span>), restart
+(<span class="keyword const">CONDRESTART</span>), and detaching
+(<span class="keyword const">CONDDETACH</span>).
+
+</p>
+
+<p class="p">The <span class="keyword const">CONDRESTART</span> is asserted by a HAM when
+an entity is successfully restarted.
+
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

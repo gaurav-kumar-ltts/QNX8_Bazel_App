@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Blocking within the resource manager" />
+<meta name="abstract" content="So far we've avoided talking about blocking within the resource manager. We assume that you will supply an outcall function (e.g., a read I/O function handler), and that the data will be available immediately. What if you need to block, waiting for the data? For example, performing a read() on the serial port might need to block until a character arrives. Obviously, we can't predict how long this will take." />
+<meta name="description" content="So far we've avoided talking about blocking within the resource manager. We assume that you will supply an outcall function (e.g., a read I/O function handler), and that the data will be available immediately. What if you need to block, waiting for the data? For example, performing a read() on the serial port might need to block until a character arrives. Obviously, we can't predict how long this will take." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Advanced.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="blocking_in_resmgr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Blocking within the resource manager</title>
+</head>
+<body id="blocking_in_resmgr">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Blocking within the resource manager</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> So far we've avoided talking about blocking within the resource manager. We assume that
+you will supply an outcall function (e.g., a read I/O function handler), and that the data will be
+available immediately. What if you need to block, waiting for the data? For example, performing a
+<span class="keyword apiname">read()</span> on the serial port might need to block until a character arrives.
+Obviously, we can't predict how long this will take. </p>
+
+
+<p class="p">
+
+
+
+
+Blocking within a resource
+manager is based on the same principles that we discussed in the Message Passing chapter—after
+all, a resource manager is really a server that handles certain well-defined messages. When the
+message corresponding to the client's <span class="keyword apiname">read()</span> request arrives, it does so with a
+receive ID, and the client is blocked. If the resource manager has the data available, it will
+simply return the data as we've already seen in the various examples above. However, if the data
+isn't available, the resource manager will need to keep the client blocked (if the client has indeed
+specified blocking behavior for the operation) to continue processing other messages. What this
+really means is that the thread (in the resource manager) that received the message from the client
+<em class="ph i">should not block</em>, waiting for the data. If it did block, you can imagine that this could
+eventually use up a great number of threads in the resource manager, with each thread waiting for
+some data from some device.
+</p>
+
+
+<p class="p">
+The correct solution to this is to store the receive ID that arrived with the client's
+message onto a queue somewhere, and return the special constant <span class="keyword const">_RESMGR_NOREPLY</span>
+from your handler.
+This tells the resource manager library that processing for this message has completed, but
+that the client shouldn't be unblocked yet.
+
+
+
+</p>
+
+
+<p class="p">
+Some time later, when the data arrives, you would then retrieve the receive ID of the
+client that was waiting for the message, and construct a reply message containing the data.
+Finally, you would reply to the client.
+</p>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Advanced.html" title="Now that we've covered the “basics” of resource managers, it's time to look at some more complicated aspects.">Advanced topics</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

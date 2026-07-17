@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Padding" />
+<meta name="abstract" content="Some cryptographic primitives, such as AES ciphers in block cipher modes of operation, often require that the input data size be a multiple of the primitive's block size. Because the size of some data (e.g., plaintext) can be variable, padding can be added to meet the primitive's size requirements." />
+<meta name="description" content="Some cryptographic primitives, such as AES ciphers in block cipher modes of operation, often require that the input data size be a multiple of the primitive's block size. Because the size of some data (e.g., plaintext) can be variable, padding can be added to meet the primitive's size requirements." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Padding</title>
+</head>
+<body id="bluetooth_client_api">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Padding</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc">Some cryptographic primitives, such as AES ciphers in block cipher modes of operation,
+    often require that the input data size be a multiple of the primitive's block size. Because the
+    size of some data (e.g., plaintext) can be variable, padding can be added to meet the
+    primitive's size requirements.</p>
+
+    <p class="p">Padding also defends against plaintext length attacks by hiding the length of the
+      plaintext.</p>
+
+    <p class="p">Padding is only required when an algorithm uses a block cipher mode of operation and its
+      input is not a multiple of the cipher block size. Padding is optional if the input size is
+      already a multiple of the block size.</p>
+
+    <p class="p">The <span class="ph filepath">qcrypto</span> cipher algorithm APIs can provide automatic padding;
+      otherwise, the caller has to provide any padding the algorithm requires.</p>
+
+    <p class="p">The supported padding algorithms described here are ones that are reversible, which means
+      that there is no ambiguity when the ciphertext is decrypted and unpadded into the plaintext.
+      If there is an error in the padding removal, the plaintext is corrupted and shouldn't be
+      trusted.</p>
+
+    <div class="p">
+      <div class="note"><span class="notetitle">Note:</span> <p class="p">Both PKCS7 and ISO7816 padding add an extra block to the input data even if the input
+        data is a multiple of the block size.</p>
+<p class="p">The cryptography industry is moving away from block
+          ciphers and padding towards stream ciphers, which work on input of any length and don't
+          require padding.</p>
+</div>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">PKCS7 padding</h2>
+      
+      <p class="p">The PKCS7 padding mode adds whole bytes to the end of input data until it is equal to a
+        multiple of the blocksize. The padding byte value is the number of bytes that need to be
+        added to reach the blocksize multiple.</p>
+
+      <p class="p">PKCS7 padding supports blocksizes of up to 255 bytes.</p>
+
+      <p class="p">See the library reference for detailed descriptions of the following functions:</p>
+
+      <div class="p">
+        <ul class="ul" id="bluetooth_client_api__ul_ap1_zqz_rfb">
+          <li class="li"><a class="xref" href="../qcrypto_padding_pkcs7_pad.html" title="Apply PKCS7 padding">qcrypto_padding_pkcs7_pad()</a></li>
+
+          <li class="li"><a class="xref" href="../qcrypto_padding_pkcs7_size.html" title="Calculate PKCS7 padding length">qcrypto_padding_pkcs7_size()</a></li>
+
+          <li class="li"><a class="xref" href="../qcrypto_padding_pkcs7_unpad.html" title="Remove PKCS7 padding">qcrypto_padding_pkcs7_unpad()</a></li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">ISO7816 padding</h2>The ISO.2FIEC_7816-4 padding mode adds a byte of value
+      0x80 followed by as many 0x00 bytes as are required to make the data equal to a multiple of
+      the blocksize.<p class="p">See the library reference for detailed descriptions of the following
+        functions:</p>
+<div class="p">
+        <ul class="ul" id="bluetooth_client_api__ul_xtr_3h1_sfb">
+          <li class="li"><a class="xref" href="../qcrypto_padding_iso7816_pad.html" title="Apply ISO 7816 padding">qcrypto_padding_iso7816_pad()</a></li>
+
+          <li class="li"><a class="xref" href="../qcrypto_padding_iso7816_size.html" title="Calculate ISO 7816 padding length">qcrypto_padding_iso7816_size()</a></li>
+
+          <li class="li"><a class="xref" href="../qcrypto_padding_iso7816_unpad.html" title="Remove ISO 7816 padding">qcrypto_padding_iso7816_unpad()</a></li>
+
+        </ul>
+
+      </div>
+</div>
+
+    <div class="section"><h2 class="title sectiontitle">Padding examples</h2>
+      
+      
+      <pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#include &lt;qcrypto/qcrypto.h&gt;
+#include &lt;qcrypto/qcrypto_error.h&gt;
+
+int main(void)
+{
+    int ret;
+    int pad_result = 1;
+    int unpad_result = 1;
+    size_t blocksize = 16;
+
+    const uint8_t inbuf[] = {0xab, 0xab};
+    const size_t insize = sizeof(inbuf);
+    const uint8_t *in_bin = inbuf;
+    size_t insize_cmp = insize;
+
+    const uint8_t outbuf[] = {
+        0xab, 0xab, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e,
+        0x0e, 0x0e, 0x0e, 0x0e
+    };
+    const size_t outsize = sizeof(outbuf);
+    size_t outsize_cmp = outsize;
+    uint8_t out_cmpbuf[outsize];
+    uint8_t *out_cmp = out_cmpbuf;
+
+    /* Initialize the Qcrypto Library */
+    ret = qcrypto_init(QCRYPTO_INIT_LAZY, NULL);
+    if (ret != QCRYPTO_R_EOK) {
+        fprintf(stderr, "qcryto_init() failed (%d:%s)\n", ret, qcrypto_strerror(ret));
+        goto done;
+    }
+
+    /* Padding pkcs7 pad */
+    ret = qcrypto_padding_pkcs7_pad(in_bin, insize, out_cmp, &amp;outsize_cmp, blocksize);
+    if (ret != QCRYPTO_R_EOK) {
+        fprintf(stderr, "qcrypto_padding_pkcs7_pad() failed (%d:%s)\n", ret, qcrypto_strerror(ret));
+        goto done;
+    }
+
+    /* Compare pad length */
+    if (outsize_cmp != outsize) {
+        fprintf(stderr, "Computed pad length failed to match with expected pad length\n");
+        goto done;
+    }
+
+
+    /* Compare pad results */
+    pad_result = memcmp(out_cmp, outbuf, outsize);
+    if (pad_result == 0) {
+         printf("Computed pad matches with expected pad\n");
+    } else {
+         fprintf(stderr, "Computed pad failed to match with expected pad\n");
+         goto done;
+    }
+
+    /* Padding pkcs7 unpad */
+    insize_cmp = outsize;
+    ret = qcrypto_padding_pkcs7_unpad(out_cmp, &amp;insize_cmp);
+    if (ret != QCRYPTO_R_EOK) {
+        fprintf(stderr, "qcrypto_padding_pkcs7_unpad() failed (%d:%s)\n", ret, qcrypto_strerror(ret));
+        goto done;
+    }
+
+   /* Compare unpad length */
+    if (insize_cmp != insize) {
+        fprintf(stderr, "Computed unpad length failed to match with expected unpad length\n");
+        goto done;
+    }
+
+    /* Compare unpad results */
+    unpad_result = memcmp(out_cmp, inbuf, insize_cmp);
+    if (unpad_result == 0) {
+         printf("Computed unpad matches with expected unpad\n");
+    } else {
+         fprintf(stderr, "Computed unpad failed to match with expected unpad\n");
+         goto done;
+    }
+    goto done;
+
+done:
+    /* Uninitialize the Qcrypto Library */
+    qcrypto_uninit();
+
+    return ret;
+}
+
+</pre>
+    </div>
+
+  </div>
+
+</body>
+</html>

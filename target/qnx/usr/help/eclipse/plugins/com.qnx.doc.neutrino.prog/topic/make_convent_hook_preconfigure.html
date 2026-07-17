@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="hook_preconfigure()" />
+<meta name="abstract" content="This function is invoked just before we run the project's configure script. Its main job is to set the configure_opts variable properly." />
+<meta name="description" content="This function is invoked just before we run the project's configure script. Its main job is to set the configure_opts variable properly." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_GNU_configure.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/make.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="hook_preconfigure" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>hook_preconfigure()</title>
+</head>
+<body id="hook_preconfigure">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">hook_preconfigure()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+This function is invoked just before we run the project's <span class="keyword cmdname">configure</span>
+script. Its main job is to set the <var class="keyword varname">configure_opts</var> variable properly.
+</p>
+
+
+<div class="p">
+
+
+
+
+Here's a fairly complicated example (this is from GCC):
+
+<pre class="pre codeblock"># The "target" variable is the compilation target: "ntoaarch64le", "ntox86_64", etc.
+function hook_preconfigure {
+    case ${SYSNAME} in
+    nto)
+        case "${target}" in
+        nto*)   basedir=/usr ;;
+        *)      basedir=/opt/QNXsdk/host/qnx/x86_64/usr ;;
+        esac
+        ;;
+    linux)
+        host_cpu=$(uname -p)
+        case ${host_cpu} in
+        i[34567]86) host_cpu=x86_64 ;;
+        esac
+        basedir=/opt/QNXsdk/host/linux/${host_cpu}/usr
+        ;;
+    *)
+        echo "Don't have config for ${SYSNAME}"
+        exit 1
+        ;;
+    esac
+    configure_opts="${configure_opts} --target=${target}"
+    configure_opts="${configure_opts} --prefix=${basedir}"
+    configure_opts="${configure_opts} --exec-prefix=${basedir}"
+    configure_opts="${configure_opts} --with-local-prefix=${basedir}"
+    configure_opts="${configure_opts} --enable-haifa"
+    configure_opts="${configure_opts} --enable-languages=c++"
+    configure_opts="${configure_opts} --enable-threads=posix"
+    configure_opts="${configure_opts} --with-gnu-as"
+    configure_opts="${configure_opts} --with-gnu-ld"
+    configure_opts="${configure_opts} --with-as=${basedir}/bin/${target}-as"
+    configure_opts="${configure_opts} --with-ld=${basedir}/bin/${target}-ld"
+    if [ ${SYSNAME} == nto ]; then
+        configure_opts="${configure_opts} --enable-multilib"
+        configure_opts="${configure_opts} --enable-shared"
+    else
+        configure_opts="${configure_opts} --disable-multilib"
+    fi
+}
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/make_convent_GNU_configure.html" title="The addvariant utility knows how to work with code that uses a GNU ./configure script for configuration.">GNU configure</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html">addvariant</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/make.html">make</a></li></ul></div>
+</div></body>
+</html>

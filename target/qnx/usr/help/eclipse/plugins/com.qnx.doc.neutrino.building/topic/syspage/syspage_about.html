@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="System Page" />
+<meta name="abstract" content="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory." />
+<meta name="description" content="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="syspage_about" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>System Page</title>
+</head>
+<body id="syspage_about">
+
+	<h1 class="title topictitle1" id="ariaid-title1">System Page</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The system page contains essential information about the system, including the system
+		page's size, information about the hardware platform (including IRQs and the CPU),
+		the cache size, and the location of kernel callouts in memory.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			<p class="p">The system page is implemented by a data structure containing constants, references
+				to other data structures, and a union shared by the different processor
+				architectures that <span class="keyword">QNX OS</span> supports.</p>
+
+			<p class="p">One of the startup program's main tasks is to initialize the system page with the
+				information that the OS needs to run on the current hardware (see <q class="q"><a class="xref" href="../startup/startup_tasks.html" title="The startup code configures the hardware, detects system resources, and loads and starts the OS kernel.">Startup tasks</a></q> in the <q class="q">Startup Programs</q> chapter).
+				After the startup program initializes the system page,
+				it populates this data structure with data that describes the current system and OS,
+				allowing applications to retrieve the information they need.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">System page location</h2>
+			
+			<p class="p">The standard location for header files, including <span class="ph filepath">sys/syspage.h</span>,
+				is on your host system in <span class="ph filepath"><span class="keyword envar">${QNX_TARGET}</span>/usr/include</span>,
+				where <span class="keyword envar">${QNX_TARGET}</span> is the directory that holds the target-related
+				components. Architecture-specific header files are kept in
+				<span class="ph filepath"><span class="keyword envar">${QNX_TARGET}</span>/usr/include/<var class="keyword varname">arch</var></span>,
+				where <var class="keyword varname">arch</var> is the architecture of the target system.
+				For example, <span class="ph filepath"><span class="keyword envar">${QNX_TARGET}</span>/usr/include/x86_64/syspage.h</span>
+				contains the architecture-specific definitions for x86 64-bit. Note, however, that the
+				correct header file to include is the general one that contains definitions for all
+				architectures and is stored in the standard header file location
+				(e.g., <span class="ph filepath">/my_qnx_sdp/target/qnx/usr/include/sys/syspage.h</span>).</p>
+
+			<p class="p">A QNX SDP product patch or OS update can replace this and other header files (and other
+				components such as binaries and libraries) with newer versions.</p>
+
+			<p class="p">However, because QNX regularly updates header files between patches and updates, a
+				specific BSP component often requires a newer version of a header file. When an updated
+				header file is required, it is included with the BSP and the version in the QNX SDP exists
+				independently. When you build the BSP, the build process automatically uses the version
+				shipped with it. Any other coding operations you do outside the context of that
+				specific BSP use the QNX SDP version of the header file.</p>
+
+		</div>
+
+		<div class="section" id="syspage_about__contents"><h2 class="title sectiontitle">System page contents</h2>
+			
+			
+			
+			<div class="p">The <span class="ph filepath">sys/syspage.h</span> header file defines the system page structure.
+				Although the contents of this structure vary with the platform, it always has the following
+				members:
+<pre class="pre codeblock">struct syspage_entry {
+    _Uint16t            size;
+    _Uint16t            total_size;
+    _Uint16t            type;
+    _Uint16t            num_cpu;
+    syspage_entry_info  system_private;
+    _SP_OLD_ARRAY(asinfo);
+    syspage_entry_info  DEPRECATED_SECTION_NAME(meminfo);
+    syspage_entry_info  hwinfo;
+    _SP_OLD_ARRAY(cpuinfo);
+    _SP_OLD_ARRAY(cacheattr);
+    syspage_entry_info  qtime;
+    syspage_entry_info  callout;
+    syspage_entry_info  callin;
+    syspage_entry_info  typed_strings;
+    syspage_entry_info  strings;
+    _SP_OLD_ARRAY(intrinfo);
+    syspage_entry_info  smp;
+    syspage_entry_info  pminfo;
+    _SP_OLD_ARRAY(mdriver);
+    _Uint32t            spare0[1];
+    union {
+        struct {
+            _Uint32t        __x86_spacer;
+            struct x86_syspage_entry     x86;
+        };
+        struct {
+            _Uint32t        __arm_spacer;
+            struct arm_syspage_entry    arm;
+        };
+        struct x86_64_syspage_entry     x86_64;
+        struct aarch64_syspage_entry    aarch64;
+        _Uint64t        filler[20];
+    } un;
+    _SP_NEW_ARRAY(asinfo);
+    _SP_NEW_ARRAY(cpuinfo);
+    _SP_NEW_ARRAY(cacheattr);
+    _SP_NEW_ARRAY(intrinfo);
+    _SP_NEW_ARRAY(mdriver);
+};</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> The startup library code initializes some of the system page fields. Depending on the
+				amount of customization you require, you may need to initialize some fields as well.</div>
+
+			<div class="p">
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			The members of the <span class="keyword dtype">syspage_entry</span> data structure are:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">size</var></dt>
+
+					<dd class="dd">The size of the system page entry. The startup library sets this member
+						automatically.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">total_size</var></dt>
+
+					<dd class="dd">
+						<p class="p">The size of the system page entry <em class="ph i">plus</em> the referenced substructures;
+							effectively the size of the entire system-page database.</p>
+
+						<p class="p">The startup library sets this member automatically, but other library
+							calls may adjust (grow) it later as required.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm" id="syspage_about__type"><var class="keyword varname">type</var></dt>
+
+					<dd class="dd">
+						<p class="p">
+							The CPU family for determining which
+							union member in the <a class="xref" href="un.html" title="Union where processor-specific system page information is kept"><var class="keyword varname">un</var></a> element to use.
+							It can be  one of
+							<span class="keyword const">SYSPAGE_X86_64</span> or <span class="keyword const">SYSPAGE_AARCH64</span>,
+							for the supported 64-bit architectures.</p>
+
+						<p class="p">The library sets this member automatically.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm" id="syspage_about__num_cpu"><var class="keyword varname">num_cpu</var></dt>
+
+					<dd class="dd">The number of CPUs on the system. The startup library initializes it
+						to the default value of 1. If additional CPUs are detected during startup,
+						the startup program should call <a class="xref" href="../startup_lib/init_smp.html" title="Initialize SMP functionality."><span class="keyword apiname">init_smp()</span></a> to set this member to the correct value.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">system_private</var></dt>
+
+					<dd class="dd">See <a class="xref" href="system_private.html" title="Information needed by the operating system when booting"><var class="keyword varname">system_private</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">asinfo</var></dt>
+
+					<dd class="dd">See <a class="xref" href="asinfo.html" title="Array of structures describing different sections of the system memory map (e.g., RAM, SRAM, flash, I/O ranges)"><var class="keyword varname">asinfo</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">meminfo</var></dt>
+
+					<dd class="dd">Deprecated; do not use.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">hwinfo</var></dt>
+
+					<dd class="dd">See <a class="xref" href="hwinfo.html" title="Information about the hardware platform (type of bus, devices, IRQs, etc)"><var class="keyword varname">hwinfo</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">cpuinfo</var></dt>
+
+					<dd class="dd">See <a class="xref" href="cpuinfo.html" title="Information about each CPU in the system"><var class="keyword varname">cpuinfo</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">cacheattr</var></dt>
+
+					<dd class="dd">See <a class="xref" href="cacheattr.html" title="Information about the on-chip and off-chip cache system configuration"><var class="keyword varname">cacheattr</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">qtime</var></dt>
+
+					<dd class="dd">See <a class="xref" href="qtime.html" title="Information about the system's timebase, and other time-related information"><var class="keyword varname">qtime</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">callout</var></dt>
+
+					<dd class="dd">See <a class="xref" href="callout.html" title="Information for kernel callouts"><var class="keyword varname">callout</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">callin</var></dt>
+
+					<dd class="dd">For internal use.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">typed_strings</var></dt>
+
+					<dd class="dd">
+						<p class="p">A literal pool used for typed strings. Each entry consists of a four-byte
+							number and a NULL-terminated string. The number represents the string
+							type and corresponds to a specific constant from the system header file
+								<span class="ph filepath">&lt;confname.h&gt;</span> (see the C library function
+								<span class="keyword apiname">confstr()</span>).</p>
+
+						<p class="p">Usually, the <span class="keyword apiname">init_*()</span> library functions populate the
+							typed strings literal pool. However, if you need to add something, you
+							can call the <a class="xref" href="../startup_lib/add_typed_string.html"><span class="keyword apiname">add_typed_string()</span></a> function from the startup library.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm" id="syspage_about__strings"><var class="keyword varname">strings</var></dt>
+
+					<dd class="dd">
+						<p class="p">A literal pool used for non-typed strings. To use one of these strings,
+							specify the appropriate index in <var class="keyword varname">strings</var>
+							(e.g., <var class="keyword varname">cpuinfo</var>'s <var class="keyword varname">name</var> member).</p>
+
+						<p class="p">Usually, the <span class="keyword apiname">init_*()</span> library functions populate the
+							non-typed strings literal pool. However, if you need to add something,
+							you can call the <a class="xref" href="../startup_lib/add_string.html"><span class="keyword apiname">add_string()</span></a> function from the startup library.</p>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">intrinfo</var></dt>
+
+					<dd class="dd">See <a class="xref" href="intrinfo.html" title="Information about the interrupt system"><var class="keyword varname">intrinfo</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">smp</var></dt>
+
+					<dd class="dd">See <a class="xref" href="smp.html" title="Information for IPIs in SMP systems"><var class="keyword varname">smp</var></a>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">pminfo</var></dt>
+
+					<dd class="dd">Not currently supported.
+					</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">un</var></dt>
+
+					<dd class="dd">See <a class="xref" href="un.html" title="Union where processor-specific system page information is kept"><var class="keyword varname">un</var></a>.</dd>
+
+				
+			</dl>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><span class="keyword const">_SP_NEW_ARRAY</span></h2>
+			
+			
+			
+			<div class="p">The <span class="keyword const">_SP_NEW_ARRAY</span> macro defines the data structures for several
+				<span class="keyword dtype">syspage_entry</span> members, including <var class="keyword varname">asinfo</var>,
+				<var class="keyword varname">cpuinfo</var>, <var class="keyword varname">cacheattr</var>, <var class="keyword varname">intrinfo</var>, and
+				<var class="keyword varname">mdriver</var>. It is a union of the old and the new
+				<span class="keyword dtype">syspage_array_info</span> structures:
+<pre class="pre codeblock">#define _SP_NEW_ARRAY(__sect)				\
+	union {					\
+		syspage_array_info	new_##__sect;	\
+		syspage_array_info	__sect;	\
+	}</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><span class="keyword const">_SP_OLD_ARRAY</span></h2>
+			
+			
+			
+			<div class="p">The <span class="keyword const">_SP_OLD_ARRAY</span> macro defines pre-64-bit data structures for the same
+				<span class="keyword dtype">syspage_entry</span> members as are defined by <span class="keyword const">_SP_NEW_ARRAY</span>:
+<pre class="pre codeblock">#define _SP_OLD_ARRAY(__sect)	syspage_entry_info	old_##__sect</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><span class="keyword dtype">syspage_array_info</span></h2>
+			
+			
+			<div class="p">The <span class="keyword dtype">syspage_array_info</span> data structure is used by <span class="keyword const">_SP_NEW_ARRAY</span> and
+				<span class="keyword const">_SP_OLD_ARRAY</span>. It is defined as follows:
+<pre class="pre codeblock">typedef struct {
+	_Uint16t		entry_off;
+	_Uint16t		entry_size;
+	_Uint16t		element_size;
+} syspage_array_info;</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">64-bit support</h2>
+			
+			
+			
+			<div class="p">QNX SDP supports 64-bit processing on x86 and ARM platforms. This support is defined by
+				the following system page types:
+<pre class="pre codeblock">/*
+ *	System page types
+ */
+enum {
+	SYSPAGE_X86,
+	SYSPAGE_PPC,
+	SYSPAGE_MIPS,
+	SYSPAGE_SPARE,
+	SYSPAGE_ARM,
+	SYSPAGE_SH,
+	/* additional 32 bit architectures go here */
+
+	SYSPAGE_64BIT = 0x100,
+	SYSPAGE_X86_64 = SYSPAGE_64BIT,
+	SYSPAGE_AARCH64,
+	/* additional 64 bit architectures go here */
+};</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> Some definitions are for 32-bit architectures that are no longer supported
+				(e.g., X86, PPC, MIPS, ARM, SH).</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

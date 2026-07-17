@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Transferring an OS image to an x86_64 target platform" />
+<meta name="abstract" content="A QNX OS system can be self-contained in a single boot file—the IFS. You can boot the IFS on x86_64 target platforms using standard disk boot methods." />
+<meta name="description" content="A QNX OS system can be self-contained in a single boot file—the IFS. You can boot the IFS on x86_64 target platforms using standard disk boot methods." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bsp_img_tfr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Transferring an OS image to an x86_64 target platform</title>
+</head>
+<body id="bsp_img_tfr">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Transferring an OS image to an x86_64 target platform</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">A <span class="keyword">QNX OS</span> system can be self-contained in a single boot
+		file—the IFS. You can boot the IFS on x86_64 target platforms using standard disk boot
+		methods.</p>
+
+	<div class="section">
+		
+		
+		
+		
+		<div class="p">However, you may want to create a Power-Safe (QNX6) filesystem on the target.
+			Some examples of when this type of filesystem is required are: <ul class="ul">
+			<li class="li">You require a persistent, writable filesystem (the IFS is read-only).</li>
+
+			<li class="li">You want to decrease the size of the IFS for a faster boot time.</li>
+
+			<li class="li">You want to make it easier to add executables and libraries to the target
+				without rebuilding an IFS.</li>
+
+		</ul>
+</div>
+
+		<p class="p">The Power-Safe filesystem resides on a storage device on the target (e.g., a
+			hard drive, SSD drive, MMC chip, or NVMe chip). The filesystem can also be made
+			bootable, which means that after it's placed on the storage device, a separate boot
+			medium (e.g., a USB stick) is no longer needed.</p>
+
+	</div>
+
+	<div class="section"><h2 class="title sectiontitle">BIOS systems</h2>
+		
+		<ol class="ol">
+			<li class="li">Create the IFS.
+				<div class="p">Every BSP comes with an example buildfile that creates a simple IFS.
+					For instance, run the following command from the BSP <span class="ph filepath">images</span>
+					directory to create the IFS <span class="ph filepath">x86_64-generic.bin</span> using the
+					buildfile <span class="ph filepath">x86_64-generic.build</span>. This command gives the file
+					extension <span class="ph filepath">.bin</span>, but you can use any value;
+					there are BSPs that use <span class="ph filepath">.ifs</span> and <span class="ph filepath">.raw</span>:
+<pre class="pre codeblock">mkifs -r../install -vv x86_64-generic.build x86_64-generic.bin</pre></div>
+
+				<p class="p">Alternatively, in the IDE, create the IFS using the right-click menu for the BSP
+					project.</p>
+
+			</li>
+
+			<li class="li">Create the Power-Safe filesystem image as shown in following example buildfile named
+				<span class="ph filepath">bios_root.build</span>:
+<pre class="pre codeblock"># Set the size of the filesystem image in disk sectors (not filesystem blocks).
+# The size must be a multiple of 8 and can be any value that can fit on the media.
+# For this example, the media is 400 MB.
+[num_sectors=409600]
+
+# In QNX OS, inodes have to be pre-allocated at format time
+[num_inodes=50000]
+
+# The blocksize is typically set based on how the filesystem is expected to be used.
+# If the filesystem will contain many very small files, reduce the specified blksize,
+# because each file occupies a whole number of blocks. Default to 4KiB as that size
+# ensures everything is 4KiB-aligned and may work better with some solid-state devices.
+[blksize=4096]
+
+# Include the boot IFS in the image, in /.boot.
+# In this example, x86_64-generic.bin is the image that you build from the BSP and
+# primary_boot.ifs is its name in the image.
+# You can choose any name for the boot IFS in /.boot, as long as it is the only file
+/.boot/primary_boot_image.bin=x86_64-generic.bin
+
+# Optionally, include any other files you want in the filesystem image
+/usr/bin/traceprinter=${QNX_TARGET}/x86_64/usr/bin/traceprinter
+/usr/bin/awk=${QNX_TARGET}/x86_64/usr/bin/awk
+
+# Optionally, include a complete directory without specifying individual filenames.
+# For example, include all files for screen graphics.
+/usr/lib/graphics/intel-drm=${QNX_TARGET}/x86_64/usr/lib/graphics/intel-drm</pre>
+				The following example command uses this buildfile to create the
+				<span class="ph filepath">bios_root.img</span> file, which contains the filesystem:
+				<pre class="pre codeblock">mkqnx6fsimg -vv bios_root.build bios_root.img</pre>
+				<div class="p">The output <span class="ph filepath">bios_root.img</span> file is
+					<tt class="ph tt">num_sectors</tt> long and contains the following items: <ul class="ul">
+					<li class="li">boot IFS as <span class="ph filepath">/.boot/primary_boot_image.bin</span></li>
+
+					<li class="li">two files in <span class="ph filepath">/usr/bin</span></li>
+
+					<li class="li">an entire tree from the SDP as
+					<span class="ph filepath">/usr/lib/graphics/intel-drm</span></li>
+
+					</ul>
+</div>
+
+			</li>
+
+			<li class="li"><div class="p">Use <span class="keyword cmdname">diskimage</span> to prepend the filesystem with a partition
+				table and primary bootstrap and to adjust the secondary bootloader to match the image.
+				The following example illustrates a <span class="keyword cmdname">diskimage</span>
+				configuration file (<span class="ph filepath">bios_disk.cfg</span>):
+<pre class="pre codeblock"># Set the disk CHS geometry.
+# The following values should work on all HDDs and set the cylinder size to 1 MiB.
+# Although the usual value for sectors_per_trk is 63, here it is set to 32 to allow
+# for a convenient cylinder size of 1 MiB.
+[heads=64]
+[sectors_per_track=32]
+[sector_size=512]
+
+# The following line sets the corresponding total disk image size to 400 MiB.
+# Adjust as necessary.
+[cylinders=400]
+
+# List the partitions and provide the image files to use. The diskimage utility
+# re-sizes the partition automatically to fit the image file, if one is provided.
+# Specify the partition information using the MBR format.
+[partition=1 type=177 boot=true] "bios_root.img"</pre></div>
+
+				<div class="p">The following example commands create the fully bootable HDD image
+					<span class="ph filepath">bios_disk.img</span> that specifies the partition images that
+					appear in the disk image:
+<pre class="pre codeblock">diskimage -o bios_disk.img -c bios_disk.cfg 
+          -b $QNX_TARGET/x86_64/boot/sys/ipl-diskpc1-nomsg -s 131072</pre>
+					where: <ul class="ul">
+						<li class="li">The <span class="keyword option">-b</span> option specifies the primary loader (IPL1), but
+							you can specify <span class="keyword option">ipl-diskpc1</span> instead.</li>
+
+						<li class="li">The <span class="keyword option">-s</span> specifies the buffer size to use. Specifying a
+							value like the one in the example can shorten the amount of time it
+							takes to make the image.</li>
+
+					</ul>
+</div>
+
+				<p class="p">The output file <span class="ph filepath">bios_disk.img</span> is somewhat larger
+					than the <span class="ph filepath">bios_root.img</span> file specified in the
+					<span class="keyword cmdname">diskimage</span> configuration file
+					(<span class="ph filepath">bios_disk.cfg</span>).</p>
+
+			</li>
+
+			<li class="li">Transfer the image to the disk on your target. For instance: <ul class="ul">
+				<li class="li">Attach the target device to your host system and copy the file using the
+					<span class="keyword cmdname">dd</span> utility (Linux), or RawWrite or Win32DiskImager (Windows).</li>
+
+					<li class="li">If you can place the bootable image (for example,
+						<span class="ph filepath">bios_disk.img</span>) on a CD or USB stick, use it to
+						boot the target, and then transfer the image to the primary HDD or other
+						boot media. You can also use a network-based method to transfer the image.</li>
+
+					</ul>
+</li>
+
+			</ol>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">UEFI systems</h2>
+			
+			<p class="p">UEFI implementations differ from board to board. The following procedure illustrates
+				transferring an OS image to an ASRock Beebox target. (Because the Beebox does not
+				provide a serial connection, to access the console, you need to use adapters to
+				create USB-to-serial connections.)</p>
+
+			<ol class="ol">
+				<li class="li">Create the IFS.
+					<div class="p">Every BSP comes with an example buildfile that creates a simple IFS.
+						For instance, run the following command from the BSP
+						<span class="ph filepath">images</span> directory to create the IFS
+						<span class="ph filepath">x86_64-uefi.efi</span> using the buildfile
+						<span class="ph filepath">x86_64-uefi.build</span>. This command gives the file extension
+						<span class="ph filepath">.efi</span>, but you can use any value; there
+						are BSPs that use <span class="ph filepath">.ifs</span>, <span class="ph filepath">.raw</span>, and
+						<span class="ph filepath">.bin</span>:
+<pre class="pre codeblock">mkifs -r../install -vv x86_64-uefi.build x86_64-uefi.efi</pre></div>
+
+					<p class="p">Alternatively, in the IDE, create the IFS using the right-click menu for the
+						BSP project.</p>
+</li>
+
+				<li class="li">Create the Power-Safe filesystem (<span class="keyword">QNX OS</span>) image as
+					shown in following example buildfile (named <span class="ph filepath">uefi_root.build</span>).
+<pre class="pre codeblock"># Set the size of the filesystem image in disk sectors (not filesystem blocks).
+# The size must be a multiple of 8 and can be any value that can fit on the media.
+# For this example, the media is 400 MB.
+[num_sectors=409600]
+
+# In QNX OS, inodes have to be pre-allocated at format time.
+[num_inodes=50000]
+
+# The blocksize is typically set based on how the filesystem is expected to be used.
+# If the filesystem will contain many very small files, reduce the specified blksize,
+# because each file occupies a whole number of blocks. Default to 4KiB as that size
+# ensures everything is 4KiB-aligned and may work better with some solid-state devices.
+[blksize=4096]
+
+# Optionally, include any other files you want in the filesystem image.
+/usr/bin/traceprinter=${QNX_TARGET}/x86_64/usr/bin/traceprinter
+/usr/bin/awk=${QNX_TARGET}/x86_64/usr/bin/awk
+
+# Optionally, include a complete directory without specifying individual filenames.
+# For example, include all files for screen graphics.
+/usr/lib/graphics/intel-drm=${QNX_TARGET}/x86_64/usr/lib/graphics/intel-drm</pre>
+					<div class="p">The following example command uses this buildfile to create the
+						<span class="ph filepath">uefi_root.img</span> file, which contains the filesystem:
+<pre class="pre codeblock">mkqnx6fsimg -vv uefi_root.build uefi_root.img</pre></div>
+
+					<div class="p">The output <span class="ph filepath">uefi_root.img</span> file is
+						<tt class="ph tt">num_sectors</tt> long and contains the following items: <ul class="ul">
+							<li class="li">two files in <span class="ph filepath">/usr/bin</span></li>
+
+							<li class="li">an entire tree from the SDP as
+								<span class="ph filepath">/usr/lib/graphics/intel-drm</span></li>
+
+						</ul>
+</div>
+
+				</li>
+
+				<li class="li">Generate the UEFI boot partition. In the following example buildfile
+					<span class="ph filepath">uefi_boot.build</span>, the boot image name is the one used for
+					Intel Gordon Ridge MBR. For the name used by your board, see its BSP documentation.
+<pre class="pre codeblock"># The EFI boot partition needs to be large enough only to hold the IFS
+[num_sectors=51200]
+
+# Create the boot image with the name required by your board's firmware
+EFI/BOOT/BOOTX64.EFI=x86_64-uefi.efi</pre></li>
+
+				<li class="li">Create a FAT partition (FAT12, FAT16, or FAT32). For example:
+					<pre class="pre codeblock">mkfatfsimg -vv uefi_boot.build uefi_boot.img</pre></li>
+
+				<li class="li">Use <span class="keyword cmdname">diskimage</span> to prepend the filesystem with a partition
+					table and primary bootstrap. For UEFI, the partition table is GPT, but in most
+					cases it could also be MBR.
+					<div class="p">The following example illustrates a <span class="keyword cmdname">diskimage</span> configuration
+						file (<span class="ph filepath">uefi_disk.cfg</span>):
+<pre class="pre codeblock"># Set the disk CHS geometry. The values below should work on all HDDs and set
+# the cylinder size to 1 MiB. Although the usual value for sectors_per_trk is 63,
+# here it is set to 32 to allow for a convenient cylinder size of 1 MiB.
+[heads=64]
+[sectors_per_track=32]
+[sector_size=512]
+
+# The following line sets the corresponding total disk image size to 400 MiB.
+# Adjust as necessary.
+[cylinders=400]
+
+# Generate a GPT with the required "UEFI System Partition"
+[partition=1 type_guid={C12A7328-F81F-11D2-BA4B-00A0C93EC93B} name="boot" boot=true] "uefi_boot.img"
+[partition=2 type_guid="qnx6"] "uefi_root.img"
+</pre></div>
+
+					<p class="p">The string <tt class="ph tt">C12A7328-F81F-11D2-BA4B-00A0C93EC93B</tt> in this example is the
+						full GUID for an EFI system partition; you could use the short identifier
+						<tt class="ph tt">efi</tt> instead. For information about GUIDs for partition types, see
+						<span class="ph filepath">gpt_guid.h</span> or the entry for the
+						<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/diskimage_config_file.html"><span class="keyword cmdname">diskimage</span> configuration file</a> in the
+						<cite class="cite">Utilities Reference</cite>.
+					</p>
+
+					<div class="p">The following example command creates the fully bootable HDD image
+						<span class="ph filepath">uefi_disk.img</span> that specifies the partition images that
+						appear in the disk image:
+<pre class="pre codeblock">diskimage -g -o uefi_disk.img -c uefi_disk.cfg</pre></div>
+
+					<p class="p">The output file <span class="ph filepath">uefi_disk.img</span> is somewhat larger
+						than the <span class="ph filepath">uefi_root.img</span> file specified in the
+						<span class="keyword cmdname">diskimage</span> configuration file
+						(<span class="ph filepath">uefi_disk.cfg</span>).</p>
+
+				</li>
+
+				<li class="li">Transfer the image to the disk on your target. For example: <ul class="ul">
+					<li class="li">Attach the target device to your host system and copy the file using the
+						<span class="keyword cmdname">dd</span> utility (Linux), or RawWrite or Win32DiskImager (Windows).
+					</li>
+
+					<li class="li">If you can place the bootable image (for example,
+						<span class="ph filepath">uefi_disk.img</span>) on a CD or USB stick, use it to
+						boot the target, and then transfer the image to the primary HDD or other
+						boot media. You can also use a network-based method to transfer the image.</li>
+
+					</ul>
+</li>
+
+			</ol>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

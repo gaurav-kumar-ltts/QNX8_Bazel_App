@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Image storage" />
+<meta name="abstract" content="The media on which the bootable OS image is stored, and how it is stored (compressed or not) determine what the IPL must do with the image." />
+<meta name="description" content="The media on which the bootable OS image is stored, and how it is stored (compressed or not) determine what the IPL must do with the image." />
+<meta name="DC.subject" content="image, storage, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="image, storage, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_image_storage" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Image storage</title>
+</head>
+<body id="ipl_image_storage">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Image storage</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The media on which the bootable OS image is stored, and how it is stored (compressed
+		or not) determine what the IPL must do with the image.</p>
+
+		<p class="p">The type of removable media used to store the IPL and the IFS affects many aspects of the
+			IPL design. One significant factor is whether the storage media is linearly mapped
+			(e.g., NOR FLASH) or non-linearly mapped (e.g., eMMC, SD card), because it determines if
+			the IPL can use eXecute In Place (XIP).</p>
+
+		<p class="p">Other important factors include whether the image is compressed, and the device on which
+			it is stored (see <q class="q"><a class="xref" href="ipl_image_struct.html" title="The following diagrams show some common methods for storing bootable images, and what the IPL and startup code copy and extract to RAM in order to prepare the OS to run.">Image storage methods</a></q>).</p>
+
+		<div class="section" id="ipl_image_storage__linear"><h2 class="title sectiontitle">Linearly mapped devices</h2>
+			
+			
+			
+			
+			
+			<p class="p">With linearly mapped devices (e.g., ROM devices), the entire image is in directly
+				addressable storage that maps its entire address space into the processor's address
+				space. The processor can address any location in the OS image, so the IPL needs to
+				copy only the startup code (not the entire image) into RAM, leaving the rest of the
+				image on the device.</p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>IPL loading of startup code from device into RAM, with rest of image left on
+					device.</span>
+				
+				<br /><img class="image" src="../../images/linear.svg" width="432" alt="Figure showing how a QNX IPL loads the startup code from a linearly mapped device into RAM." /><br />
+			</div>
+
+			<p class="p">If the removable media is linearly mapped, the IPL can use XIP. In this case, the
+				<span class="ph codeph">.text</span> section of the IPL (the code) in the linker file (e.g.,
+				<span class="ph filepath">mx6sx-sabre-sdb.lnk</span> or <span class="ph filepath">vayu-evm.lnk</span>)
+				must be in the linearly mapped address space.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				All of the IPL assembly code can run before the image is copied into RAM.
+			</div>
+
+		</div>
+
+		<div class="section" id="ipl_image_storage__nonlinear"><h2 class="title sectiontitle">Non-linearly mapped devices</h2>
+			
+			
+			
+			
+			
+			<p class="p">With non-linearly mapped devices (e.g., eMMCs, SD cards, or SPI NOR devices), the
+				image is in storage that can't be mapped directly into the processor's address space.
+				The processor can't address the OS image, so the IPL needs to copy the entire image
+				(including the startup code) into RAM.</p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>IPL loading of entire image from device into RAM.</span>
+				
+				<br /><img class="image" src="../../images/non-linear.svg" width="432" alt="Figure showing how a QNX IPL loads the entire image from a non-linearly mapped device into RAM." /><br />
+			</div>
+
+		</div>
+
+		<div class="section" id="ipl_image_storage__compressed"><h2 class="title sectiontitle">Compressed images</h2>
+			
+			
+			
+			
+			<p class="p">If a bootable image is too large to store on the removable media in its original
+				form, or if hardware limitations (e.g., slow bus) make copying and extracting the
+				compressed image more efficient than copying the image in its original form,
+				the bootable image may be compressed on either a linearly mapped or a non-linearly
+				mapped removable storage device.</p>
+
+			<p class="p">When it builds the OS image, the <span class="keyword cmdname">mkifs</span> utility checks for the
+				<span class="ph codeph">compress</span> attribute in the buildfile. If the attribute is set
+				(e.g., <span class="ph codeph">[virtual = x86_64, bios <strong class="ph b">+compress</strong> boot = {</span> ),
+				<span class="keyword cmdname">mkifs</span> compresses the image (see the <a class="xref" href="../buildfiles/buildfile.html" title="You can edit OS image buildfiles to configure OS images.">OS Image Buildfiles</a> chapter).</p>
+
+			<div class="p">If the image is compressed, it must be copied to RAM and extracted before the
+				<span class="keyword apiname">main()</span> function in the IPL's second stage calls the
+				<span class="keyword apiname">image_scan()</span> function. When you write an IPL or update a
+				system that uses a compressed image, ensure that you:
+				<ul class="ul">
+					<li class="li">Copy the compressed image to a RAM location <em class="ph i">other than</em> the address where
+						you will extract it.</li>
+
+					<li class="li">Extract the image so the startup code is at the address where your IPL will jump
+						to when it has finished.</li>
+
+					<li class="li">Leave enough room for the entire uncompressed image between the location where
+						you copy the compressed image and the address to which you will extract it.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">If you change or add components, this will likely increase the size
+				of your image. Check that there is enough room for the new, larger image between the
+				start address of the uncompressed image and the address where you first copy the
+				compressed image into RAM.</div>
+
+			<p class="p">For examples of how different storage options are used, see <q class="q"><a class="xref" href="ipl_image_struct.html" title="The following diagrams show some common methods for storing bootable images, and what the IPL and startup code copy and extract to RAM in order to prepare the OS to run.">Image storage methods</a></q> in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="ipl_image_storage__image_loc"><h2 class="title sectiontitle">Image locations</h2>
+			
+			
+			
+			
+			
+			
+			
+			<div class="p">The IPL can load the OS image from different types of devices or over a network,
+				depending on what the board supports. The locations where OS images are often stored
+				include:
+				<dl class="dl">
+					
+						<dt class="dt dlterm">Disk</dt>
+
+						<dd class="dd">Most embedded systems now use solid-state media such as a USB key, SD or
+							micro SD card, or eMMC, though some may still use a rotating disk. The
+							board's platform type determines the kind of media, if any, from which the
+							system can boot.</dd>
+
+						<dd class="dd ddexpand">With x86 boards, for example, booting from disk is the simplest boot method.
+							The BIOS or UEFI performs all of the work: it fetches the image from disk,
+							transfers it to RAM, and starts it.</dd>
+
+						<dd class="dd ddexpand">With ARM boards, booting from disk requires at least: <ul class="ul">
+								<li class="li">A driver that knows how to access the disk.</li>
+
+								<li class="li">IPL code that examines the disk's partition table and locates the OS
+									image.</li>
+
+								<li class="li">IPL code that either maps the image portions into a window and
+									transfers bytes to RAM (solid-state disk), or fetches the data bytes
+									from the disk hardware (rotating disk).</li>
+
+							</ul>
+</dd>
+
+					
+					
+						<dt class="dt dlterm">Network</dt>
+
+						<dd class="dd">If the board has a PCI network card, the OS image can be loaded over an
+							Ethernet network and placed in the processor's address space.</dd>
+
+					
+					
+						<dt class="dt dlterm">DHCP server</dt>
+
+						<dd class="dd">On some embedded boards, the boot loader contains DHCP code. This code
+							knows how to talk to the networking hardware, and how to get the OS image
+							from a remote system.</dd>
+
+						<dd class="dd ddexpand">To boot a <span class="keyword">QNX OS</span> system using DHCP,
+							you need a DHCP-capable boot loader for the OS client and a DHCP server
+							(e.g., <span class="keyword cmdname">dhcpd</span>). Since the TFTP protocol is used to move
+							the image from the remote system to the client, a TFTP server is also needed
+							(e.g., <span class="keyword cmdname">tftpd</span>). See the documentation for your development
+							host server for information on managing its DHCP and TFTP services.</dd>
+
+					
+					
+						<dt class="dt dlterm">Serial port</dt>
+
+						<dd class="dd">A serial port on the target can be useful during development for downloading
+							an image or as a failsafe mechanism (e.g., if a checksum fails, you can
+							simply reload the OS image via the serial port).</dd>
+
+						<dd class="dd ddexpand">A serial loader can be built into the IPL code so the IPL can fetch the OS
+							image from an external hardware port. The IPL process is almost identical to
+							the process used for a network boot, except that instead of an Ethernet
+							port, a serial port is used to fetch the image.</dd>
+
+						<dd class="dd ddexpand">A serial loader usually has little effect on an embedded system's cost.
+							Board vendors often include serial port functionality on their evaluation
+							boards, sometimes through a debug port.
+							
+							In many cases, the serial port hardware and serial loader can be used during
+							project development, then omitted from the final assembly.</dd>
+
+						<dd class="dd ddexpand">QNX supplies source code for an embedded serial loader for the 8250 chip,
+							and the QNX SDP includes a utility that sends an OS image to a target over a
+							serial or parallel port (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/sendnto.html"><span class="keyword cmdname">sendnto</span></a> in the
+							<em class="ph i">Utilities Reference</em>). </dd>
+
+					
+				</dl>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="ipl_image_storage__alt"><h2 class="title sectiontitle">Alternative method for loading the image</h2>
+			
+			
+			<p class="p">As well as supporting a primary method for loading the OS image, the IPL code may also
+				need to support an alternative loading method (e.g., an <span class="ph filepath">.altboot</span>
+				in the case of a disk boot on x86 boards).
+				This secondary method may have to be an automatic fallback when the primary image is
+				corrupt. You can use a <span class="ph filepath">.boot</span> directory with a list of fallback
+				IFSs that can be loaded from read-only media.</p>
+
+		</div>
+
+		<div class="section" id="ipl_image_storage__validate"><h2 class="title sectiontitle">Image validation</h2>
+			
+			
+			
+			
+			<div class="p">To validate a bootable image, use the <span class="keyword apiname">checksum()</span> function to
+				perform a checksum over the entire image. A call to validate an image looks like this:
+<pre class="pre codeblock">checksum (image_paddr, startup_size);
+checksum (image_paddr + startup_size, stored_size - startup_size);
+</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> You can speed up the checksum calculation by enabling the cache before calling
+				<span class="keyword apiname">checksum</span> or another function, such as
+				<span class="keyword apiname">image_scan()</span>, that calls <span class="keyword apiname">checksum()</span>
+				(see <q class="q"><a class="xref" href="ipl_optimize.html" title="You can use a variety of strategies to optimize an IPL.">Optimizing an IPL</a></q> in this chapter, and
+				<a class="xref" href="../ipl_lib/enable_cache.html" title="Enable the cache"><span class="keyword apiname">enable_cache()</span></a> in the IPL Library).</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

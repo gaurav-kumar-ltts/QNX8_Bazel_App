@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Installing SMMUMAN" />
+<meta name="abstract" content="This section describes how to get SMMUMAN or SMMUMAN for Safety and add it to a QNX OS or QNX OS for Safety system." />
+<meta name="description" content="This section describes how to get SMMUMAN or SMMUMAN for Safety and add it to a QNX OS or QNX OS for Safety system." />
+<meta name="DC.subject" content=", smmuman, installation, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content=", smmuman, installation, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="install" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Installing SMMUMAN</title>
+</head>
+<body id="install">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Installing SMMUMAN</h1>
+
+	
+		
+	<div class="body conbody"><p class="shortdesc">This section describes how to get SMMUMAN or SMMUMAN for Safety and add it to a
+		<span class="keyword">QNX OS</span> or <span class="keyword">QNX OS for Safety</span> system.</p>
+
+		<div class="section" id="install__safe"><h2 class="title sectiontitle">SMMUMAN for Safety</h2>
+			
+			<div class="p">Two variants of SMMUMAN are available:
+				<ul class="ul">
+					<li class="li">SMMUMAN</li>
+
+					<li class="li">SMMUMAN for Safety</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">If you are building a safety-related system (i.e., you are using QNX OS for Safety (QOS),
+				QNX Advanced Virtualization Frameworks for Safety (QAVFS), QNX Hypervisor for Safety (QHS),
+				or any other safety product from QNX), remember that <em class="ph i">the functional safety of
+				your system depends on your usage of the correct implementation of SMMUMAN</em>.</p>
+
+			<div class="p">This means that:
+				<ul class="ul">
+					<li class="li">You <em class="ph i">must</em> use SMMUMAN for Safety.</li>
+
+					<li class="li">You must use SMMUMAN for Safety in accordance with the requirements and
+						restrictions stated in the QNX SMMUMAN for Safety <cite class="cite">Safety Manual</cite>.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="note warning"><span class="warningtitle">Warning:</span> SMMUMAN for Safety components include the <q class="q">-safety</q> suffix.
+				If you are building a safety-related system, do <em class="ph i">not</em> use any SMMUMAN components
+				that don't have this suffix.</div>
+
+		</div>
+
+		<div class="section" id="install__assume"><h2 class="title sectiontitle">Assumptions</h2>
+			
+			<div class="p">These instructions assume that:
+				<ul class="ul">
+					<li class="li">You have the appropriate development environment installed and configured on
+						your development host (see the QNX SDP and QOS documentation).</li>
+
+					<li class="li">You know how to build a <span class="keyword">QNX OS</span> system (see <a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/about.html"><em class="ph i">Building Embedded Systems</em></a> in the QNX SDP documentation).</li>
+
+					<li class="li">You know how to use the QNX Software Center (see the <cite class="cite">myQNX License Manager
+						and QNX Software Center User's Guide</cite>).</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="install__installation"><h2 class="title sectiontitle">Adding SMMUMAN to a system</h2>
+			
+			
+			
+			<div class="p">To implement SMMUMAN on your system, assuming that all the SMMUMAN components were
+				included in your QNX SDP package, in your development environment:
+				<ol class="ol">
+					<li class="li"><div class="p">Modify your BSP buildfile to include the SMMUMAN components:
+						<ul class="ul">
+							<li class="li"><span class="keyword cmdname">smmuman</span> or
+									<span class="keyword cmdname">smmuman-safety</span>, as required</li>
+
+							<li class="li">for a system running directly on hardware as the hypervisor host, the
+								architecture-specific or board-specific library for your board:
+									<span class="ph filepath">smmu-*</span> or <span class="ph filepath">smmu-*-safety</span>,
+								as required (see <q class="q"><a class="xref" href="../arch/components.html#components__smmutype">The smmu-*.so libraries</a></q>), and the <span class="ph filepath">*.smmu</span>
+								configuration file for the board, as required (see <q class="q"><a class="xref" href="config.html" title="Correct configuration of the smmuman service requires careful attention to architecture-specific and board-specific details provided in the board manufacturer’s documentation.">Configuring smmuman</a></q>)</li>
+
+							<li class="li">for a QNX Hypervisor for Safety (QHS) system that will be running the
+								safety variant (<span class="keyword cmdname">smmuman-safety</span>) on an x86 platform,
+								the <span class="ph filepath">pci_server-qvm_support.so</span> support file
+								(see <q class="q"><a class="xref" href="#install__pci_support">Safety variant support for PCI (x86)</a></q> below)</li>
+
+							<li class="li">for a QNX Hypervisor (QH) or QHS system, the
+								<span class="ph filepath">vdev-smmu.so</span> IOMMU/SMMU virtual device shared
+								library, so that it will be available for guests that need to use the
+								<span class="keyword cmdname">smmuman</span> service</li>
+
+						</ul>
+</div>
+
+					</li>
+
+					<li class="li">For a system running as a QNX guest in a hypervisor VM, in addition
+						to adding the SMMUMAN components in your guest build, add the <span class="keyword option">vdev
+							smmu</span> option in the configuration for the hypervisor VM that will
+						host the guest (see <q class="q"><a class="xref" href="../arch/inguest.html#inguest__vdev">The vdev-smmu virtual device</a></q>).</li>
+
+					<li class="li">Run <span class="keyword cmdname">make</span> to rebuild your system with the SMMUMAN
+						components.</li>
+
+				</ol>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> The following applies to SMMUMAN component locations:
+				<ul class="ul">
+					<li class="li"><span class="keyword cmdname">smmuman</span> can be placed in any standard path for
+						<span class="keyword envar">$PATH</span> (e.g., <span class="ph filepath">/bin</span> or
+						<span class="ph filepath">/sbin</span>).</li>
+
+					<li class="li">The shared libraries <span class="keyword cmdname">smmuman</span> uses
+						(<span class="ph filepath">*.so</span> files) can be under any
+						<span class="keyword envar">$LD_LIBRARY_PATH</span> path (e.g.,
+						<span class="ph filepath">/lib/dll</span> or <span class="ph filepath">/usr/dll</span>).</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="install__examples"><h2 class="title sectiontitle">Example of entries to add to the buildfile</h2>
+			
+			<p class="p">Below are some examples of how the buildfile might be modified to include SMMUMAN.</p>
+
+			<h3 class="title sectiontitle">x86 for an ordinary system</h3>
+			<div class="p">For a non-safety system running on a supported x86 board, the buildfile might include
+				the following:
+			<pre class="pre codeblock">/bin/smmuman = smmuman
+/lib/dll/smmu-vtd.so = smmu-vtd.so</pre>
+				where <span class="keyword cmdname">smmuman</span> is the SMMUMAN service, and
+				<span class="ph filepath">smmu-vtd.so</span> is the SMMUMAN support library for x86 platforms.</div>
+
+			<h3 class="title sectiontitle">ARM Renesas R-Car H3 for a safety-related system</h3>
+			<div class="p">For a safety-related system running directly on a supported Renesas R-Car H3 board,
+				the buildfile might include the following:
+<pre class="pre codeblock">/sbin/smmuman-safety = smmuman-safety
+/usr/dll/smmu-rcar3-safety.so = smmu-rcar3-safety.so
+/etc/smmuman-safety/rcar-h3-safety.smmu = ./smmuman-safety-config/rcar-h3-safety.smmu</pre>
+				where <span class="keyword cmdname">smmuman-safety</span> is the SMMUMAN for Safety service,
+				<span class="ph filepath">smmu-rcar3-safety.so</span> is the SMMUMAN support library, and
+				<span class="ph filepath">rcar-h3-safety.smmu</span> is your safety
+				<span class="keyword cmdname">smmuman</span> configuration file for Renesas R-Car H3 platforms.</div>
+
+			<h3 class="title sectiontitle">Guest in a QNX Hypervisor for Safety VM</h3>
+			<div class="p">For a safety-related system running as a guest in a QHS VM, the
+				guest's buildfile might include the following:
+<pre class="pre codeblock">/bin/smmuman-safety = smmuman-safety
+</pre>
+				where <span class="keyword cmdname">smmuman-safety</span> is the SMMUMAN for Safety service.</div>
+
+			<div class="note"><span class="notetitle">Note:</span> The host buildfile will have to include the <span class="ph filepath">vdev-smmu-safety.so</span>
+				virtual device, and the configuration for the VM hosting the guest will have to
+				include the <span class="keyword option">vdev smmu-safety</span> option.</div>
+
+			<h3 class="title sectiontitle">ARM Renesas R-Car H3 for an ordinary system</h3>
+			<div class="p">For a system running on a supported Renesas R-Car H3 board, the buildfile might
+				include the following:
+<pre class="pre codeblock">/bin/smmuman = smmuman
+/bin/dll/smmu-rcar3.so = smmu-rcar3.so
+/etc/smmuman/rcar-h3.smmu = ./smmuman-config/rcar-h3.smmu
+</pre>
+				where <span class="keyword cmdname">smmuman</span> is the (non-safety) SMMUMAN service,
+				<span class="ph filepath">smmu-rcar.so</span> is the SMMUMAN support library, and
+				<span class="ph filepath">rcar-h3.smmu</span> is your <span class="keyword cmdname">smmuman</span>
+				configuration file for Renesas R-Car H3 platforms.</div>
+
+			<h3 class="title sectiontitle">QNX guest in a QNX Hypervisor system</h3>
+			<div class="p">For a system running as a guest in a QH VM, the guest's buildfile might
+				include the following:
+			<pre class="pre codeblock">/bin/smmuman = smmuman
+</pre>
+				where <span class="keyword cmdname">smmuman</span> is the (non-safety) SMMUMAN service.</div>
+
+			<div class="note"><span class="notetitle">Note:</span> The host buildfile will have to include the <span class="ph filepath">vdev-smmu.so</span>
+				virtual device, and the configuration for the VM hosting the guest will have to
+				include the <span class="keyword option">vdev smmu</span> option.</div>
+
+		</div>
+
+		<div class="section" id="install__pci_support"><h2 class="title sectiontitle">Safety variant support for PCI (x86)</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">If you are using the safety variant of the VTD support library
+				(<span class="ph filepath">smmu-vtd-safety.so</span>) in a QHS system, in which the
+				<span class="keyword">QNX OS for Safety</span> runs on the host, you must include the PCI server
+				support file, <span class="ph filepath">pci_server-qvm_support.so</span>, in your system.</p>
+
+			<div class="p">To load this file, add the configuration information to one of:
+				<ul class="ul">
+					<li class="li">an inline file in your buildfile</li>
+
+					<li class="li">a separate configuration file</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">Including the PCI server support file is not necessary for non-hypervisor systems that
+				run <span class="keyword">QNX OS for Safety</span> and use the safety variant of the VTD library.</p>
+
+			<h3 class="title sectiontitle">Inline file in buildfile</h3>
+			<div class="p">You can use your buildfile to configure your startup to load the
+				<span class="ph filepath">pci_server-qvm_support.so</span> support file. For example, you
+				can add the following inline file to your buildfile:
+<pre class="pre codeblock">pci_server.cfg = {
+    [runtime]
+    PCI_SERVER_MODULE_LIST=pci_server-qvm_support.so
+}</pre></div>
+
+			<p class="p">Because no paths are specified, this will use the default locations:
+				<span class="ph filepath">pci_server.cfg</span> in <span class="ph filepath">/proc/boot</span>, and
+				<span class="ph filepath">pci_server-qvm_support.so</span> in
+				<span class="ph filepath">/lib/dll/pci</span>, the directory where
+				<span class="keyword cmdname">pci-server</span> expects to find all its <span class="ph filepath">*.so</span> files.
+			</p>
+
+			<h3 class="title sectiontitle">Separate configuration file</h3>
+			<div class="p">You can add the configuration information to a separate file and point
+				<span class="keyword cmdname">pci-server</span> to it at startup:
+			<pre class="pre codeblock">pci-server --config=<var class="keyword varname">pathto</var>/pci_server.cfg</pre>
+				where <var class="keyword varname">pathto</var> is the path to the directory with your configuration
+				file.</div>
+
+			<div class="note"><span class="notetitle">Note:</span> Whichever method you use, if you put the server module in its default location
+				(<span class="ph filepath">/lib/dll/pci</span>), you don't need to specify the full path to
+				the module in your configuration. If you place the server module in another
+				location, you need to specify the full path.</div>
+
+			<div class="p">After your system has booted, you can use <span class="keyword cmdname">pidin</span> or
+				<span class="keyword cmdname">slog2info</span> to confirm that the server module has loaded; for example:
+			<pre class="pre codeblock">pidin -ppci-server libs</pre></div>
+
+			<p class="p">For more information about including configuration information in your buildfile, see
+				<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/buildfiles/buildfile.html">OS Image Buildfiles</a></q> in <cite class="cite">Building
+					Embedded Systems</cite>. For more information about configuring 
+					<span class="keyword cmdname">pci-server</span>, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/pci-server.html"><span class="keyword cmdname">pci-server</span></a></q> in the
+				<span class="keyword">QNX OS</span> <cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

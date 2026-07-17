@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Problems with existing disk filesystems" />
+<meta name="abstract" content="Although existing disk filesystems are designed to be robust and reliable, there's still the possibility of losing data, depending on what the filesystem is doing when a catastrophic failure (such as a power failure) occurs." />
+<meta name="description" content="Although existing disk filesystems are designed to be robust and reliable, there's still the possibility of losing data, depending on what the filesystem is doing when a catastrophic failure (such as a power failure) occurs." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Existing_systems" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Problems with existing disk filesystems</title>
+</head>
+<body id="Existing_systems">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Problems with existing disk filesystems</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Although existing disk filesystems are designed to be robust and reliable,
+there's still the
+possibility of losing data, depending on what the filesystem is doing
+when a catastrophic failure (such as a power failure) occurs.
+</p>
+
+
+<p class="p">
+
+For example:
+</p>
+
+
+<ul class="ul">
+<li class="li">Each sector on a hard disk includes a 4-byte
+  error-correcting code (ECC) that the drive uses to catch hardware errors
+  and so on.
+  If the driver is writing the disk when the power fails, then the heads
+  are removed to prevent them from crashing on the surface, leaving
+  the sector half-written with the new content.
+  The next time you try to read that block—or sector—the inconsistent ECC
+  causes the read to fail, so you lose both the old
+  and new content.
+
+  <p class="p">
+  You can get hard drives that offer atomic sector upgrades and promise
+  you that either all of the old or new data in the sector will be
+  readable, but these drives are rare and expensive.
+  </p>
+
+</li>
+
+
+<li class="li">Some filesystem operations require updating multiple on-disk data
+  structures.
+  For example, if a program calls <span class="keyword apiname">unlink()</span>, the filesystem has
+  to update a bitmap block, a directory block, and an inode, which means it
+  has to write three separate blocks.
+  If the power fails between writing these blocks, the filesystem will be
+  in an inconsistent state on the disk.
+  Critical filesystem data, such as updates to directories, inodes, extent
+  blocks, and the bitmap are written synchronously to the disk in a
+  carefully chosen
+  order to reduce—but not eliminate—this risk.
+  
+</li>
+
+
+<li class="li">If the root directory, the bitmap, or inode file (all in the first few
+  blocks of the disk) gets corrupted, you wouldn't be able to mount the filesystem at all.
+  You might be able to manually repair the
+  system, but you need to be very familiar with the details of the filesystem structure.
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys_QNX6_filesystem.html" title="The Power-Safe filesystem is a reliable disk filesystem that can withstand power failures without corruption.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html">Filesystem limits (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html">fs-qtd.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li></ul></div>
+</div></body>
+</html>

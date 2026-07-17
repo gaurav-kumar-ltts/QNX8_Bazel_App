@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Resource constraint thresholds" />
+<meta name="abstract" content="In many systems, it's important to guard against clumsy or malicious applications that attempt to exhaust global resources." />
+<meta name="description" content="In many systems, it's important to guard against clumsy or malicious applications that attempt to exhaust global resources." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Privileges.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_resource_constraint" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Resource constraint thresholds</title>
+</head>
+<body id="process_resource_constraint">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Resource constraint thresholds</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In many systems, it's important to guard against clumsy or malicious applications that attempt to exhaust
+global resources.
+</p>
+
+
+<p class="p">
+
+
+A system likely has a <q class="q">core</q> or <q class="q">critical</q> part that consists of essential services and has some bounded
+(but not necessarily constant) resource consumption.
+The rest of the system could have unbounded resource consumption, either because it's designed to handle problems
+with inherently unbounded resource usage, or because the processes can't be relied upon to bound their resource usage.
+</p>
+
+
+<p class="p">
+Resource constraints ensure that the core can operate even if the extended system is maximizing its resource usage.
+The core system might have a monitoring capability that allows it to reset the extended system in some way,
+but that's not essential.
+The most obvious such resource is system RAM, but the same considerations apply to process table entries,
+and to resource manager connections (scoids).
+</p>
+
+
+<p class="p">
+
+
+A certain level of protection is provided by <span class="keyword const">RLIMIT_FREEMEM</span> (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/setrlimit.html"><span class="keyword apiname">setrlimit()</span></a>),
+which prevents applications
+from allocating memory once the system drops below a certain amount of free memory.
+Most programs will give up once
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html"><span class="keyword apiname">malloc()</span></a>
+starts failing, so this provides a reasonable protection againt inadvertent exhaustion,
+but this solution isn't complete:
+</p>
+
+
+<ul class="ul">
+<li class="li">It doesn't reserve other types of resources, such as process IDs and service connection IDs (scoids).</li>
+
+
+<li class="li">It doesn't restrict allocations by proxy, where a process induces a resource manager or the kernel
+  to allocate memory (or other resources) on its behalf.
+  This is difficult to resolve, since the kernel and resource managers can't be limited in the same way
+  as applications, because they're required to ensure functioning of the core system in a
+  resource-exhaustion situation.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+The idea is to identify the critical processes that form the core system,
+and give them the ability to allocate as many resources as they need.
+All other processes are resource-constrained.
+For each resource that is prone to exhaustion, a threshold is defined, and a constrained process is refused
+allocation if the amount of free resources is below the threshold.
+The following system limits specify the constraints (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sysconf.html"><span class="keyword apiname">sysconf()</span></a>):
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">_SC_RCT_MEM</span></dt>
+
+<dd class="dd">The minimum amount of memory that the system retains as a resource constraint threshold.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">_SC_RCT_SCOID</span></dt>
+
+<dd class="dd">The minimum number of server connection IDs (scoids) that a server retains as a resource constraint threshold.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+
+The proxy resource-manager case is handled by communicating the client's status to the server
+using a bit in the 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/_msg_info.html"><span class="keyword dtype">_msg_info</span></a>
+structure.
+The server can then temporarily constrain itself while handling all or part of a request from a constrained client.
+</p>
+
+
+<p class="p">
+The kernel case is handled by having the kernel consider whether the client is constrained or unconstrained
+when it's asked to allocate a resource.
+</p>
+
+
+<p class="p">
+
+
+The ability <span class="keyword const">PROCMGR_AID_RCONSTRAINT</span> (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>)
+is given to the critical processes only, and allows them to operate without being subject to
+resource constraint thresholds.
+</p>
+
+
+<p class="p">
+To handle resource-constraint modes:
+</p>
+
+
+<ul class="ul">
+<li class="li">If the server isn't a critical process (as defined above), it can run in constrained mode, and no special code
+  is required.
+</li>
+
+
+<li class="li">If the server is a critical process, but can service requests from the core system without allocating
+  any resources (directly or indirectly), then it can run in constrained mode, and no special code is required.
+</li>
+
+
+<li class="li">If the server is a critical process and may have to allocate resources in order to handle a request from
+ the core system, it must run in unconstrained mode.
+  This means that the server has the responsibility to ensure that it doesn't allow itself to be used by
+  constrained clients to allocate a resource in excess of the currently defined resource-constraint threshold.
+  Unless the server is actually managing the resource itself, compliance generally means adopting the
+  client's constraint mode when handling a request.
+  This can be accomplished in this way:
+
+  <ul class="ul">
+  <li class="li">Automatically, by setting <span class="keyword const">RESMGR_FLAG_RCM</span> in the <span class="keyword dtype">resmgr_attr_t</span> structure
+    (see the entry for
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+    in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>).
+    This is applicable only to servers using the resource-manager framework:
+    
+    
+
+<pre class="pre codeblock">resmgr_attr.flags |= RESMGR_FLAG_RCM;
+resmgr_attach(dpp, &amp;resmgr_attr, name, _FTYPE_ANY, 0, &amp;connect_funcs,
+              &amp;io_funcs, &amp;io_attr))
+</pre>
+  </li>
+
+  </ul>
+
+
+</li>
+
+
+</ul>
+
+
+<p class="p">
+When a server runs as a constrained process, or when it constrains one of its threads, it may find that
+its resource allocation requests fail when there are still resources available.
+The server is expected to handle these failures in the same way it would handle a failure caused by
+complete exhaustion of resources, generally by returning an error to the client.
+For the sake of overall system stability, it's important for servers that can continue to process messages
+to do so, even when allocation failures occur.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Privileges.html" title="In systems where security is important, applications should run with the fewest privileges possible. This practice helps reduce the impact of possible compromises and can also help lower the privilege escalation attack surface of the device.">Process privileges</a></div>
+</div>
+</div></body>
+</html>

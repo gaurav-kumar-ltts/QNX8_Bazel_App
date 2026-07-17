@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling mmap() messages" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process_secure_buffer_mgmt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_ext.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="messages_Handling_mmap" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling mmap() messages</title>
+</head>
+<body id="messages_Handling_mmap">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">mmap()</span> messages</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+Most of the time, you won't need to provide a handler for <span class="keyword const">_IO_MMAP</span> messages because the
+default handling is sufficient for most resource managers.
+</p>
+
+
+<p class="p">
+
+When a process calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>,
+the function sends a <span class="keyword const">_MEM_MAP</span> message to the OS's memory manager,
+which then sends an <span class="keyword const">_IO_MMAP</span> message to the appropriate resource manager (most likely for
+a filesystem).
+The resource manager replies with the information that the memory manager needs,
+and then the memory manager replies to the original process.
+</p>
+
+
+
+<p class="p">
+The default handler for <span class="keyword const">_IO_MMAP</span> messages is
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html"><span class="keyword apiname">iofunc_mmap_default()</span></a>.
+There's also an extended version,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html"><span class="keyword apiname">iofunc_mmap_default_ext()</span></a>.
+</p>
+
+
+<p class="p">
+You might provide your own handler in various cases:
+</p>
+
+
+<ul class="ul">
+<li class="li">If your resource doesn't support memory mapping, you could write a handler that simply returns <span class="keyword const">ENOSYS</span>
+  via <span class="keyword apiname">_RESMGR_STATUS()</span>.
+</li>
+
+
+<li class="li">If your resource manager can provide
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">stat</span></a>
+  information for the memory manager, so that it won't have to send an additional message to your resource manager
+  to get it, use <span class="keyword apiname">iofunc_mmap_default_ext()</span> as the handler, as described below.
+</li>
+
+
+<li class="li">If you want to provide more security for the shared memory object.
+  Some methods of doing this aren't specific to resource managers (see
+  <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/process_secure_buffer_mgmt.html">Secure Buffer Management</a></q>
+  in the <q class="q">Shared Memory</q> chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>),
+  but you can use the <span class="keyword const">_IO_MMAP</span> handler to provide additional security.
+</li>
+
+
+</ul>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Describing the physical layout of a shared memory object</h2>
+
+
+
+
+<div class="p">
+The default <span class="keyword const">_IO_MMAP</span> handler replies with a strict set of information,
+including protection bits, the offset within the file, the connection ID of the file from the memory manager,
+and a file descriptor (currently unused):
+
+<pre class="pre codeblock">struct _io_mmap_reply {
+    uint32_t        zero;
+    uint32_t        allowed_prot;
+    uint64_t        offset;
+    int32_t         coid;
+    int32_t         fd;
+};
+
+typedef union {
+    struct _io_mmap         i;
+    struct _io_mmap_reply   o;
+} io_mmap_t;
+</pre>
+</div>
+
+
+<p class="p">
+The <span class="keyword">QNX OS</span> provides an extended reply structure that stores information to help with:
+</p>
+
+
+<ul class="ul">
+<li class="li">management of the memory manager cache that maps the file</li>
+
+<li class="li">avoiding multiple messages to the resource manager on a single
+  <span class="keyword const">_IO_MMAP</span> transaction by including stat/fstatvfs information
+</li>
+
+<li class="li">allowing the resource manager to specify an open object to map instead of relying on
+  read/write functions
+</li>
+
+
+</ul>
+
+
+<div class="p">
+The <span class="keyword dtype">_io_mmap_reply_ext_stat</span> structure is defined as follows:
+
+<pre class="pre codeblock">union _io_mmap_reply_ext_stat {
+    struct stat stat;
+    struct __stat_t32_2001  t32_2001;
+    struct __stat_t32_2008  t32_2008;
+    struct __stat_t64_2008  t64_2008;
+#if __PTR_BITS__ == 32
+    struct __stat_t32_2001  preferred;
+#else
+    struct __stat_t64_2008  preferred;
+#endif
+};
+
+struct _io_mmap_reply_ext {
+    struct _io_mmap_reply   base;
+    struct {
+        _Uint32t        flags;
+        _Uint32t        zero32;
+        _Uint64t        zero64[4];
+        union _io_mmap_reply_ext_stat stat;
+    } extended;
+};
+
+typedef union {
+    struct _io_mmap             i;
+    struct _io_mmap_reply_ext   o;
+} io_mmap_ext_t;
+</pre>
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">flags</var> field lets the resource manager pass back small bits of information to
+the memory manager.
+The memory manager sets the <var class="keyword varname">flags</var> field to 0 before sending the message;
+if the resource manager is using an extended reply, it must set <span class="keyword const">_IO_MMAP_REPLY_FLAGS_USE_EXTENDED</span>
+in the <var class="keyword varname">flags</var>.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">zero32</var> and <var class="keyword varname">zero64</var> fields are for future extension and must be
+set to zero.
+The <var class="keyword varname">stat</var> field can store all different formats of the <span class="keyword dtype">stat</span> data structure.
+The information should be in the TS64/2008 format.
+</p>
+
+
+<p class="p">
+For more information about the <span class="keyword dtype">_io_mmap_reply_ext_stat</span> structure, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_ext.html"><span class="keyword apiname">iofunc_mmap_ext()</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<div class="p">
+The message sent to resource managers has the same outgoing format, but the reply part is larger;
+resource managers that know about the extension can examine the size of the reply
+to know if they're communicating with a version of <span class="keyword cmdname">procnto</span> that supports extended replies.
+For example:
+
+<pre class="pre codeblock">if (MsgInfo(ctp-&gt;rcvid, &amp;info) != EOK) {
+    return errno;
+}
+
+switch (info.dstmsglen) {
+case sizeof(struct _io_mmap_reply_ext):
+    // up-to-date procnto
+    return do_some_extended_handling(...);
+case sizeof(struct _io_mmap_reply):
+    // old procnto
+    return do_old_style_handling(...);
+default:
+    // err, what ?
+    return EBADMSG;
+}
+</pre>
+</div>
+
+
+<p class="p">
+The extended reply could be used for the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Cache invalidation and reuse</dt>
+
+<dd class="dd">Without the extended reply, the memory manager relies on the <var class="keyword varname">mtime</var>
+  information for a file to decide whether to invalidate a possibly existing cache
+  entry for the file.
+  This is problematic because the <var class="keyword varname">mtime</var> is under control of
+  any user on the system that has access to the file.
+
+  <p class="p">
+  Instead, a filesystem could track if a file has been modified or not
+  (including forcibly modifying the <var class="keyword varname">mtime</var>) and tell the memory manager to
+  invalidate the cache or not via the following bits in the <var class="keyword varname">flags</var> field:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_CACHE_DEFAULT</span></li>
+
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_CACHE_FORCE_INVALIDATE</span></li>
+
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_CACHE_READ_FROM_CACHE</span></li>
+
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_CACHE_DEFER_TO_MEMMGR</span></li>
+
+  </ul>
+
+
+  <p class="p">
+  If the resource manager asks for the default behavior or asks the memory manager to handle this, it
+  uses the old behavior (relying on <var class="keyword varname">mtime</var>).
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Avoiding extra messages to the resource manager following the <span class="keyword const">_IO_MMAP</span> message</dt>
+
+<dd class="dd">The memory manager needs some information found in the <span class="keyword dtype">stat</span> information from a file,
+  and thus calls <span class="keyword apiname">fstat()</span>, which is another message to the resource manager.
+  It also needs one bit of information found by invoking <span class="keyword apiname">fstatvfs()</span> (another message).
+  The resource manager can instead send that information back as part of the extended reply
+  and use some bits in the <var class="keyword varname">flags</var> field to indicate what it's returning:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_BYPASS_FSTATVFS</span></li>
+
+  <li class="li"><span class="keyword const">_IO_MMAP_REPLY_FLAGS_REMOVABLE</span></li>
+
+  </ul>
+
+
+  <p class="p">
+  The resource manager can use the <span class="keyword apiname">_IO_MMAP_REPLY_FLAGS_STAT_FORM_TO_FLAGS(form)</span> macro
+  to indicate the type of <span class="keyword dtype">stat</span> structure that it provided.
+  Specify <span class="keyword const">_STAT_FORM_T64_2008</span> or <span class="keyword const">_STAT_FORM_PREFERRED</span> for <var class="keyword varname">form</var>.
+  </p>
+
+
+  <p class="p">
+  There's also an <span class="keyword apiname">_IO_MMAP_REPLY_FLAGS_STAT_FORM(flags)</span> macro for extracting
+  a <span class="keyword const">_STAT_FORM_*</span> value from the <var class="keyword varname">flags</var> member.
+  </p>
+
+
+  <p class="p">
+  If the resource manager doesn't reply with this information, the memory manager calls <span class="keyword apiname">fstat()</span>
+  and <span class="keyword apiname">fstatvfs()</span> as before.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+We've extended the resource manager API to include functions that handle the extended reply:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_ext.html"><span class="keyword apiname">iofunc_mmap_ext()</span></a></dt>
+
+<dd class="dd">This helper function takes two arguments in addition to the ones from the regular
+  <span class="keyword apiname">iofunc_mmap()</span> function: <var class="keyword varname">flags</var> and <var class="keyword varname">stat</var>.
+  These allow a resource manager that wants control over the reply to specify the <var class="keyword varname">flags</var>
+  and <var class="keyword varname">stat</var> contents that go directly into the reply contents.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html"><span class="keyword apiname">iofunc_mmap_default_ext()</span></a></dt>
+
+<dd class="dd">This handler function has the same signature as <span class="keyword apiname">iofunc_mmap_default()</span> and
+  is thus a drop-in replacement.
+  In addition to calling <span class="keyword apiname">iofunc_mmap_ext()</span>, it fills in the <var class="keyword varname">stat</var>
+  information if called on a device that's mounted.
+  It will thus set the <span class="keyword const">_IO_MMAP_REPLY_FLAGS_STAT</span> flags with <span class="keyword const">_STAT_FORM_PREFERRED</span>.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+For more information about these functions, see the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Direct mapping of shared memory objects in resource managers</h2>
+
+
+
+
+<p class="p">
+A resource manager that supports <span class="keyword apiname">mmap()</span> usually does so via page I/O, basically having
+the process manager read and write from the resource manager via read/write calls and
+caching/flushing the data as needed.
+</p>
+
+
+<p class="p">
+A resource manager that has shared memory objects that the memory manager looks after can use the
+extended reply to the <span class="keyword const">_IO_MMAP</span> message to provide file descriptors for those objects
+to its clients, potentially presenting the shared memory objects in a different way to the clients.
+</p>
+
+
+<p class="p">
+The use cases for this include the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">Providing access to hardware without the client having to directly map it.
+  For example, a resource manager could be a driver managing some portion of physical memory
+  and a window into some registers (another physical memory range).
+
+  <p class="p">
+  The resource manager is the only one to know about the physical addresses it manages, but it presents
+  them to its client via files of a well-known format. The clients can map and get access to these files without knowing
+  the physical addresses.
+  </p>
+
+</li>
+
+
+<li class="li">Allowing a resource manager to expose a memory allocation interface.
+  This would be done by allocating a shared memory object, backing it with some type of memory, then
+  having the resource manager manage that memory and hand out pieces to clients.
+  An example of this could be buffers for graphics.
+</li>
+
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+This approach of sharing the shared memory object with clients doesn't use <span class="keyword apiname">shm_create_handle()</span>,
+so it doesn't take part in the policy enacted by the memory manager.
+The writer of a resource manager using this approach thus has to implement a policy for tracking which clients
+have mapped the object, which ones had it revoked, and so on.
+</div>
+
+
+<p class="p">
+For example, let's suppose we have a resource manager for <tt class="ph tt">somedev</tt> that has 1 MB physical memory at
+0x1000000, and 8 KB of registers at 0x2000000, both split into two virtual devices managed by the
+resource manager.
+</p>
+
+
+<p class="p">
+What the resource manager would like to do is the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">Create a reference to the first virtual device at <span class="ph filepath">/dev/somedev/1</span>,
+  and the second at <span class="ph filepath">/dev/somedev/2</span>.
+</li>
+
+
+<li class="li">Present the memory as 500 KB regions under <span class="ph filepath">/dev/somedev/1/mem</span> and
+  <span class="ph filepath">/dev/somedev/2/mem</span>.
+</li>
+
+
+<li class="li">Present the registers as 4 KB pages under <span class="ph filepath">/dev/somedev/1/reg</span> and
+  <span class="ph filepath">/dev/somedev/2/reg</span>.
+</li>
+
+
+<li class="li">Let clients map these, but keep some control on who has mapped what.</li>
+
+
+</ul>
+
+
+<p class="p">
+To achieve this, the resource manager would:
+</p>
+
+
+<ol class="ol">
+<li class="li">Create two shared memory objects:
+
+<pre class="pre codeblock">struct somedev_shm { int mem; int reg; };
+struct somedev_shm shm;
+shm.mem = shm_open(SHM_ANON, O_CREAT|O_RDWR, 0600);
+shm.reg = shm_open(SHM_ANON, O_CREAT|O_RDWR, 0600);
+</pre>
+</li>
+
+
+<li class="li">Back the objects with the two different physical ranges:
+
+<pre class="pre codeblock">#define KB(x) ((x)   &lt;&lt; 10)
+#define MB(x) (KB(x) &lt;&lt; 10)
+shm_ctl(shm.mem, SHMCTL_PHYS, 0x1000000, MB(1));
+shm_ctl(shm.reg, SHMCTL_PHYS, 0x2000000, KB(8));
+</pre>
+</li>
+
+
+<li class="li">Present these objects to the clients upon <span class="keyword apiname">mmap()</span> requests, via the
+  resource manager's handler for <span class="keyword const">_IO_MMAP</span> messages:
+
+  
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+  <tr class="row">
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d10295e540">If the request is for:</th>
+
+    <th class="entry cellrowborder" style="vertical-align:top;" id="d10295e543">Return:</th>
+
+  </tr>
+
+  </thead>
+<tbody class="tbody">
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e540 "><span class="ph filepath">/dev/somedev/1/reg</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e543 "><var class="keyword varname">shm.reg</var>, offset 0</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e540 "><span class="ph filepath">/dev/somedev/2/reg</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e543 "><var class="keyword varname">shm.reg</var>, offset 4 KB</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e540 "><span class="ph filepath">/dev/somedev/1/mem</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e543 "><var class="keyword varname">shm.mem</var>, offset 0</td>
+
+  </tr>
+
+
+  <tr class="row">
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e540 "><span class="ph filepath">/dev/somedev/2/mem</span></td>
+
+    <td class="entry cellrowborder" style="vertical-align:top;" headers="d10295e543 "><var class="keyword varname">shm.mem</var>, offset 500 KB</td>
+
+  </tr>
+
+
+  </tbody>
+</table>
+</div>
+
+</li>
+
+
+</ol>
+
+
+<p class="p">
+In order to do this, the resource manager must use the extended <span class="keyword const">_IO_MMAP</span> reply data structure
+(<span class="keyword dtype">_io_mmap_reply_ext</span>) and:
+</p>
+
+
+<ul class="ul">
+<li class="li">set the <span class="keyword const">_IO_MMAP_REPLY_FLAGS_SERVER_SHMEM_OBJECT</span> bit in the structure's
+  <var class="keyword varname">extended.flags</var>
+</li>
+
+
+<li class="li">set <var class="keyword varname">base.fd</var> to the file descriptor of the resource manager's open shared memory object</li>
+
+
+<li class="li">set <var class="keyword varname">base.offset</var> to an offset within the shared memory object, possibly based on the
+  offset requested by the client, depending on the service provided by the resource manager
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The memory manager then finds the object associated with the file descriptor and
+associates it with the <span class="keyword apiname">mmap()</span> request.
+</p>
+
+
+<p class="p">
+The resource manager is also given, in the <var class="keyword varname">requested_len</var> member of the <span class="keyword dtype">io_mmap_t</span>
+structure, the length that was passed to <span class="keyword apiname">mmap()</span>, which it can use to make decisions based
+on the requested mapping size, if it needs to.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process_secure_buffer_mgmt.html">Secure buffer management (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap.html">iofunc_mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_ext.html">iofunc_mmap_ext()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_mmap_default.html">iofunc_mmap_default(), iofunc_mmap_default_ext()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html">struct stat</a></li></ul></div>
+</div></body>
+</html>

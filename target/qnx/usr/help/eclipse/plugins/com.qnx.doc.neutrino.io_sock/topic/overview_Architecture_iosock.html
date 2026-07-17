@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Architecture of io-sock" />
+<meta name="abstract" content="The io-sock network stack is very similar in architecture to other component subsystems inside of the QNX OS." />
+<meta name="description" content="The io-sock network stack is very similar in architecture to other component subsystems inside of the QNX OS." />
+<meta name="DC.subject" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Architecture_iosock" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Architecture of io-sock</title>
+</head>
+<body id="Architecture_iosock">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Architecture of <span class="keyword cmdname">io-sock</span></h1>
+
+    
+    
+    
+    
+    
+    <div class="body conbody"><p class="shortdesc"> The <span class="keyword cmdname">io-sock</span> network stack is very similar in architecture to
+        other component subsystems inside of the <span class="keyword">QNX OS</span>. </p>
+
+        
+        <p class="p">
+            
+            
+             At the bottom layer are
+            drivers that provide the mechanism for passing data to, and receiving data from, the
+            hardware. The drivers hook into a multi-threaded packet-processing layer that passes
+            them to the appropriate multi-threaded IP and upper-layer protocol-processing components
+            (TCP and UDP).</p>
+
+        
+        <p class="p">
+             In <span class="keyword">QNX OS</span>, a resource
+            manager forms a layer on top of the stack. The resource manager acts as the
+            message-passing intermediary between the stack and user applications. It provides a
+            standardized type of interface involving <span class="keyword apiname">open()</span>,
+                <span class="keyword apiname">read()</span>, <span class="keyword apiname">write()</span>, and
+                <span class="keyword apiname">ioctl()</span> that uses a message stream to communicate with networking
+            applications. Networking applications written by the user link with the socket library.
+            The socket library converts the message-passing interface exposed by the stack into a
+            standard BSD-style socket layer API, which is the standard for most networking code
+            today (see <q class="q"><a class="xref" href="overview_socket_api.html" title="The BSD Socket API is the standard API for TCP/IP programming in the UNIX world. In the Windows world, the Winsock API is based on and shares a lot with the BSD Socket API. This makes conversion between the two fairly easy.">Socket API</a></q>).</p>
+
+        
+        <p class="p">
+            
+            
+             In addition to the socket-level API, there are also other,
+            programmatic interfaces into the stack that are provided for filtering to occur. </p>
+
+        
+
+       <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>A detailed view of the <span class="keyword cmdname">io-sock</span> architecture.</span>
+            
+            <img class="image" src="../images/detailed_architecture_iosock.svg" width="528" alt="Details of the io-sock architecture" />
+        </div>
+
+        
+        <p class="p">
+            
+            
+            
+            
+             At the driver layer, there are
+            interfaces for Ethernet traffic (used by all Ethernet drivers), and an interface into
+            the stack for 802.11 management frames from wireless drivers. You can load drivers
+            (built as DLLs for dynamic linking and prefixed with <span class="ph filepath">devs-*</span>) into
+            the stack using the <span class="keyword cmdname">io-sock</span> option <span class="keyword option">-d</span>. </p>
+
+        
+
+        
+        <p class="p">
+            The stack also includes hooks for
+            packet filtering.
+            The main interfaces supported for filtering are:
+        </p>
+
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm">Berkeley Packet Filter (BPF) interface</dt>
+
+                <dd class="dd">A socket-level interface that lets you read and write, but not modify or
+                    block, packets, and that you access by using a socket interface at the
+                    application layer (see
+                    <a class="xref" href="http://en.wikipedia.org/wiki/Berkeley_Packet_Filter" target="_blank"><span class="ph filepath">http://en.wikipedia.org/wiki/Berkeley_Packet_Filter</span></a>).
+                    This is the interface of choice for basic, raw packet interception and
+                    transmission and gives applications outside of the stack process
+                    domain access to raw data streams.
+                    
+                    
+                </dd>
+
+            
+            
+            
+                <dt class="dt dlterm">Packet Filter (PF) interface</dt>
+
+                <dd class="dd">A read/write/modify/block interface that gives complete control over
+                    which packets are received by or transmitted from the upper layers.
+                    
+                    
+                </dd>
+
+            
+            
+        </dl>
+
+        
+        <p class="p"> For more information, see <q class="q"><a class="xref" href="overview_Filtering.html">Packet
+                Filtering</a>.</q>
+        </p>
+
+        
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview.html">Overview</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Capability ID 0x5 (MSI)" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/modules.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="module_msi" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Capability ID 0x5 (MSI)</title>
+</head>
+<body id="module_msi">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Capability ID 0x5 (MSI)</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+
+
+
+The MSI capability module enables the use of Message Signalled Interrupts (MSIs).
+Use the APIs listed below to configure the MSI capability before enabling them.
+Specifically, you should check the number of device-supported interrupts and then select the number
+that you intend to support in the driver.
+The number of driver supported interrupts must be less than or equal to the number of device-supported interrupts.
+</p>
+
+
+<p class="p">
+You must enable the MSI capability (see 
+<a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a>)
+before you call
+<a class="xref" href="pci_device_read_irq.html" title="Get the IRQs associated with a device"><span class="keyword apiname">pci_device_read_irq()</span></a>.
+When the capability is enabled, bit 2 (Bus Master) of the Command Register is also set.
+This bit <em class="ph i">isn't automatically cleared</em> when the capability is disabled.
+</p>
+
+
+<p class="p">
+The MSI and MSI-X capabilities are mutually exclusive.
+If you want to switch to using MSI on a device that has MSI-X enabled, you must first disable the MSI-X capability
+(see 
+<a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_disable()</span></a>).
+Failure to do this will result in an error of <span class="keyword const">PCI_ERR_MSIX_ENABLED</span>.
+</p>
+
+
+<div class="p">
+The MSI capability supports the APIs described below; these APIs are defined in <span class="ph filepath">&lt;pci/cap_msi.h&gt;</span>.
+<div class="note"><span class="notetitle">Note:</span> 
+The current MSI API exposes <tt class="ph tt">*_isr</tt> versions of nearly all functions.
+These functions are meant for use only within Interrupt Service Routines (ISRs).
+However, the <span class="keyword">QNX OS</span> doesn't support ISRs anymore,
+so you should not use these <tt class="ph tt">*_isr</tt> functions because they will always return <span class="keyword const">PCI_ERR_CFG_ACCESS</span>.
+</div>
+
+</div>
+
+
+<div class="p">
+The following APIs allow software to obtain the number of device-supported interrupt sources and to specify
+the number to actually use:
+
+<ul class="ul">
+<li class="li">
+<pre class="pre compact">
+uint_t cap_msi_get_nirq(pci_cap_t cap)
+</pre>
+
+  <p class="p">
+    Returns the number of interrupts supported by the device, or 0 on any error.
+  </p>
+
+</li>
+
+<li class="li">
+<pre class="pre compact">
+pci_err_t cap_msi_set_nirq(pci_devhdl_t hdl, pci_cap_t cap, uint_t nirq)
+</pre>
+
+  <p class="p">
+    Lets you set the number of interrupts to use.
+    The value must be a power of 2 (up to a maximum of 32) and must be less than or equal to
+    the number of device-supported interrupts.
+  </p>
+
+</li>
+
+</ul>
+
+</div>
+
+
+<div class="p">
+The following APIs retrieve the interrupt pending/mask values, respectively, if Per Vector Masking (PVM) is supported.
+If PVM isn't supported, these functions return <span class="keyword const">PCI_ERR_ENOTSUP</span>:
+
+<pre class="pre compact">
+pci_err_t cap_msi_get_irq_pend(pci_devhdl_t hdl, pci_cap_t cap, cap_msi_pend_t *pend)
+pci_err_t cap_msi_get_irq_mask(pci_devhdl_t hdl, pci_cap_t cap, cap_msi_mask_t *mask)
+</pre>
+
+</div>
+
+
+<div class="p">
+
+If Per Vector Masking (PVM) is supported, the following APIs let you set or clear the interrupt mask,
+using a mask value or interrupt entry.
+If PVM isn't supported, these functions return <span class="keyword const">PCI_ERR_ENOTSUP</span>:
+
+<pre class="pre compact">
+pci_err_t cap_msi_mask_irq(pci_devhdl_t hdl, pci_cap_t cap, cap_msi_mask_t mask_val)
+pci_err_t cap_msi_unmask_irq(pci_devhdl_t hdl, pci_cap_t cap, cap_msi_mask_t unmask_val)
+pci_err_t cap_msi_mask_irq_entry(pci_devhdl_t hdl, pci_cap_t cap, uint_t irq_entry)
+pci_err_t cap_msi_unmask_irq_entry(pci_devhdl_t hdl, pci_cap_t cap, uint_t irq_entry)
+</pre>
+
+</div>
+
+
+<p class="p">
+The <span class="keyword apiname">cap_msi_mask_irq_entry()</span> and <span class="keyword apiname">cap_msi_unmask_irq_entry()</span> APIs let
+driver software mask and unmask each of the supported device interrupt sources.
+These APIs operate only for devices that support the optional Per Vector Masking facility of MSI.
+They otherwise return <span class="keyword const">PCI_ERR_ENOTSUP</span>.
+</p>
+
+
+<p class="p">
+There's no direct relationship between a device's interrupt entry or the assigned MSI vector and the assigned IRQs
+returned from 
+<a class="xref" href="pci_device_read_irq.html" title="Get the IRQs associated with a device"><span class="keyword apiname">pci_device_read_irq()</span></a>.
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html"><span class="keyword apiname">InterruptMask()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html"><span class="keyword apiname">InterruptUnmask()</span></a>
+mask and unmask an IRQ, but <span class="keyword apiname">cap_msi_mask_irq_entry()</span> and
+<span class="keyword apiname">cap_msi_unmask_irq_entry()</span> (if supported) mask and unmask the interrupt sources associated with
+the MSI interrupt entry.
+You can obtain the number of interrupt sources from <span class="keyword apiname">cap_msi_get_nirq()</span>.
+</p>
+
+
+<p class="p">
+When you call
+<a class="xref" href="pci_device_read_irq.html" title="Get the IRQs associated with a device"><span class="keyword apiname">pci_device_read_irq()</span></a>
+to retrieve the list of allocated IRQs, the list itself is ordered to correspond with each of the
+<var class="keyword varname">n</var> entries (starting from 0).
+</p>
+
+
+<p class="p">
+For example, suppose that a device supports 32 MSI interrupts, as identified by <span class="keyword apiname">cap_msi_get_nirq()</span>.
+Then suppose that only 8 interrupts were allocated, as identified by <span class="keyword apiname">pci_device_read_irq()</span>.
+This could be because of system limitations or configuration, or because the driver asked to use only this many
+in a call to <span class="keyword apiname">cap_msi_set_nirq()</span>.
+In this case, the 8 IRQs (0 through 7) returned correspond to MSI entries 0 through 7.
+If the number of requested and allocated IRQs is the same as the number of supported IRQs, this 1:1 relationship
+is exactly as you'd expect.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">cap_msi_set_nirq()</span> returns <span class="keyword const">PCI_ERR_EINVAL</span> if you request more interrupts
+than are supported.
+Note that this function merely requests that <var class="keyword varname">nirq</var> interrupts be used; it isn't until you call
+<a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a>
+that an attempt to allocate the number of requested IRQs is made.
+Depending on the <var class="keyword varname">reqType</var> and the availability of IRQs,
+<span class="keyword apiname">pci_device_cfg_cap_enable()</span> either succeeds or fails.
+</p>
+
+
+<div class="p">
+When you're enabling the MSI capability with 
+<a class="xref" href="pci_device_cfg_cap_disable.html" title="Enable or disable a capability"><span class="keyword apiname">pci_device_cfg_cap_enable()</span></a>,
+the <var class="keyword varname">reqType</var> argument has the following meanings for the specific capability APIs:
+
+<ul class="ul">
+  <li class="li">
+<pre class="pre compact">
+cap_msi_set_nirq()
+</pre>
+
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_reqType_e_MANDATORY</span> — the requested number of IRQs must be allocated to the device,
+    or the capability won't be enabled, and <span class="keyword apiname">pci_device_cfg_cap_enable()</span>
+    fails with <span class="keyword const">PCI_ERR_CAP_NIRQ</span>.
+  </li>
+
+  <li class="li"><span class="keyword const">pci_reqType_e_ADVISORY</span> — an attempt to satisfy the requested number of IRQs will be made,
+    but a lower number may be assigned.
+    The <span class="keyword apiname">pci_device_cfg_cap_enable()</span> call doesn't fail.
+  </li>
+
+  <li class="li"><span class="keyword const">pci_reqType_e_UNSPECIFIED</span> — behaves the same as <span class="keyword const">pci_reqType_e_ADVISORY</span>.</li>
+
+  </ul>
+
+</li>
+
+
+</ul>
+
+
+Any capability module APIs not listed here aren't affected by the <var class="keyword varname">reqType</var>.
+</div>
+
+
+<div class="p">
+Errors that may be returned by <span class="keyword apiname">pci_device_cfg_cap_enable()</span>
+from the MSI capability module include:
+
+<ul class="ul">
+<li class="li"><span class="keyword const">PCI_ERR_MSIX_ENABLED</span> — an attempt was made to enable MSI when MSI-X is already enabled.</li>
+
+</ul>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/modules.html" title="This appendix describes some general-purpose capability modules and their APIs.">Capability Modules and APIs</a></div>
+</div>
+</div></body>
+</html>

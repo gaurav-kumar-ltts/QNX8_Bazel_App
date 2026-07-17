@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Thread pool attributes" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/multithread.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="THREADPOOLATTR" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Thread pool attributes</title>
+</head>
+<body id="THREADPOOLATTR">
+
+<h1 class="title topictitle1" id="ariaid-title1">Thread pool attributes</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+Here's the <span class="keyword dtype">_thread_pool_attr</span> structure:
+
+<pre class="pre codeblock">typedef struct _thread_pool_attr {
+  THREAD_POOL_HANDLE_T  *handle;
+  THREAD_POOL_PARAM_T   *(*block_func)(THREAD_POOL_PARAM_T *ctp);
+  void                  (*unblock_func)(THREAD_POOL_PARAM_T *ctp);
+  int                   (*handler_func)(THREAD_POOL_PARAM_T *ctp);
+  THREAD_POOL_PARAM_T   *(*context_alloc)(THREAD_POOL_HANDLE_T *handle);
+  void                  (*context_free)(THREAD_POOL_PARAM_T *ctp);
+  pthread_attr_t        *attr;
+  unsigned short        lo_water;
+  unsigned short        increment;
+  unsigned short        hi_water;
+  unsigned short        maximum;
+  unsigned              reserved[8];
+} thread_pool_attr_t;
+</pre>
+</div>
+
+
+<p class="p">
+The functions that you fill into the above structure can be taken from
+the dispatch layer (<span class="keyword apiname">dispatch_block()</span>, ...),
+the resmgr layer (<span class="keyword apiname">resmgr_block()</span>, ...) or they can be of your own making.
+If you're not using the resmgr layer functions,
+then you'll have to define <span class="keyword const">THREAD_POOL_PARAM_T</span> to
+some sort of context structure for the library to pass between the various functions.
+By default, it's defined as a <span class="keyword dtype">resmgr_context_t</span> but since 
+this sample is using the dispatch layer, 
+we needed it to be a <span class="keyword dtype">dispatch_context_t</span>.
+We defined it prior to doing the includes above since the header files refer to it.
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+In order to correctly define the default <span class="keyword dtype">THREAD_POOL_PARAM_T</span>,
+<span class="keyword cmdname">#include</span> <span class="ph filepath">&lt;sys/resmgr.h&gt;</span> before
+<span class="ph filepath">&lt;sys/dispatch.h&gt;</span>.
+</div>
+
+
+<p class="p">
+Part of the above structure contains information telling the
+resource manager library how you want it to handle multiple
+threads (if at all). During development, you should design
+your resource manager with multiple threads in mind. But
+during testing, you'll most likely have only one thread
+running (to simplify debugging). Later, after you've ensured
+that the base functionality of your resource manager is
+stable, you may wish to <q class="q">turn on</q> multiple
+threads and revisit the debug cycle.
+
+
+</p>
+
+
+<p class="p">
+The following members control the number of threads that are running:
+</p>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><var class="keyword varname">lo_water</var></dt>
+
+<dd class="dd">Minimum number of blocked threads.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">increment</var></dt>
+
+<dd class="dd">Number of thread to create at a time to achieve <var class="keyword varname">lo_water</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">hi_water</var></dt>
+
+<dd class="dd">Maximum number of blocked threads.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">maximum</var></dt>
+
+<dd class="dd">Total number of threads created at any time.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The important parameters specify the maximum thread count and the increment. 
+The value for <var class="keyword varname">maximum</var> should ensure that there's always a thread in a RECEIVE-blocked state.
+If you're at the number of maximum threads, 
+then your clients will block until a free thread is ready to receive data.
+The value you specify for <var class="keyword varname">increment</var> will cut down on the number of times your driver needs to create threads.
+It's probably wise to err on the side of creating more threads and
+leaving them around rather than have them being created/destroyed all the time.
+</p>
+
+
+<p class="p">
+You determine the number of threads you want to be
+RECEIVE-blocked on the <span class="keyword apiname">MsgReceive()</span> at any time
+by filling in the <var class="keyword varname">lo_water</var> parameter.
+
+</p>
+
+
+<p class="p">
+If you ever have fewer than <var class="keyword varname">lo_water</var> threads
+RECEIVE-blocked, the <var class="keyword varname">increment</var> parameter
+specifies how many threads should be created at once, so
+that at least <var class="keyword varname">lo_water</var> number of threads are once again RECEIVE-blocked.
+</p>
+
+
+<p class="p">
+Once the threads are done their processing, they will return
+to the block function. The <var class="keyword varname">hi_water</var> variable
+specifies an upper limit to the number of threads that are
+RECEIVE-blocked. Once this limit is reached, the threads
+will destroy themselves to ensure that no more than
+<var class="keyword varname">hi_water</var> number of threads are RECEIVE-blocked.
+
+</p>
+
+
+<p class="p">
+To prevent the number of threads from increasing without
+bounds, the <var class="keyword varname">maximum</var> parameter limits the absolute
+maximum number of threads that will ever run simultaneously.
+</p>
+
+
+<p class="p">
+When threads are created by the resource manager library,
+they'll have a stack size as specified by the
+<var class="keyword varname">thread_stack_size</var> parameter. If you want to
+specify stack size or priority, fill in <var class="keyword varname">pool_attr.attr</var>
+with a proper <var class="keyword varname">pthread_attr_t</var> pointer.
+</p>
+
+
+<p class="p">
+The <span class="keyword dtype">thread_pool_attr_t</span> structure contains
+pointers to several functions:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword apiname">block_func()</span></dt>
+
+<dd class="dd">Called by the worker thread when it needs to block waiting for some message.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">handler_func()</span></dt>
+
+<dd class="dd">Called by the thread when it has unblocked because it received a message. 
+  This function processes the message.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">context_alloc()</span></dt>
+
+<dd class="dd">Called when a new thread is created. 
+  Returns a context that this thread uses to do its work.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">context_free()</span></dt>
+
+<dd class="dd">Free the context when the worker thread exits.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">unblock_func()</span></dt>
+
+<dd class="dd">Called by the library to shutdown the thread pool or change the number of running threads.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/multithread.html" title="When you create a multithreaded resource manager, you should design it so that there's always at least one RECEIVE-blocked thread.">Multithreaded Resource Managers</a></div>
+</div>
+</div></body>
+</html>

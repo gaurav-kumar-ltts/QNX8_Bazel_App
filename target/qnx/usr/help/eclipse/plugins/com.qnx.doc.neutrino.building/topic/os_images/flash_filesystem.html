@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sockets and partitions" />
+<meta name="abstract" content="The QNX OS supports both raw partitions and flash filesystem partitions." />
+<meta name="description" content="The QNX OS supports both raw partitions and flash filesystem partitions." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="flash_filesystem" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Sockets and partitions</title>
+</head>
+<body id="flash_filesystem">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Sockets and partitions</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The <span class="keyword">QNX OS</span> supports both raw partitions and flash filesystem
+		partitions.</p>
+
+		<div class="section" id="flash_filesystem__partitions"><h2 class="title sectiontitle">Sockets</h2>
+			
+			
+			
+			
+			<p class="p">QNX flash filesystem drivers support one or more logical flash drives. Each logical
+				flash drive is called a <em class="ph i">socket</em>. A socket consists of a contiguous and
+				homogeneous region of flash memory. For example, in a system containing two
+				different types of flash device at different addresses, where one flash device is
+				used for the boot image and the other for the flash filesystem, each flash device
+				would appear in a different socket.</p>
+
+			<div class="p">Each socket may be divided into one or more partitions. Two types of partitions are
+				supported:
+				<ul class="ul">
+					<li class="li">raw partitions </li>
+
+					<li class="li">flash filesystem partitions</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Raw partitions</h2>
+			
+			
+			
+			<p class="p">A raw partition in a socket is any partition that doesn't contain a flash filesystem.
+				The flash filesystem driver doesn't recognize any filesystem types other than the
+				flash filesystem. A raw partition may contain an image filesystem or some
+				application-specific data.</p>
+
+			<p class="p">The flash filesystem uses a raw mountpoint to provide access to any partitions on the
+				flash that aren't flash filesystem partitions. Note that the flash filesystem
+				partitions are available as raw partitions as well.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Flash filesystem partitions</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">A QNX flash filesystem partition contains the POSIX-like flash filesystem, which uses
+				a QNX-proprietary format to store the filesystem data on the flash devices.
+				This format isn't compatible with either the Microsoft FFS2 or PCMCIA FTL specification.</p>
+
+			<p class="p">The QNX flash filesystem allows files and directories to be freely created and deleted.
+				It recovers space from deleted files using a reclaim mechanism similar to garbage
+				collection.</p>
+
+			<div class="p">The flash filesystem supports all the standard POSIX utilities such as
+				<span class="keyword cmdname">ls</span>, <span class="keyword cmdname">mkdir</span>, <span class="keyword cmdname">rm</span>,
+				<span class="keyword cmdname">ln</span>, <span class="keyword cmdname">mv</span>, and <span class="keyword cmdname">cp</span>.
+				There are also some <span class="keyword">QNX OS</span> utilities for managing the flash
+				filesystem:
+				<dl class="dl">
+					
+						<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/f/flashctl.html"><span class="keyword cmdname">flashctl</span></a></dt>
+
+						<dd class="dd">Erase, format, and mount flash partitions.</dd>
+
+					
+					
+						<dt class="dt dlterm"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkefs.html"><span class="keyword cmdname">mkefs</span></a></dt>
+
+						<dd class="dd">Create flash filesystem image files.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			<p class="p">
+				
+				The QNX flash filesystem supports all the standard POSIX I/O functions such as
+				<span class="keyword apiname">open()</span>, <span class="keyword apiname">close()</span>, <span class="keyword apiname">read()</span>, and
+				<span class="keyword apiname">write()</span>.
+				The <span class="keyword apiname">devctl()</span> function supports special actitivies such as erasing.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Creating a flash filesystem partition</h2>
+			
+			
+			
+			
+			<div class="p">To create a flash filesystem partition for any BSP:
+				<ol class="ol">
+					<li class="li">Start the flash filesystem driver.</li>
+
+					<li class="li">Erase the entire flash medium.</li>
+
+					<li class="li">Format the partition.</li>
+
+					<li class="li">Slay the flash filesystem driver.</li>
+
+					<li class="li">Restart the flash filesystem driver.</li>
+
+				</ol>
+
+			</div>
+
+			<div class="p">For example, for a board than can be booted from flash:
+				<ol class="ol">
+					<li class="li">Start the flash system driver: <pre class="pre codeblock">devf-ram -s0x0,32M
+</pre>
+						<p class="p">You should now see an <span class="ph filepath">fs0p0</span> entry under
+								<span class="ph filepath">/dev</span>.</p>
+</li>
+
+					<li class="li">To prepare the area for the partition, erase the entire flash:
+<pre class="pre codeblock">flashctl -p/dev/fs0 -ev
+</pre>
+					</li>
+
+					<li class="li">Format the partition:
+<pre class="pre codeblock">flashctl -p/dev/fs0p0 -f
+</pre>
+					</li>
+
+					<li class="li">Slay the flash filesystem driver: <pre class="pre codeblock">slay devf-ram
+</pre>
+					</li>
+
+					<li class="li">Finally, restart the driver: <pre class="pre codeblock">devf-ram &amp;
+</pre>
+					</li>
+
+				</ol>
+
+			</div>
+
+			<div class="p">You should now see the following entries:
+				
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+							<tr class="row">
+								<th class="entry cellrowborder" style="vertical-align:top;" id="d27719e323">Entry</th>
+
+								<th class="entry cellrowborder" style="vertical-align:top;" id="d27719e326">Description</th>
+
+							</tr>
+
+						</thead>
+<tbody class="tbody">
+							<tr class="row">
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d27719e323 "><span class="ph filepath">/dev/fs0p0</span></td>
+
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d27719e326 ">OS image (32 MB)</td>
+
+							</tr>
+
+							<tr class="row">
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d27719e323 "><span class="ph filepath">/dev/fs0p1</span></td>
+
+								<td class="entry cellrowborder" style="vertical-align:top;" headers="d27719e326 ">Flash filesystem partition (32 MB)</td>
+
+							</tr>
+
+						</tbody>
+</table>
+</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

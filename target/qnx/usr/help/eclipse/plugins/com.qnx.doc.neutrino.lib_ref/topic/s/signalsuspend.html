@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="SignalSuspend(), SignalSuspend_r()" />
+<meta name="abstract" content="Suspend a thread until a signal is received" />
+<meta name="description" content="Suspend a thread until a signal is received" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalkill.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/signalkillsigval.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigsuspend.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="signalsuspend" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>SignalSuspend(), SignalSuspend_r()</title>
+</head>
+<body id="signalsuspend">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">SignalSuspend()</span>, <span class="keyword apiname">SignalSuspend_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Suspend a thread until a signal is received</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int SignalSuspend( const sigset_t* <var class="keyword varname">set</var> );
+
+int SignalSuspend_r( const sigset_t* <var class="keyword varname">set</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">set</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">sigset_t</span> object that specifies the
+  signals you want to wait for.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+These kernel calls replace the thread's signal
+mask with the set of signals pointed to by <var class="keyword varname">set</var>
+and then suspends the thread until delivery of a signal
+whose action is either to execute a signal-catching function (then
+return), or to terminate the thread. On return, the previous signal
+mask is restored.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">SignalSuspend()</span> and <span class="keyword apiname">SignalSuspend_r()</span>
+functions are identical, except in the way they indicate errors.
+See the <a class="xref" href="#signalsuspend__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Instead of using these kernel calls directly, consider calling
+<a class="xref" href="sigsuspend.html" title="Replace the signal mask, and then suspend the thread"><span class="keyword apiname">sigsuspend()</span></a>.
+</div>
+
+
+<p class="p">
+Attempts to block <span class="keyword const">SIGKILL</span> or <span class="keyword const">SIGSTOP</span>
+are ignored. This is done without causing an error.
+</p>
+
+
+<p class="p">
+If you're using <span class="keyword apiname">SignalSuspend()</span> to synchronously wait for
+a signal, consider using the more efficient POSIX
+<a class="xref" href="sigwaitinfo.html" title="Wait for a specified signal and return its information"><span class="keyword apiname">sigwaitinfo()</span></a>
+call.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">STATE_SIGSUSPEND</span></dt>
+
+<dd class="dd">The calling thread blocks waiting for a signal.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section" id="signalsuspend__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+Since <span class="keyword apiname">SignalSuspend()</span> and <span class="keyword apiname">SignalSuspend_r()</span> block
+until interrupted, there's no successful return value:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">SignalSuspend()</span> always returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>. 
+</li>
+
+
+<li class="li"><span class="keyword apiname">SignalSuspend_r()</span> always returns a value in the Errors section and 
+  <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If the signal handler calls
+<a class="xref" href="../l/longjmp.html" title="Restore the environment saved by setjmp()"><span class="keyword apiname">longjmp()</span></a>
+or
+<a class="xref" href="siglongjmp.html" title="Restore the environment saved by sigsetjmp(), including the signal mask"><span class="keyword apiname">siglongjmp()</span></a>, 
+<span class="keyword apiname">SignalSuspend()</span> and <span class="keyword apiname">SignalSuspend_r()</span> don't return.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EINTR</span></dt>
+
+<dd class="dd">The call was interrupted by a signal (this is the normal error).</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred when the kernel tried to access the buffers provided.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ETIMEDOUT</span></dt>
+
+<dd class="dd">A kernel timeout unblocked the call.
+  See <a class="xref" href="../t/timertimeout.html" title="Set a timeout on a blocking state"><span class="keyword apiname">TimerTimeout()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d773367e360">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d773367e362"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e360 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e362 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e360 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e362 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e360 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d773367e362 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/s/signalkill.html" title="Send a signal to a process group, process, or thread">SignalKill(), SignalKill_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/signalkillsigval.html" title="Send a signal to a process group, process, or thread">SignalKillSigval(), SignalKillSigval_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigsuspend.html" title="Replace the signal mask, and then suspend the thread">sigsuspend()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Tags" />
+<meta name="abstract" content="Tag structures store details describing the hardware in the system." />
+<meta name="description" content="Tag structures store details describing the hardware in the system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="hwinfo_tags" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Tags</title>
+</head>
+<body id="hwinfo_tags">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Tags</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Tag structures store details describing the hardware in the system.</p>
+
+		<p class="p">
+			
+			</p>
+
+		<p class="p">Every tag structure stores information about a specific aspect of a hardware
+			component. Tags are grouped together into items, which provide
+			complete descriptions of hardware components.</p>
+
+		<div class="section" id="hwinfo_tags__hwi_prefix"><h2 class="title sectiontitle"><tt class="ph tt">hwi_prefix</tt></h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">Every structure (or <var class="keyword varname">tag</var>) in the <var class="keyword varname">hwinfo</var> area
+				starts the same way:</p>
+
+<pre class="pre codeblock">struct hwi_prefix {
+    uint16_t        size;
+    uint16_t        name;
+};</pre>
+			<dl class="dl">
+				
+					<dt class="dt dlterm" id="hwinfo_tags__size"><var class="keyword varname">size</var></dt>
+
+					<dd class="dd">The size, in multiples of four bytes, of the structure. This size includes
+						<var class="keyword varname">hwi_prefix</var>. For example, a value of 12 in
+						<var class="keyword varname">size</var> means that the structure being examined is 48 bytes long.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">name</var></dt>
+
+					<dd class="dd">An offset into the <var class="keyword varname">strings</var>
+						section of the system page, where a zero-terminated ASCII string containing the structure name is stored.</dd>
+
+					<dd class="dd ddexpand">The use of ASCII strings for <var class="keyword varname">name</var> allows you to add new structures without having to rely on 
+						<span class="keyword">BlackBerry QNX</span> to manage enumerated type values. Since the system page is typically allocated in
+						4 KB granularity, the extra storage required by the ASCII string rather than enumerated types doesn't cost anything.
+					</dd>
+
+					<dd class="dd ddexpand">When processing the <var class="keyword varname">hwinfo</var> area of the system page, your code should ignore any tag that
+						it doesn't recognize. Use the value in the structure's <var class="keyword varname">size</var> field to know how many bytes to
+						move forward to skip over the unrecognized structure.</dd>
+
+				
+			</dl>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><tt class="ph tt">location</tt> tag</h2>
+			
+			
+			
+			
+			<p class="p">The <span class="ph codeph">location</span> tag (a simple tag, <em class="ph i">not</em> an item) gives the
+				location of the hardware device's registers. This register location can be
+				memory-mapped or in a separate I/O space (see <a class="xref" href="#hwinfo_tags__addrspace"><var class="keyword varname">addrspace</var></a> below).</p>
+
+			<p class="p">If the system being described has multiple register groupings, there may be multiple
+				<span class="ph codeph">location</span> tags in an item description, with one tag for each 
+				register grouping.</p>
+
+<pre class="pre codeblock">#define HWI_TAG_NAME_location   "location"
+#define HWI_TAG_ALIGN_location  (sizeof(uint64))
+
+struct hwi_location {
+    struct hwi_prefix   prefix;
+    uint32_t            len;
+    uint64_t            base;
+    uint16_t            regshift;
+    uint16_t            addrspace;
+};
+</pre>
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">len</var></dt>
+
+					<dd class="dd">The length, in bytes, of the registers.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">base</var></dt>
+
+					<dd class="dd">The physical address of the start of the registers.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">regshift</var></dt>
+
+					<dd class="dd">Indicates the shift for each register access.</dd>
+
+					<dd class="dd ddexpand">If a register is documented at <var class="keyword varname">offset</var> of a device, then
+						the driver should access offset <span class="ph codeph">offset2^regshift</span> to get to
+						that register.</dd>
+
+				
+				
+					<dt class="dt dlterm" id="hwinfo_tags__addrspace"><var class="keyword varname">addrspace</var></dt>
+
+					<dd class="dd">An offset, in bytes, from the start of the <var class="keyword varname">asinfo</var>
+						section.</dd>
+
+					<dd class="dd ddexpand">This member should identify either the <span class="keyword dtype">memory</span> or <span class="keyword dtype">io</span> address
+						space item to indicate if the device registers are memory-mapped or in a
+						separate I/O space.</dd>
+
+				
+			</dl>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><tt class="ph tt">irq</tt> tag</h2>
+			
+			
+			<p class="p">The <var class="keyword varname">irq</var> tag (simple tag, not an item) holds the logical interrupt vector number for a device.</p>
+
+<pre class="pre codeblock">#define HWI_TAG_NAME_irq        "irq"
+#define HWI_TAG_ALIGN_irq       (sizeof(uint32))
+
+struct hwi_irq {
+    struct hwi_prefix   prefix;
+    uint32_t            vector;
+};
+</pre>
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">vector</var></dt>
+
+					<dd class="dd">The logical interrupt vector number for the device being described.</dd>
+
+				
+			</dl>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><tt class="ph tt">diskgeometry</tt> tag</h2>
+			
+			
+			
+			<p class="p">The <var class="keyword varname">diskgeometry</var> tag (simple tag, not item) is used to transfer information about rotating disk geometry
+				from the BIOS or UEFI. It is used for x86 platforms only.</p>
+
+<pre class="pre codeblock">#define HWI_TAG_NAME_diskgeometry   "diskgeometry"
+#define HWI_TAG_ALIGN_diskgeometry  (sizeof(uint32))
+
+struct hwi_diskgeometry {
+    struct hwi_prefix   prefix;
+    uint8_t             disknumber;
+    uint8_t             sectorsize;   /* as a power of two */
+    uint16_t            heads;
+    uint16_t            cyls;
+    uint16_t            sectors;
+    uint32_t            nblocks;
+};
+</pre>
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><var class="keyword varname">disknumber</var></dt>
+
+					<dd class="dd">The number of the disk in the system.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">sectorsize</var></dt>
+
+					<dd class="dd">The size of the sectors on the disk, expressed as a power of two.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">heads</var></dt>
+
+					<dd class="dd">The number of heads.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">cyls</var></dt>
+
+					<dd class="dd">The number of disk cylinders.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">sectors</var></dt>
+
+					<dd class="dd">The number of sectors on the disk.</dd>
+
+				
+				
+					<dt class="dt dlterm"><var class="keyword varname">nblocks</var></dt>
+
+					<dd class="dd">The number of blocks, if specified. Otherwise, <var class="keyword varname">nblocks</var> equals the number of heads multiplied by
+						the number of cylinders multiplied by the number of sectors
+						(<var class="keyword varname">heads</var> * <var class="keyword varname">cyls</var> * <var class="keyword varname">sectors</var>).</dd>
+
+				
+			</dl>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle"><tt class="ph tt">pad</tt> tag</h2>
+			
+			
+			<p class="p">The <var class="keyword varname">pad</var> tag (simple tag, not item) is used when padding must be
+				inserted to meet the alignment constraints for the subsequent tag.</p>
+
+<pre class="pre codeblock">#define HWI_TAG_NAME_pad        "pad"
+#define HWI_TAG_ALIGN_pad       (sizeof(uint32))
+
+struct hwi_pad {
+    struct hwi_prefix   prefix;
+};
+</pre>
+		</div>
+
+	</div>
+
+</body>
+</html>

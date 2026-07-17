@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Writing Network Drivers for io-sock" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="keywords" content="QNX SDP, 8.0, High-Performance Networking Stack (io-sock) User's Guide, API, Architecture" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="native_drvr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Writing Network Drivers for io-sock</title>
+</head>
+<body id="native_drvr">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Writing Network Drivers for <span class="keyword cmdname">io-sock</span></h1>
+
+
+
+<div class="body conbody">
+
+<p class="p">An <span class="keyword cmdname">io-sock</span> network driver can be viewed as the <q class="q">glue</q> between the
+underlying network hardware and the software infrastructure of
+<span class="keyword cmdname">io-sock</span>. You can picture the driver as having a bottom and top
+half: the bottom is code specifically for the particular hardware it supports, and the
+top is code specifically for <span class="keyword cmdname">io-sock</span>.</p>
+
+
+<p class="p">This appendix deals specifically with the top half of the driver, which deals with the
+<span class="keyword cmdname">io-sock</span> software infrastructure.</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Driver APIs</h2>
+    
+    <p class="p">The <span class="keyword cmdname">io-sock</span> networking stack is derived from FreeBSD's networking
+        stack and <span class="keyword cmdname">io-sock</span> drivers are written using the FreeBSD driver
+        APIs. In the following discussion and examples, the API function calls and
+        structures (up to and including <q class="q"><a class="xref" href="#native_drvr__modify_makefile">Modifying the makefile</a></q>) are the same as FreeBSD. This common API
+        allows you to compile FreeBSD driver source code for <span class="keyword cmdname">io-sock</span> with
+        few to no code changes. However, this design also means that the
+            <span class="keyword cmdname">io-sock</span> build environment is different from a typical QNX
+        build environment.</p>
+
+    <p class="p">When you are developing a network driver for <span class="keyword cmdname">io-sock</span>, you must include
+                    <span class="keyword cmdname">io-sock</span> header files (found in
+                    <span class="ph filepath">usr/include/devs</span>), which include the required QNX header
+        files. Don't include the QNX header files directly—it can result in compilation
+                errors.</p>
+
+            <p class="p">For example, some common functions are quite different when writing
+                    <span class="keyword cmdname">io-sock</span> drivers. The following APIs are defined in
+                    <span class="keyword cmdname">io-sock</span> header files:</p>
+
+    <pre class="pre codeblock">void* malloc(size_t size, struct malloc_type *type, int flags);
+void free(void *addr, struct malloc_type *type);    </pre>
+    <p class="p">QNX header files define APIs with the same names and a different syntax:</p>
+
+    <pre class="pre codeblock">void* malloc( size_t size );
+void free( void* ptr );</pre>
+    <p class="p">You can add the <span class="keyword cmdname">io-sock</span> version of the header files by including
+                    <span class="ph filepath">devs.mk</span>, which specifies the proper search paths, in your
+                    <span class="ph filepath">common.mk</span> (see <q class="q"><a class="xref" href="#native_drvr__modify_makefile">Modifying the makefile</a></q>) .</p>
+
+    <p class="p">For the best guide to the use of the FreeBSD driver APIs, go to the FreeBSD 13.4 manual pages
+                at <a class="xref" href="https://www.freebsd.org/cgi/man.cgi" target="_blank">https://www.freebsd.org/cgi/man.cgi</a>
+                and search in the section <span class="ph uicontrol">9 - Kernel Interface</span>.</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Driver versioning</h2>
+    
+    <p class="p">To work with <span class="keyword cmdname">io-sock</span>, a driver must specify its version using
+                    <span class="keyword const">IOSOCK_VERSION_CUR</span>, which is located in
+                    <span class="ph filepath">qnx_modload.h</span>. The <span class="keyword cmdname">io-sock</span> networking
+                manager checks the version value when the driver loads, and rejects incompatible
+                driver libraries. A complete list of available versions is included in
+                    <span class="ph filepath">qnx_modload.h</span>.</p>
+
+    <p class="p">The driver must include a <span class="keyword const">SYSUNINIT</span> macro to provide a function that is
+                invoked when a driver is unmounted. This function can be empty. The optional SYSINIT
+                macro can be used to specify an initialization function, if required.</p>
+
+    <p class="p">For example:</p>
+
+    <pre class="pre codeblock">…
+#include &lt;qnx/qnx_modload.h&gt;
+…
+int drvr_ver = IOSOCK_VERSION_CUR;
+SYSCTL_INT(_qnx_driver, OID_AUTO, sam_drvr, CTLFLAG_RD, &amp;drvr_ver, 0,
+            "Version");
+…
+struct _iosock_module_version iosock_module_version = IOSOCK_MODULE_VER_SYM_INIT;
+static void
+sam_uninit(void *arg)
+{
+}
+
+SYSUNINIT(sam_uninit, SI_SUB_DUMMY, SI_ORDER_ANY, sam_uninit, NULL);
+</pre>
+            <p class="p">On a running target, you can use <span class="keyword cmdname">sysctl</span> to display driver
+                versions. For example:</p>
+
+            <pre class="pre codeblock">sysctl qnx.driver
+qnx.driver.em: 65537
+qnx.driver.vmx: 65537
+qnx.driver.vtnet_pci: 65537
+# sysctl qnx.module
+qnx.module.usb: 65537
+qnx.module.pci: 65537
+qnx.module.phy: 65537
+</pre>
+        </div>
+
+        <div class="section" id="native_drvr__register_driver"><h2 class="title sectiontitle">Registering the driver module</h2>The
+                <span class="keyword const">DRIVER_MODULE</span> macro declares and registers the driver with the
+            system. The driver is added to the list of device drivers for a particular bus type
+            (e.g. <span class="ph codeph">simplebus</span>, <span class="ph codeph">pci</span>, <span class="ph codeph">uhub</span> (USB),
+                <span class="ph codeph">nexus</span>). It is possible to write a driver that can be registered
+            against multiple bus types.
+            <pre class="pre codeblock">DRIVER_MODULE(sample, simplebus, sample_driver, sam_devclass, 0, 0);
+DRIVER_MODULE(miibus, sam, miibus_driver, miibus_devclass, 0, 0);
+DRIVER_MODULE(etherswitch, sam, etherswitch_driver, etherswitch_devclass, 0, 0);</pre>
+            As shown in the example, the <span class="keyword const">DRIVER_MODULE</span> macro can be used multiple
+            times in a driver to describe a device hierarchy. A common example of using the macro
+            this way is using the MII bus framework to attach a PHY driver. Another, less common
+            example is the EtherSwitch framework that can be used for Ethernet switch drivers. Both
+            frameworks include device drivers that create child devices under the sample device. You
+            can use the <span class="keyword cmdname">devinfo</span> utility to see these devices. For
+                example:<pre class="pre codeblock" id="native_drvr__codeblock_tmf_bt4_myb"># devinfo
+nexus0
+  cryptosoft0
+  ofwbus0
+    simplebus0
+      sam0
+        miibus0
+          ukphy0
+        etherswitch0              </pre><p class="p">The <span class="keyword const">MODULE_DEPEND</span>
+                macro should also be used to show the driver dependencies (excluding library API
+                version dependencies). For
+            example:</p>
+<pre class="pre codeblock" id="native_drvr__codeblock_y1s_lt4_myb">MODULE_DEPEND(sample, ether, 1, 1, 1);
+MODULE_DEPEND(sample, mibus, 1, 1, 1);
+MODULE_DEPEND(sample, etherswitch, 1, 1, 1);                </pre> Although
+                <span class="keyword cmdname">io-sock</span> does not include explicit dependency checks, drivers
+            won't load if there are missing dependencies. A driver’s declared dependencies can be
+            extracted from the binary using <span class="keyword cmdname">objdump</span>. For example:
+                <pre class="pre codeblock" id="native_drvr__codeblock_j31_dw4_myb">$ objdump aarch64-dll.le.diag/devs-sample-diag.so -t | grep depend_on
+0000000000008050 l     O .data	000000000000000c _sample_depend_on_etherswitch
+0000000000008060 l     O .data	000000000000000c _sample_depend_on_miibus
+0000000000008070 l     O .data	000000000000000c _sample_depend_on_ether
+0000000000008080 l     O .data	000000000000000c _etherswitch_sam_depend_on_kernel
+0000000000008090 l     O .data	000000000000000c _miibus_sam_depend_on_kernel
+00000000000080a0 l     O .data	000000000000000c _sample_simplebus_depend_on_kernel </pre><div class="p">The
+                third parameter of the <span class="keyword const">DRIVER_MODULE</span> macro is a
+                    <span class="keyword dtype">driver_t</span> structure (e.g., <span class="ph codeph">sample_driver</span>), which
+                describes the driver. It provides the name of the device, a pointer to a list of
+                methods, and the size of the private data (<span class="ph codeph">softc</span>) required by the
+                driver for each device instance. For example:
+                <pre class="pre codeblock" id="native_drvr__codeblock_rzj_qx4_myb">driver_t sample_driver = {
+        "sam",
+        sam_methods,
+        sizeof(struct sam_softc),
+};</pre></div>
+<p class="p">The driver methods are contained in a
+                    <span class="keyword dtype">device_method_t</span> structure, which provides probe, attach, detach,
+                and shutdown callback methods. The following example includes the callback methods
+                for the MII bus and EtherSwitch framework: </p>
+<pre class="pre codeblock">static device_method_t sam_methods[] = {
+        /* device callbacks */
+        DEVMETHOD(device_probe, sam_probe),
+        DEVMETHOD(device_attach, sam_attach),
+        DEVMETHOD(device_detach, sam_detach),
+        DEVMETHOD(device_shutdown, sam_shutdown),
+
+        /* miibus callbacks */
+        DEVMETHOD(miibus_readreg, sam_miibus_read_reg),
+        DEVMETHOD(miibus_writereg, sam_miibus_write_reg),
+        DEVMETHOD(miibus_statchg, sam_miibus_statchg),
+
+#ifdef INCLUDE_ETHERSWITCH
+        /* etherswitch callbacks */
+        DEVMETHOD(etherswitch_getinfo, sam_es_getinfo),
+        DEVMETHOD(etherswitch_readreg, sam_es_readreg),
+        DEVMETHOD(etherswitch_readphyreg, sam_miibus_read_reg),
+#endif
+
+        DEVMETHOD_END
+};</pre>
+            <p class="p">The supported callbacks can be found in the generated interface header file (e.g.,
+                    <span class="ph filepath">device_if.h</span>, <span class="ph filepath">miibus_if.h</span>,
+                    <span class="ph filepath">etherswitch_if.h</span>). A driver does not have to provide an
+                implementation for all the callbacks. An implementation for a callback method may be
+                provided by the parent bus or another bus further up the device tree. The framework
+                also includes a default implementation. An example of a method that is provided by
+                the parent bus is the <span class="ph codeph">device_identify</span> method. A driver may include
+                a <span class="ph codeph">device_identify</span> method if it is registered to a bus such as the
+                    <span class="ph codeph">nexus0</span>, which cannot identify devices. For example, to identify
+                a virtual device or a memory mapped device that is not in the device tree blob
+                (DTB).</p>
+<p class="p">If a driver supports multiple bus types, another instance of
+                    <span class="keyword dtype">device_method_t</span> with a different set of methods can be
+                specified.</p>
+<p class="p">For more information, see the following FreeBSD documentation:</p>
+<div class="p">
+                <ul class="ul" id="native_drvr__ul_gcs_z1p_myb">
+                    <li class="li"><span class="keyword dtype">driver</span> (<a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=driver&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=driver&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>)</li>
+
+                    <li class="li"><span class="keyword const">DRIVER_MODULE</span> (<a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=DRIVER_MODULE&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=DRIVER_MODULE&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>)</li>
+
+                    <li class="li"><span class="keyword dtype">devclass</span> (<a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=devclass&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=devclass&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>)</li>
+
+                    <li class="li"><span class="keyword const">DEVICE_IDENTIFY</span> (<a class="xref" href="https://man.freebsd.org/cgi/man.cgi?query=DEVICE_IDENTIFY&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://man.freebsd.org/cgi/man.cgi?query=DEVICE_IDENTIFY&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>)</li>
+
+                </ul>
+
+            </div>
+<p class="p">The PHY callbacks are discussed in <q class="q"><a class="xref" href="#native_drvr__load_phy">Attaching a PHY driver with MII bus </a>.</q></p>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Checking if a device is supported</h2>
+            
+            <p class="p">You provide the probe callback as part of driver module initialization (see <q class="q"><a class="xref" href="#native_drvr__register_driver">Registering the driver
+                module</a></q>).</p>
+
+            <p class="p">When a device is enabled on a bus, the probe function of every driver registered on
+                that bus is called to determine if the device is supported by that driver. In the
+                case of the sample driver, <span class="keyword apiname">sam_probe()</span> checks the hardware
+                compatibility string that was assigned to the device in the DTB. For a PCI or USB
+                device, similar functions are available to match the vendor or device identifiers.
+                For example: </p>
+
+    <pre class="pre codeblock">static int
+sam_probe(device_t dev)
+{
+        if (!ofw_bus_status_okay(dev)) {
+                return (ENXIO);
+        }
+
+        /* 
+         * Check device's compatibility string against list of
+         * supported devices
+         */
+        if (ofw_bus_search_compatible(dev, compat_data)-&gt;ocd_data == 0) {
+                 return (ENXIO);
+        }
+        device_set_desc(dev, "Sample Ethernet Controller");
+
+        return (BUS_PROBE_DEFAULT);
+}</pre>
+            <p class="p">The value that the probe function returns determines which driver is the best one to
+                use for the device. For example, <span class="keyword const">BUS_PROBE_DEFAULT</span> indicates that the
+                device is a normal device matching a Plug and Play ID and is the normal return value
+                for drivers to use. For a list and description of all the conventional return
+                values, see <a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=DEVICE_PROBE&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=DEVICE_PROBE&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>.</p>
+
+            <p class="p">For example, <span class="ph filepath">devs-re.so</span>, <span class="ph filepath">devs-em.so</span>, and
+                    <span class="ph filepath">devs-ix.so</span> drivers are loaded. If you add a PCI device,
+                regardless of which driver is used, all the probe functions of the drivers registered
+                against the PCI bus are called (<span class="keyword apiname">re_probe()</span>,
+                    <span class="keyword apiname">em_probe()</span>, <span class="keyword apiname">ix_probe()</span>). The return values
+                indicate that <span class="ph filepath">devs-re.so</span> is the best driver to use and the
+                    <span class="keyword apiname">re_attach()</span> function is called. Although typically there is
+                only one match, <span class="keyword cmdname">io-sock</span> supports having multiple drivers that
+                support the same hardware. For example, a system may have a generic driver that
+                supports all PHY devices in addition to more specific drivers.</p>
+
+    <p class="p">Because the device’s <span class="ph codeph">softc</span> is re-initialized before every probe, its
+                contents do not persist when multiple drivers are present. It is not safe to assume
+                that any information found in the device’s <span class="ph codeph">softc</span> during the probe
+                will be available when the attach method is called. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Attaching a device</h2>
+            <p class="p">You provide the attach callback as part of driver
+                module initialization (see <q class="q"><a class="xref" href="#native_drvr__register_driver">Registering
+                        the driver module</a></q>).</p>
+The attach function (e.g.,
+                <span class="keyword apiname">sam_attach()</span>) is executed for each device instance. This callback
+            implementation should contain everything needed to initialize the hardware, allocate
+            resources, attach to the interrupt, initialize PHY, and so on (see <q class="q"><a class="xref" href="#native_drvr__allocate_resources">Allocating resources </a>,</q>
+            <q class="q"><a class="xref" href="#native_drvr__register_interrupts">Registering interrupts </a>,</q>
+            <q class="q"><a class="xref" href="#native_drvr__memory_dma">Specifying the memory for Direct Memory Access
+                </a>,</q>
+            <q class="q"><a class="xref" href="#native_drvr__ethernet_interface">Initialize a network
+                interface</a>,</q>
+            <q class="q"><a class="xref" href="#native_drvr__load_phy">Attaching a PHY driver with MII bus
+                </a></q>).<p class="p">The private data structure for each instance of a device can be
+                fetched by using <span class="keyword apiname">device_get_softc()</span>:
+                </p>
+<pre class="pre codeblock">sam_attach(device_t dev) {
+        struct sam_softc *sc;
+        sc = device_get_softc(dev);
+...</pre><p class="p">The size of the <span class="ph codeph">softc</span> is specified when the
+                driver is registered. The software context is automatically allocated and zeroed
+                when the device is attached. </p>
+<p class="p">A <var class="keyword varname">node</var> variable set by
+                    <span class="keyword apiname">sam_attach()</span> can provide a handle to a specific place
+                within the DT file where hardware information related to that device is kept. For
+                example: </p>
+<div class="p">
+                <pre class="pre codeblock">...
+    node = ofw_bus_get_node(dev);
+...
+</pre>
+            </div>
+<p class="p">Example of an Ethernet device in a DT file: </p>
+<pre class="pre codeblock">ethernet@4033c000 {
+      compatible = "Hardware Descriptor string from DTB";
+      reg = &lt;0x0 0x4033c000 0x0 0x2000 0x0 0x4007c004 0x0 0x4&gt;;
+      interrupt-parent = &lt;0x1&gt;;
+      interrupts = &lt;0x0 0x39 0x4&gt;;
+      interrupt-names = "macirq";
+      tx-fifo-depth = &lt;0x5000&gt;;
+      rx-fifo-depth = &lt;0x5000&gt;;
+      clocks = &lt;0x4 0x2e 0x4 0x2e 0x4 0x38&gt;;
+      clock-names = "stmmaceth", "pclk", "tx";
+      pinctrl-names = "default";
+      pinctrl-0 = &lt;0x1c&gt;;
+      phy-mode = "rgmii";
+      status = "okay";
+</pre><p class="p">The following code from the example <span class="keyword apiname">sam_attach()</span>
+                reads a string value from a DTB:</p>
+<pre class="pre codeblock">if (OF_getprop_alloc(node, "phy-mode", (void **)&amp;phy_mode)) {
+    if (strcmp(phy_mode, "rgmii") == 0) {
+        sc-&gt;phy_mode = PHY_MODE_RGMII;
+    }
+    if (strcmp(phy_mode, "rmii") == 0) {
+        sc-&gt;phy_mode = PHY_MODE_RMII;
+    }
+    OF_prop_free(phy_mode);
+}
+</pre>
+        </div>
+
+<div class="section"><h2 class="title sectiontitle">Using <span class="ph filepath">iflib</span> for PCI drivers</h2>
+            
+            <p class="p">The sample driver described throughout this section deals with MMIO devices that are
+                described in a DTB. However, for PCI devices, QNX recommends using the
+                    <span class="ph filepath">iflib</span> framework instead.</p>
+
+            <p class="p">The <span class="ph filepath">iflib</span> framework is documented here: <a class="xref" href="https://man.freebsd.org/cgi/man.cgi?query=iflib&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://man.freebsd.org/cgi/man.cgi?query=iflib&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a></p>
+
+            <p class="p"> The <span class="ph filepath">iflib</span> callbacks are specified when the driver is
+                registered. An additional callback, <span class="ph codeph">device_register</span>, provides a
+                pointer to a structure. For example:</p>
+
+            <pre class="pre codeblock">static device_method_t sample_methods[] = {
+    DEVMETHOD(device_register,      sample_iflib_register),
+    DEVMETHOD(device_probe,         iflib_device_probe),
+    DEVMETHOD(device_attach,        iflib_device_attach),
+    DEVMETHOD(device_detach,        iflib_device_detach),
+    DEVMETHOD(device_shutdown,      iflic_device_shutdown),
+
+    DEVMETHOD_END
+};
+    </pre>
+            <p class="p">The source code for several drivers that use the <span class="ph filepath">iflib</span> framework
+                is available from FreeBSD (e.g., <span class="keyword cmdname">igc</span>, <span class="keyword cmdname">e1000</span>,
+                    <span class="keyword cmdname">ixgbe</span>, <span class="keyword cmdname">ixl</span>).</p>
+
+        </div>
+
+    <div class="section" id="native_drvr__allocate_resources"><h2 class="title sectiontitle">Allocating resources</h2><p class="p">Use
+                    <span class="keyword apiname">bus_alloc_resources()</span> to allocate resources from a parent
+                bus. For
+                example:</p>
+<pre class="pre codeblock">...
+    bus_alloc_resources(dev, sam_spec, sc-&gt;res);
+...
+</pre><p class="p">The <var class="keyword varname">res</var> argument is an array of type <span class="keyword dtype">struct</span> that is used for
+                both mapping the memory region used by the device and interrupt mapping. The size of
+                the array depends on the actual number of memory regions and interrupts the hardware
+                uses. The <var class="keyword varname">sam_spec</var> argument is an array that holds the
+                description of a specific resource type. For example:</p>
+<pre class="pre codeblock">static struct resource_spec sam_spec[] = {
+        { SYS_RES_MEMORY,       0,      RF_ACTIVE },
+        { SYS_RES_IRQ,          0,      RF_ACTIVE },
+        RESOURCE_SPEC_END
+};</pre><p class="p">After <span class="keyword apiname">bus_alloc_resources()</span> is executed, the third parameter
+                    (<span class="keyword const">RF_ACTIVE</span>) holds an address pointer to a memory resource or
+                region, or a pointer for an interrupt resource. This parameter can be passed to
+                    <span class="keyword apiname">bus_setup_intr()</span>. </p>
+</div>
+<div class="section" id="native_drvr__register_interrupts"><h2 class="title sectiontitle">Registering interrupts</h2><div class="p">Use <span class="keyword apiname">bus_setup_intr()</span> to perform interrupt registration within
+                    <span class="keyword apiname">sam_attach()</span>. The following example specifies the
+                interrupt handler for an interrupt that has been allocated by
+                    <span class="keyword apiname">bus_alloc_resources()</span>:
+                <pre class="pre codeblock">bus_setup_intr(dev, sc-&gt;res[1], INTR_TYPE_NET | INTR_MPSAFE, NULL,
+                    sam_intr, sc, &amp;sc-&gt;intr_cookie);</pre></div>
+
+            <p class="p">The <var class="keyword varname">&amp;sc-&gt;intr_cookie</var> argument is a pointer to a void pointer
+                that <span class="keyword apiname">bus_setup_intr()</span> uses if it successfully establishes an
+                interrupt. </p>
+
+            <p class="p">The interrupt filter and handler run in a QNX Interrupt Service Thread. Both the
+                filter and handler functions run in the same context. Unlike FreeBSD,
+                    <span class="keyword cmdname">io-sock</span> places no additional restrictions on what a filter
+                function can do versus what a handler function can do. If a filter is specified, it
+                must return <span class="keyword const">FILTER_SCHEDULE_THREAD</span> if it wants the optional handler
+                to run; otherwise, it can return <span class="keyword const">FILTER_HANDLED</span>.  Most drivers only
+                specify a handler.</p>
+
+            <p class="p">After the interrupt has fired, the driver should acknowledge the interrupt with the
+                hardware. The masking and unmasking of the interrupt is handled by
+                    <span class="keyword cmdname">io-sock</span>.</p>
+</div>
+
+    <div class="section" id="native_drvr__memory_dma"><h2 class="title sectiontitle">Specifying the memory for Direct Memory Access</h2>Direct
+            Memory Access (DMA) improves performance by transferring data without involving the CPU.
+            A DMA transaction can transfer data between a device and memory, a device and another
+            device, or memory and memory. You specify the memory for DMA transactions using the
+            following three tasks:<ul class="ul" id="native_drvr__ul_fgg_bm2_j4b">
+                <li class="li">Create a memory tag</li>
+
+                <li class="li">Allocate memory</li>
+
+                <li class="li">Load the memory map of physical addresses according to hardware-specific memory
+                    constraints</li>
+
+            </ul>
+ For FreeBSD DMA documentation, go to <a class="xref" href="https://man.freebsd.org/cgi/man.cgi?query=bus_dma&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">
+                https://man.freebsd.org/cgi/man.cgi?query=bus_dma&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>.
+                <h3 class="title sectiontitle">Creating a memory tag</h3> A DMA memory tag is a machine-dependent opaque
+            type that describes the characteristics of DMA transactions. These tags are organized
+            into a hierarchy. Because each child tag inherits the restrictions of its parent, all
+            devices along the path of DMA transactions contribute to the constraints that apply. For
+            example: <pre class="pre codeblock">error = bus_dma_tag_create(
+                bus_get_dma_tag(sc-&gt;dev),       /* Parent tag. */
+                1, 0,                           /* alignment, boundary */
+                BUS_SPACE_MAXADDR_32BIT,        /* lowaddr */
+                BUS_SPACE_MAXADDR,              /* highaddr */
+                NULL, NULL,                     /* filter, filterarg */
+                MCLBYTES, TX_DMA_MFUF_CHUNK,    /* maxsize, nsegments */
+                MCLBYTES,                       /* maxsegsize */
+                0,                              /* flags */
+                NULL, NULL,                     /* lockfunc, lockarg */
+                &amp;sc-&gt;txbuf_tag);
+                </pre><h3 class="title sectiontitle">Allocating memory</h3>Memory can be allocated as a
+            single segment using <span class="keyword apiname">bus_dmamem_alloc()</span>. For
+            example:<pre class="pre codeblock">bus_dmamem_alloc(sc-&gt;txdesc_tag, (void**)&amp;sc-&gt;txdesc_ring,
+    BUS_DMA_COHERENT | BUS_DMA_WAITOK | BUS_DMA_ZERO, &amp;sc-&gt;txdesc_map);</pre>Then,
+            the initial load operation is required to obtain the bus address of the allocated
+            memory. For
+            example:<pre class="pre codeblock">bus_dmamap_load(sc-&gt;txdesc_tag, sc-&gt;txdesc_map, sc-&gt;txdesc_ring,
+    TX_DESC_SIZE, sam_get1paddr, &amp;sc-&gt;txdesc_ring_paddr, 0);</pre>where
+                <var class="keyword varname">sam_get1paddr</var> is a pointer to a callback that returns the
+            physical address of that segment. <div class="p">Alternatively, you can use
+                    <span class="keyword apiname">bus_dmamap_create()</span>, which allocates and initializes a DMA
+                map. For
+                example:<pre class="pre codeblock">for (idx = 0; idx &lt; TX_MAP_BUFFER_LEN; idx++)
+    bus_dmamap_create(sc-&gt;txbuf_tag, BUS_DMA_COHERENT, &amp;sc-txbuf_map[idx].map);</pre></div>
+<h3 class="title sectiontitle">Load
+                the memory map of physical addresses</h3>After either the hardware or the CPU
+            writes to the memory they share, synchronization needs to be performed by calling
+                <span class="keyword apiname">bus_dmamap_sync()</span>. In the following example,
+                <span class="keyword apiname">bus_dmamap_sync()</span> is called after the hardware has finished
+            writing data to the receive buffer and returns the buffer to <span class="keyword cmdname">io-sock</span>
+            so that it can access that
+                memory:<pre class="pre codeblock">bus_dmamap_sync(sc-&gt;rxdesc_tag, sc-&gt;rxdesc_map, BUS_DMASYNC_POSTWRITE | BUS_DMASYNC_POSTREAD);</pre><p class="p">For
+                a description of all the available memory synchronization operation specifiers, see
+                    <a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=bus_dmamap_sync&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=bus_dmamap_sync&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>.
+                </p>
+<h3 class="title sectiontitle">DMA shutdown handlers</h3>Any driver that uses DMA needs to implement
+            a shutdown handler method that stops all DMA. It is called when
+                <span class="keyword cmdname">io-sock</span> terminates (either terminating normally or crashing).
+            Without a shutdown handler, memory that was reserved for the DMA may continue to be
+            modified by the hardware even though the system now considers this freed memory. This
+            situation can corrupt any memory that is then provided by the system at the same memory
+                location.<p class="p">This function should shut down DMA in the quickest and simplest way
+                possible (e.g., reset the device) and ignore other resources (e.g., memory) because
+                those resources are cleaned up automatically when the process terminates. A more
+                complete shutdown is done with <span class="keyword apiname">detach()</span>.</p>
+</div>
+
+    <div class="section" id="native_drvr__ethernet_interface"><h2 class="title sectiontitle">Initialize a network interface</h2>
+        <div class="p">A driver needs to allocate and initialize an <span class="keyword dtype">ifnet</span> structure for each
+                network interface. To avoid compatibility issues, use functions to access the
+                    <span class="keyword dtype">ifnet</span> structure members. For
+                    example:<pre class="pre codeblock">struct ifnet *ifp;
+...
+sc-&gt;ifp = ifp = if_alloc(IFT_ETHER);
+if_setsoftc(ifp, sc);
+if_initname(ifp, device_get_name(dev), device_get_unit(dev));
+if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST);
+if_setcapabilities(ifp, IFCAP_VLAN_MTU);
+if_setcapenable(ifp, if_getcapabilities(ifp));
+if_settransmitfn(ifp, sam_transmit);
+if_setqflushfn(ifp, sam_qflush);
+if_setioctlfn(ifp, sam_ioctl);
+if_setinitfn(ifp, sam_init);
+if_setsendqlen(ifp, TX_DESC_COUNT – 1);
+if_setsendqready(ifp);
+if_setifheaderlen(ifp, sizeof(struct ether_vlan_header);
+ether_ifattach(ifp, macaddr);            </pre>where:<ul class="ul" id="native_drvr__ul_m15_4w2_j4b">
+                    <li class="li"><tt class="ph tt">sam_transmit</tt> is a driver-defined asynchronous transmit callback.
+                        The callback receives a pointer to a <span class="keyword dtype">mbuf</span> structure that the
+                        driver should transmit (see <q class="q"><a class="xref" href="#native_drvr__transmit_packet">Transmitting a packet</a></q>). </li>
+
+                    <li class="li"><tt class="ph tt">sam_ioctl</tt> is a driver-defined I/O control handler. Possible I/O
+                        control codes are defined in <span class="ph filepath">sockio.h</span>.</li>
+
+                    <li class="li"><tt class="ph tt">sam_qflush</tt> is a driver-defined synchronous callback that should
+                        flush packet queues.</li>
+
+                    <li class="li"><tt class="ph tt">sam_init</tt> is a driver-defined synchronous callback that should
+                        initialize and bring up the hardware (e.g., reset the chip and the watchdog
+                        timer, and enable the receiver unit). Because it is called on a
+                        per-interface basis, it receives a pointer to an <span class="keyword dtype">if_softc</span>
+                        structure as a parameter.</li>
+
+                </ul>
+</div>
+
+    </div>
+
+        <div class="section" id="native_drvr__load_phy"><h2 class="title sectiontitle">Attaching a PHY driver with MII bus</h2> You can implement
+            PHY-specific handling within a PHY-specific driver, and load it using
+                <span class="keyword apiname">mii_attach()</span>. For example:
+            <pre class="pre codeblock">mii_attach(dev, &amp;sc-&gt;miibus, ifp, sam_media_change,
+    sam_media_status, BMSR_DEFCAPMASK, phynum,
+    MII_OFFSET_ANY, MIIF_FORCEANEG);</pre>The MAC driver has to provide
+            implementations for PHY read, write, and status change callbacks as part of driver
+            module initialization (see <q class="q"><a class="xref" href="#native_drvr__register_driver">Registering the
+                    driver module</a></q>). For example, in the <span class="keyword dtype">device_method_t</span>
+            example provided above:<pre class="pre codeblock">static device_method_t sam_methods[] = {
+        DEVMETHOD(device_probe,         sam_probe),
+        DEVMETHOD(device_attach,        sam_attach),
+        DEVMETHOD(device_detach,        sam_detach),
+        DEVMETHOD(device_shutdown,      sam_shutdown),
+
+        /* MII Interface */
+        DEVMETHOD(miibus_readreg,       sam_miibus_read_reg),
+        DEVMETHOD(miibus_writereg,      sam_miibus_write_reg),
+        DEVMETHOD(miibus_statchg,       sam_miibus_statchg),
+
+        DEVMETHOD_END
+};</pre><ul class="ul" id="native_drvr__ul_cnj_1dk_j4b">
+                <li class="li"><var class="keyword varname">miibus_statchg</var> is a synchronous callback called by the MII
+                    bus driver when the physical layer establishes a link. It sets the MAC interface
+                    registers. It should respond to media changes according to
+                        <var class="keyword varname">mii-&gt;mii_media_active</var> and
+                        <var class="keyword varname">mii-&gt;mii_media_status</var> bitmaps and configure MAC registers
+                    accordingly.</li>
+
+                <li class="li"><var class="keyword varname">miibus_writereg</var> and <var class="keyword varname">miibus_readreg</var> are
+                    synchronous write and read PHY registers.</li>
+
+            </ul>
+
+            <p class="p">The <span class="keyword cmdname">io-sock</span> networking stack includes the MII bus framework and
+                the <span class="ph filepath">mods-phy.so</span> module contains several built-in PHY drivers.
+                The external PHY driver <span class="ph filepath">devs-samplephy.so</span> can be added. To use
+                the probe helper functions, you need to add the PHY descriptor defines to the PHY
+                driver. For
+            example:</p>
+<pre class="pre codeblock">#define MII_OUI_xxSAMPLE          0x00aaaa
+#define MII_MODEL_xxSAMPLE_2A     0x002a
+#define MII_STR_xxSAMPLE_2A      "Sample PHY"
+
+static const struct mii_phydesc samplephys[] = {
+        MII_PHY_DESC(xxSAMPLE, 2A),
+        MII_PHY_END
+};
+static int
+samplephy_probe(device_t dev)
+{
+        return (mii_phy_dev_probe(dev, samplephys, BUS_PROBE_DEFAULT));
+}</pre>
+        </div>
+
+    <div class="section"><h2 class="title sectiontitle">Receiving a packet</h2><p class="p">Packet reception starts with an interrupt from the hardware. After processing, filled received
+                packets are drained from the hardware, new empty packets are passed to the hardware,
+                and the filled received packets are passed to <span class="keyword cmdname">io-sock</span>. For
+                example (from <span class="keyword apiname">sam_rxfinish_one()</span>):</p>
+<pre class="pre codeblock">if_input(ifp, m);
+</pre></div>
+
+            <div class="section"><h2 class="title sectiontitle">Transmitting a packet</h2> The transmit callback
+            is called by <span class="keyword cmdname">io-sock</span> and is registered early in the attach phase. In
+            addition, a pointer to a transmit queue flushing function should be provided to
+                <span class="keyword cmdname">io-sock</span>. For example (from <span class="keyword apiname">sam_attach()</span>):
+                <pre class="pre codeblock">if_settransmitfn(ifp, sam_transmit);
+if_setqueueuflushfn(ifp, sam_qflush);
+</pre><p class="p">The transmit callback should be implemented asynchronously. Generally
+                speaking, the driver first needs to determine if the hardware resources to transmit
+                a packet are available (descriptors, buffers, etc.). If the hardware runs out of
+                transmit resources, it should return from the transmit function and transmit the
+                packet when those resources become available. </p>
+<div class="note"><span class="notetitle">Note:</span> The
+                    <span class="keyword apiname">if_setstartfn()</span> function is deprecated and should not be used
+                in new drivers. </div>
+</div>
+<div class="section"><h2 class="title sectiontitle">Working with <span class="keyword dtype">mbuf</span> chains</h2><p class="p">An <span class="keyword dtype">mbuf</span> (short for
+                memory buffer) is a basic unit of memory management that is used to store network
+                packets and socket buffers. A network packet may span multiple <span class="keyword dtype">mbufs</span>
+                arranged into a <span class="keyword dtype">mbuf</span> chain (linked list), which allows adding or
+                trimming network headers with little overhead.</p>
+<p class="p">To avoid compatibility issues
+                with future versions, QNX recommends that you don't modify <span class="keyword dtype">mbuf</span>
+                internals when you develop an <span class="keyword cmdname">io-sock</span> driver. However, it is
+                useful to understand the general structure of an <span class="keyword dtype">mbuf</span>, which is
+                defined in <span class="ph filepath">include/devs/sys/mbuf.h</span>.</p>
+<div class="p">The following example allocates an <span class="keyword dtype">mbuf</span>:
+                <pre class="pre codeblock">struct mbuf *m;
+
+m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
+</pre>
+                    (For flag definitions, see <a class="xref" href="https://www.freebsd.org/cgi/man.cgi?query=mbuf&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports" target="_blank">https://www.freebsd.org/cgi/man.cgi?query=mbuf&amp;sektion=9&amp;manpath=FreeBSD+13.4-RELEASE+and+Ports</a>
+                or <span class="ph filepath">mbuf.h</span>).</div>
+<p class="p">The <span class="keyword apiname">bus_dmamap_load_mbuf_sg()</span> function allows you to map <span class="keyword dtype">mbuf</span>
+                chains for DMA transfers. In the following example, an <span class="keyword dtype">mbuf</span> chain is
+                received in a transfer callback and mapped into a DMA memory transaction for the
+                hardware: </p>
+<pre class="pre codeblock">bus_dmamap_load_mbuf_sg(sc-&gt;txbuf_tag,
+                sc-&gt;txbuf_map[sc-&gt;txbuf_idx_head].map, m0, seg, &amp;nsegs, 0);
+</pre>
+            <p class="p">The <var class="keyword varname">seg</var> argument specifies a scatter/gather segment array that the
+                caller provides and the function fills in. The <var class="keyword varname">nsegs</var> argument is
+                returned with the number of segments filled in. </p>
+<p class="p">If
+                the <span class="keyword apiname">bus_dmamap_load_mbuf_sg()</span> call above fails, you can
+                <q class="q">collapse</q> (i.e., defragment) the <span class="keyword dtype">mbuf</span> chain into a smaller number of
+                segments and try again. For example:
+                </p>
+<pre class="pre codeblock">m_collapse(m0, M_NOWAIT, TX_DMA_MFUF_CHUNK);
+</pre><p class="p">If
+                the hardware does not support scatter/gather addressing, you can “collapse” the
+                    <span class="keyword dtype">mbuf</span> chain to a contiguous buffer. This method is slower. For
+                example: </p>
+<pre class="pre codeblock">m_defrag(m0, M_NOWAIT);
+</pre></div>
+<div class="section" id="native_drvr__modify_makefile"><h2 class="title sectiontitle">Modifying the
+                makefile</h2><p class="p">Add <tt class="ph tt">include devs/devs.mk</tt> to the end of <span class="ph filepath">common.mk</span>, as shown in the
+                following example <span class="ph filepath">common.mk</span>, which adds include paths for
+                    <span class="keyword cmdname">io-sock</span> header files:</p>
+<pre class="pre codeblock">ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+
+define PINFO
+PINFO DESCRIPTION=Sample io-sock driver
+endef
+
+include devs/devs.mk
+</pre>
+
+</div>
+<div class="section"><h2 class="title sectiontitle">Loading an io-sock driver</h2>
+<p class="p">There are two ways you can load the driver:</p>
+
+            <ul class="ul" id="native_drvr__ul_a2q_wnr_j4b">
+                <li class="li">Load <span class="keyword cmdname">io-sock</span> first and use <span class="keyword cmdname">mount</span> to load
+                    the driver later. For
+                    example:<pre class="pre codeblock">io-sock -m phy -m fdt
+...
+mount -T io-sock devs-sample.so
+</pre></li>
+
+                <li class="li">Load the driver when you start <span class="keyword cmdname">io-sock</span>. For example (you can
+                    specify the driver without the <span class="ph filepath">devs-*</span> prefix and
+                        <span class="ph filepath">.so</span>
+                    extension):<pre class="pre codeblock"> io-sock -m phy -m fdt -d sample</pre>
+                </li>
+
+            </ul>
+This example specifies drivers that support a Flattened Device Tree bus, direct memory access driver
+                 (<tt class="ph tt">-m phy -m fdt</tt>).
+                 Other bus types require different drivers (e.g., <tt class="ph tt">-d phy -d pci</tt> or <tt class="ph tt">-d phy -d usb</tt>).
+                 For more information, see <q class="q"><a class="xref" href="start_io-sock.html">Starting
+                        <span class="keyword cmdname">io-sock</span> and driver management</a>.</q>
+        </div>
+
+
+</div>
+
+</body>
+</html>

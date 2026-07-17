@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Startup mappings" />
+<meta name="abstract" content="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up." />
+<meta name="description" content="The smmuman configuration can be used to create DMA device to memory region mappings and permissions that the smmuman service reads in when it starts up." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="use_startup" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Startup mappings</title>
+</head>
+<body id="use_startup">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Startup mappings</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The <span class="keyword cmdname">smmuman</span> configuration can be used to create DMA device
+		to memory region mappings and permissions that the <span class="keyword cmdname">smmuman</span> service reads
+		in when it starts up.</p>
+
+		<div class="section">
+			
+			
+		</div>
+
+		<div class="section" id="use_startup__when"><h2 class="title sectiontitle">Startup mappings, or client-side API?</h2>
+			
+			<p class="p">When you use the <span class="keyword cmdname">smmuman</span> client-side API to manage DMA device
+				memory mappings and permissions, the <span class="keyword cmdname">smmuman</span> clients (e.g.,
+				drivers and other processes) communicate directly with the
+				<span class="keyword cmdname">smmuman</span> service. When you use the <span class="keyword cmdname">smmuman</span>
+				configuration to specify DMA device memory mappings and permissions, you are setting
+				up <em class="ph i">indirect</em> communication between the DMA device drivers and the
+				<span class="keyword cmdname">smmuman</span> service. Neither the drivers nor the service know
+				about each other. You need to provide the information they require to work together
+				indirectly, through the <span class="keyword cmdname">smmuman</span> configuration, and the startup
+				for each process that will become a <span class="keyword cmdname">smmuman</span> client (e.g., DMA
+				device driver startup).</p>
+
+			<p class="p">Depending on the needs of your system, you may want or need to use mappings
+				configured at startup for all the DMA devices and their mapped memory regions on
+				your system, and never use the client-side API.</p>
+
+			<p class="p">You may also include in the startup mappings only devices needed
+				immediately at startup, leaving the rest to be added later through the
+				<span class="keyword cmdname">smmuman</span> client-side API, as needed, by DMA device drivers and
+				other processes.</p>
+
+			<p class="p">If you are using a legacy DMA device driver (i.e., a driver that pre-dates
+				<span class="keyword cmdname">smmuman</span> and hence doesn't use the <span class="keyword cmdname">smmuman</span>
+				client-side API), you must use the <span class="keyword cmdname">smmuman</span> configuration to
+				create DMA device to memory region mappings and permissions when the
+				<span class="keyword cmdname">smmuman</span> service starts.</p>
+
+		</div>
+
+		<div class="section" id="use_startup__typedmem"><h2 class="title sectiontitle">Typed memory support</h2>
+			
+			
+			
+			<p class="p">To create the mappings in your <span class="keyword cmdname">smmuman</span> configuration you
+				use typed memory, because typed memory regions can be named. The
+				<span class="keyword cmdname">smmuman</span> configuration uses these names to map memory regions
+				to devices. Thus, your DMA device driver must have an option that allows you to
+				specify typed memory. These options differ from driver to driver (see <q class="q"><a class="xref" href="#use_startup__device">Starting the drivers</a></q> for some examples).</p>
+
+			<p class="p">If the driver doesn't have such an option, you need to modify the driver. If this is
+				the case, then unless you have a compelling reason not to do so, you should modify
+				the driver to use the <span class="keyword cmdname">smmuman</span> client-side API and use this API to
+				manage your DMA device memory mappings and permissions (see <q class="q"><a class="xref" href="use.html" title="For systems that will be safety certified, the recommended method for mapping DMA devices to memory regions and specifying their access permissions is through the startup configuration. Only for non-safety systems should you use the SMMUMAN client API.">Mapping DMA devices and memory regions through the API</a></q> in this chapter).</p>
+
+			<p class="p">For more information about typed memory, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Typed_memory.html">Typed Memory</a></q> in the
+				<span class="keyword">QNX OS</span> <cite class="cite">System Architecture</cite> guide.</p>
+
+		</div>
+
+		<div class="section" id="use_startup__tasks"><h2 class="title sectiontitle">Tasks</h2>
+			
+			<div class="p">Using the <span class="keyword cmdname">smmuman</span> configuration to create DMA device to
+				memory region mappings and permissions involves the following tasks:
+				<ol class="ol">
+					<li class="li"><a class="xref" href="#use_startup__config">Configuring the smmuman service</a></li>
+
+					<li class="li"><a class="xref" href="#use_startup__startup">Setting aside the typed memory regions at system startup</a></li>
+
+					<li class="li"><a class="xref" href="#use_startup__device">Starting the drivers</a></li>
+
+				</ol>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> When you specify devices, memory regions and their permissions in the
+				<span class="keyword cmdname">smmuman</span> configuration, you are simply instructing the
+				<span class="keyword cmdname">smmuman</span> service to act as its own client and use its
+				client-side API to map these devices and memory regions.</div>
+
+		</div>
+
+		<div class="section" id="use_startup__config"><h2 class="title sectiontitle">Configuring the <span class="keyword cmdname">smmuman</span> service</h2>
+			
+			<div class="p">To use the <span class="keyword cmdname">smmuman</span> configuration to create mappings between
+				DMA devices and memory regions, add to the <span class="keyword cmdname">smmuman</span>
+				configuration:
+				<ul class="ul">
+					<li class="li">the typed memory regions needed for each device, specifying each region's name
+						(<var class="keyword varname">allow_name</var>)</li>
+
+					<li class="li">the devices, specifying by name (<var class="keyword varname">allow_name</var>) the memory
+						region to which the device should be mapped</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">For example:</p>
+
+<pre class="pre codeblock">debug 2
+
+smmu vtd require
+
+allow smbs0   $asinfo_start{smbs0},$asinfo_length{smbs0},st
+allow xhci    $asinfo_start{xhci},$asinfo_length{xhci},st
+allow <strong class="ph b">hsu0</strong>    $asinfo_start{hsu0},$asinfo_length{hsu0},st
+allow hsu1    $asinfo_start{hsu1},$asinfo_length{hsu1},st
+allow hsu2    $asinfo_start{hsu2},$asinfo_length{hsu2},st
+allow ieheci0 $asinfo_start{ieheci0},$asinfo_length{ieheci0},st
+allow sdhci   $asinfo_start{sdhci},$asinfo_length{sdhci},st
+allow ix      $asinfo_start{ix},$asinfo_length{ix},st
+
+device pci:0:18.0 smbs0
+device pci:0:21.0 xhci
+device pci:0:26.0 <strong class="ph b">hsu0</strong>
+device pci:0:26.1 hsu1
+device pci:0:26.2 hsu2
+device pci:0:27.0 ieheci0
+device pci:0:28.0 sdhci
+device pci:2:00.1 ix
+device pci:2:00.0 ix</pre>
+			<p class="p">Note that the <span class="keyword option">allow</span> option's first argument is
+				<var class="keyword varname">allow_name</var>, and that the <span class="keyword option">device</span> option uses this
+				name to associate the device with a memory region. In the example above, one mapping
+				(<span class="ph codeph">hsu0</span>) is in bold.</p>
+
+			<p class="p">The example uses textual substitutions and places the configuration values in the
+				system page tables (see <q class="q"><a class="xref" href="config.html#config__textsub">Textual substitutions</a></q> in this chapter). For more information about how to manage permissions,
+				see the <a class="xref" href="options.html#options__allow"><span class="keyword option">allow</span></a> and
+				<a class="xref" href="options.html#options__device"><span class="keyword option">device</span></a> options
+				under <q class="q"><a class="xref" href="options.html" title="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both.">Global options</a></q> in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="use_startup__startup"><h2 class="title sectiontitle">Setting aside the typed memory regions at system startup</h2>
+			
+			
+			
+			
+			<div class="p">In your system build file, configure your startup program to use the <span class="keyword option">-R</span>
+				option to set aside the typed memory regions you will use for your DMA devices. For
+				example, below is the startup for an x86 board that uses the
+					<span class="keyword cmdname">smmuman</span> service configured as in <q class="q"><a class="xref" href="#use_startup__config">Configuring the smmuman service</a></q> above:
+				<pre class="pre codeblock">### Startup suitable for use with SMMUMAN (with smbus, hsu, IE heci and ethernet)
+startup-foo -vv -T  \
+-R64K,4K,smbs0 -R8K,4K,<strong class="ph b">hsu0</strong> -R8K,4K,hsu1 -R8K,4K,hsu2 -R128K,4K,ieheci0 -R16M,4K,ix\
+-f1700M,1700000000</pre></div>
+
+			<p class="p">Note that each instance of the <span class="keyword option">-R</span> option specifies the size of the
+				memory region, its alignment, and a name. This name is the name used in the
+				<span class="keyword cmdname">smmuman</span> configuration to identify each memory region. In the
+				startup configuration above, the memory region identified in bold is the region
+				similarly identified in the <span class="keyword cmdname">smmuman</span> configuration.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> Startup programs are included in the QNX BSPs. For more information about startup
+				programs, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/startup/startup_about.html">Startup Programs</a></q> in <cite class="cite">Building
+					Embedded Systems</cite>. For more information about the <span class="keyword option">-R</span>
+				startup option, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/startup_options.html"><span class="keyword option">startup-*</span> options</a></q>
+				in the <cite class="cite">Utilities Reference</cite>.</div>
+
+		</div>
+
+		<div class="section" id="use_startup__device"><h2 class="title sectiontitle">Starting the drivers</h2>
+			
+			
+			
+			
+			
+			<p class="p">Finally, after you have specified the DMA device to typed memory mappings in the
+					<span class="keyword cmdname">smmuman</span> configuration, and reserved the typed memory regions
+				in the startup program, you need to start each device driver, specifying by name the
+				typed memory region it has been assigned.</p>
+
+			<p class="p">Below are some examples. Notice that the options for specifying the named memory
+				region differ from device to device. In each example the option and the typed memory
+				region name are shown in bold; the name corresponds to a region specified in the
+				startup program and by the <span class="keyword cmdname">smmuman</span> configuration
+					<span class="keyword option">allow</span> option's <var class="keyword varname">allow_name</var> argument.</p>
+
+			<h3 class="title sectiontitle">System manager bus driver</h3>
+			<pre class="pre codeblock">io-smb -v <strong class="ph b">-t smbs0</strong> -M worker -i addr=0x46,fifo=5 -c 0x45 -a 0x44</pre>
+			<h3 class="title sectiontitle">Serial driver</h3>
+			<pre class="pre codeblock">devc-serhsu vid=0x8086,did=0x19d8,pci=0,<strong class="ph b">dma=hsu0</strong> -u 1 -e -b115200</pre>
+			<h3 class="title sectiontitle">Networking stack and ix driver</h3>
+			<pre class="pre codeblock">io-sock -o config=/etc/iosock.conf -m pci -d ix</pre>
+			<p class="p">Make sure that <span class="ph filepath">/etc/iosock.conf</span> has the following entry:</p>
+
+			<pre class="pre codeblock">qnx.typed_mem="ix"</pre>
+			<h3 class="title sectiontitle">eMMC driver</h3>
+			<pre class="pre codeblock">devb-sdmmc blk cache=1m cam bounce=128K mem <strong class="ph b">name=sdhci</strong></pre>
+			
+			<h3 class="title sectiontitle">USB and USB mass storage drivers</h3>
+			<pre class="pre codeblock">io-usb-otg -t memory=xhci -d xhci pindex=0,<strong class="ph b">memory=xhci</strong> &amp;
+waitfor /dev/usb/io-usb-otg
+devb-umass cam pnp bounce=128k mem <strong class="ph b">name=xhci</strong> blk memory=xhci &amp;</pre>
+			
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

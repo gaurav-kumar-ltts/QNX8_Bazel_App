@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Controlling the number of threads" />
+<meta name="abstract" content="Let's first look at the “thread pool parameters” to see how you control the number and attributes of threads that will be operating in this thread pool. Keep in mind that we'll be talking about the “blocking operation” and the “processing operation” (when we look at the callout functions, we'll see how these relate to each other)." />
+<meta name="description" content="Let's first look at the “thread pool parameters” to see how you control the number and attributes of threads that will be operating in this thread pool. Keep in mind that we'll be talking about the “blocking operation” and the “processing operation” (when we look at the callout functions, we'll see how these relate to each other)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_tpool.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples_tp1.c.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Number_of_threads" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Controlling the number of threads</title>
+</head>
+<body id="Number_of_threads">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Controlling the number of threads</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Let's first look at the <q class="q">thread pool parameters</q> to see how you control
+the number and attributes of threads that will be operating in this thread pool.
+Keep in mind that we'll be talking about the <q class="q">blocking operation</q>
+and the <q class="q">processing operation</q> (when we look at the callout functions,
+we'll see how these relate to each other).
+</p>
+
+
+<p class="p">
+
+The following diagram illustrates the relationship of the
+<var class="keyword varname">lo_water</var>, <var class="keyword varname">hi_water</var>,
+and <var class="keyword varname">maximum</var> parameters:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Thread flow when using thread pools.</span>
+
+<br /><img class="image" src="../images/dpt13.svg" width="624" alt="Thread Flow with Thread Pool" /><br />
+</div>
+
+
+<p class="p">
+Note that <q class="q">CA</q> is the <span class="keyword apiname">context_alloc()</span> function,
+<q class="q">CF</q> is the <span class="keyword apiname">context_free()</span> function,
+<q class="q">blocking operation</q> is the <span class="keyword apiname">block_func()</span> function, and
+<q class="q">processing operation</q> is the <span class="keyword apiname">handler_func()</span>.
+
+
+
+
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+<dd class="dd">This is the attributes structure that's used during thread creation.
+  We've already discussed this structure above (in
+  <q class="q"><a class="xref" href="s1_procs_thread_attr.html" title="When you start a new thread, it can assume some well-defined defaults, or you can explicitly specify its characteristics.">The thread attributes structure</a></q>).
+  You'll recall that structure controls things about the newly
+  created thread like priority, stack size, and so on.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lo_water</var></dt>
+
+<dd class="dd">There should always be at least <var class="keyword varname">lo_water</var> threads sitting
+  in the blocking operation.
+  In a typical server, this would be the number of threads waiting to
+  receive a message, for example.
+  If there are fewer than <var class="keyword varname">lo_water</var> threads sitting in the
+  blocking operation (because, for example, we just received a message and
+  have started the processing operation on that message),
+  then more threads are created, according to the <var class="keyword varname">increment</var>
+  parameter.
+  This is represented in the diagram by the first step labeled
+  <q class="q">create thread.</q>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">increment</var></dt>
+
+<dd class="dd">Indicates how many threads should be created at once if the count
+  of blocking operation threads ever drops under <var class="keyword varname">lo_water</var>.
+  In deciding how to choose a value for this, you'd most likely start
+  with <span class="ph codeph">1</span>.  This means that if the number of
+  threads in the blocking operation drops under <var class="keyword varname">lo_water</var>,
+  exactly one more thread would be created by the thread pool.
+  To fine-tune the number that you've selected for <var class="keyword varname">increment</var>,
+  you could observe the behavior of the process and
+  determine whether this number needs to be anything other than one.
+  If, for example, you notice that your process gets <q class="q">bursts</q>
+  of requests, then you might decide that once you've dropped below
+  <var class="keyword varname">lo_water</var> blocking operation threads, you're probably going
+  to encounter this <q class="q">burst</q> of requests, so you might
+  decide to request the creation of more than one thread at a time.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">hi_water</var></dt>
+
+<dd class="dd">Indicates the upper limit on the number of threads that should be
+  in the blocking operation.
+  As threads complete their processing operations, they will normally return
+  to the blocking operation.
+  However, the thread pool library keeps count of how many threads are currently
+  in the blocking operation, and if that number ever exceeds
+  <var class="keyword varname">hi_water</var>, the thread pool library will kill the thread that
+  caused the overflow (i.e., the thread that had just finished and was about to
+  go back to the blocking operation).
+  This is shown in the diagram as the <q class="q">split</q> out of the <q class="q">processing
+  operation</q> block, with one path going to the <q class="q">blocking operation</q>
+  and the other path going to <q class="q">CF</q> to destroy the thread. The combination
+  of <var class="keyword varname">lo_water</var> and <var class="keyword varname">hi_water</var>, therefore,
+  allows you to specify a range indicating how many threads should be
+  in the blocking operation.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">maximum</var></dt>
+
+<dd class="dd">Indicates the absolute maximum number of threads that will ever run
+  concurrently as a result of the thread pool library.
+  For example, if threads were being created as a result of an underflow
+  of the <var class="keyword varname">lo_water</var> mark, the <var class="keyword varname">maximum</var>
+  parameter would limit the total number of threads.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">tid_name</var></dt>
+
+<dd class="dd">Either <span class="keyword const">NULL</span> or a pointer to a NULL-terminated name for the
+  threads in the pool. Assigning a name to the threads can help simplify system
+  debugging.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Another key parameter to controlling the threads is the <var class="keyword varname">flags</var>
+parameter passed to the <span class="keyword apiname">thread_pool_create()</span> function.
+It can have one of the following values:
+
+
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">POOL_FLAG_EXIT_SELF</span></dt>
+
+<dd class="dd">The <span class="keyword apiname">thread_pool_start()</span> function will not return,
+  nor will the calling thread be incorporated into the pool of threads.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">POOL_FLAG_USE_SELF</span></dt>
+
+<dd class="dd">The <span class="keyword apiname">thread_pool_start()</span> function will not return, but
+  the calling thread will be incorporated into the pool of threads.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">POOL_FLAG_CALL_BLOCK_ERRF</span></dt>
+
+<dd class="dd">The <var class="keyword varname">error_func()</var> will be called on an error returned by
+  <var class="keyword varname">block_func()</var>; 
+  see <q class="q"><a class="xref" href="s1_procs_Thread_pool_error_handling.html" title="If you write your own main processing loop, you can handle errors as required. But with a thread pool, that code is hidden. To help you detect and respond to errors, the thread pool lets you configure an error handler, error_func(), that is called if your context_alloc(), block_func(), or handler_func() fails.">Error handling</a></q> for details.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">POOL_FLAG_CALL_HANDLE_ERRF</span></dt>
+
+<dd class="dd">The <var class="keyword varname">error_func()</var> will be called on an error returned by
+  <var class="keyword varname">handler_func()</var>;
+  see <q class="q"><a class="xref" href="s1_procs_Thread_pool_error_handling.html" title="If you write your own main processing loop, you can handle errors as required. But with a thread pool, that code is hidden. To help you detect and respond to errors, the thread pool lets you configure an error handler, error_func(), that is called if your context_alloc(), block_func(), or handler_func() fails.">Error handling</a></q> for details.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">  
+If neither <span class="keyword const">POOL_FLAG_EXIT_SELF</span> nor
+<span class="keyword const">POOL_FLAG_USE_SELF</span> is set,
+the <span class="keyword apiname">thread_pool_start()</span> function will return,
+with new threads being created as required.
+</p>
+
+
+<p class="p">
+The above descriptions may seem a little dry.
+Let's look at an example.
+</p>
+
+
+<div class="p">
+You can find the complete version of
+<a class="xref" href="examples_tp1.c.html" title="For more information about this program, see “Controlling the number of threads” in the Processes and Threads chapter."><span class="ph filepath">tp1.c</span></a>
+in the Sample Programs appendix.
+Here, we'll just focus on the <var class="keyword varname">lo_water</var>,
+<var class="keyword varname">hi_water</var>, <var class="keyword varname">increment</var>,
+and the <var class="keyword varname">maximum</var> members of the thread pool control structure:
+
+
+
+<pre class="pre codeblock">/*
+ * part of tp1.c
+ */
+#include &lt;sys/dispatch.h&gt;
+
+int main()
+{
+    thread_pool_attr_t  tp_attr;
+    void                *tpp;
+
+    ...
+    tp_attr.lo_water  = 3;
+    tp_attr.increment = 2;
+    tp_attr.hi_water  = 7;
+    tp_attr.maximum   = 10;
+    ...
+
+    tpp = thread_pool_create (&amp;tp_attr, POOL_FLAG_USE_SELF);
+    if (tpp == NULL) {
+        fprintf (stderr, "%s:  can't thread_pool_create, errno %s\n",
+                 progname, strerror (errno));
+        exit (EXIT_FAILURE);
+    }
+
+    thread_pool_start (tpp);
+    ...
+}
+</pre>
+</div>
+
+
+<p class="p">
+After setting the members, we call <span class="keyword apiname">thread_pool_create()</span>
+to create a thread pool. This returns a pointer to a thread pool control
+structure (<var class="keyword varname">tpp</var>), which we check against <span class="keyword const">NULL</span>
+(which would indicate an error).
+Finally we call <span class="keyword apiname">thread_pool_start()</span> with the
+<var class="keyword varname">tpp</var> thread pool control structure.
+
+
+</p>
+
+
+<p class="p">
+I've specified <span class="keyword const">POOL_FLAG_USE_SELF</span> which means that the
+thread that called <span class="keyword apiname">thread_pool_start()</span> will be considered an
+available thread for the thread pool.
+So, at this point, there is only that one thread in the thread pool library.
+Since we have a <var class="keyword varname">lo_water</var> value of 3, the library immediately
+creates <var class="keyword varname">increment</var> number of threads (2 in this case).
+At this point, 3 threads are in the library, and all 3 of them are in the
+blocking operation.
+The <var class="keyword varname">lo_water</var> condition is satisfied, because there are at
+least that number of threads in the blocking operation;
+the <var class="keyword varname">hi_water</var> condition is satisfied,
+because there are less than that number of threads in the blocking operation;
+and finally, the <var class="keyword varname">maximum</var> condition is satisfied as well,
+because we don't have more than that number of threads in the thread pool
+library.
+
+</p>
+
+
+<p class="p">
+Now, one of the threads in the blocking operation unblocks (e.g., in a server
+application, a message was received).
+This means that now one of the three threads is now in the processing operation
+instead of the blocking one.
+Since the count of blocking threads is less than <var class="keyword varname">lo_water</var>,
+it trips the <var class="keyword varname">lo_water</var> trigger and causes the library to
+create <var class="keyword varname">increment</var> (2) threads.
+So now there are 5 threads total (4 in the blocking operation, and 1 in the
+processing operation).
+</p>
+
+
+<p class="p">
+More threads unblock.
+Let's assume that none of the threads in the processing operation
+completes any of their requests yet.
+Here's a table illustrating this, starting at the initial state (we've used
+<q class="q">Proc Op</q> for the processing operation, and <q class="q">Blk Op</q> for the blocking
+operation, as we did in the previous diagram, <q class="q">Thread flow when using thread
+pools.</q>):
+
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e598">Event</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e601">Proc Op</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e604">Blk Op</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e607">Total</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Initial</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">1</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 "><var class="keyword varname">lo_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">3</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">3</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 "><var class="keyword varname">lo_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">5</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">5</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">5</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 "><var class="keyword varname">lo_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">7</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">7</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">5</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">7</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 "><var class="keyword varname">lo_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">5</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">9</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">6</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">9</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">9</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 "><var class="keyword varname">lo_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">8</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">9</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e598 ">Unblock</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e601 ">10</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e604 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e607 ">10</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+As you can see, the library always checks the <var class="keyword varname">lo_water</var>
+variable and creates <var class="keyword varname">increment</var> threads at a time <em class="ph i">until</em>
+it hits the limit of the <var class="keyword varname">maximum</var> variable (as it did when the
+<q class="q">Total</q> column reached 10—no more threads were being created,
+even though the count had underflowed the <var class="keyword varname">lo_water</var>) value.
+</p>
+
+
+<p class="p">
+This means that at this point, there are no more threads waiting in the blocking
+operation. Let's assume that the threads are now finishing their requests
+(from the processing operation);
+watch what happens with the <var class="keyword varname">hi_water</var> trigger:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e909">Event</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e912">Proc Op</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e915">Blk Op</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d21031e918">Total</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">9</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">8</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">6</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">5</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">5</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">4</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">6</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">3</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">8</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">10</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 "><var class="keyword varname">hi_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">9</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">8</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">9</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 "><var class="keyword varname">hi_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">8</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 ">Completion</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">8</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">8</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e909 "><var class="keyword varname">hi_water</var> trip</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e912 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e915 ">7</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d21031e918 ">7</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+Notice how nothing really happened during the completion of processing for
+the threads <em class="ph i">until</em> we tripped over the <var class="keyword varname">hi_water</var>
+trigger.
+The implementation is that as soon as the thread finishes, it looks at the
+number of receive blocked threads and decides to kill itself if there are too
+many (i.e., more than <var class="keyword varname">hi_water</var>) waiting at that point.
+The nice thing about the <var class="keyword varname">lo_water</var> and
+<var class="keyword varname">hi_water</var> limits in the structures is that you can effectively
+have an <q class="q">operating range</q> where a sufficient number of threads are
+available, and you're not unnecessarily creating and destroying threads.
+In our case, after the operations performed by the above tables, we now have
+a system that can handle up to 4 requests simultaneously without creating
+more threads (7 - 4 = 3, which is the <var class="keyword varname">lo_water</var> trip).
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_tpool.html" title="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits.">Pools of threads</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html">Multithreaded device resource manager (Writing a Resource Manager)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html">Multithreaded Resource Managers (Writing a Resource Manager)</a></li>
+<li class="linklist"><a class="link" href="../topic/examples_tp1.c.html" title="For more information about this program, see “Controlling the number of threads” in the Processes and Threads chapter.">tp1.c</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html">thread_pool_control()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html">thread_pool_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html">thread_pool_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html">thread_pool_limits()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html">thread_pool_start()</a></li></ul></div>
+</div></body>
+</html>

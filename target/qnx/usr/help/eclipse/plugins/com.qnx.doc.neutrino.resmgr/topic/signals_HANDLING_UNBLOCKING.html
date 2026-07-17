@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling client unblocking due to signals or timeouts" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/signals.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_UNBLOCKING" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling client unblocking due to signals or timeouts</title>
+</head>
+<body id="HANDLING_UNBLOCKING">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling client unblocking due to signals or timeouts</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+
+Another convenient service that the
+resource manager library does for us is <em class="ph i">unblocking</em>.
+</p>
+
+
+<p class="p">
+When a client issues a request (e.g., <span class="keyword apiname">read()</span>), this translates (via the
+client's C library) into a <span class="keyword apiname">MsgSend()</span> to our resource manager. The
+<span class="keyword apiname">MsgSend()</span> is a blocking call. If the client receives a signal during the time
+that the <span class="keyword apiname">MsgSend()</span> is outstanding, our resource manager needs to have some
+indication of this so that it can abort the request.
+
+
+</p>
+
+
+<p class="p">
+
+Because the library set the
+<span class="keyword const">_NTO_CHF_UNBLOCK</span> flag when it called <span class="keyword apiname">ChannelCreate()</span>, we'll
+receive a pulse whenever the client tries to unblock from a <span class="keyword apiname">MsgSend()</span> that we
+have <span class="keyword apiname">MsgReceive()</span>'d.
+
+
+</p>
+
+
+<p class="p">
+
+As an aside, recall that in the <span class="keyword">QNX OS</span> messaging model, the client can be in
+one of two states as a result of
+calling <span class="keyword apiname">MsgSend()</span>. If the server hasn't yet received the message (via the
+server's <span class="keyword apiname">MsgReceive()</span>), the client is in a <em class="ph i">SEND-blocked</em> state—the
+client is waiting for the server to receive the message. When the server has actually received the
+message, the client transits to a <em class="ph i">REPLY-blocked</em> state—the client is now waiting for
+the server to reply to the message (via <span class="keyword apiname">MsgReply()</span>).
+
+
+
+
+</p>
+
+
+<p class="p">
+When this happens and the pulse is generated, the resource manager library handles the pulse
+message and synthesizes an <span class="keyword const">_IO_UNBLOCK</span> message.
+
+</p>
+
+
+<p class="p">
+
+
+Looking through the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_io_funcs_t.html"><span class="keyword dtype">resmgr_io_funcs_t</span></a> and the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_connect_funcs_t.html"><span class="keyword dtype">resmgr_connect_funcs_t</span></a>
+structures (see the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>),
+you'll notice that there are actually <em class="ph i">two</em>
+unblock message handlers: one in the I/O functions structure and one in the connect
+functions structure.
+</p>
+
+
+<p class="p">
+Why two? Because we may get an abort in one of two places. We can get the abort pulse right after
+the client has sent the <span class="keyword const">_IO_OPEN</span> message (but before we've replied to it), or we can
+get the abort during an I/O message. 
+</p>
+
+
+<p class="p">
+Once we've performed the handling of the <span class="keyword const">_IO_CONNECT</span> message, the I/O functions'
+unblock member will be used to service an unblock pulse. Therefore, if you're supplying your own
+<var class="keyword varname">io_open</var> handler, be sure to set up all relevant fields in the OCB <em class="ph i">before</em> you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_open_bind.html"><span class="keyword apiname">resmgr_open_bind()</span></a>;
+otherwise, your I/O functions' version of the unblock
+handler may get called with invalid data in the OCB. (Note that this issue of abort pulses
+<q class="q">during</q> message processing arises only if there are multiple threads running in your resource
+manager. If there's only one thread, then the messages will be serialized by the library's
+<span class="keyword apiname">MsgReceive()</span> function.) 
+
+
+
+</p>
+
+
+<p class="p">
+The effect of this is that if the client is SEND-blocked, the server doesn't need to know that
+the client is aborting the request, because the server hasn't yet received it.
+</p>
+
+
+<p class="p">
+Only in the case where the server has received the request and is performing processing on that
+request does the server need to know that the client now wishes to abort.
+</p>
+
+
+<p class="p">
+
+
+
+
+For more information on these states and their interactions, see the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceive()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html"><span class="keyword apiname">MsgReply()</span></a>,
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html"><span class="keyword apiname">ChannelCreate()</span></a>
+functions in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>; see also the chapter on
+<a class="xref" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc.html">Interprocess Communication</a>
+in the <cite class="cite">System Architecture</cite> book.
+</p>
+
+
+<div class="p">
+
+
+If you're overriding the default unblock handler,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_unblock_default.html"><span class="keyword apiname">iofunc_unblock_default()</span></a>,
+you should always call the default handler to
+process any generic unblocking cases first (which it does by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_unblock.html"><span class="keyword apiname">iofunc_unblock()</span></a>).
+For example:
+
+<pre class="pre codeblock">if((status = iofunc_unblock_default(...)) != _RESMGR_DEFAULT) {
+    return status;
+}
+</pre>
+</div>
+
+
+<p class="p">
+This ensures that any client waiting on a resource manager list (such as an advisory lock list)
+will be unblocked if possible.
+</p>
+
+
+<p class="p">
+
+You need some way to walk your table of
+blocked client rcvids, look for a match, and unblock it. The unblocking is done by replying to the client;
+you aren't replying to the unblock request as such, but to the original client call.
+Your resource manager could do this by returning a result indicating partial success
+(a short result from <span class="keyword apiname">read()</span>, for example);
+otherwise, you would typically use <span class="ph codeph">MsgError(<var class="keyword varname">rcvid</var>,-1)</span>
+to return an <span class="keyword const">EINTR</span> or <span class="keyword const">ETIMEDOUT</span> error as appropriate.
+</p>
+
+
+<div class="p">
+
+
+
+The routine should confirm the unblock is
+still pending (for example, to avoid the race condition where  the resource manager unblocks a client thread
+before seeing its UNBLOCK pulse, and then the same thread sends another message), by calling
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html"><span class="keyword apiname">MsgInfo()</span></a>
+and then checking for the <span class="keyword const">_NTO_MI_UNBLOCK_REQ</span>
+flag. If you can't find a matching client, you can ignore the unblock request by returning
+<span class="keyword const">_RESMGR_NOREPLY</span>:
+
+<pre class="pre codeblock">/* Check if rcvid is still valid and still has an unblock request pending. */
+if (MsgInfo(ctp-&gt;rcvid, &amp;info) == -1 ||
+    !(info.flags &amp; _NTO_MI_UNBLOCK_REQ)) {
+	return _RESMGR_NOREPLY;
+}
+</pre>
+</div>
+
+
+<p class="p">
+If you don't provide an unblock handler, having your client thread left REPLY-blocked on the
+server is expected behavior; the server has to be given a chance to clean up client data structures
+when a client terminates.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/signals.html" title="Your resource manager needs to avoid leaving clients blocked indefinitely, and it might need to handle interrupts.">Unblocking Clients and Handling Interrupts</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel timeouts with pthread_join()" />
+<meta name="abstract" content="The simplest case to consider is a kernel timeout used with the pthread_join() call." />
+<meta name="description" content="The simplest case to consider is a kernel timeout used with the pthread_join() call." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples_tt1.c.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Thread_Join" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Kernel timeouts with pthread_join()</title>
+</head>
+<body id="Thread_Join">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Kernel timeouts with <span class="keyword apiname">pthread_join()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The simplest case to consider is a kernel timeout used with the
+<span class="keyword apiname">pthread_join()</span> call.
+</p>
+
+
+<div class="p">
+
+
+
+
+
+
+
+
+
+
+Here's how you'd set it up:
+
+<pre class="pre codeblock">/*
+ * part of tt1.c
+ */
+#include &lt;sys/neutrino.h&gt;
+
+// 1 billion nanoseconds in a second
+#define SEC_NSEC 1000000000LL 
+
+int main (void) // ignore arguments
+{
+    uint64_t        timeout;
+    struct sigevent event;
+    int             rval;
+    …
+    // set up the event -- this can be done once
+    // this or event.sigev_notify = SIGEV_UNBLOCK:
+    SIGEV_UNBLOCK_INIT (&amp;event);
+
+    // set up for 10 second timeout
+    timeout = 10LL * SEC_NSEC;
+
+    TimerTimeout (CLOCK_MONOTONIC, _NTO_TIMEOUT_JOIN,
+                  &amp;event, &amp;timeout, NULL);
+
+    rval = pthread_join (thread_id, NULL);
+    if (rval == ETIMEDOUT) {
+        printf ("Thread %d still running after 10 seconds!\n", 
+                thread_id);
+    }
+    …
+</pre>
+</div>
+
+
+<p class="p">
+(You'll find the complete version of
+<a class="xref" href="examples_tt1.c.html"><span class="ph filepath">tt1.c</span></a>
+in the Sample Programs appendix.)
+</p>
+
+
+<p class="p">
+We used the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html#sigevent__SIGEV_UNBLOCK"><span class="keyword apiname">SIGEV_UNBLOCK_INIT()</span></a> macro to initialize
+the event structure, but we could have set the <var class="keyword varname">sigev_notify</var> member
+to <span class="keyword const">SIGEV_UNBLOCK</span> ourselves.  Even more elegantly, we could pass
+<span class="keyword const">NULL</span> as the <span class="keyword dtype">struct sigevent</span>—<span class="keyword apiname">TimerTimeout()</span>
+understands this to mean that it should use a <span class="keyword const">SIGEV_UNBLOCK</span>.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+If the thread (specified in <var class="keyword varname">thread_id</var>) is still running after 10 seconds,
+then the kernel call will be timed out—<span class="keyword apiname">pthread_join()</span> will return
+with an <var class="keyword varname">errno</var> of <span class="keyword const">ETIMEDOUT</span>.
+
+
+
+
+</p>
+
+
+<p class="p">
+You can use another shortcut—by specifying a <span class="keyword const">NULL</span> for the
+timeout value (<var class="keyword varname">ntime</var> in the declaration above), this tells the
+kernel not to block in the given state.
+This can be used for polling.
+(While polling is generally discouraged, you could use it quite effectively in the
+<span class="keyword apiname">pthread_join()</span> case—you'd periodically poll
+to see if the thread of interest was finished yet. If not, you could perform other work.)
+
+
+
+</p>
+
+
+<div class="p">
+Here's a code sample showing a non-blocking <span class="keyword apiname">pthread_join()</span>:
+
+
+
+
+
+
+
+
+<pre class="pre codeblock">int pthread_join_nb (int tid, void **rval)
+{
+    TimerTimeout (CLOCK_MONOTONIC, _NTO_TIMEOUT_JOIN, NULL, NULL, NULL);
+    return (pthread_join (tid, rval));
+}
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/examples_tt1.c.html">tt1.c</a></li></ul></div>
+</div></body>
+</html>

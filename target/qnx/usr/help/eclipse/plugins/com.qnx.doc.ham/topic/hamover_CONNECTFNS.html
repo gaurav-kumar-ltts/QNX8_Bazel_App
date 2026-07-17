@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Connect/disconnect functions" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_HAMAPI.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="CONNECTFNS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Connect/disconnect functions</title>
+</head>
+<body id="CONNECTFNS">
+
+<h1 class="title topictitle1" id="ariaid-title1">Connect/disconnect functions</h1>
+
+
+<div class="body conbody">
+
+<p class="p">The HAM API library maintains only one connection to the 
+HAM. The library itself is thread-safe, and multiple
+connections (from different threads) or the same thread are
+multiplexed on the same single connection to a HAM. The
+library maintains reference counts.
+
+</p>
+
+<p class="p">Here are the basic connect functions:
+
+</p>
+
+<pre class="pre codeblock">/* Basic connect functions
+   return success (0) or failure (-1, with errno set) */
+
+int ham_connect(unsigned flags);
+
+int ham_disconnect(unsigned flags);
+
+</pre>
+
+<p class="p">These functions are used to open or close connections to a HAM.
+The first call to <span class="keyword apiname">ham_connect*()</span> will open the <var class="keyword varname">fd</var>, while
+subsequent calls will increment the reference count.
+
+</p>
+
+<p class="p">Similarly, <a class="xref" href="hamapi/ham_disconnect.html" title="Disconnect from the HAM"><span class="keyword apiname">ham_disconnect()</span></a> 
+will decrement the count until zero; the call 
+that makes the count zero will close the <var class="keyword varname">fd</var>. The functions return
+-1 on error, and 0 on success.
+
+Similarly <span class="keyword apiname">ham_disconnect*()</span> will decrement the reference count
+until zero, with the call that makes the count zero closing the
+<var class="keyword varname">fd</var>. The functions return -1 on error with errno set, and 0 on
+success.  </p>
+
+<p class="p">In a multithreaded situation, there will exist only one
+open connection to a given HAM at any given time, even if multiple
+threads were to perform <span class="keyword apiname">ham_connect*()</span>/<span class="keyword apiname">ham_disconnect*()</span> calls.</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_HAMAPI.html">HAM API</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Pools of threads" />
+<meta name="abstract" content="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits." />
+<meta name="description" content="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_More_synchronization.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Number_of_threads.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Thread_pool_functions.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Thread_pool_error_handling.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_Thread_pool_tuning.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tpool" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Pools of threads</title>
+</head>
+<body id="tpool">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Pools of threads</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Another thing that <span class="keyword">QNX OS</span> has added is the concept of
+thread pools. You'll often notice in your programs that you want to
+run a certain number of threads but also to control
+the behavior of those threads within certain limits.
+</p>
+
+
+<p class="p">
+
+For example, in a server you may decide that initially just one thread should
+be blocked, waiting for a message from a client.
+When that thread gets a message and is off servicing a request, you may decide
+that it would be good to create another thread, so that it could be
+blocked waiting in case another request arrived.
+This second thread would then be available to handle that request.
+And so on.
+After a while, when the requests had been serviced, you would now have a lot
+of threads sitting around, waiting for further requests.  In order to conserve
+resources, you may decide to kill off some of those <q class="q">extra</q> threads.
+</p>
+
+
+<div class="p">
+This is in fact a common operation, and <span class="keyword">QNX OS</span>
+provides a library to help with this.
+We'll see the thread pool functions again in the
+<a class="xref" href="s1_resmgr.html" title="In this chapter, we'll take a look at what you need to understand in order to write a resource manager. Resource managers are another distintive feature of QNX OS that allow you to access services through standard POSIX calls.">Resource Managers</a> chapter.
+Meanwhile, it's important for the discussions that follow to realize there are
+two distinct operations that threads used in thread pools perform:
+
+<ul class="ul">
+<li class="li">a blocking (waiting operation)</li>
+
+<li class="li">a processing operation</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The blocking operation doesn't generally consume CPU. In a typical server,
+this is where the thread is waiting for a message to arrive.
+Contrast that with the processing operation, where the thread may or may not be
+consuming CPU (depending on how the process is structured).
+When we look at thread pool functions later, you'll see that we have the ability
+to control the number of threads in the blocking operation as well as the
+number of threads in the processing operations.
+
+</p>
+
+
+<div class="p">
+<span class="keyword">QNX OS</span> provides the following functions to deal with
+thread pools:
+
+<pre class="pre codeblock">#include &lt;sys/dispatch.h&gt;
+
+thread_pool_t* thread_pool_create (thread_pool_attr_t *<var class="keyword varname">attr</var>, unsigned <var class="keyword varname">flags</var>);
+
+int thread_pool_destroy (thread_pool_t *<var class="keyword varname">pool</var>);
+
+int thread_pool_start (void *<var class="keyword varname">pool</var>);
+
+int thread_pool_limits (thread_pool_t *<var class="keyword varname">pool</var>,
+                        int <var class="keyword varname">lowater</var>,
+                        int <var class="keyword varname">hiwater</var>,
+                        int <var class="keyword varname">maximum</var>,
+                        int <var class="keyword varname">increment</var>,
+                        unsigned <var class="keyword varname">flags</var>);
+
+int thread_pool_control (thread_pool_t *<var class="keyword varname">pool</var>,
+                         thread_pool_attr_t *<var class="keyword varname">attr</var>,
+                         uint16_t <var class="keyword varname">lower</var>,
+                         uint16_t <var class="keyword varname">upper</var>,
+                         unsigned <var class="keyword varname">flags</var>);
+</pre>
+</div>
+
+
+<p class="p">
+As you can see from the functions provided, you first create a thread pool
+definition using
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html"><span class="keyword apiname">thread_pool_create()</span></a>,
+and then start the thread pool via
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html"><span class="keyword apiname">thread_pool_start()</span></a>.
+When you're done with the thread pool, you can use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html"><span class="keyword apiname">thread_pool_destroy()</span></a>
+to clean up after yourself.
+Note that you might never call <span class="keyword apiname">thread_pool_destroy()</span>,
+as in the case where the program is a server that runs <q class="q">forever.</q>
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html"><span class="keyword apiname">thread_pool_limits()</span></a>
+function lets you modify thread pool behavior by adjusting the attributes of the
+thread pool, and the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html"><span class="keyword apiname">thread_pool_control()</span></a>
+function is a convenience wrapper for the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html"><span class="keyword apiname">thread_pool_limits()</span></a> function.
+
+
+
+
+
+
+
+
+
+
+</p>
+
+
+<div class="p">
+So, the first function to look at is <span class="keyword apiname">thread_pool_create()</span>.
+It takes two parameters, <var class="keyword varname">attr</var> and <var class="keyword varname">flags</var>.
+The <var class="keyword varname">attr</var> is an attributes structure that defines the
+operating characteristics of the thread pool
+(from <span class="ph filepath">&lt;sys/dispatch.h&gt;</span>):
+
+
+
+
+
+
+<pre class="pre codeblock">typedef struct _thread_pool_attr {
+    // thread pool functions and handle
+    THREAD_POOL_HANDLE_T    *<var class="keyword varname">handle</var>;
+
+    THREAD_POOL_PARAM_T *(*<var class="keyword varname">block_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+    void (*<var class="keyword varname">unblock_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+    int (*<var class="keyword varname">handler_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+    THREAD_POOL_PARAM_T *(*<var class="keyword varname">context_alloc</var>)(THREAD_POOL_HANDLE_T *handle);
+
+    void (*<var class="keyword varname">context_free</var>)(THREAD_POOL_PARAM_T *ctp);
+
+    // thread pool parameters
+    pthread_attr_t          *<var class="keyword varname">attr</var>;
+    unsigned short          <var class="keyword varname">lo_water</var>;
+    unsigned short          <var class="keyword varname">increment</var>;
+    unsigned short          <var class="keyword varname">hi_water</var>;
+    unsigned short          <var class="keyword varname">maximum</var>;
+    const char              *<var class="keyword varname">tid_name</var>;
+    void                    (*<var class="keyword varname">error_func</var>) (unsigned <var class="keyword varname">flags</var>, int <var class="keyword varname">err_value</var>);
+} thread_pool_attr_t;
+</pre>
+</div>
+
+
+<div class="p">
+I've broken the <span class="keyword dtype">thread_pool_attr_t</span> type into two sections:
+<ul class="ul">
+<li class="li">the functions and handle for the threads in the thread pool; 
+  i.e., what the threads will do</li>
+
+<li class="li">the operating parameters for the thread pool; 
+  i.e., when threads will be created and destroyed</li>
+
+</ul>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Number_of_threads.html">Controlling the number of threads</a></strong><br />
+ Let's first look at the <q class="q">thread pool parameters</q> to see how you control the number and attributes of threads that will be operating in this thread pool. Keep in mind that we'll be talking about the <q class="q">blocking operation</q> and the <q class="q">processing operation</q> (when we look at the callout functions, we'll see how these relate to each other). </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Thread_pool_functions.html">The thread pool functions</a></strong><br />
+ Now that we have a good feel for how the number of threads is controlled, let's turn our attention to the other members of the thread pool attribute structure (from above). </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Thread_pool_error_handling.html">Error handling</a></strong><br />
+ If you write your own main processing loop, you can handle errors as required. But with a thread pool, that code is hidden. To help you detect and respond to errors, the thread pool lets you configure an error handler, <var class="keyword varname">error_func()</var>, that is called if your <var class="keyword varname">context_alloc()</var>, <var class="keyword varname">block_func()</var>, or <var class="keyword varname">handler_func()</var> fails. </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_procs_Thread_pool_tuning.html">Tuning a thread pool</a></strong><br />
+ By tuning parameters such as <var class="keyword varname">lo_water</var> and <var class="keyword varname">hi_water</var>, you can create thread pools that handle variable loads while striking a good balance of CPU and memory usage. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_More_synchronization.html">More on synchronization</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html">Multithreaded device resource manager (Writing a Resource Manager)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html">Multithreaded Resource Managers (Writing a Resource Manager)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html">thread_pool_control()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html">thread_pool_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html">thread_pool_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html">thread_pool_limits()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html">thread_pool_start()</a></li></ul></div>
+</div></body>
+</html>

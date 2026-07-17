@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="get_ids_from_arg()" />
+<meta name="abstract" content="Get identifiers from an argument string, or the string and /etc/passwd and /etc/group" />
+<meta name="description" content="Get identifiers from an argument string, or the string and /etc/passwd and /etc/group" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="get_ids_from_arg" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>get_ids_from_arg()</title>
+</head>
+<body id="get_ids_from_arg">
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">get_ids_from_arg()</span></h1>
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get identifiers from an argument string, or the string and <span class="ph codeph">/etc/passwd</span> and <span class="ph codeph">/etc/group</span></em></p>
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2><pre class="pre codeblock">#include &lt;secpol/ids.h&gt;</pre><pre class="pre codeblock">int get_ids_from_arg(const char *arg,
+                     uid_t *uid,
+                     gid_t *gid,
+                     gid_t *supp_gids,
+                     size_t *supp_count)</pre></div>
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2><dl class="dl"><dt class="dt dlterm"><var class="keyword varname">arg</var></dt>
+<dd class="dd">The formatted string containing the ID information. </dd>
+<dt class="dt dlterm"><var class="keyword varname">uid</var></dt>
+<dd class="dd">The UID as read or inferred from the formatted string. </dd>
+<dt class="dt dlterm"><var class="keyword varname">gid</var></dt>
+<dd class="dd">The GID as read or inferred from the formatted string. </dd>
+<dt class="dt dlterm"><var class="keyword varname">supp_gids</var></dt>
+<dd class="dd">An allocated array to store the supplementary GIDs that are read from the formatted string and <span class="ph codeph">/etc/group</span>. If NULL, the supplementary GIDs are not returned. </dd>
+<dt class="dt dlterm"><var class="keyword varname">supp_count</var></dt>
+<dd class="dd">As input, the size of the provided <var class="keyword varname">supp_gids</var> array, or NULL if the caller is not requesting the supplementary GIDs. As ouput on success, this is set to the number of supplementary GIDs written to the <var class="keyword varname">supp_gids</var> array.</dd>
+</dl>
+</div>
+<div class="section"><h2 class="title sectiontitle">Library:</h2><span class="ph filepath">libsecpol</span></div>
+<div class="section"><h2 class="title sectiontitle">Description:</h2><p class="p">The <span class="keyword apiname">get_ids_from_arg()</span> function parses a given formatted string and returns the corresponding user ID, group ID, and supplementary group IDs. If <var class="keyword varname">supp_gids</var> and <var class="keyword varname">supp_count</var> are not NULL, the supplementary GIDs found are written there, and <var class="keyword varname">supp_count</var> is set to the number of supplementary GIDs written there. If there is not enough space in the provided array, E2BIG is returned.</p>
+<p class="p">QNX recommends that you allocate your supplementary GID array to the size returned by <span class="ph codeph">sysconf(_SC_NGROUPS_MAX)</span> to ensure that you have enough space.</p>
+<p class="p">This function doesn't support negative IDs.</p>
+<div class="p">The <var class="keyword varname">arg</var> string format can take one of the following two forms:<ul class="ul"><li class="li"><strong class="ph b">UID</strong> <pre class="pre"><em class="ph i">uid</em>:<em class="ph i">gid</em>,<em class="ph i">sgid1</em>,<em class="ph i">sgid2</em>,<em class="ph i">sgid3</em>,... 
+</pre>
+ All IDs must be numbers. The UID and GID are separated by a colon. The GID can be followed by a comma-separated list of supplementary group IDs. If the GID is not specified, the GID of the calling process is returned. The supplementary GIDs are also optional.</li>
+<li class="li"><strong class="ph b">Username</strong> <pre class="pre"><em class="ph i">username</em>,<em class="ph i">sgid1</em>,<em class="ph i">sgid2</em>,<em class="ph i">sgid3</em>,... 
+</pre>
+ The username must be a valid username defined in <span class="ph codeph">/etc/passwd</span>; otherwise, the function errors out with EINVAL. The supplementary GIDs are optional and must be a comma-separated list of numbers. The GID is looked up in <span class="ph codeph">/etc/passwd</span>. The supplementary GIDs returned are a union of the supplementary GIDs in <span class="ph codeph">/etc/group</span> for the given username and the GIDs parsed from <var class="keyword varname">arg</var>.</li>
+</ul>
+
+</div>
+<p class="p">See also <a class="xref" href="set_ids_from_arg.html" title="Change the caller's identifiers based on a given string"><span class="keyword apiname">set_ids_from_arg()</span></a>.</p>
+</div>
+<div class="section"><h2 class="title sectiontitle">Returns:</h2><div class="p"><strong class="ph b">EOK</strong> on success; on failure, one the following values:<ul class="ul"><li class="li"><strong class="ph b">EINVAL</strong> - The argument is in an invalid format or references a non-existant username.</li>
+<li class="li"><strong class="ph b">ERANGE</strong> - An ID in the argument is larger than the <span class="ph codeph">uid_t</span> or <span class="ph codeph">gid_t</span> data type supports.</li>
+<li class="li"><strong class="ph b">E2BIG</strong> - The array provided by the caller is not large enough to hold all of the IDs.</li>
+<li class="li"><strong class="ph b">ENOMEM</strong> - Out of memory. </li>
+</ul>
+
+</div>
+</div>
+</div>
+</body>
+</html>

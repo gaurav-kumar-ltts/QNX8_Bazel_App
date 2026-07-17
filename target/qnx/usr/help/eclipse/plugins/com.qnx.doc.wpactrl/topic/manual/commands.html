@@ -1,0 +1,840 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="WPA commands" />
+<meta name="DC.subject" content="WPA control interface, commands, QNX SDP, 8.0, WPA Control Interface Reference, API" />
+<meta name="keywords" content="WPA control interface, commands, QNX SDP, 8.0, WPA Control Interface Reference, API" />
+<meta name="DC.relation" scheme="URI" content="../../topic/wpa_ctrl_request.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="commands" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>WPA commands</title>
+</head>
+<body id="commands">
+
+<h1 class="title topictitle1" id="ariaid-title1">WPA commands</h1>
+
+
+<div class="body refbody">
+    <div class="section">
+        <div class="p">Commands can be sent to the WPA control interface through the <var class="keyword varname">cmd</var> argument of
+            <span class="keyword apiname">wpa_ctrl_request()</span>. The following types of commands are supported:
+            <ul class="ul">
+                <li class="li">General—Start monitoring events, set the debug level, terminate <span class="keyword cmdname">wpa_supplicant</span>, and more</li>
+
+                <li class="li">Authentication and connection—Set and get authentication variables, start pre-authentication, get authentication
+                    status, and disconnect from and reconnect to an access point</li>
+
+                <li class="li">Network setup—Add and remove network entries, initiate BSS scans and read the results, and enable, disable, and
+                    configure networks</li>
+
+                <li class="li">Peer-to-peer (P2P)—Configure the Wi-Fi P2P implementation, with commands for
+                    device discovery, group formation, service discovery, and more</li>
+
+                <li class="li">Responses to interactive requests—Respond to a WPA supplicant request for authentication data (e.g., a password)
+                    </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">General</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">ATTACH</span></dt>
+
+                <dd class="dd">Attach the connection as a monitor for unsolicited events, similar to <span class="keyword apiname">wpa_ctrl_attach()</span>.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">DETACH</span></dt>
+
+                <dd class="dd">Detach the connection as a monitor for unsolicited events, similar to <span class="keyword apiname">wpa_ctrl_detach()</span>.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">GET_CAPABILITY</span> <var class="keyword varname">feature</var> <span class="keyword option">[strict]</span></dt>
+
+                <dd class="dd">Get the supported capabilities for a specific feature (e.g., <tt class="ph tt">eap</tt>, <tt class="ph tt">pairwise</tt>, <tt class="ph tt">group</tt>).
+                    These are shown as lists of space-separated values that are in the same format as in the
+                    <span class="keyword cmdname">wpa_supplicant</span> configuration. If the optional <span class="keyword option">strict</span> argument is added,
+                    only the capabilities that the driver claims to explicitly support are included. Otherwise, all available
+                    capabilities are listed if the driver does not provide a mechanism for querying capabilities.
+                    <div class="p">The following is an example of message pairs of capability requests and replies:
+<pre class="pre codeblock">GET_CAPABILITY eap
+AKA FAST GTC LEAP MD5 MSCHAPV2 OTP PAX PEAP PSK SIM TLS TTLS
+
+GET_CAPABILITY pairwise
+CCMP TKIP NONE
+
+GET_CAPABILITY pairwise strict
+
+
+GET_CAPABILITY group
+CCMP TKIP WEP104 WEP40
+
+GET_CAPABILITY key_mgmt
+WPA-PSK WPA-EAP IEEE8021X NONE
+
+GET_CAPABILITY proto
+RSN WPA
+
+GET_CAPABILITY auth_alg
+OPEN SHARED LEAP
+</pre></div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm" id="commands__level"><span class="keyword cmdname">LEVEL</span> <var class="keyword varname">debug_level</var></dt>
+
+                <dd class="dd">Change the debug level. The argument is an <span class="keyword const">MSG_*</span> constant that maps to a <span class="keyword cmdname">slog2info</span>
+                    debugging level as follows: <ul class="ul">
+                        <li class="li"><span class="keyword const">MSG_EXCESSIVE</span> (<span class="keyword const">SLOG2_DEBUG2</span>)</li>
+                        
+                        <li class="li"><span class="keyword const">MSG_MSGDUMP</span> (<span class="keyword const">SLOG2_DEBUG2</span>)</li>
+                        
+                        <li class="li"><span class="keyword const">MSG_DEBUG</span> (<span class="keyword const">SLOG2_DEBUG1</span>)</li>
+                        
+                        <li class="li"><span class="keyword const">MSG_INFO</span> (<span class="keyword const">SLOG2_INFO</span>)</li>
+                        
+                        <li class="li"><span class="keyword const">MSG_WARNING</span> (<span class="keyword const">SLOG2_WARNING</span>)</li>
+                        
+                        <li class="li"><span class="keyword const">MSG_ERROR</span> (<span class="keyword const">SLOG2_ERROR</span>)</li>
+                        
+                    </ul>
+
+                    <p class="p">If you don't issue this command, the default debug level is <span class="keyword const">SLOG2_NOTICE</span>.</p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">PING</span></dt>
+
+                <dd class="dd">Test whether the <span class="keyword cmdname">wpa_supplicant</span> service is replying to control commands.
+                    The expected reply is <span class="keyword cmdname">PONG</span> if the connection is open and the service is processing commands.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">TERMINATE</span></dt>
+
+                <dd class="dd">Terminate the <span class="keyword cmdname">wpa_supplicant</span> process.</dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Authentication and connection</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">DISCONNECT</span></dt>
+
+                <dd class="dd">Disconnect and wait for the <span class="keyword cmdname">REASSOCIATE</span> or <span class="keyword cmdname">RECONNECT</span> command before connecting.
+                    </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">LOGOFF</span></dt>
+
+                <dd class="dd">Log off. This is the IEEE 802.1X EAPOL state machine logoff operation.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">LOGON</span></dt>
+
+                <dd class="dd">Log on. This is the IEEE 802.1X EAPOL state machine logon operation.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">MIB</span></dt>
+
+                <dd class="dd">Request a list of MIB variables
+                    (<span class="keyword cmdname">dot1x</span><var class="keyword varname">VAR</var>, <span class="keyword cmdname">dot11</span><var class="keyword varname">VAR</var>).
+                    The output is a text block with each line in <span class="ph codeph"><var class="keyword varname">variable</var>=<var class="keyword varname">value</var></span>
+                    format. For example:
+<pre class="pre codeblock">dot11RSNAOptionImplemented=TRUE
+dot11RSNAPreauthenticationImplemented=TRUE
+...
+dot1xSuppPaeState=5
+dot1xSuppHeldPeriod=60
+...
+</pre>
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">PMKSA</span></dt>
+
+                <dd class="dd">Show the PMKSA cache. For example:
+<pre class="pre codeblock">Index / AA / PMKID / expiration (in seconds) / opportunistic
+1 / 02:00:01:02:03:04 / 000102030405060708090a0b0c0d0e0f / 41362 / 0
+2 / 02:00:01:33:55:77 / 928389281928383b34afb34ba4212345 / 362 / 1
+</pre>
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">PREAUTH</span> <var class="keyword varname">BSSID</var></dt>
+
+                <dd class="dd">Start pre-authentication with the given BSSID.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">REASSOCIATE</span></dt>
+
+                <dd class="dd">Force reassociation with an access point.
+                    If the client is already connected to one, it will disconnect and then reconnect.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">RECONNECT</span></dt>
+
+                <dd class="dd">Connect if disconnected. This is like <span class="keyword cmdname">REASSOCIATE</span> but 
+                    the service connects only if the client is disconnected.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">SET</span> <var class="keyword varname">variable</var> <var class="keyword varname">value</var></dt>
+
+                <dd class="dd">Set any of the following variables: <ul class="ul">
+                        <li class="li"><span class="keyword cmdname">EAPOL::heldPeriod</span></li>
+
+                        <li class="li"><span class="keyword cmdname">EAPOL::authPeriod</span></li>
+
+                        <li class="li"><span class="keyword cmdname">EAPOL::startPeriod</span></li>
+
+                        <li class="li"><span class="keyword cmdname">EAPOL::maxStart</span></li>
+
+                        <li class="li"><span class="keyword cmdname">dot11RSNAConfigPMKLifetime</span></li>
+
+                        <li class="li"><span class="keyword cmdname">dot11RSNAConfigPMKReauthThreshold</span></li>
+
+                        <li class="li"><span class="keyword cmdname">dot11RSNAConfigSATimeout</span></li>
+
+                    </ul>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">STATUS</span></dt>
+
+                <dd class="dd"><div class="p">Request current WPA/EAPOL/EAP status information. The output is a text block with each line in
+                    <span class="ph codeph"><var class="keyword varname">variable</var>=<var class="keyword varname">value</var></span> format:
+<pre class="pre codeblock">bssid=02:00:01:02:03:04
+ssid=test network
+pairwise_cipher=CCMP
+group_cipher=CCMP
+key_mgmt=WPA-PSK
+wpa_state=COMPLETED
+ip_address=192.168.1.21
+Supplicant PAE state=AUTHENTICATED
+suppPortStatus=Authorized
+EAP state=SUCCESS
+</pre></div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">STATUS-VERBOSE</span></dt>
+
+                <dd class="dd"><div class="p">Same as <span class="keyword cmdname">STATUS</span>, but with more verbosity (i.e., more variable-value pairs):
+<pre class="pre codeblock">...
+suppPortStatus=Authorized
+<strong class="ph b">heldPeriod=60
+authPeriod=30
+startPeriod=30
+maxStart=3
+portControl=Auto
+Supplicant Backend state=IDLE</strong>
+EAP state=SUCCESS
+</pre></div>
+
+                </dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Network setup</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">ADD_NETWORK</span></dt>
+
+                <dd class="dd">Add a network. This command creates a new network with an empty configuration. This network is initially disabled
+                    but when it's been configured, it can be enabled with <span class="keyword cmdname">ENABLE_NETWORK</span>. 
+                    The <span class="keyword cmdname">ADD_NETWORK</span> command returns the network ID of the new network on success, or <tt class="ph tt">FAIL</tt>
+                    on failure.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">AP_SCAN</span> <var class="keyword varname">ap_scan_policy</var></dt>
+
+                <dd class="dd">Change the access point (AP) scanning policy. The argument can be one of these values: <ul class="ul">
+                    <li class="li">0 — no scanning</li>
+
+                    <li class="li">1 — the <span class="keyword cmdname">wpa_supplicant</span> service requests scans and uses scan results to select the AP</li>
+
+                    <li class="li">2 — the <span class="keyword cmdname">wpa_supplicant</span> service does not use scanning and requests the driver to
+                        associate and handle AP selection</li>
+
+                    </ul>
+</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">BSS</span></dt>
+
+                <dd class="dd">Get detailed per-BSS scan results. This command iterates through the results, one BSS at a time, and fetches
+                    all data from the found BSSes. This command returns the same data as <span class="keyword cmdname">SCAN_RESULTS</span> but ensures
+                    large numbers of scan results fit into the response.
+                    <div class="p">There are two options for selecting the BSS: <ul class="ul">
+                        <li class="li"><span class="keyword cmdname">BSS</span> <var class="keyword varname">idx</var>—requests information for the BSS with the given 
+                            zero-based index in the scan results table</li>
+ 
+                        <li class="li"><span class="keyword cmdname">BSS</span> <var class="keyword varname">bssid</var>—requests information for the BSS with the given ID,
+                            which is in the MAC address format (e.g., <tt class="ph tt">00:01:02:03:04:05</tt>)</li>
+
+                        </ul>
+</div>
+
+                    <div class="p">BSS data are presented in the format shown below. New fields may be added to this 
+                        <var class="keyword varname">field</var>=<var class="keyword varname">value</var> data, so the caller should be prepared to ignore values it
+                        doesn't understand.
+<pre class="pre codeblock">bssid=00:09:5b:95:e0:4e
+freq=2412
+beacon_int=0
+capabilities=0x0011
+qual=51
+noise=161
+level=212
+tsf=0000000000000000
+ie=000b6a6b6d2070726976617465010180dd180050f20101000050f20401000050f20401000050f2020000
+ssid=jkm private
+</pre>
+                    </div>
+</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">BSSID</span> <var class="keyword varname">network_id</var> <var class="keyword varname">bss_id</var></dt>
+
+                <dd class="dd">Set the preferred Basic Service Set ID (BSSID) for a network. The network ID can be received from the
+                    <span class="keyword cmdname">LIST_NETWORKS</span> output.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">DISABLE_NETWORK</span> <var class="keyword varname">network_id</var></dt>
+
+                <dd class="dd">Disable a network. The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span> output.
+                    The special network ID of <tt class="ph tt">all</tt> can be used to disable all networks.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">ENABLE_NETWORK</span> <var class="keyword varname">network_id</var></dt>
+
+                <dd class="dd">Enable a network. The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span> output.
+                    The special network ID of <tt class="ph tt">all</tt> can be used to enable all networks.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">GET_NETWORK</span> <var class="keyword varname">network id</var> <var class="keyword varname">variable</var></dt>
+
+                <dd class="dd">Get network variables. The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span> output.
+                    For the list of variables that you can get, 
+                    see <a class="xref" href="#commands__set_network"><span class="keyword cmdname">SET_NETWORK</span></a>.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">INTERFACES</span></dt>
+
+                <dd class="dd">List the configured network interfaces. The interfaces are listed one per line in the output:
+<pre class="pre codeblock">wlan0
+eth0
+</pre>
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">LIST_NETWORKS</span></dt>
+
+                <dd class="dd">List the configured networks. The output is formatted as follows:
+<pre class="pre codeblock">network id / ssid / bssid / flags
+0       example network any     [CURRENT]
+</pre>
+                    Note that the fields are separated with tabs.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">RECONFIGURE</span></dt>
+
+                <dd class="dd">Force <span class="keyword cmdname">wpa_supplicant</span> to re-read its configuration data.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">REMOVE_NETWORK</span> <var class="keyword varname">network_id</var></dt>
+
+                <dd class="dd">Remove a network. The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span> output.
+                    The special network ID of <tt class="ph tt">all</tt> can be used to remove all networks.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">SAVE_CONFIG</span></dt>
+
+                <dd class="dd">Save the current configuration.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">SCAN</span></dt>
+
+                <dd class="dd">Request a new BSS scan.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">SCAN_RESULTS</span></dt>
+
+                <dd class="dd">Get the latest scan results. The output is formatted as follows:
+<pre class="pre codeblock">bssid / frequency / signal level / flags / ssid
+00:09:5b:95:e0:4e       2412    208     [WPA-PSK-CCMP]  jkm private
+02:55:24:33:77:a3       2462    187     [WPA-PSK-TKIP]  testing
+00:09:5b:95:e0:4f       2412    209             jkm guest
+</pre>
+                    Note that the fields are separated with tabs.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">SELECT_NETWORK</span> <var class="keyword varname">network_id</var></dt>
+
+                <dd class="dd">Select a network (disable all others). The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span>
+                    output.</dd>
+
+            
+            
+                <dt class="dt dlterm" id="commands__set_network">
+                    <span class="keyword cmdname">SET_NETWORK</span> <var class="keyword varname">network_id</var> <var class="keyword varname">variable</var> <var class="keyword varname">value</var></dt>
+
+                <dd class="dd">Set network variables. The network ID can be received from the <span class="keyword cmdname">LIST_NETWORKS</span> output.
+                    The <span class="keyword cmdname">SET_NETWORK</span> command uses the same variables and data formats as the configuration file
+                    (see the sample <span class="ph filepath">wpa_supplicant.conf</span> for more details).
+                    <div class="p">You can set the following variables: <ul class="ul">
+                        <li class="li"><span class="keyword option">ssid</span> (network name, SSID)</li>
+
+                        <li class="li"><span class="keyword option">psk</span> (WPA passphrase or pre-shared key)</li>
+
+                        <li class="li"><span class="keyword option">key_mgmt</span> (key management protocol)</li>
+
+                        <li class="li"><span class="keyword option">identity</span> (EAP identity)</li>
+
+                        <li class="li"><span class="keyword option">password</span> (EAP password)</li>
+
+                        </ul>
+
+                    </div>
+</dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">P2P: Device discovery</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm" id="commands__p2p_find"><span class="keyword cmdname">P2P_FIND</span> [<var class="keyword varname">duration</var>] 
+                    <span class="keyword option">[type=</span><var class="keyword varname">search_type</var><span class="keyword option">|freq=</span><var class="keyword varname">MHz</var><span class="keyword option">]</span>
+                    <span class="keyword option">[dev_id=</span><var class="keyword varname">addr</var><span class="keyword option">] [dev_type=</span><var class="keyword varname">device_type</var><span class="keyword option">]</span>
+                    <span class="keyword option">[delay=</span><var class="keyword varname">search_delay</var><span class="keyword option">]</span>
+                    <span class="keyword option">[seek=</span><var class="keyword varname">service_name</var><span class="keyword option">]*</span>
+                </dt>
+
+                <dd class="dd">Start P2P device discovery. This command accepts many optional parameters.
+                    The first specifies the discovery duration in seconds (e.g., <span class="ph codeph">P2P_FIND 5</span>).
+                    If this is not specified, discovery persists indefinitely until it's terminated by 
+                    <a class="xref" href="#commands__p2p_stop_find"><span class="keyword cmdname">P2P_STOP_FIND</span></a> or 
+                    <a class="xref" href="#commands__p2p_connect"><span class="keyword cmdname">P2P_CONNECT</span></a>.
+                    <div class="p">The default search behavior is to first run a full scan of all channels and then scan only social channels
+                        (1, 6, and 11). You can change this behavior by specifying the <span class="keyword option">type</span> parameter,
+                        which goes after the duration if you specify it. The following non-default search types are supported: <ul class="ul">
+                        <li class="li"><tt class="ph tt">social</tt>—skips the initial full scan and scans only social channels
+                            (e.g., <span class="ph codeph">P2P_FIND 5 type=social</span>)</li>
+ 
+                        <li class="li"><tt class="ph tt">progressive</tt>—starts with a full scan and then searches through all channels,
+                            one at the time, in the search state rounds (e.g., <span class="ph codeph">P2P_FIND type=progressive</span>).
+                            Progressive searching can be used to find new groups (and groups not found during the initial scan) over time,
+                            without adding extra delay for every round.</li>
+
+                        </ul>
+</div>
+
+                    <p class="p">If you don't specify <span class="keyword option">type</span>, you can set <span class="keyword option">freq</span> to make the initial scan use only
+                        the specified channel (with the given frequency in MHz), after which only social channels are scanned.</p>
+
+                    <div class="p">The next three optional parameters control the search as follows: <ul class="ul"> 
+                        <li class="li"><span class="keyword option">dev_id</span>—search for a single P2P peer, specified by its MAC address</li>
+
+                        <li class="li"><span class="keyword option">dev_type</span>—search for a single device type (primary or secondary);
+                             for example, <span class="ph codeph">p2p_find dev_type=1-0050F204-1</span></li>
+
+                        <li class="li"><span class="keyword option">delay</span>—request an extra delay between search iterations
+                            (e.g., to free radio resources)</li>
+
+                        </ul>
+</div>
+
+                    <div class="p">With <span class="keyword option">seek</span> arguments, you can send Probe Request frames for a P2PS service. For example:
+<pre class="pre codeblock">p2p_find 5 dev_id=11:22:33:44:55:66 seek=alt.example.chat seek=alt.example.video</pre></div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_LISTEN</span> <span class="keyword option">[</span><var class="keyword varname">duration</var><span class="keyword option">]</span></dt>
+
+                <dd class="dd">Start listen-only state (i.e., become discoverable without searching for other devices).
+                    You can optionally specify the duration for the Listen operation in seconds.
+                    This command is mostly for testing purposes, but can be used to keep the device discoverable without
+                    maintaining a group.</dd>
+
+            
+            
+                <dt class="dt dlterm" id="commands__p2p_stop_find"><span class="keyword cmdname">P2P_STOP_FIND</span></dt>
+
+                <dd class="dd">Stop any <span class="keyword cmdname">P2P_FIND</span> (device discovery), <span class="keyword cmdname">P2P_CONNECT</span>, 
+                    or <span class="keyword cmdname">P2P_LISTEN</span> operations.</dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">P2P: Group formation</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm" id="commands__p2p_connect"><span class="keyword cmdname">P2P_CONNECT</span> <var class="keyword varname">peer_device_address</var>
+                    <span class="keyword option">pbc|pin|</span><var class="keyword varname">PIN#</var><span class="keyword option">|p2ps</span> <span class="keyword option">[display|keypad]</span>
+                    <span class="keyword option">[persistent[=</span><var class="keyword varname">network_id</var><span class="keyword option">]]</span> <span class="keyword option">[join|auth]</span> <span class="keyword option">[go_intent=0..15]</span>
+                    <span class="keyword option">[freq=</span><var class="keyword varname">MHz</var><span class="keyword option">] [provdisc] [auto] [ssid=</span><var class="keyword varname">hexdump</var><span class="keyword option">]</span>
+                </dt>
+
+                <dd class="dd">Start P2P group formation with a discovered P2P peer. The peer device's MAC address must be specified.
+                    The WPS provisioning method must also be specified, in one of four ways:
+                    <ul class="ul">
+                        <li class="li"><span class="keyword option">pbc</span>—use the pushbutton method</li>
+
+                        <li class="li"><span class="keyword option">pin</span>—use the PIN method</li>
+
+                        <li class="li"><var class="keyword varname">PIN#</var>—use the PIN method with this pre-selected PIN (e.g., <tt class="ph tt">12345670</tt>)</li>
+
+                        <li class="li"><span class="keyword option">p2ps</span>—use the P2PS default method</li>
+
+                    </ul>
+
+                    <p class="p">When you specify <span class="keyword option">pin</span> or a PIN value, you must follow this parameter
+                        with either <span class="keyword option">display</span>, to use a dynamically generated random PIN, or <span class="keyword option">keypad</span>, to use
+                        a PIN entered from the peer's display. These parameters can't be set with any other WPS provisioning method.</p>
+
+                    <p class="p">The <span class="keyword option">persistent</span> parameter can be used without a value to request to form a persistent group.
+                        Or, a network ID can be used as the value, to pre-populate an SSID/passphrase configuration
+                        based on a previously used group where this device was the Group Owner (GO). 
+                        This group's parameters will be used if the local end becomes the GO in GO Negotiation.</p>
+
+                    <p class="p">You can use the <span class="keyword option">join</span> parameter to request to join an existing group as a client—this skips
+                        the GO Negotiation and sends a Provision Discovery Request to the target GO before associating for WPS
+                        provisioning. Alternatively, you can use <span class="keyword option">auth</span> to indicate that the WPS parameters are authorized
+                        for the peer device without starting GO Negotiation (i.e., the peer is expected to start negotiation).
+                        This is mainly for testing purposes.</p>
+
+                    <p class="p">The <span class="keyword option">go_intent</span> parameter overrides the default GO Intent value for this negotiation.
+                        The value range is 0 through 15, with 15 forcing the local end to become the GO.</p>
+
+                    <div class="p">The remaining optional parameters serve the following purposes: <ul class="ul">
+                        <li class="li"><span class="keyword option">freq</span>—set a forced operating channel (e.g., <span class="ph codeph">freq=2412</span> selects
+                            2.4 GHz channel 1)</li>
+
+                        <li class="li"><span class="keyword option">provdisc</span>—request that a Provision Discovery exchange be used before starting
+                            GO Negotiation, as a workaround with some P2P implementations that require this to allow the user to accept
+                            the connection</li>
+
+                        <li class="li"><span class="keyword option">auto</span>—request <span class="keyword cmdname">wpa_supplicant</span> to automatically determine whether
+                            the peer device is operating as a GO and if so, use join-a-group operation rather than GO Negotiation</li>
+
+                        <li class="li"><span class="keyword option">ssid</span>—specify the Group SSID for join operations. This allows the P2P Client interface
+                            to filter scan results by SSID, to avoid selecting an incorrect BSS entry in case the same P2P Device or
+                            Interface address have been used in multiple groups recently.</li>
+
+                    </ul>
+</div>
+
+                    <div class="cautiontitle">CAUTION:</div><div class="note caution">
+                        The open source documentation for this command may show additional parameters that aren't supported by our
+                        WPA control interface.
+                    </div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_GROUP_ADD</span> <span class="keyword option">[persistent[=</span><var class="keyword varname">network_id</var><span class="keyword option">]]</span>
+                    <span class="keyword option">[freq=</span><var class="keyword varname">MHz</var><span class="keyword option">]</span></dt>
+
+                <dd class="dd">Set up a P2P group owner manually, that is, without group owner negotiation with a specific peer.
+                    This is also known as autonomous GO.
+                    <p class="p">The optional <span class="keyword option">persistent</span> parameter can be specified without a value, to request that the group be
+                        persistent. A network ID can be used as the parameter value, to request the restart of a specific presistent group.
+                        The optional <span class="keyword option">freq</span> parameter lets the caller force the GO to be started on a specific frequency.
+                        Special settings of <span class="ph codeph">freq=2</span> or <span class="ph codeph">freq=5</span> request
+                        the best 2.4 GHz or 5 GHz band channel to be selected automatically.</p>
+
+                    <div class="cautiontitle">CAUTION:</div><div class="note caution">
+                        The open source documentation for this command may show additional parameters that aren't supported by our
+                        WPA control interface.
+                    </div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_GROUP_REMOVE</span> <var class="keyword varname">group_interface</var></dt>
+
+                <dd class="dd">Terminate a P2P group. If a new virtual network interface was used for the group, it is also removed.
+                    The command parameter must be the network interface name of the group interface.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_PEER</span> <var class="keyword varname">device_address</var></dt>
+
+                <dd class="dd">Fetch information about a discovered peer. The command's one required parameter specifies the peer's
+                    P2P Device Address. A value of <tt class="ph tt">FIRST</tt> means the first peer in the list,
+                    while <tt class="ph tt">NEXT-<var class="keyword varname">device_address</var></tt> means
+                    the entry following the specified peer (to iterate over the list).</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_PROV_DISC</span> <var class="keyword varname">peer_device_address</var> 
+                    <span class="keyword option">display|keypad|pbc</span> <span class="keyword option">[join|auto]</span></dt>
+
+                <dd class="dd">Send a Provision Discovery Request to the specified peer. The required parameters are the peer device's
+                    MAC address and the desired configuration method. For example, 
+                    <span class="ph codeph">P2P_PROV_DISC 02:01:02:03:04:05 display</span> requests the peer to display a PIN for the client (caller),
+                    and <span class="ph codeph">P2P_PROV_DISC 02:01:02:03:04:05 keypad</span> requests the peer to enter a PIN that the client displays.
+                    <p class="p">The optional <span class="keyword option">join</span> parameter can be used to request that a running GO prepare for a new client.
+                        This is mainly used with <span class="keyword option">display</span> to make it display a PIN. Alternatively, 
+                        <span class="keyword option">auto</span> can be used to request <span class="keyword cmdname">wpa_supplicant</span> to automatically determine
+                        whether the peer device is operating as a GO and if so, use join-a-group PD instead of GO Negotiation PD.
+                    </p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_REJECT</span> <var class="keyword varname">peer_device_address</var></dt>
+
+                <dd class="dd">Reject the connection attempt from a peer. The peer device's MAC address must be specified as a parameter.
+                    This comand is a mechanism to reject a pending GO Negotiation with a peer and request to automatically block
+                    any further connection or discovery of the peer.</dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">P2P: Group operation</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_EXT_LISTEN</span>
+                    <span class="keyword option">[</span><var class="keyword varname">period</var> <var class="keyword varname">interval</var><span class="keyword option">]</span></dt>
+
+                <dd class="dd">Disable or enable Extended Listen Timing. To disable it, you can issue this command without parameters.
+                    To enable it, you must provide two parameters: the availability period and the availability interval.
+                    Both are in milliseconds with a range of 1 to 65535, inclusive.
+                    The Listen State will be entered every <var class="keyword varname">interval</var> milliseconds for at least
+                    <var class="keyword varname">period</var> milliseconds.
+                    <p class="p">If the P2P module is not idle when the Extended Listen Timing timeout occurs, the Listen State is skipped.</p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_GET_PASSPHRASE</span></dt>
+
+                <dd class="dd">Get the passphrase for a group (only available when acting as a GO).</dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">P2P: Invitation</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm" id="commands__p2p_invite"><span class="keyword cmdname">P2P_INVITE</span> 
+                    <span class="keyword option">persistent=</span><var class="keyword varname">network_id</var><span class="keyword option">|group=</span><var class="keyword varname">group_ifname</var><span class="keyword option"></span>
+                    <span class="keyword option">[peer=</span><var class="keyword varname">address</var><span class="keyword option">] [go_dev_addr=</span><var class="keyword varname">address</var><span class="keyword option">] [freq=</span><var class="keyword varname">MHz</var><span class="keyword option">]</span>
+                    <span class="keyword option">[pref=</span><var class="keyword varname">MHz</var><span class="keyword option">]</span>
+                </dt>
+
+                <dd class="dd">Invite a peer to join a group (e.g., <span class="ph codeph">group=wlan1</span>) or to reinvoke a persistent group
+                    (e.g., <span class="ph codeph">persistent=4</span>). If the peer device is the GO of the persistent group, the <span class="keyword option">peer</span>
+                    parameter is not needed. Otherwise, it must be used to specify which device to invite.
+                    <p class="p">The optional <span class="keyword option">go_dev_addr</span> parameter can be used to override the GO device address for the
+                        Invitation Request if it's unknown for some reason (usually, this isn't needed).
+                        When reinvoking a persistent group, the GO device can specify the group's frequency with the <span class="keyword option">freq</span>
+                        parameter (in MHz). Meanwhile, the P2P client device can use <span class="keyword option">freq</span> to force a specific operating
+                        channel (or invitation failure if GO rejects that), or <span class="keyword option">pref</span> to request a specific channel
+                        (while allowing GO to select another channel if needed).</p>
+
+                    <div class="cautiontitle">CAUTION:</div><div class="note caution">
+                        The open source documentation for this command may show additional parameters that aren't supported by our
+                        WPA control interface.
+                    </div>
+
+                </dd>
+
+            
+        </dl>
+
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">P2P: Service discovery</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_SERV_DISC_CANCEL_REQ</span> <var class="keyword varname">query_id</var></dt>
+
+                <dd class="dd">Cancel a pending P2P service discovery request. This command takes one parameter: an identifier for the pending
+                    query, which was the value returned by <span class="keyword cmdname">P2P_SERV_DISC_REQ</span>.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_SERV_DISC_EXTERNAL</span> <var class="keyword varname">external_processing_setting</var></dt>
+
+                <dd class="dd">Disable or enable external processing of P2P service requests.
+                    You should set the command parameter to 0 when there's no external processing of requests (i.e., internal code will
+                    reject each request). You should set it to 1 when an external program is responsible for replying to service
+                    discovery requests with <span class="keyword cmdname">P2P_SERV_DISC_RESP</span>.</dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_SERV_DISC_REQ</span> <var class="keyword varname">peer_device_address</var> 
+                    <var class="keyword varname">TLV1</var> <var class="keyword varname">TLV2</var> ...</dt>
+
+                <dd class="dd">Schedule a P2P service discovery request. The command parameters are the peer device's MAC address, which can be
+                    set to all zeros to query every discovered P2P peer that supports service discovery,
+                    and P2P Service Query TLV(s) as hexadecimal dumps.
+                    For example, <span class="ph codeph">P2P_SERV_DISC_REQ 00:00:00:00:00:00 02000001</span> schedules a request for listing all
+                    supported service discovery protocols and requests this to be sent to all discovered peers. The pending requests
+                    are sent during device discovery (see <a class="xref" href="#commands__p2p_find"><span class="keyword cmdname">P2P_FIND</span></a>).
+                    <p class="p">This command returns an identifier for the pending query (e.g., <tt class="ph tt">1f77628</tt>) that can be used to cancel the
+                        request. Directed requests are removed when the peer replies to them.</p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_SERV_DISC_RESP</span> <var class="keyword varname">frequency</var>
+                    <var class="keyword varname">peer_device_address</var> <var class="keyword varname">dialog_token</var> 
+                    <var class="keyword varname">TLV1</var> <var class="keyword varname">TLV2</var> ...</dt>
+
+                <dd class="dd">Reply to a service discovery query. This command takes the following parameters: the frequency in MHz,
+                    the peer device's MAC address, a dialog token, and the response TLV(s). The first three parameters are copied from the
+                    request event; for example: <span class="ph codeph">P2P_SERV_DISC_RESP 2437 02:40:61:c2:f3:b7 1 0300000101</span>.
+                    <p class="p">This command is used only if an external program is used to process the request.</p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">P2P_SERVICE_UPDATE</span></dt>
+
+                <dd class="dd">Indicate that local services have changed. This is used to increment the P2P service indicator value so that peers know
+                    when previously cached information may have changed.</dd>
+
+            
+        </dl>
+        
+    </div>
+
+    <div class="section"><h2 class="title sectiontitle">Responses to interactive requests</h2>
+        
+        
+        <dl class="dl">
+            
+                <dt class="dt dlterm"><span class="keyword cmdname">WPA_CTRL_RSP</span>
+                    <var class="keyword varname">field_name</var>-<var class="keyword varname">network_id</var>-<var class="keyword varname">value</var></dt>
+
+                <dd class="dd">Respond to a WPA supplicant request for authentication data.
+                    <p class="p">
+                        When the WPA supplicant needs certain information to perform authentication, it sends an event message to the
+                        monitor program. For a list of data fields that the service can request,
+                        see the <a class="xref" href="events.html#events__wpa_ctrl_req"><tt class="ph tt">WPA_CTRL_REQ</tt></a> event description.
+                    </p>
+
+                    <p class="p">
+                        The program can provide the requested field by constructing a command using the 
+                        <a class="xref" href="../wpa_ctrl_h_defines.html#wpa_ctrl.h_defines__WPA_CTRL_RSP"><span class="keyword cmdname">WPA_CTRL_RSP</span> macro</a>.
+                        This macro provides an alias for the <tt class="ph tt">CTRL-RSP-</tt> message prefix, and can be used in, say,
+                        an <span class="keyword apiname">snprintf()</span> statement to construct the command.
+                        The command must contain the prefix followed by the field name, network ID, and field value.
+                    </p>
+
+                    <div class="p">
+                        Suppose the service requests the <span class="keyword const">PASSWORD</span> field. The program can respond as follows:
+<pre class="pre codeblock">int send_password(struct wpa_ctrl *ctrl, int netID, char *password)
+{
+    char cmd[256], reply[256];
+    snprintf(cmd, sizeof(cmd), <strong class="ph b">WPA_CTRL_RSP</strong> "<strong class="ph b">PASSWORD</strong>-%s:%s", netID, password);
+
+    wpa_ctrl_request(ctrl, cmd, strlen(cmd), reply, sizeof(reply), NULL);
+
+    /* Code to process the response and exit the function goes here */
+}
+</pre>
+                    </div>
+
+                    <p class="p">The actual command that gets sent is then: 
+                        <span class="ph codeph">CTRL-RSP-PASSWORD-<var class="keyword varname">netID</var>-<var class="keyword varname">password</var></span></p>
+
+                </dd>
+
+            
+        </dl>
+        
+    </div>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/wpa_ctrl_request.html" title="Send a command request to the WPA control interface">wpa_ctrl_request()</a></div>
+</div>
+</div></body>
+</html>

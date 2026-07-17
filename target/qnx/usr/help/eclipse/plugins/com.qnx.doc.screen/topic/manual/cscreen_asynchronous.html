@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Asynchronous Notifications" />
+<meta name="abstract" content="Applications can request to be asynchronously notified of specific Screen events by way of a sigevent." />
+<meta name="description" content="Applications can request to be asynchronously notified of specific Screen events by way of a sigevent." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/tscreen_screen_notify.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_asynchronous" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Asynchronous Notifications</title>
+</head>
+<body id="cscreen_asynchronous">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Asynchronous Notifications
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Applications can request to be asynchronously notified of specific <span class="keyword">Screen</span>
+        events by way of a <span class="keyword dtype">sigevent</span>.
+    </p>
+
+        <p class="p">
+            
+            For multithreaded applications, all event handling can be directed to one thread through the use of
+            asynchronous notifications. When all the event handling for an application is performed by one thread,
+            it's easier to synchronize tasks and to ensure that certain tasks are performed in the correct order.
+        </p>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            Before you can call <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>, you
+            must call <a class="xref" href="../screen_register_event.html" title="Register a sigevent for use with asynchronous notifications"><span class="keyword apiname">screen_register_event()</span></a> to register a
+            <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html"><span class="keyword dtype">sigevent</span></a>
+            that <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a> uses.
+            <p class="p">
+                When you are no longer using asynchronous notifications, you need to disable the notifications and then
+                remove the event registration. We recommend that you call <a class="xref" href="../screen_unregister_event.html" title="Unregister a sigevent from use with asynchronous notifications"><span class="keyword apiname">screen_unregister_event()</span></a>
+                only after you've disabled asynchronous notifications that are using the event you're unregistering.
+                If you remove the event registration while you still have asynchronous notifications using that event
+                enabled, you may not receive any notifications. To disable asynchronous notifications,
+                call <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a> with the <span class="keyword parmname">event</span>
+                argument set to NULL, or its type set to <span class="keyword const">SIGEV_NONE</span> for those notifications that were enabled.
+            </p>
+
+        </div>
+
+        <p class="p">
+            Use the function <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a> to enable
+            notifications of specific events from <span class="keyword">Screen</span>. When you want to
+            disable notifications, call <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>
+            a second time in your application for the context, notification type, and object handle that you want to
+            disable notifications for. Set the <span class="keyword parmname">event</span> parameter to NULL, or the
+            <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html"><span class="keyword dtype">sigevent</span></a>
+            type to <span class="keyword const">SIGEV_NONE</span> in the call to disable notifications. 
+        </p>
+
+        <p class="p">
+            You can enable notifications for different notification types, or for the same notification type, but for a
+            different handle. In the following example, the second call to
+            <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a> doesn't affect the first since
+            it specifies a different object handle.
+        </p>
+
+        <pre class="pre codeblock">screen_notify(screen_ctx, SCREEN_NOTIFY_INPUT, keyboard, &amp;event);
+screen_notify(screen_ctx, SCREEN_NOTIFY_INPUT, mouse, &amp;event);
+        </pre>
+        <p class="p">
+            Your application can request to receive notifications upon occurrence of the following:
+        </p>
+
+        <dl class="dl">
+         
+            
+                <dt class="dt dlterm">A content update</dt>
+
+                <dd class="dd">
+                    <p class="p">
+                        Use the notification type of <span class="keyword const">SCREEN_NOTIFY_UPDATE</span> when you want to receive
+                        notifications that a framebuffer refresh or a post (e.g., a call to
+                        <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>) has occurred.
+                    </p>
+
+                    <p class="p">
+                        The following table shows the <span class="keyword">Screen API</span> objects that are valid for this
+                        notification type and when you would receive a notification from Screen:
+                    </p>
+
+                    
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                                <tr class="row">
+                                    <th class="entry cellrowborder" style="vertical-align:top;" id="d141440e232"><span class="keyword">Screen API</span> object</th>
+
+                                    <th class="entry cellrowborder" style="vertical-align:top;" id="d141440e237"> <span class="keyword">Screen</span> notifies you when:</th>
+
+                                </tr>
+
+                            </thead>
+<tbody class="tbody">
+                                <tr class="row">
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e232 ">Display</td>
+
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e237 ">
+                                        <span class="keyword">Screen</span> completes composition, and a refresh of
+                                        the framebuffer is required.
+                                    </td>
+
+                                </tr>
+
+                                <tr class="row">
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e232 ">Stream</td>
+
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e237 ">
+                                        the function  <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a>
+                                        has been called with the stream object that you registered for this notification type.
+                                    </td>
+
+                                </tr>
+
+                                <tr class="row">
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e232 ">Window</td>
+
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e237 ">
+                                        the function  <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>
+                                        has been called with the window object that you registered for this
+                                        notification type.
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+</table>
+</div>
+
+                    <p class="p">
+                        You'll still receive <span class="keyword const">SCREEN_EVENT_POST</span> events in your context's event queue
+                        when applicable.
+                    </p>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm">An input event from a device</dt>
+
+                <dd class="dd">
+                    <p class="p">
+                        Use the notification type of <span class="keyword const">SCREEN_NOTIFY_INPUT</span> when you want to receive
+                        notifications that an event from a display or an input device has occurred.
+                    </p>
+
+                    <p class="p">
+                        The following table shows the <span class="keyword">Screen API</span> objects that are valid for this
+                        notification type and when you would receive a notification from Screen:
+                    </p>
+
+                    
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                                <tr class="row">
+                                    <th class="entry cellrowborder" style="vertical-align:top;" id="d141440e335"><span class="keyword">Screen API</span> object</th>
+
+                                    <th class="entry cellrowborder" style="vertical-align:top;" id="d141440e340"> <span class="keyword">Screen</span> notifies you when:</th>
+
+                                </tr>
+
+                            </thead>
+<tbody class="tbody">
+                                <tr class="row">
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e335 ">Device</td>
+
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e340 ">
+                                        <p class="p">
+                                            the specified device is active (i.e., sending input). If desired, you can
+                                            filter these notifications so that it receives only notifications that are of
+                                            interest to you. Filtering is done by passing the appropriate handle as an
+                                            argument to <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>.
+                                        </p>
+
+                                        <p class="p">
+                                            For example, if you want to receive notifications of events pertaining to a
+                                            keyboard, then pass the appropriate <span class="keyword dtype">screen_device_t</span> handle
+                                            (the handle to your keyboard device) to
+                                            <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>. 
+                                        </p>
+
+                                        <div class="note"><span class="notetitle">Note:</span> 
+                                            When you receive a notification for input, it's an indication that there's
+                                            input activity on the device for <span class="keyword">Screen</span> to
+                                            process. However, it isn't necessarily an indication that there's an event
+                                            corresponding to your input device in your context's event queue.
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                                <tr class="row">
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e335 ">Display</td>
+
+                                    <td class="entry cellrowborder" style="vertical-align:top;" headers="d141440e340 ">
+                                        there's input that's being targeted for the specified display.
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+</table>
+</div>
+
+                    <div class="note"><span class="notetitle">Note:</span> 
+                        When you register for notifications of type <span class="keyword const">SCREEN_NOTIFY_INPUT</span> with a
+                        NULL object (i.e., passing NULL as the <span class="keyword parmname">obj</span> parameter in
+                        <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>), then you
+                        receive notifications when <em class="ph i">any</em> input device is active (i.e., sending input).
+                    </div>
+
+                </dd>
+
+            
+            
+                <dt class="dt dlterm">A property change occurred or an event has been queued</dt>
+
+                <dd class="dd">
+                    <p class="p">
+                        Use the notification type of <span class="keyword const">SCREEN_NOTIFY_EVENT</span> when you want to receive
+                        notifications that an event is available in your context's event queue or that a property
+                        of the specified object has been changed. 
+                    </p>
+
+                    <dl class="dl">
+                        
+                            <dt class="dt dlterm">Property change notifications and events</dt>
+
+                            <dd class="dd">
+                                <p class="p">
+                                    If you request property change events, note that although notifications are generated
+                                    for all property changes, not all properties that change generate an event
+                                    (<span class="keyword const">SCREEN_EVENT_PROPERTY</span>). That is, some properties that are changed
+                                    cause only a notification to be generated, while some cause both a notification <em class="ph i">and</em>
+                                    an event to be generated. For the latter, once your application receives the
+                                    notification of the property change, it can call
+                                    <a class="xref" href="../screen_get_event.html" title="Wait for a screen event"><span class="keyword apiname">screen_get_event()</span></a> to
+                                    get the event from your context's event queue and retrieve the property that's been
+                                    changed along with any data that might be associated with it. See
+                                    <a class="xref" href="../screen_8h_1Screen_Property_Types.html" title="Properties that are associated with Screen API objects"><span class="keyword">Screen</span> property types</a>
+                                    to determine which property triggers <span class="keyword">Screen</span> to send
+                                    a <span class="keyword const">SCREEN_EVENT_PROPERTY</span> event. 
+                                </p>
+
+                                <p class="p">
+                                    The following <span class="keyword">Screen API</span> objects are valid for registering for
+                                    property changes:
+                                </p>
+
+                                <ul class="ul">
+                                    <li class="li">Device</li>
+
+                                    <li class="li">Group</li>
+
+                                    <li class="li">Pixmap</li>
+
+                                    <li class="li">Session</li>
+
+                                    <li class="li">Stream</li>
+
+                                    <li class="li">Window</li>
+
+                                </ul>
+
+                            </dd>
+
+                        
+                        
+                            <dt class="dt dlterm">Event(s) queued</dt>
+
+                            <dd class="dd">
+                                <p class="p"> Register for notifications of type <span class="keyword const">SCREEN_NOTIFY_EVENT</span> with a NULL object
+                                    (i.e., passing NULL as the <span class="keyword parmname">obj</span> parameter in
+                                    <a class="xref" href="../screen_notify.html" title="Request Screen to send asynchronous notifications"><span class="keyword apiname">screen_notify()</span></a>) when
+                                    you want to receive notifications that there are events in your context's event queue.
+                                    You receive one notification for each event that's residing in your context's event
+                                    queue (i.e., one notification for each event that you can call
+                                    <a class="xref" href="../screen_get_event.html" title="Wait for a screen event"><span class="keyword apiname">screen_get_event()</span></a> to
+                                    retrieve).
+                                </p>
+
+                                <p class="p">
+                                    You may receive any of the event types (<a class="xref" href="../group__screen__events_1Screen_Event_Types.html" title="Types of events">
+                                        <span class="keyword">Screen</span> event types
+                                    </a>) that's applicable to your context in the event queue.
+                                </p>
+
+                                <p class="p">
+                                    You can call <a class="xref" href="../screen_get_event.html" title="Wait for a screen event"><span class="keyword apiname">screen_get_event()</span></a>
+                                    to get the event from the queue and retrieve the property that's been changed along
+                                    with any data that might be associated with it.
+                                </p>
+
+                            </dd>
+
+                        
+                    </dl>
+
+                </dd>
+
+            
+        </dl>
+
+	</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../../topic/manual/tscreen_screen_notify.html">Tutorial: Using screen_notify()</a></strong><br />
+         The following procedure describes how an application can request an         asynchronous notification from <span class="keyword">Screen</span> for         keyboard events.     </li>
+</ul>
+</div></body>
+</html>

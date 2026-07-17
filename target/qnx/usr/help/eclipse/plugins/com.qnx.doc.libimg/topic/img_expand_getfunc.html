@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="img_expand_getfunc()" />
+<meta name="abstract" content="Get a function to convert a palette format to a direct format" />
+<meta name="description" content="Get a function to convert a palette format to a direct format" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Image Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../topic/images_seeAPIs.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_convert_data.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_dtransform_create.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_fmt_bpl.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_format_t.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/img_lib_attach.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="img_expand_getfunc" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>img_expand_getfunc()</title>
+</head>
+<body id="img_expand_getfunc">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">img_expand_getfunc()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get a function to convert a palette format to a direct format</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre">
+#include &lt;img/img.h&gt;
+
+img_expand_f *img_expand_getfunc( img_format_t <var class="keyword varname">src</var>,
+                                  img_format_t <var class="keyword varname">lut</var> )
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><var class="keyword varname">src</var>
+  </dt>
+
+
+<dd class="dd">The palette-based <a class="xref" href="img_format_t.html" title="Image formats"><span class="keyword dtype">img_format_t</span></a> image format to convert from
+  </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lut</var>
+  </dt>
+
+
+<dd class="dd">The <a class="xref" href="img_format_t.html" title="Image formats"><span class="keyword dtype">img_format_t</span></a> direct image format to convert to
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libimg</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l img</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">This function returns a pointer to a data conversion function (or <span class="keyword const">NULL</span> if the requested conversion is not supported) which you can call to <q class="q">expand</q> (that is, convert) a run of pixels from a palette-based format <var class="keyword varname">src</var> to a <q class="q">direct</q> format in a lookup table <var class="keyword varname">lut</var>.
+A conversion function takes the form:
+
+</p>
+
+<pre class="pre codeblock">void img_expand_f( const uint8 *<var class="keyword varname">src</var>,
+                   uint8 *<var class="keyword varname">dst</var>,
+                   unsigned <var class="keyword varname">n</var>,
+                   const uint8 *<var class="keyword varname">lut</var>);
+</pre>
+
+<p class="p">Here's a sample procedure for converting from PAL8 to ARGB1555:
+
+</p>
+
+<ol class="ol">
+<li class="li">Convert your lookup table to the destination format:
+<pre class="pre codeblock">img_convert_data(IMG_FMT_PKHE_ARGB8888, palette, IMG_FMT_PKLE_ARGB1555, palette, npalette);
+</pre>
+
+    </li>
+
+<li class="li">Get the handle to the expand function that will expand the data:
+<pre class="pre codeblock">img_expand_getfunc(IMG_FMT_PAL8, IMG_FMT_PKLE_ARGB1555);
+</pre>
+
+    </li>
+
+<li class="li">Call the expand function for each run of indexed data you want to expand:
+<pre class="pre codeblock">expand_f(sptr, dptr, npixels, palette);
+</pre>
+</li>
+
+</ol>
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can use <a class="xref" href="img_dtransform_create.html" title="Prepare to transform an image"><span class="keyword apiname">img_dtransform_create()</span></a> instead to abstract the details of expansion and conversion.</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">IMG_ERR_OK</span>
+    </dt>
+
+
+<dd class="dd">Success.
+    </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">IMG_ERR_NOSUPPORT</span>
+    </dt>
+
+
+<dd class="dd">One of the formats specified is invalid.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p">Image library</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d22202e258">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d22202e260"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d22202e258 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d22202e260 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d22202e258 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d22202e260 ">No</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/images_seeAPIs.html">Image API</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/img_convert_data.html" title="Convert data from one image format to another">img_convert_data()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_dtransform_create.html" title="Prepare to transform an image">img_dtransform_create()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_fmt_bpl.html" title="Calculate the minimum number of bytes required to represent a pixel run">IMG_FMT_BPL()</a></li>
+<li class="linklist"><a class="link" href="../topic/img_format_t.html" title="Image formats">img_format_t</a></li>
+<li class="linklist"><a class="link" href="../topic/img_lib_attach.html" title="Initialize the image library">img_lib_attach()</a></li></ul></div>
+</div></body>
+</html>

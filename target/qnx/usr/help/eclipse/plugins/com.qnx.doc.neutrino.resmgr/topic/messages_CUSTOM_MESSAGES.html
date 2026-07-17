@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Custom messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="CUSTOM_MESSAGES" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Custom messages</title>
+</head>
+<body id="CUSTOM_MESSAGES">
+
+<h1 class="title topictitle1" id="ariaid-title1">Custom messages</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Although most of the time your resource manager will handle messages from
+clients, there still could be times when you need to control the behavior
+of the resource manager itself.
+For example, if the resource manager is for a serial port, you'll likely
+need a way to change the baud rate, and so on.
+</p>
+
+
+<p class="p">
+There are various ways you could send control information to a resource manager:
+</p>
+
+
+<ul class="ul">
+<li class="li">Stop the resource manager, and then restart it with new command-line options.
+  This is an awkward method that leaves the device unavailable while the resource manager is restarting.
+  It isn't a viable solution if the resource manager controls various
+  devices and you need to set different options (at different times) for different devices.
+</li>
+
+
+<li class="li">Accept <span class="keyword apiname">write()</span> messages that include control instructions.
+  This lets you control the resource manager from the command line or a
+  script; you can simply <span class="keyword cmdname">echo</span> a command to a path that the
+  resource manager has registered.
+
+  <p class="p">
+  However, the <span class="keyword apiname">write()</span> messages might be broken into smaller
+  messages, so your resource manager would have to be prepared to save the
+  pieces, reassemble them, and then act on them.
+  Your <var class="keyword varname">io_write</var> handler also has to parse the commands, in 
+  addition to handling <span class="keyword apiname">write()</span> messages from the clients.
+  </p>
+
+</li>
+
+
+<li class="li">Send an IPC message, via
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>,
+  directly to the resource manager.
+  This message would contain a data structure that includes the control instructions.
+  This method is fast, simple, and flexible, but it isn't portable because
+  <span class="keyword apiname">MsgSend()</span> isn't a POSIX function.
+</li>
+
+
+<li class="li">Send control instructions via a
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+  command.
+  Such messages won't conflict with any other messages sent to the resource
+  manager, but this approach might not be portable because
+  <span class="keyword apiname">devctl()</span> isn't a POSIX function (it was in a draft standard,
+  but wasn't adopted).
+  See
+  <q class="q"><a class="xref" href="messages_HANDLING_devctl.html">Handling <span class="keyword apiname">devctl()</span> messages</a>,</q>
+  below.
+</li>
+
+
+<li class="li">Set up a handler for <q class="q">other</q> I/O messages when you call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>,
+  as described in
+  <q class="q"><a class="xref" href="fleshing_out_Attributes.html">Setting resource manager attributes</a></q>
+  in the <q class="q">Fleshing Out the Skeleton</q> chapter.
+  We don't recommend this approach.
+  
+  
+  
+</li>
+
+
+<li class="li">Use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/message_attach.html"><span class="keyword apiname">message_attach()</span></a>
+  or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pulse_attach.html"><span class="keyword apiname">pulse_attach()</span></a>
+  to attach a specified message range or pulse code for the dispatch handle.
+  When a message with a type in that range is received, the
+  <span class="keyword apiname">dispatch_block()</span> function calls the handler function that you specify.
+  The message range must be outside the I/O range, and the messages or pulses aren't associated with an OCB.
+  For more information, see
+  <q class="q"><a class="xref" href="messages_HANDLING_PRIVATE_MSG.html">Handling private messages and pulses</a>,</q>
+  later in this chapter.
+  
+  
+</li>
+
+
+<li class="li">Use an out-of-band I/O message, <span class="keyword const">_IO_MSG</span>.
+  This type of message <em class="ph i">is</em> associated with an OCB, and is handled
+  through the resource manager's framework.
+  For more information, see
+  <q class="q"><a class="xref" href="messages_HANDLING_io_msg.html">Handling out-of-band (<span class="keyword const">_IO_MSG</span>) messages</a>,</q>
+  later in this chapter.
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

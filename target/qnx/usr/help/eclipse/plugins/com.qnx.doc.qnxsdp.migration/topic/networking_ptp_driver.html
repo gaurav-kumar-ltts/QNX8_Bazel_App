@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="topic" />
+<meta name="DC.title" content="Migrating io-sock networking drivers with PTP to QNX SDP 8.0.1 io-sock" />
+<meta name="DC.relation" scheme="URI" content="../topic/networking.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="migrating-io-sock-networking-drivers-with-ptp-to-qnx-sdp-801-io-sock" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Migrating io-sock networking drivers with PTP to QNX SDP 8.0.1 io-sock</title>
+</head>
+<body id="migrating-io-sock-networking-drivers-with-ptp-to-qnx-sdp-801-io-sock">
+<h1 class="title topictitle1" id="ariaid-title1">Migrating <span class="ph codeph">io-sock</span> networking drivers with PTP to QNX SDP 8.0.1 <span class="ph codeph">io-sock</span></h1>
+<div class="body"><p class="p">QNX SDP 7.1 and 8.0 <span class="ph codeph">io-sock</span> networking drivers that implement the Precision Time Protocol (PTP) in hardware must now use the <span class="ph codeph">io-sock</span> PTP module to
+work with <span class="ph codeph">ptpd2</span>.</p>
+</div>
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/networking.html" title="The High-Performance Networking Stack (io-sock) was introduced for QNX SDP 7.1 as a replacement for the io-pkt networking stack and is updated for QNX SDP 8.0.">Networking</a></div>
+</div>
+</div><div class="topic nested1" aria-labelledby="ariaid-title2" id="header-changes"><h2 class="title topictitle2" id="ariaid-title2">Header changes</h2>
+<div class="body"><ul class="ul"><li class="li">Removed the following commands:<ul class="ul"><li class="li">PTP_GET_TX_TIMESTAMP</li>
+<li class="li">PTP_GET_RX_TIMESTAMP</li>
+</ul>
+</li>
+<li class="li">Moved the definition of ETHERTYPE_PTP to <strong class="ph b">net/ethernet.h</strong>.</li>
+<li class="li">Changed the definition of PTP_PORT to PTP_PORT_EVENT.</li>
+<li class="li">Changed the name of <span class="ph codeph">ptp_comp_t</span> to <span class="ph codeph">struct ptp_comp</span>.</li>
+<li class="li">Changed the name of <span class="ph codeph">ptp_time_t</span> to <span class="ph codeph">struct ptp_time</span>, and the structure's <em class="ph i">sec</em> member
+to an <span class="ph codeph">int64_t</span>.</li>
+<li class="li">Replaced <span class="ph codeph">ptp_extts_t</span> with <span class="ph codeph">struct ptp_tstmp</span>.</li>
+<li class="li">Added <strong class="ph b">qnx/ptp/ptp_mod.h</strong> for PTP module functions.</li>
+</ul>
+</div>
+</div>
+<div class="topic nested1" aria-labelledby="ariaid-title3" id="tx-and-rx-timestamps"><h2 class="title topictitle2" id="ariaid-title3">TX and RX timestamps</h2>
+<div class="body"><p class="p">TX/RX timestamp handling should no longer have a per-driver implementation. Instead, use the <em class="ph i">ptp_*()</em> module functions
+as described in "Adding PTP to io-sock Network Drivers."
+Because all software timestamp queueing is now managed by the PTP module, a driver does <strong class="ph b">not</strong> have to store information
+specific to a packet to be retrieved. Drivers no longer need to use <span class="ph codeph">ptp_extts_t</span>, meaning
+<span class="ph codeph">struct ptp_tstmp</span> should only be seen by the user. This change coincides with the removal of the PTP_GET_TX_TIMESTAMP and
+PTP_GET_RX_TIMESTAMP commands.</p>
+<p class="p"><strong class="ph b">Note:</strong> No PTP packet processing should be necessary with the PTP module.</p>
+</div>
+</div>
+<div class="topic nested1" aria-labelledby="ariaid-title4" id="devctl-commands"><h2 class="title topictitle2" id="ariaid-title4">Devctl commands</h2>
+<div class="body"><p class="p">The PTP_* <em class="ph i">devctl()</em> commands are still sent with a SIOCGDRVSPEC or SIOCSDRVSPEC command, but  <em class="ph i">ptp_ioctl()</em> should be
+called to process the PTP_* commands. The PTP module then calls the <em class="ph i">DEVMETHOD()</em> functions that the driver has set up, as
+described in the "Adding PTP to io-sock Network Drivers."</p>
+</div>
+</div>
+<div class="topic nested1" aria-labelledby="ariaid-title5" id="64-bit-timestamp-support"><h2 class="title topictitle2" id="ariaid-title5">64-bit timestamp support</h2>
+<div class="body"><p class="p">When the driver uses the <em class="ph i">ptp_*()</em> functions, the PTP module calculates the upper portion of the 64-bit <em class="ph i">sec</em> member of
+<span class="ph codeph">struct ptp_time</span>. The driver should not attempt to calculate a number of seconds greater than the maximum specified by the
+<em class="ph i">max</em> member of <em class="ph i">ptp_attach()</em>.</p>
+</div>
+</div>
+</body>
+</html>

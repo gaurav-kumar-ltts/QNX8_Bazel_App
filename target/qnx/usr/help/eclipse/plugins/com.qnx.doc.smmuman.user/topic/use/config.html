@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Configuring smmuman" />
+<meta name="abstract" content="Correct configuration of the smmuman service requires careful attention to architecture-specific and board-specific details provided in the board manufacturer’s documentation." />
+<meta name="description" content="Correct configuration of the smmuman service requires careful attention to architecture-specific and board-specific details provided in the board manufacturer’s documentation." />
+<meta name="DC.subject" content=", smmuman, configuration, memory, manager, IOMMUs, SMMUs, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content=", smmuman, configuration, memory, manager, IOMMUs, SMMUs, QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/smmuman.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/options.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/arm.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/rcar.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/use/x86.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="config" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Configuring smmuman</title>
+</head>
+<body id="config">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Configuring <span class="keyword cmdname">smmuman</span></h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Correct configuration of the <span class="keyword cmdname">smmuman</span> service requires careful
+		attention to architecture-specific and board-specific details provided in the board
+		manufacturer’s documentation.</p>
+
+		<div class="section">
+			<div class="p">The <span class="keyword cmdname">smmuman</span> configuration:
+				<ul class="ul">
+					<li class="li">specifies how the <span class="keyword cmdname">smmuman</span> service should run</li>
+
+					<li class="li">describes the IOMMU/SMMU devices available on the board, if these are not
+						available from the board firmware (required for ARM architectures)</li>
+
+					<li class="li">optionally, defines the memory regions that DMA devices are permitted to
+						access</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">The <span class="keyword cmdname">smmuman</span> service programs the configuration information about
+				DMA devices, and memory regions and permissions into the hardware IOMMU/SMMUs.
+				The IOMMU/SMMUs (or <span class="keyword cmdname">vdev-smmu</span>) use the configuration to limit DMA
+				devices' memory access to their permitted regions and for their configured
+				permissions.</p>
+
+			<p class="p">If the <span class="keyword cmdname">smmuman</span> service is running in a guest in a QNX hypervisor
+				VM (<span class="keyword cmdname">qvm</span> process instance), the service passes the configuration
+				information for the guest's pass-through DMA devices to the
+				<span class="keyword cmdname">vdev-smmu</span> virtual device. This virtual device then passes
+				this information on to the <span class="keyword cmdname">smmuman</span> service in the hypervisor host
+				to configure the IOMMU/SMMUs on the board, ensuring that devices passed through to a
+				guest are restricted to their permitted memory regions and permissions in
+				host-physical memory.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> You don't have to include the <span class="keyword cmdname">smmuman</span> configuration file in
+				your build file, or have the service load it with your system startup. You can, for
+				instance, store the <span class="keyword cmdname">smmuman</span> configuration file on a secondary
+				storage device, to be loaded after the primary IFS is up and running. This might be
+				a useful strategy if your system uses two IFSs, and the primary IFS doesn't include
+				DMA devices.</div>
+
+		</div>
+
+		<div class="section" id="config__sources"><h2 class="title sectiontitle">Configuration at startup</h2>
+			
+			
+			
+			<div class="p">The <span class="keyword cmdname">smmuman</span> service needs a minimum set of configuration
+				information at startup. This set includes information about:
+				<ul class="ul">
+					<li class="li">how the service should run (see <q class="q"><a class="xref" href="#config__run">Configuring how the smmuman service runs</a></q>)</li>
+
+					<li class="li">the hardware on the board (see <q class="q"><a class="xref" href="#config__hw">Describing the hardware</a></q>)</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">At startup, the <span class="keyword cmdname">smmuman</span> service reads its configuration input
+				<em class="ph i">in a single pass</em>, from start to finish. The service usually receives this
+				input through some combination of information:
+				<ul class="ul">
+					<li class="li">entered through the command line</li>
+
+					<li class="li">entered through one or more configuration files</li>
+
+					<li class="li">retrieved from the board firmware</li>
+
+					<li class="li">supplied by the architecture-specific and board-specific support libraries</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Configuration information precedence</h2>
+			
+			<p class="p">You may have the <span class="keyword cmdname">smmuman</span> service retrieve information from the
+				board at startup, then add user-input information to it. By default, user-input
+				information will override the information retrieved from the board.</p>
+
+			<p class="p">For information about how the <span class="keyword cmdname">smmuman</span> service handles multiple
+				instances of the same option, see <q class="q"><a class="xref" href="smmuman.html#smmuman__options">Options</a></q> in this chapter.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				The information supplied at startup may in some cases also include memory
+				mappings and DMA device permissions for these mapped memory regions.
+				The startup configuration is the recommended method for configuring memory
+				mappings and device permissions on systems that will be safety certified.
+				For non-safety systems, you can also configure these settings through the
+				SMMUMAN client API; for more information, see <q class="q"><a class="xref" href="#config__map">Mapping devices and memory regions</a></q> below.
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Default and preferred support files</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">The non-safety variant of the SMMUMAN service (<span class="keyword cmdname">smmuman</span>)
+				attempts to load only the non-safety variants of support files. For example, if you
+				start the <span class="keyword cmdname">smmuman</span> service with a configuration containing
+				<span class="ph codeph">smmu vtd</span>, the service will always try to load only the
+				non-safety support file: <span class="ph filepath">smmu-vtd.so</span>.</p>
+
+			<p class="p">However, the service's <em class="ph i">safety</em> variant (<span class="keyword cmdname">smmuman-safety</span>)
+				preferentially loads the safety variants of support files. If it doesn't find the
+				safety variant of a support file, it then attempts to load the non-safety variant.
+				For example, if you start <span class="keyword cmdname">smmuman-safety</span> with a configuration
+				containing <span class="ph codeph">smmu vtd</span>, the service will try to load
+				<span class="ph filepath">smmu-vtd-safety.so</span>; if this fails, it will then try to load
+				the non-safety support file: <span class="ph filepath">smmu-vtd.so</span>.</p>
+
+			<p class="p">You can force either variant of the <span class="keyword cmdname">smmuman</span> service to load only
+				the specified variant of a support file by naming that file. For example,
+				assuming that you configured the service to move to its DSS if a required safety
+				component isn't present, if your configuration contains
+				<span class="ph codeph">smmu vtd-safety.so</span>, it will attempt to load only the named
+				support file, and move to its DSS if it doesn't find the file.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> Independently of its startup instructions, the <span class="keyword cmdname">smmuman</span> service
+				checks the safety-certification status of the components on which it depends.
+				You can use the <span class="keyword option">safety</span> option to configure the service's response to
+				the presence or absence of any required safety-certified components (see the <a class="xref" href="options.html#options__safety"><span class="keyword option">safety</span></a> option in this
+				chapter).</div>
+
+		</div>
+
+		<div class="section" id="config__file"><h2 class="title sectiontitle">Startup configuration syntax</h2>
+			
+			
+			
+			<p class="p">In the user-input configuration (file or command line), anything that follows a
+				<q class="q">#</q> character is considered a comment and is ignored. An <q class="q">@</q> character
+				indicates that what follows is a file name.</p>
+
+			<p class="p">Configuration files may be identified by their <q class="q"><span class="ph filepath">.smmu</span></q>
+				suffix (e.g., <span class="ph filepath">mysystem.smmu</span>).</p>
+
+			<div class="p">Thus, in the startup instructions, to use a configuration file, enter
+				<span class="keyword cmdname">smmuman</span>, then an <tt class="ph tt">@</tt> followed by the filename.
+				For example:
+			<pre class="pre codeblock">smmuman @mysystem.smmu</pre></div>
+
+			<div class="p">In a production system, you should start the <span class="keyword cmdname">smmuman</span> service as
+				part of the system startup, with a configuration file specified in the startup script.
+				For example:
+			<pre class="pre codeblock">smmuman @/etc/foo.smmu</pre></div>
+
+			<p class="p">This character can be used to nest configuration files. For example, if a
+				configuration file <span class="ph filepath">foo.smmu</span> includes a line:
+				<span class="ph codeph">@moo.smmu</span>, then when it encounters this line the
+				<span class="keyword cmdname">smmuman</span> service will read its configuration information from
+				<span class="ph filepath">moo.smmu</span> before continuing to read
+				<span class="ph filepath">foo.smmu</span>.</p>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">An error in the command-line input can produce unexpected results.
+				Use the command line only to supplement the information in the configuration files
+				during development and for troubleshooting. </div>
+
+		</div>
+
+		<div class="section" id="config__textsub"><h2 class="title sectiontitle">Textual substitutions</h2>
+			
+			
+			
+			<div class="p">As it reads through its configuration information, <span class="keyword cmdname">smmuman</span>
+				performs textual substitutions to its configuration information when it encounters
+				the following character sequences:
+				<dl class="dl">
+					
+						<dt class="dt dlterm">$env{<var class="keyword varname">envvar</var>}</dt>
+
+						<dd class="dd">Replace the entire text string above with the contents of the
+							<var class="keyword varname">envvar</var> environment variable as found in the system
+							page.</dd>
+
+					
+					
+						<dt class="dt dlterm">$asinfo_start{<var class="keyword varname">asinfo_name</var>}</dt>
+
+						<dd class="dd">Replace the entire text string above with the start address of the system
+							page <var class="keyword varname">asinfo</var> entry specified by
+							<var class="keyword varname">asinfo_name</var> in the system page.</dd>
+
+					
+					
+						<dt class="dt dlterm">$asinfo_length{<var class="keyword varname">asinfo_name</var>}</dt>
+
+						<dd class="dd">Replace the entire text string above with the length of the system page
+							<var class="keyword varname">asinfo</var> entry specified by
+							<var class="keyword varname">asinfo_name</var> in the system page.</dd>
+
+					
+				</dl>
+
+			</div>
+
+			
+			<p class="p">You can use this textual substitution to make your configuration more robust by
+				having the host startup place values in the system page <var class="keyword varname">asinfo</var>
+				entry where they can be picked up by <span class="keyword cmdname">smmuman</span>.</p>
+
+			<div class="p"> For example, below is a partial <span class="keyword cmdname">smmuman</span> configuration for an x86
+				board that picks up memory allocations from the system page:
+<pre class="pre codeblock">debug 2
+
+smmu vtd require
+
+allow smbs0   $asinfo_start{smbs0},$asinfo_length{smbs0},st
+allow xhci    $asinfo_start{xhci},$asinfo_length{xhci},st
+...
+
+device pci:0:18.0 smbs0
+device pci:0:21.0 xhci
+...</pre></div>
+
+			<div class="p">Note that when using <span class="ph codeph">$asinfo_start</span>, pass the leaf name only, and
+				<em class="ph i">not</em> the full path. For example, the following is incorrect:
+			<pre class="pre codeblock">allow ahci $asinfo_start{/memory/below4G/ram/testMem},10M,st</pre>
+				but the following is correct:
+			<pre class="pre codeblock">allow ahci $asinfo_start<strong class="ph b">{testMem}</strong>,10M,st</pre></div>
+
+			<p class="p">For more information about the system page <var class="keyword varname">asinfo</var> data structure
+				array, see the <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.building/topic/syspage/syspage_about.html">System Page</a></q> chapter in <cite class="cite">Building Embedded Systems</cite>.</p>
+
+		</div>
+
+		<div class="section" id="config__run"><h2 class="title sectiontitle">Configuring how the <span class="keyword cmdname">smmuman</span> service runs</h2>
+			
+			
+			<p class="p">The <span class="keyword cmdname">smmuman</span> service supports options that determine how it will
+				run (e.g., in the foreground, outputting debug information). These options must be
+				specified at startup. For more information, see <q class="q"><a class="xref" href="options.html" title="Options for the smmuman service may be specified in the command line, in a configuration file (e.g., mysystem.smmu), or in both.">Global options</a></q> in this chapter.</p>
+
+		</div>
+
+		<div class="section" id="config__hw"><h2 class="title sectiontitle">Describing the hardware</h2>
+			
+			
+			
+			
+			
+			
+			<div class="p">When it starts, the <span class="keyword cmdname">smmuman</span> service needs to know about the
+				IOMMU/SMMUs and the DMA devices on the board. The information it requires includes:
+				<ul class="ul">
+					<li class="li">the architecture-specific and board-specific support libraries to
+						load, or in their absence in the configuration, confirmation that the service is
+						running in a QNX hypervisor VM (see <q class="q"><a class="xref" href="start.html#start__where">Determining where the smmuman service is running</a></q>)</li>
+
+					<li class="li">the type(s) of IOMMU/SMMUs on the board, their locations, and where to look
+						for additional information needed in order to program the IOMMU/SMMUs</li>
+
+					<li class="li">descriptions of the DMA devices available on the board</li>
+
+					<li class="li">information about which IOMMU/SMMU controls which DMA devices</li>
+
+				</ul>
+
+			</div>
+
+			<h3 class="title sectiontitle">Sources of hardware descriptions</h3>
+			<p class="p">If <span class="keyword cmdname">smmuman</span> is running on hardware (i.e., not in a QNX
+				hypervisor VM), it obtains architecture-specific and board-specific information from
+				the <span class="ph filepath">smmu-*.so</span> support libraries. Additional information may be
+				available in different locations on the hardware, depending on the board
+				architecture and the specific board itself. To obtain some of this information, the
+				<span class="keyword cmdname">smmuman</span> service with its support libraries can query the board.</p>
+
+			<p class="p">For x86 boards, the hardware description should be available in the board’s ACPI
+				tables. A configuration file is required only for non-standard implementations. For
+				ARM boards, some information may be available in board-specific code. For both
+				architectures, information that isn't provided by the board must be provided in the
+				<span class="keyword cmdname">smmuman</span> configuration.</p>
+
+			<h3 class="title sectiontitle">Source of virtual hardware descriptions</h3>
+			<p class="p">If <span class="keyword cmdname">smmuman</span> is running in a guest in a QNX hypervisor VM,
+				no support libraries are required; the information for the virtual hardware
+				is provided by the <span class="keyword cmdname">vdev-smmu*</span> virtual IOMMU/SMMU device.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> <p class="p">Without proper guidance from the system designer, the <span class="keyword cmdname">smmuman</span>
+					service can't know where the information it needs resides on the board. On x86
+					platforms, the ACPI tables are usually at a standard location; on ARM platforms,
+					the location of the information the SMMUMAN needs is less predictable.</p>
+
+				<p class="p">Always consult your board manufacturer's documentation for the locations and
+					values you must use for your SoC. These locations and values may change, <em class="ph i">even
+						between board revisions</em>.</p>
+</div>
+
+		</div>
+
+		<div class="section" id="config__map"><h2 class="title sectiontitle">Mapping devices and memory regions</h2>
+			
+			<p class="p">The <span class="keyword cmdname">smmuman</span> service includes options that can be used in the
+				startup configuration to specify memory mappings and DMA device permissions for
+				these mapped memory regions. These mappings and permissions are not mandatory; the
+				service doesn't need them to complete its startup successfully.
+				However, the startup configuration is the recommended method for configuring memory
+				mappings and device permissions on systems that will be safety certified. This reduces
+				the chance that a driver could incorrectly configure the <span class="keyword cmdname">smmuman</span>
+				service and possibly compromise the safety of the system.</p>
+
+			<p class="p">For non-safety systems, you can dynamically configure these settings through the SMMUMAN
+				client API in <span class="ph filepath">libsmmu.a</span> (see <q class="q"><a class="xref" href="use.html" title="For systems that will be safety certified, the recommended method for mapping DMA devices to memory regions and specifying their access permissions is through the startup configuration. Only for non-safety systems should you use the SMMUMAN client API.">Mapping DMA devices and memory regions through the API</a></q> in this chapter, and the <q class="q"><a class="xref" href="../api/api.html" title="This chapter describes the API that SMMUMAN clients can use to access and manage the smmuman services.">SMMUMAN Client API Reference</a></q> chapter).</p>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../../topic/use/options.html">Global options</a></strong><br />
+Options for the <span class="keyword cmdname">smmuman</span> service may be specified in the command 		line, in a configuration file (e.g., <span class="ph filepath">mysystem.smmu</span>), or in 		both.</li>
+<li class="link ulchildlink"><strong><a href="../../topic/use/arm.html">Options for ARM SMMUs</a></strong><br />
+On ARM boards, IOMMUs are known as SMMUs; a <span class="keyword cmdname">smmuman</span> service 		running on the hardware needs a support library for the board SMMUs.</li>
+<li class="link ulchildlink"><strong><a href="../../topic/use/rcar.html">Options for Renesas R-Car IPMMUs</a></strong><br />
+On the Renesas R-Car H3 and other related boards, IOMMU/SMMUs are known as IPMMUs; 		a <span class="keyword cmdname">smmuman</span> service running on the hardware needs a support library for 		the board IPMMUs.</li>
+<li class="link ulchildlink"><strong><a href="../../topic/use/x86.html">Options for x86 IOMMUs (VT-ds)</a></strong><br />
+On x86 boards, IOMMU/SMMUs are known as VT-ds; configuration is needed only for 		non-standard VT-d variants.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/use/smmuman.html" title="System memory management unit (IOMMU/SMMU) manager">smmuman</a></div>
+</div>
+</div></body>
+</html>

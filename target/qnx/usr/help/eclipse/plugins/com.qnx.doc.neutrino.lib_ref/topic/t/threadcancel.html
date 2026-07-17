@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ThreadCancel(), ThreadCancel_r()" />
+<meta name="abstract" content="Cancel a thread" />
+<meta name="description" content="Cancel a thread" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_setcancelstate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_setcanceltype.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/pthread_testcancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/threadcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/threaddestroy.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="threadcancel" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ThreadCancel(), ThreadCancel_r()</title>
+</head>
+<body id="threadcancel">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ThreadCancel()</span>, <span class="keyword apiname">ThreadCancel_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Cancel a thread</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int ThreadCancel( int <var class="keyword varname">tid</var>,
+                  void (*<var class="keyword varname">canstub</var>)(void) );
+
+int ThreadCancel_r( int <var class="keyword varname">tid</var>,
+                    void (*<var class="keyword varname">canstub</var>)(void) );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">tid</var></dt>
+
+<dd class="dd">The ID of the thread that you want to cancel, as returned by
+  <a class="xref" href="threadcreate.html" title="Create a thread"><span class="keyword apiname">ThreadCreate()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">canstub</var></dt>
+
+<dd class="dd">A pointer to the location that you want the thread to jump to when
+  the cancellation occurs; see below.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  You must provide a <var class="keyword varname">canstub</var> function.
+  </div>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+These kernel calls request that the thread specified by <var class="keyword varname">tid</var> be canceled. 
+The target thread's cancelability  state and type determine when the
+cancellation takes effect. 
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">ThreadCancel()</span> and <span class="keyword apiname">ThreadCancel_r()</span>
+functions are identical, except in the way they indicate errors. 
+See the <a class="xref" href="#threadcancel__Returns">Returns</a> section for details.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+Don't use these kernel calls directly; use
+<a class="xref" href="../p/pthread_cancel.html" title="Cancel a thread"><span class="keyword apiname">pthread_cancel()</span></a>
+instead.
+
+
+</div>
+
+
+<p class="p">
+Unlike <a class="xref" href="threaddestroy.html" title="Destroy a thread immediately"><span class="keyword apiname">ThreadDestroy()</span></a>,
+which destroys a thread immediately, 
+<span class="keyword apiname">ThreadCancel()</span> allows you to provide a function (<var class="keyword varname">canstub</var>)
+that requests that the target thread execute any cleanup code and then terminate at its earliest 
+convenience.
+</p>
+
+    
+<div class="p">
+When the cancellation is acted upon, the thread jumps to the location specified by 
+<var class="keyword varname">canstub</var>. This stub function must terminate the thread.
+The best way to do this is with <a class="xref" href="../p/pthread_exit.html" title="Terminate a thread"><span class="keyword apiname">pthread_exit()</span></a>, which runs all defined cancellation handlers and 
+performs data cleanup. With <span class="keyword apiname">pthread_exit()</span>, the stub function can make any 
+value available to any thread joining the thread that it's terminating, as in this example that
+uses <span class="keyword const">PTHREAD_CANCELED</span>:
+
+
+<pre class="pre codeblock">pthread_exit( PTHREAD_CANCELED );
+</pre>
+</div>
+
+
+<p class="p">
+The cancellation processing in the target thread runs asynchronously
+with respect to the calling thread, which doesn't block.
+</p>
+
+
+<p class="p">
+
+
+The combinations of cancelability state and type are as follows:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1072092e267">State</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1072092e270">Type</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d1072092e273">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e267 ">Disabled</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e270 ">Deferred</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e273 ">Cancel requests are made pending.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e267 ">Disabled</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e270 ">Async</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e273 ">Cancel requests are made pending.</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e267 ">Enabled</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e270 ">Deferred</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e273 ">Cancellation happens at the next cancellation point.
+        These are at explicitly coded calls to
+        <a class="xref" href="../p/pthread_testcancel.html" title="Test thread cancellation"><span class="keyword apiname">pthread_testcancel()</span></a>
+        or an attempt to enter a blocking state in certain calls (see below).
+        All kernel calls that block are cancellation points, with the exception of
+        <a class="xref" href="../m/msgsendvnc.html" title="Send a message to a channel (non-cancellation point)"><span class="keyword apiname">MsgSendvnc()</span></a>
+        and
+        <a class="xref" href="../s/syncmutexlock.html" title="Lock a mutex synchronization object"><span class="keyword apiname">SyncMutexLock()</span></a>.
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e267 ">Enabled</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e270 ">Async</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e273 ">Cancellation happens immediately.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+Use
+<a class="xref" href="../p/pthread_setcancelstate.html" title="Set a thread's cancellation state"><span class="keyword apiname">pthread_setcancelstate()</span></a>,
+and
+<a class="xref" href="../p/pthread_setcanceltype.html" title="Set a thread's cancellation type"><span class="keyword apiname">pthread_setcanceltype()</span></a>
+to set the state and type.
+</p>
+
+
+<p class="p">
+POSIX defines a list of functions that are cancellation points;
+some functions that aren't listed there may also be cancellation points.
+
+Any function that calls a blocking kernel call that's a cancellation point
+will itself become a cancellation point when the kernel call is made. 
+The most common blocking kernel call in library code is 
+<a class="xref" href="../m/msgsendv.html" title="Send a message to a channel"><span class="keyword apiname">MsgSendv()</span></a>.
+</p>
+
+
+<p class="p"><strong class="ph b">Blocking states</strong></p>
+
+
+
+
+<p class="p">
+These calls don't block.
+</p>
+
+
+</div>
+
+
+
+<div class="section" id="threadcancel__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The only difference between these functions is the way they indicate errors:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword apiname">ThreadCancel()</span></dt>
+
+<dd class="dd">If an error occurs, the function returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.
+  Any other value returned indicates success.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">ThreadCancel_r()</span></dt>
+
+<dd class="dd"><span class="keyword const">EOK</span> is returned on success. This function does <strong class="ph b">NOT</strong> set <var class="keyword varname">errno</var>.
+  If an error occurs, any value in the Errors section may be returned.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">The thread indicated by <var class="keyword varname">tid</var> doesn't exist.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d1072092e492">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d1072092e494"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e492 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e494 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e492 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e494 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e492 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d1072092e494 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/p/pthread_cancel.html" title="Cancel a thread">pthread_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_setcancelstate.html" title="Set a thread's cancellation state">pthread_setcancelstate()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_setcanceltype.html" title="Set a thread's cancellation type">pthread_setcanceltype()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/pthread_testcancel.html" title="Test thread cancellation">pthread_testcancel()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/threadcreate.html" title="Create a thread">ThreadCreate(), ThreadCreate_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/threaddestroy.html" title="Destroy a thread immediately">ThreadDestroy(), ThreadDestroy_r()</a></li></ul></div>
+</div></body>
+</html>

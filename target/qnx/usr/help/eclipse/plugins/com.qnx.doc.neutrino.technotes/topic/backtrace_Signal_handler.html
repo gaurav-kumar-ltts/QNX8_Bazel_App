@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Doing a BT_SELF backtrace in a signal handler" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/backtrace_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Signal_handler" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Doing a BT_SELF backtrace in a signal handler</title>
+</head>
+<body id="Signal_handler">
+
+<h1 class="title topictitle1" id="ariaid-title1">Doing a <span class="keyword const">BT_SELF</span> backtrace in a signal handler</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Providing backtracing that's signal-handler-safe is a special case.
+From within a signal handler, you can use only <span class="keyword apiname">bt_get_backtrace()</span>,
+and you must ensure access to memory is without conflict. 
+For example:
+</p>
+
+
+<pre class="pre codeblock">bt_accessor_t acc_sighandler1;
+bt_addr_t pc_sighandler1[10];
+int count_sighandler1;
+bt_accessor_t acc;
+bt_memmap_t memmap;
+  
+void sighandler1(int sig)
+{
+    count_sighandler1 =
+        bt_get_backtrace(&amp;acc_sighandler1, pc_sighandler1,
+           sizeof(pc_sighandler1) / sizeof(bt_addr_t));
+}
+
+thread_func()
+{
+    char out[512];
+    if (bt_init_accessor(&amp;acc_sighandler1, BT_SELF) == -1)
+    {
+      fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+               "bt_init_accessor", errno, strerror(errno));
+      ...
+    }
+
+    signal(SIGUSR2, sighandler1);
+    ...
+    if (bt_sprnf_addrs( &amp;memmap, pc_sighandler1, count_sighandler1, "%a",
+                        out, sizeof(out), 0) == -1)
+    {
+       fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                "bt_sprnf_addrs", errno, strerror(errno));
+       ...
+    }
+    ...
+
+    if (bt_release_accessor(&amp;acc) == -1)
+    {
+       fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+                "bt_release_accessor", errno, strerror(errno));
+       ...
+    }
+    ...
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/backtrace_Examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

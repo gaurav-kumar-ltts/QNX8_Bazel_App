@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Locking, unlocking, and combine message handling" />
+<meta name="abstract" content="We saw the client side of a combine message when we looked at readblock() (in “Combine messages”). The client was able to atomically construct a message that contained multiple resource manager “submessages” corresponding to the functions lseek() and read(). From the client's perspective, the two (or more) functions were at least sent atomically (and will be received atomically by the resource manager). What we haven't yet talked about is how we ensure that the messages are processed atomically." />
+<meta name="description" content="We saw the client side of a combine message when we looked at readblock() (in “Combine messages”). The client was able to atomically construct a message that contained multiple resource manager “submessages” corresponding to the functions lseek() and read(). From the client's perspective, the two (or more) functions were at least sent atomically (and will be received atomically by the resource manager). What we haven't yet talked about is how we ensure that the messages are processed atomically." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_general.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Locking_unlocking" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Locking, unlocking, and combine message handling</title>
+</head>
+<body id="Locking_unlocking">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Locking, unlocking, and combine message handling</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+We saw the client side of a combine message when we looked at
+<span class="keyword apiname">readblock()</span> (in <q class="q">Combine messages</q>).
+The client was able to atomically construct a message that contained multiple resource manager
+<q class="q">submessages</q> corresponding to the functions <span class="keyword apiname">lseek()</span> and
+<span class="keyword apiname">read()</span>.
+From the client's perspective, the two (or more) functions were at least <em class="ph i">sent</em> atomically
+(and will be <em class="ph i">received</em> atomically by the resource manager).
+What we haven't yet talked about is how we ensure that the messages are <em class="ph i">processed</em> atomically.
+</p>
+
+
+<p class="p">
+
+
+
+
+This discussion applies not only to combine messages, but to <em class="ph i">all</em> I/O messages received by the
+resource manager library (except the close message, which we'll come back to shortly).
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The very first thing that the resource manager library does is to lock the attribute structure corresponding
+to the resource being used by the received message.
+Then, it processes one or more submessages from the incoming message.
+Finally, it unlocks the attribute structure.
+</div>
+
+
+<p class="p">
+This ensures that the incoming messages are handled atomically, for no other thread in the resource
+manager (in the case of a multithreaded resource manager, of course) can <q class="q">jump in</q>
+and modify the resource while a thread is busy using it.
+Without the locking in place, two client threads could both issue what they believe to be an atomic
+combine message (say <span class="keyword apiname">lseek()</span> and <span class="keyword apiname">read()</span>).
+Since the resource manager might have two different threads running in it and processing messages,
+the two resource manager threads could possibly preempt each other, and the
+<span class="keyword apiname">lseek()</span> components could interfere with each other.
+With locking and unlocking, this is prevented, because each message that accesses a resource will
+be completed in its entirety atomically.
+</p>
+
+
+<p class="p">
+Locking and unlocking the resource is handled by default helper functions
+(<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_lock_ocb_default.html"><span class="keyword apiname">iofunc_lock_ocb_default()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_unlock_ocb_default.html"><span class="keyword apiname">iofunc_unlock_ocb_default()</span></a>),
+which are placed in the I/O table at the <var class="keyword varname">lock_ocb</var> and
+<var class="keyword varname">unlock_ocb</var> positions.
+You can, of course, override these functions if you want to perform further actions during this locking
+and unlocking phase.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+Note that the resource <em class="ph i">is unlocked before</em> the close OCB I/O function handler is called.
+This is necessary because this particular function handler frees the OCB, which would
+effectively invalidate the pointer used to access the attributes structure, which is where the lock
+is stored! Also note that none of the connect functions do this locking, because the handle that's
+passed to them does not <em class="ph i">have to be</em> an attribute structure (and the locks are stored in the
+attribute structure).
+
+
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_general.html" title="Each handler function gets passed an internal context block (the ctp argument) that should be treated as “read-only,” except for the iov member.">General notes</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

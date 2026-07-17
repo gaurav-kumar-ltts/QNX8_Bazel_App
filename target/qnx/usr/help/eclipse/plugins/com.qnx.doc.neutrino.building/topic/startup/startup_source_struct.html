@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Source code structure" />
+<meta name="abstract" content="Most of the startup code is stored in the main() function, which follows the _start() and _main() functions in the startup code sequence." />
+<meta name="description" content="Most of the startup code is stored in the main() function, which follows the _start() and _main() functions in the startup code sequence." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startup_source_struct" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Source code structure</title>
+</head>
+<body id="startup_source_struct">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Source code structure</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Most of the startup code is stored in the <span class="keyword apiname">main()</span> function, which follows
+		the <span class="keyword apiname">_start()</span> and <span class="keyword apiname">_main()</span> functions in the startup code sequence.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			<div class="p">The <span class="keyword apiname">_start()</span> function is the entry point to the startup program
+				(e.g., <span class="ph filepath">hardware/startup/lib/arm/cstart.S</span>).
+				This function sets up an environment for executing C code.
+				Specifically, the <span class="keyword apiname">_start()</span> function:
+				<ul class="ul">
+					<li class="li">disables interrupts, because the startup module can't handle interrupts</li>
+
+					<li class="li">sets the location of the C stack</li>
+
+					<li class="li">turns off the cache, if required</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">When it completes its work, <span class="keyword apiname">_start()</span> calls <span class="keyword apiname">_main()</span>, which
+				prepares the environment for the subsequent <span class="keyword apiname">main()</span> (without the underscore) function.
+				Specifically, the earlier <span class="keyword apiname">_main()</span> function:
+				<ul class="ul">
+					<li class="li">sets up startup command-line options, so they can be passed into the <span class="keyword apiname">main()</span>
+						function’s argument vector (<span class="ph codeph">argv[]</span>)</li>
+
+					<li class="li">sets up what will happen when the <span class="keyword apiname">main()</span> function returns (e.g., jump into
+						<span class="ph codeph">procnto</span>)</li>
+
+					<li class="li">calls <span class="keyword apiname">main()</span></li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">The pseudo-code below shows the structure of the <span class="keyword apiname">main()</span> function, with links to the
+				entries for each called function in the Startup Library chapter:
+<pre class="pre codeblock">Global variables
+
+main()
+{
+    // Initialize hardware 
+    Call add_callout_array()
+
+    // Parse commandline arguments
+    Call handle_common_option()
+
+    // Remove ram used by modules in the image
+    Call init_raminfo()
+    
+    // Initialize the MMU
+    if (virtual) Call init_mmu()
+
+    Call init_intrinfo()
+    Call init_qtime()
+    Call init_cacheattr()
+    Call init_cpuinfo()
+
+    // Set hardware machine name
+    Call init_system_private()
+
+    //  Print debugging output
+    Call print_syspage()
+}
+</pre></div>
+
+			<div class="note"><span class="notetitle">Note:</span> You should examine the commented source for each function in the startup library to see if you
+				need to replace any library functions with your own functions.</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

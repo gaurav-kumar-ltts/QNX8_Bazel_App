@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Building an OS image" />
+<meta name="abstract" content="An OS image is created by a program called mkifs (make image filesystem), which accepts information from two main sources: its command line and a buildfile. You can change the buildfile to configure the OS image." />
+<meta name="description" content="An OS image is created by a program called mkifs (make image filesystem), which accepts information from two main sources: its command line and a buildfile. You can change the buildfile to configure the OS image." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="config" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Building an OS image</title>
+</head>
+<body id="config">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Building an OS image</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">An OS image is created by a program called <span class="keyword cmdname">mkifs</span>
+		(<em class="ph i">m</em>a<em class="ph i">k</em>e <em class="ph i">i</em>mage <em class="ph i">f</em>ile<em class="ph i">s</em>ystem), which accepts information
+		from two main sources: its command line and a <em class="ph i">buildfile</em>. You can change the buildfile
+		to configure the OS image.</p>
+
+		<p class="p">The diagram below shows the how <span class="keyword cmdname">mkifs</span> uses rules from the buildfile to
+			combine OS and user executables, shared objects and data files to create an OS image,
+			which can be transfered to the target system and booted.</p>
+
+		<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>How <span class="keyword cmdname">mkifs</span> creates an OS image.</span>
+			
+			<br /><img class="image" src="../../images/image_creation.svg" width="672" /><br />
+		</div>
+
+		<div class="note"><span class="notetitle">Note:</span> 
+			
+			
+			<p class="p">For more information about <span class="keyword cmdname">mkifs</span>, see
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>
+				in the <cite class="cite">Utilities Reference</cite>; for more information about the OS image
+				buildfile, see the <a class="xref" href="../buildfiles/buildfile.html" title="You can edit OS image buildfiles to configure OS images.">OS Image Buildfiles</a> chapter.</p>
+
+			<p class="p">You may also want to use the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/diskimage.html"><span class="keyword cmdname">diskimage</span></a>
+				utility, which creates an image for a partitioned medium. The partitioned medium
+				image can contain any number of filesystem images (for example, Power-Safe
+				filesystems that were created using
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fsimg.html"><span class="keyword cmdname">mkqnx6fsimg</span></a> or
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkqnx6fs.html"><span class="keyword cmdname">mkqnx6fs</span></a>).</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Generating the OS image</h2>
+			
+			<div class="p">
+				 Once you have configured the
+				buildfile, you need to generate the image file. To generate the image file using a
+				buildfile called <span class="ph filepath">shell.bld</span>, on your host system you could
+				execute the command:
+<pre class="pre codeblock">mkifs shell.bld shell.ifs
+</pre></div>
+
+			<p class="p">This command tells <span class="keyword cmdname">mkifs</span> to use the buildfile
+					<span class="ph filepath">shell.bld</span> to create the image file
+					<span class="ph filepath">shell.ifs</span>.</p>
+
+			<p class="p">You can also specify command-line options to <span class="keyword cmdname">mkifs</span>. Since these
+				command-line options are interpreted <em class="ph i">before</em> the actual buildfile, you can add
+				lines before the buildfile. You can do this if you want to use a makefile to change
+				the defaults of a generic buildfile.</p>
+
+			<div class="p">The following example changes the address at which the image starts to 64 KB (hex
+				<span class="ph codeph">0x10000</span>):
+				<pre class="pre codeblock">mkifs -l "[image=0x10000]" buildfile image</pre></div>
+
+			<p class="p">For more information, see
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>
+				in the <cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Listing the contents of an image</h2>
+			
+			
+			
+			
+			<div class="p">If want to see the contents of an image after you have built it, you can use the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/dumpifs.html"><span class="keyword cmdname">dumpifs</span></a> utility. The output from
+				<span class="keyword cmdname">dumpifs</span> might look something like this:
+<pre class="pre codeblock">   Offset     Size  Name
+        0      100  Startup-header flags1=0x1 flags2=0 paddr_bias=0x80000000
+      100     a008  startup.*
+     a108       5c  Image-header mountpoint=/
+     a164      264  Image-directory
+     ----     ----  Root-dirent
+     ----       12  usr/lib/ldqnx-64.so.2 -&gt; /proc/boot/ldqnx-64.so.2
+     ----        9  dev/console -&gt; /dev/ser1
+     a3c8       80  proc/boot/.script
+     b000    4a000  proc/boot/procnto
+    55000    59000  proc/boot/libc.so.6 
+     ----        9  proc/boot/libc.so -&gt; libc.so.6 
+    ae000     7340  proc/boot/devc-ser8250
+    b6000     4050  proc/boot/esh
+    bb000     4a80  proc/boot/ls
+    c0000    14fe0  proc/boot/data1
+    d5000     22a0  proc/boot/data2
+Checksums: image=0x94b0d37b startup=0xa3aeaf2
+</pre></div>
+
+			<p class="p">The more <span class="keyword option">-v</span> (<q class="q">verbose</q>) options you specify to
+				<span class="keyword cmdname">dumpifs</span>, the more data you'll see.</p>
+
+			<p class="p">For more information about <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/dumpifs.html"><span class="keyword cmdname">dumpifs</span></a>, see its entry in the <cite class="cite">Utilities
+					Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

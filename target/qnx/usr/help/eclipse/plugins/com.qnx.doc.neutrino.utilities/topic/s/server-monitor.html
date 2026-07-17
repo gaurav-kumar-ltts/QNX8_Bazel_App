@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="server-monitor" />
+<meta name="abstract" content="Watch designated servers and take action if they don't handle an unblock pulse" />
+<meta name="description" content="Watch designated servers and take action if they don't handle an unblock pulse" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg_ntochfunblock.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/slog2info.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/slogger2.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sysmgr_reboot.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="server-monitor" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>server-monitor</title>
+</head>
+<body id="server-monitor">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">server-monitor</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Watch designated servers and take action if they don't handle an unblock pulse</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">server-monitor [-fv] [-p <var class="keyword varname">n</var>] [-U {<var class="keyword varname">user_name</var> | <var class="keyword varname">uid</var>[:<var class="keyword varname">gid</var>[,<var class="keyword varname">gid</var>]*]}]<var class="keyword varname">max_unblock_time</var>
+[<var class="keyword varname">server_ident</var> <var class="keyword varname">server_action</var>]*
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p">
+<span class="keyword">QNX OS</span>
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword option">-f</span></dt>
+
+<dd class="dd">Leave the <span class="keyword cmdname">server-monitor</span> process in the foreground rather than moving it to the background.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-p</span> <var class="keyword varname">n</var></dt>
+
+  <dd class="dd">The size of the pulse pool that <span class="keyword cmdname">procnto</span> can use to inform <span class="keyword cmdname">server-monitor</span> of misbehaving servers. The argument <var class="keyword varname">n</var> must be greater than 0. If this option is omitted or set to <tt class="ph tt">default</tt>, <span class="keyword cmdname">procnto</span> uses the default of 200 pulses, which means the kernel can inform <span class="keyword cmdname">server-monitor</span>  of 200 concurrently misbehaving servers.
+  <p class="p">If the pulse pool becomes depleted, a <span class="keyword const">SIGKILL</span> is sent to <span class="keyword cmdname">server-monitor</span>. In a system where it is configured to be a critical process, this causes the system to enter its design safe state (DSS).</p>
+</dd>
+
+
+
+
+  <dt class="dt dlterm"><span class="keyword option">-U</span> {<var class="keyword varname">user_name</var> | <var class="keyword varname">uid</var>[:<var class="keyword varname">gid</var>[,<var class="keyword varname">gid</var>]*]}</dt>
+
+  <dd class="dd">Switch to the specified user or uid and gid(s) once setup is complete.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+<dd class="dd">Log server actions and warnings to
+  <a class="xref" href="slogger2.html" title="System logger"><span class="keyword cmdname">slogger2</span></a>.
+  You can use
+  <a class="xref" href="slog2info.html" title="Display messages from the system log"><span class="keyword cmdname">slog2info</span></a>
+  to view the logs.
+  Errors are always logged, whether or not you specify this option.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">max_unblock_time</var></dt>
+
+<dd class="dd">The number of milliseconds a server is given to handle an unblock pulse before <span class="keyword cmdname">server-monitor</span>
+  takes action.
+  This value must be in the range from 1 through <span class="keyword const">UINT32_MAX</span> - 1 (4294967294);
+  otherwise <span class="keyword cmdname">server-monitor</span> logs a message to <span class="keyword cmdname">slogger2</span> and then exits.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">server_ident</var></dt>
+
+<dd class="dd">Either a name or process ID for the server.
+<p class="p">Actions specified for an executable name apply to <em class="ph i">all</em> processes with that name.
+  You should specify a name if the server is likely to be terminated and restarted in the normal operation of your system.</p>
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">server_action</var></dt>
+
+<dd class="dd">A comma-separated list of actions, each in the form <var class="keyword varname">one_action</var>[:<var class="keyword varname">delay</var>].
+  Each <var class="keyword varname">one_action</var> is one of the following:
+
+  <ul class="ul">
+  <li class="li">A signal name or number — <span class="keyword cmdname">server-monitor</span> sends the specified signal to the server.</li>
+
+
+  <li class="li"><tt class="ph tt">reboot</tt> — reboot the system; <span class="keyword cmdname">server-monitor</span> calls
+    <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sysmgr_reboot.html"><span class="keyword apiname">sysmgr_reboot()</span></a>.
+  </li>
+
+
+  <li class="li"><tt class="ph tt">ignore</tt> — stop any further processing of this notification;
+    <span class="keyword cmdname">server-monitor</span> tells the process manager to stop sending it pulses about the server.
+  </li>
+
+  </ul>
+
+
+  <p class="p">
+  If you specify a <var class="keyword varname">delay</var>, <span class="keyword cmdname">server-monitor</span> waits the specified number
+  of milliseconds before moving to the next action in the list; otherwise it waits for 100 ms.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword cmdname">server-monitor</span> provides a way to detect servers that don't respond to unblock pulses.
+</p>
+
+
+<p class="p">
+If a server sets the <span class="keyword const">_NTO_CHF_UNBLOCK</span> flag when it calls
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html"><span class="keyword apiname">ChannelCreate()</span></a>,
+then the process manager delivers an unblock pulse when a thread that's REPLY-blocked on the channel attempts to unblock
+before the server replies to its message.
+Servers must respond to these unblock pulses, or else the clients can be blocked forever.
+</p>
+
+
+<p class="p">
+The <span class="keyword cmdname">server-monitor</span> watches a list of servers and takes the specified actions
+if a server doesn't handle unblock pulses in a certain time.
+</p>
+
+
+<p class="p">
+When <span class="keyword cmdname">server-monitor</span> starts, it registers itself with the process manager.
+
+In order to do this, <span class="keyword cmdname">server-monitor</span> needs to have the <span class="keyword const">PROCMGR_AID_SERVER_MONITOR</span>
+ability enabled (see
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+in the <cite class="cite">C Library Reference</cite>).
+There can be only one instance of <span class="keyword cmdname">server-monitor</span> running at any time.
+</p>
+
+
+<p class="p">
+When a client requests an unblock, the kernel sends an unblock pulse to the server
+that the client is blocked on.
+If <span class="keyword cmdname">server-monitor</span> is running, and the server doesn't unblock the client within
+<var class="keyword varname">max_unblock_time</var> milliseconds, then the kernel sends a pulse to <span class="keyword cmdname">server-monitor</span>.
+When <span class="keyword cmdname">server-monitor</span> receives this pulse, it checks to see if the server's process ID is in its list,
+or if a pattern in the list matches the server's process executable name:
+</p>
+
+
+<ul class="ul">
+<li class="li">If there's no match, <span class="keyword cmdname">server-monitor</span> sends an <q class="q">ignore</q> message
+  
+  to the process manager to inform it that it isn't interested in this server.
+</li>
+
+
+<li class="li">If a match is found, <span class="keyword cmdname">server-monitor</span> starts the appropriate action sequence for the server by
+  immediately invoking the first action.
+  After the specified or default delay, <span class="keyword cmdname">server-monitor</span>
+  invokes the next action if the client thread is still blocked.
+  This continues until the client thread is unblocked or <span class="keyword cmdname">server-monitor</span> has taken all
+  the actions in the sequence.
+  If the client gets unblocked and then blocks again on a new message before the timer for the next action expires
+  on the original blockage, then <span class="keyword cmdname">server-monitor</span> starts the sequence again.
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If <span class="keyword cmdname">server-monitor</span> has a set of actions registered for a process's ID, and another set
+registered for the process's executable name, it invokes the set registered for the process ID.
+</div>
+
+
+<p class="p">
+If you want to determine whether <span class="keyword cmdname">server-monitor</span> is running, you can send
+a <span class="keyword const">_PROC_SERVMON</span> message with a subtype of <span class="keyword const">_PROC_SERVER_MONITOR_ALIVE</span> to
+the process manager.
+For example:
+</p>
+
+
+<pre class="pre codeblock">int is_server_monitor_running (const pid_t pid)
+{
+  proc_servmon_t msg = { 0 };
+  int ret;
+
+  msg.i.type = _PROC_SERVMON;
+  msg.i.subtype = _PROC_SERVER_MONITOR_ALIVE;
+
+  ret = MsgSendnc(PROCMGR_COID, &amp;msg.i, sizeof(msg.i), NULL, 0);
+
+  return ret;
+}
+</pre>
+
+<p class="p">
+The result is <span class="keyword const">EOK</span> if <span class="keyword cmdname">server-monitor</span> is running, or
+<span class="keyword const">ESRCH</span> if it isn't.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">
+Start <span class="keyword cmdname">server-monitor</span> with a <var class="keyword varname">max_unblock_time</var> of 500 ms, and a list of
+actions for process ID 123456:
+</p>
+
+
+<pre class="pre codeblock">server-monitor 500 123456 SIGTERM:300,SIGKILL,reboot
+</pre>
+
+<p class="p">
+In this case, when <span class="keyword cmdname">server-monitor</span> gets a pulse indicating that the server with the
+process ID 123456 has failed to unblock a client, it sends the server a <span class="keyword const">SIGTERM</span> signal.
+If the client thread is still blocked after a delay of 300 ms, <span class="keyword cmdname">server-monitor</span>
+sends the server a <span class="keyword const">SIGKILL</span> signal.
+If the client thread is still blocked after a further delay of 100 ms (the default),
+<span class="keyword cmdname">server-monitor</span> reboots the system.
+</p>
+
+
+<p class="p">
+  
+Start <span class="keyword cmdname">server-monitor</span> with a <var class="keyword varname">max_unblock_time</var> of 500 ms, and a list of
+actions for all processes with the name <span class="keyword cmdname">io-sock</span>: 
+</p>
+
+
+<pre class="pre codeblock">server-monitor 500 io-sock SIGTERM:300,SIGKILL,reboot
+</pre>
+
+<p class="p">
+If <span class="keyword cmdname">io-sock</span> will be terminated and restarted during normal target system operation,
+you should use the process name because <span class="keyword cmdname">io-sock</span> will have a new process ID every time
+it's restarted.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Exit status:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm">-1</dt>
+
+<dd class="dd">An error occurred; check the system log for more information.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.getting_started/topic/s1_msg_ntochfunblock.html">_NTO_CHF_UNBLOCK (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/s/slog2info.html" title="Display messages from the system log">slog2info</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/slogger2.html" title="System logger">slogger2</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/c/channelcreate.html">ChannelCreate() (QNX OS C Library Reference)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html">procmgr_ability() (QNX OS C Library Reference)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sysmgr_reboot.html">sysmgr_reboot() (QNX OS C Library Reference)</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Image storage methods" />
+<meta name="abstract" content="The following diagrams show some common methods for storing bootable images, and what the IPL and startup code copy and extract to RAM in order to prepare the OS to run." />
+<meta name="description" content="The following diagrams show some common methods for storing bootable images, and what the IPL and startup code copy and extract to RAM in order to prepare the OS to run." />
+<meta name="DC.subject" content="image, storage, methods for bootable images, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="image, storage, methods for bootable images, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipl_image_struct" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Image storage methods</title>
+</head>
+<body id="ipl_image_struct">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Image storage methods</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The following diagrams show some common methods for storing bootable images, and what
+		the IPL and startup code copy and extract to RAM in order to prepare the OS to run.
+	</p>
+
+		<div class="section">
+			
+			<p class="p">In the pseudo-code examples below, the <var class="keyword varname">image_paddr</var> variable stores
+				the source location of the image in linear ROM, and the <var class="keyword varname">ram_paddr</var>
+				variable stores the image's destination in RAM. For more information about the startup
+				header and its members, see <q class="q"><a class="xref" href="ipl_startup_header.html" title="The startup header (or boot header) structure is defined in startup.h.">The startup header</a></q> in this
+				chapter.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Linear ROM XIP boot image</h2>
+			
+			<div class="p">For an XIP image stored on a linearly mapped ROM device, the IPL needs to copy only the
+				startup code into RAM:
+				<div class="fig fignone">
+					<br /><img class="image" src="../../images/lromxip.svg" width="576" alt="Figure showing linear ROM XIP" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">Here are the steps required in the IPL:
+<pre class="pre codeblock">checksum (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">startup_size</var>)
+checksum (<var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+copy (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">ram_paddr</var>, <var class="keyword varname">startup_size</var>)
+jump (<var class="keyword varname">startup_vaddr</var>)
+</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Linear ROM compressed boot image</h2>
+			
+			
+			<div class="p">If the image on the linearly mapped device is compressed, XIP can't be used.
+				Instead, the IPL copies the startup code into RAM. Then, because the compressed image is
+				on linearly addressed media, the startup code can extract it directly from ROM to its
+				final location in RAM:
+				<div class="fig fignone">
+					<br /><img class="image" src="../../images/lromcomp.svg" width="576" alt="Figure showing linear ROM compressed image" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">Here are the steps required in the IPL:
+<pre class="pre codeblock">checksum (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">startup_size</var>)
+checksum (<var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+copy (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">ram_paddr</var>, <var class="keyword varname">startup_size</var>)
+jump (<var class="keyword varname">startup_vaddr</var>)
+</pre></div>
+
+				<div class="p">And here's the step required in the startup code:
+<pre class="pre codeblock">uncompress (<var class="keyword varname">ram_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">ROM non-XIP image</h2>
+			
+			<div class="p">If XIP won't be used and the image isn't compressed, the IPL copies the startup code
+				into RAM, and this code simply copies the uncompressed image to the appropriate location
+				(<var class="keyword varname">ram_paddr</var>) in RAM: 
+				<div class="fig fignone">
+					<br /><img class="image" src="../../images/romnxip.svg" width="576" alt="Figure showing ROM non-XIP image" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">Here are the steps required in the IPL:
+<pre class="pre codeblock">checksum (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">startup_size</var>)
+checksum (<var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+copy (<var class="keyword varname">image_paddr</var>, <var class="keyword varname">ram_paddr</var>, <var class="keyword varname">startup_size</var>)
+jump (<var class="keyword varname">startup_vaddr</var>)
+</pre></div>
+
+			<div class="p">And here's the step required in the startup code:
+<pre class="pre codeblock">copy (<var class="keyword varname">ram_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Disk/network image (x86)</h2>
+			
+			<div class="p">Suppose the image is loaded from a disk or a network onto an x86 system.
+				The BIOS or UEFI looks after loading the image into RAM (see <q class="q"><a class="xref" href="ipl_x86.html" title="IPLs for x86 processors are board-agnostic and support x86_64 boards.">x86 disk boot IPLs</a></q>). The BIOS or UEFI doesn't know where to jump, so it jumps to its default
+				address, which is the start of the image. We place a small QNX IPL at this location;
+				this IPL simply jumps to the startup code at <var class="keyword varname">startup_vaddr</var>:
+				<div class="fig fignone">
+					<br /><img class="image" src="../../images/disknet.svg" width="432" alt="Figure showing disk/network image" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">Since the BIOS or UEFI handles everything else, the only step required in the IPL is the
+				jump instruction:
+<pre class="pre codeblock">jump (<var class="keyword varname">startup_vaddr</var>)
+</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Disk/network compressed image (x86)</h2>
+			
+			
+			<div class="p">If the image loaded from disk or a network is compressed, the IPL still jumps to the
+				startup code (which can never be compressed), and the startup code extracts the image to
+				its required location in RAM:
+				<div class="fig fignone">
+					<br /><img class="image" src="../../images/disknetc.svg" width="576" alt="Figure showing disk/network compressed image" /><br />
+				</div>
+
+			</div>
+
+			<div class="p">Here's the step required in the startup:
+<pre class="pre codeblock">uncompress (<var class="keyword varname">ram_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">image_paddr</var> + <var class="keyword varname">startup_size</var>, <var class="keyword varname">stored_size</var> - <var class="keyword varname">startup_size</var>)
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

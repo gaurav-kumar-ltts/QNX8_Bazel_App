@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Priority inversion" />
+<meta name="abstract" content="One of the interesting issues in a realtime operating system is a phenomenon known as priority inversion. This can be fixed by a mechanism known as priority inheritance." />
+<meta name="description" content="One of the interesting issues in a realtime operating system is a phenomenon known as priority inversion. This can be fixed by a mechanism known as priority inheritance." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Priority_inheritance_trick.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_Summary.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="prio_inversion" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Priority inversion</title>
+</head>
+<body id="prio_inversion">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Priority inversion</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+One of the interesting issues in a realtime operating system is a
+phenomenon known as <em class="ph i">priority inversion</em>.
+This can be fixed by a mechanism known as <em class="ph i">priority inheritance</em>.
+</p>
+
+
+<p class="p">
+
+
+Priority inversion manifests itself as, for example, a low-priority thread
+consuming all available CPU time, even though a higher-priority thread
+is ready to run.
+</p>
+
+
+<p class="p">
+Now you're probably thinking, <q class="q">Wait a minute! You said that a higher-priority thread will
+<em class="ph i">always</em> preempt a lower-priority thread! How can this be?</q>
+</p>
+
+
+<p class="p">
+This is true; a higher-priority thread will <em class="ph i">always</em> preempt
+a lower-priority thread.
+But something interesting can happen.
+Let's look at a scenario where
+we have three threads (in three different processes, just to keep things simple), <q class="q">L</q> is our low-priority thread,
+<q class="q">H</q> is our high-priority thread, and <q class="q">S</q> is a server.
+This diagram shows the three threads and their priorities:
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Three threads at different priorities.</span>
+
+<br /><img class="image" src="../images/d0861.svg" alt="Three threads at different priorities" /><br />
+</div>
+
+
+<p class="p">
+Currently, H is running.
+S, a higher-priority
+server thread, doesn't have anything to do right now so it's waiting for
+a message and is blocked in <span class="keyword apiname">MsgReceive()</span>.
+L would like to run but is at a lower priority than H, which is running.
+Everything is as you'd expect, right?
+</p>
+
+
+<p class="p">
+Now H has decided that it would like to go to sleep for 100
+milliseconds—perhaps it needs to wait for some slow hardware.
+At this point, L is running.
+</p>
+
+
+<p class="p">
+This is where things get interesting.
+</p>
+
+
+<p class="p">
+As part of its normal operation, L sends a message to the
+server thread S, causing S to go READY
+and (because it's the highest-priority thread that's READY)
+to start running.
+Unfortunately, the message that L sent to S was
+<q class="q">Compute pi to 5000 decimal places.</q>
+
+
+
+</p>
+
+
+<p class="p">
+Obviously, this takes more than 100 milliseconds.
+Therefore, when H's 100 milliseconds are up and H
+goes READY, guess what?  It won't run, because S
+is READY and at a higher priority!
+</p>
+
+
+<p class="p">
+What happened is that a low-priority thread prevented a 
+higher-priority thread from running by leveraging the CPU via an even
+higher-priority thread.
+This is <em class="ph i">priority inversion</em>.
+
+</p>
+
+
+<p class="p">
+To fix it, we need to talk about <em class="ph i">priority inheritance</em>.
+A simple fix is to have the server, S, <em class="ph i">inherit</em>
+the priority of the client thread:
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Blocked threads.</span>
+
+<br /><img class="image" src="../images/d0871.svg" alt="Blocked threads" /><br />
+</div>
+
+
+<p class="p">
+In this scenario, when H's 100-millisecond sleep has completed,
+it goes READY and, because it's the highest-priority
+READY thread, runs.
+</p>
+
+
+<p class="p">
+Not bad, but there's one more <q class="q">gotcha.</q>
+</p>
+
+
+<p class="p">
+Suppose that H now decides that it too would like a computation performed.
+It wants to compute the 5,034th prime number, so it sends a message to S and blocks.
+</p>
+
+
+<p class="p">
+However, S is still computing pi, at a priority of 5!
+In our example system, there are lots of other threads running at priorities higher
+than 5 that are making use of the CPU, effectively ensuring that S
+<em class="ph i">isn't</em> getting much time to calculate pi.
+</p>
+
+
+<p class="p">
+This is another form of priority inversion.
+In this case, a lower-priority thread has prevented a higher-priority thread
+from getting access to a resource.
+Contrast this with the first form of priority
+inversion, where the lower-priority thread was effectively <em class="ph i">consuming</em>
+CPU—in this case it's only <em class="ph i">preventing</em> a higher-priority thread from
+getting CPU—it's not consuming any CPU itself.
+
+</p>
+
+
+<p class="p">
+Luckily, the solution is fairly simple here too.
+Boost the server's priority to be the highest of all blocked clients:
+
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>Boosting the server's priority.</span>
+
+<br /><img class="image" src="../images/d0881.svg" alt="server's priority changes" /><br />
+</div>
+
+
+<p class="p">
+This way we take a minor hit by letting L's job run at
+a priority higher than L, but we do ensure that H
+gets a fair crack at the CPU.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/s1_msg_Priority_inheritance_trick.html">So what's the trick?</a></strong><br />
+ There's no trick! <span class="keyword">QNX OS</span> does this automatically for you. (You can turn off priority inheritance if you don't want it; see the <span class="keyword const">_NTO_CHF_FIXED_PRIORITY</span> flag in the <span class="keyword apiname">ChannelCreate()</span> function's documentation.) </li>
+<li class="link ulchildlink"><strong><a href="../topic/s1_msg_Summary.html">Summary</a></strong><br />
+ Message passing is an extremely powerful concept and is one of the main features on which <span class="keyword">QNX OS</span> is built. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_msg.html" title="In this chapter, we'll look at the most distinctive feature of QNX OS, message passing. Message passing lies at the heart of the operating system's microkernel architecture, giving the OS its modularity.">Message Passing</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html">Synchronous message passing (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html">MsgCurrent(), MsgCurrent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html">MsgError(), MsgError_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html">MsgRead(), MsgRead_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html">MsgReadv(), MsgReadv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive(), MsgReceive_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html">MsgReceivePulse(), MsgReceivePulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html">MsgReceivev(), MsgReceivev_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html">MsgReplyv(), MsgReplyv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html">MsgSendnc(), MsgSendnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html">MsgSendsv(), MsgSendsv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html">MsgSendsvnc(), MsgSendsvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html">MsgSendvnc(), MsgSendvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html">MsgSendvs(), MsgSendvs_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html">MsgSendvsnc(), MsgSendvsnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html">MsgVerifyEvent(), MsgVerifyEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html">MsgWrite(), MsgWrite_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html">MsgWritev(), MsgWritev_r()</a></li></ul></div>
+</div></body>
+</html>

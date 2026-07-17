@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Examples" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Examples" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Examples</title>
+</head>
+<body id="Examples">
+
+<h1 class="title topictitle1" id="ariaid-title1">Examples</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The following examples are for the EDOSK7780 reference platform,
+based on an SH4A 400 MHz CPU.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Kernel restoration</h2>
+
+
+<p class="p">
+The sample buildfile for kernel restoration on the EDOSK7780 reference
+platform is as follows:
+</p>
+
+
+<pre class="pre codeblock">#################################################################
+## START OF BUILD SCRIPT for Renesas EDOSK7780 Board
+#################################################################
+[image=0x88010000]
+[virtual=shle/binary +compress] .bootstrap = {
+    startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -vv -I1
+
+    PATH=/proc/boot LD_LIBRARY_PATH=/proc/boot procnto -vvvv
+}
+
+[+script] .script = {
+
+    display_msg Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780
+
+    devc-sersci -e -F -x -b115200 -c1843200/16 scif0 scif1 &amp;
+    reopen /dev/ser1
+
+    SYSNAME=nto
+    TERM=qansi
+
+    [+session] PATH=:/proc/boot LD_LIBRARY_PATH=/proc/boot ksh &amp;
+}
+
+[type=link] /dev/console=/dev/ser1
+[type=link] /tmp=/dev/shmem
+libc.so
+libgcc_s.so.1
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+
+devc-sersci
+ls
+ksh
+pidin
+###################################################################
+## END OF BUILD SCRIPT
+###################################################################
+</pre>
+
+<p class="p">
+To build the image:
+</p>
+
+
+<pre class="pre codeblock"># mkifs -v edosk7780.build edosk7780.ifs
+</pre>
+
+<p class="p">
+The sample output is as follows:
+</p>
+
+
+<pre class="pre codeblock"><span class="keyword">QNX OS</span> IPL for the EDOSK-7780                 
+Press 'd' to download an OS image serially              
+Press any other key to boot from flash 
+</pre>
+
+<p class="p">
+Press a key other than <span class="keyword key">d</span>; the output continues:
+</p>
+
+
+<pre class="pre codeblock">Downloading from Flash                                  
+Restore IFS searching for valid IFS in RAM...
+         
+rifs_info PADDR = 0x08008000                            
+rifs_info ADDR = 0x88008000                             
+INVALID IFS signature                                   
+Restore IFS failed - Reload entire IFS.
+               
+PT_LOAD RW: 0004b000 size is 000030b0                   
+Found procnto Elf header                                
+bootable exec data: offset 0004b000, size 000030b0      
+Compressed image, store data                            
+Calculate restore info checksum    
+
+System page at phys:081d1000 user:081d1000 kern:881d1000                
+Starting next program at v8803c258                                      
+Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780
+</pre>
+
+<p class="p">
+The board has booted; run an application:
+</p>
+
+
+<pre class="pre codeblock">#                                                
+# ls
+dev     proc    tmp     usr     
+</pre>
+
+<p class="p">
+Press the reset button to simulate wake-up:
+</p>
+
+
+<pre class="pre codeblock"># <span class="keyword">QNX OS</span> IPL for the EDOSK-7780                                   
+Press 'd' to download an OS image serially                              
+Press any other key to boot from flash        
+</pre>
+
+<p class="p">
+Press a key other than <span class="keyword key">d</span>.
+The output continues:
+</p>
+
+
+<pre class="pre codeblock">Downloading from Flash                                                  
+Restore IFS searching for valid IFS in RAM...
+                         
+rifs_info PADDR = 0x08008000                                            
+rifs_info ADDR = 0x88008000                                             
+FOUND valid IFS signature                                               
+FOUND valid RIFS signature                                              
+FOUND valid RIFS info                                                   
+FOUND valid IFS signature and RIFS info in RAM.
+                       
+IFS pre checksum = 0x7bbb7898 (shouldn't be 0x0)                       
+bootable exec 0 offset: 0x0004bef8                                      
+bootable exec 0 size: 0x000030b0                                        
+Compressed image src = 0x0800a000                                       
+IFS post checksum = 0x00000000 (should be 0x0)                          
+PT_LOAD RW: 0004b000 size is 000030b0                                   
+Found procnto Elf header                                                
+bootable exec data: offset 0004b000, size 000030b0                      
+Compressed image, store data                                            
+Calculate restore info checksum                                         
+                                                                        
+System page at phys:081d1000 user:081d1000 kern:881d1000                
+Starting next program at v8803c258                                      
+Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780  
+# ls                                                                   
+dev     proc    tmp     usr                    
+</pre>
+
+<p class="p">
+To disable the checksum verification on the IFS after it has been restored,
+modify the buildfile to:
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -vv —I0
+</pre>
+
+<p class="p">
+On subsequent boots, you will see the additional output (with debug enabled):
+</p>
+
+
+<pre class="pre codeblock">WARNING: Skipped image checksum verification  
+</pre>
+
+<div class="note"><span class="notetitle">Note:</span> 
+With debugging enabled, the checksum value is still calculated so that it can be displayed.
+However, the checksum value isn't used to determine if the IFS has been
+restored properly (it's assumed that it was).
+</div>
+
+
+<p class="p">
+If you're working with uncompressed images, the buildfile looks like:
+</p>
+
+
+<pre class="pre codeblock">[virtual=shle/binary] .bootstrap = {
+    startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -vv -I1
+
+    PATH=/proc/boot LD_LIBRARY_PATH=/proc/boot procnto -vvvv
+}
+</pre>
+
+<p class="p">
+The sample output looks something like:
+</p>
+
+
+<pre class="pre codeblock">Restore IFS searching for valid IFS in RAM...
+        
+rifs_info PADDR = 0x08008000                           
+rifs_info ADDR = 0x88008000                            
+INVALID IFS signature                                  
+Restore IFS failed - Reload entire IFS.
+              
+PT_LOAD RW: 0004b000 size is 000030b0                  
+Found procnto Elf header                               
+bootable exec data: offset 0004b000, size 000030b0     
+Calculate restore info checksum            
+</pre>
+
+<p class="p">
+Press the reset button to simulate wake-up.
+The output continues:
+</p>
+
+
+<pre class="pre codeblock">Restore IFS searching for valid IFS in RAM...
+         
+rifs_info PADDR = 0x08008000                            
+rifs_info ADDR = 0x88008000                             
+FOUND valid IFS signature                               
+FOUND valid RIFS signature                              
+FOUND valid RIFS info                                   
+FOUND valid IFS signature and RIFS info in RAM.
+       
+IFS pre checksum = 0x7a82a8f2 (shouldn't be 0x0)       
+bootable exec 0 offset: 0x0004bef8                      
+bootable exec 0 size: 0x000030b0                        
+Uncompressed image paddr_src = 0x00059000               
+IFS post checksum = 0x00000000 (should be 0x0)          
+PT_LOAD RW: 0004b000 size is 000030b0                   
+Found procnto Elf header                                
+bootable exec data: offset 0004b000, size 000030b0      
+Calculate restore info checksum                                     
+</pre>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Secondary IFS restoration</h2>
+
+
+<p class="p">
+To build an image with multiple IFSs, you must create a primary and a secondary IFS.
+The primary IFS includes only the startup and <span class="keyword cmdname">procnto</span> (kernel).
+The secondary IFS includes all other libraries and binaries including
+<span class="ph filepath">libc</span>, drivers, and applications.
+</p>
+
+
+<p class="p">
+Here's a sample primary buildfile:
+</p>
+
+
+<pre class="pre codeblock">#################################################################
+## START OF PRIMARY IFS BUILD SCRIPT for Renesas EDOSK7780 Board
+#################################################################
+[image=0x88010000]
+[virtual=shle/binary +compress] .bootstrap = {
+startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000 -vv
+
+PATH=/proc/boot:/ifs2 LD_LIBRARY_PATH=/proc/boot:/ifs2 procnto -vvvv
+}
+
+[+script] .script = {
+# Symbolic link to ldqnx in secondary IFS
+    procmgr_symlink ../../ifs2/ldqnx-64.so.2 /usr/lib/ldqnx-64.so.2
+
+    display_msg Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780
+    devc-sersci -e -F -x -b115200 -c1843200/16 scif0 scif1 &amp;
+    reopen /dev/ser1
+
+    SYSNAME=nto
+    TERM=qansi
+
+    [+session] PATH=:/proc/boot:/ifs2 LD_LIBRARY_PATH=/proc/boot:/ifs2 ksh &amp;
+}
+
+[type=link] /dev/console=/dev/ser1
+[type=link] /tmp=/dev/shmem
+###################################################################
+## END OF PRIMARY IFS BUILD SCRIPT
+###################################################################
+</pre>
+
+<div class="note"><span class="notetitle">Note:</span> 
+The size <span class="ph codeph">0x700000</span> passed to the <span class="keyword option">-i</span> option was
+chosen to be much larger than the size of the secondary IFS.
+Don't make it too large, since memory will be reserved according to this
+size, and a copy will be made from flash.
+</div>
+
+
+<p class="p">
+The sample secondary buildfile is as follows:
+</p>
+
+
+<pre class="pre codeblock">#################################################################
+## START OF SECONDARY IFS BUILD SCRIPT for Renesas EDOSK7780 Board
+################################################################# 
+# Specify the search path, otherwise defaults to x86
+[search=${QNX_TARGET}/shle/bin:${QNX_TARGET}/shle/usr/bin:${QNX_TARGET}/shle/sbin:${QNX_TARGET}/shle/usr/sbin:${QNX_TARGET}/shle/lib:${QNX_TARGET}/shle/lib/dll:${QNX_TARGET}/shle/usr/lib]
+
+# Windows mkifs needs to be reminded of permissions
+[perms=+x]
+
+# Where the files will be mounted at boot time
+[prefix=/ifs2]   
+
+# Libraries to include
+libc.so
+
+# Binaries to include
+[+raw]
+cat
+devc-sersci
+ls
+pidin
+ksh
+echo
+###################################################################
+## END OF SECONDARY IFS BUILD SCRIPT
+###################################################################
+</pre>
+
+<p class="p">
+Unless the physical address for the source location for the secondary
+image is specified, IFS Restoration will automatically look for the secondary
+IFS in flash directly following the primary IFS.
+</p>
+
+
+<p class="p">
+To create an image consisting of both primary and secondary IFS:
+</p>
+
+
+<pre class="pre codeblock"># mkifs -v primary.build primary.ifs
+# mkifs -v secondary.build secondary.ifs
+# cat primary.ifs secondary.ifs &gt; edosk7780.ifs
+# mkflashimage
+</pre>
+
+<p class="p">
+The above example loads a primary IFS and a secondary IFS mounted at <span class="ph filepath">/ifs2</span>.
+The output will look something like:
+</p>
+
+
+<pre class="pre codeblock">Press 'd' to download an OS image serially                               
+Press any other key to boot from flash    
+</pre>
+
+<p class="p">
+Press a key other than <span class="keyword key">d</span>.
+</p>
+
+
+<pre class="pre codeblock">Downloading from Flash                                                   
+ifs2_paddr_dst: 0x0806d000                                               
+ifs2_paddr_src: 0x0003a9b0                                               
+ifs2_paddr_src (auto): 0x0003a9b0                                        
+                                                                         
+System page at phys:0800a000 user:0800a000 kern:8800a000                 
+Starting next program at v8803c258                                       
+Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780 
+# ls /proc/boot                                                         
+.script    procnto                                                       
+                                                                         
+# ls /ifs2                                                               
+cat     ksh         ls 
+echo        libc.so         pidin
+devc-sersci     libc.so.2                                                                                
+</pre>
+
+<p class="p">
+To restore the secondary IFS, modify the options to startup in the
+primary buildfile (enable secondary IFS restoration, enable checksum):
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000,K -vv
+</pre>
+
+<p class="p">
+After rebuilding and burning the updated multiple IFS image to flash,
+the output will look like:
+</p>
+
+
+<pre class="pre codeblock"><span class="keyword">QNX OS</span> IPL for the EDOSK-7780                                    
+Press 'd' to download an OS image serially                                
+Press any other key to boot from flash         
+</pre>
+
+<p class="p">
+Press a key other than <span class="keyword key">d</span>.
+</p>
+
+
+<pre class="pre codeblock">Downloading from Flash                                                    
+ifs2_paddr_dst: 0x0806d000                                                
+Restore IFS2 searching for valid IFS in RAM...
+                          
+rifs2_info PADDR = 0x08008000                                             
+rifs2_info ADDR = 0x88008000                                              
+INVALID IFS signature                                                     
+Restore IFS2 failed - Reload entire IFS2.
+                               
+ifs2_paddr_src: 0x0003a9b0                                                
+ifs2_paddr_src (auto): 0x0003a9b0                                         
+                                                                          
+System page at phys:0800b000 user:0800b000 kern:8800b000                  
+Starting next program at v8803c258                                        
+Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780
+#                                                                         
+</pre>
+
+<p class="p">
+Press the reset button to simulate wake-up:
+</p>
+
+
+<pre class="pre codeblock"># <span class="keyword">QNX OS</span> IPL for the EDOSK-7780                                   
+Press 'd' to download an OS image serially                              
+Press any other key to boot from flash  
+</pre>
+
+<p class="p">
+Press a key other than <span class="keyword key">d</span>:
+</p>
+
+
+<pre class="pre codeblock">Downloading from Flash                                                  
+ifs2_paddr_dst: 0x0806d000                                              
+Restore IFS2 searching for valid IFS in RAM...
+                        
+rifs2_info PADDR = 0x08008000                                           
+rifs2_info ADDR = 0x88008000                                            
+FOUND valid IFS signature                                               
+FOUND valid IFS2 signature and RIFS2 info in RAM.
+                     
+                                                                        
+System page at phys:0800b000 user:0800b000 kern:8800b000                
+Starting next program at v8803c258                                      
+Welcome to <span class="keyword">QNX OS</span> on the Renesas EDOSK-7780           
+#
+</pre>
+
+<p class="p">
+To disable the checksum verification on the secondary IFS after it has
+been restored, modify the buildfile to:
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000,R -vv
+</pre>
+
+<p class="p">
+On subsequent boots, you will see the additional output (with debug enabled):
+</p>
+
+
+<pre class="pre codeblock">WARNING: Skipped IFS2 checksum verification                                                   
+</pre>
+
+<p class="p">
+If you don't want to put the primary and secondary IFS together in flash
+(by using the <span class="keyword cmdname">cat</span> utility), you can put the secondary IFS
+anywhere in the flash you wish and manually specify its location.
+Additionally, you can manually specify the location to copy the
+secondary IFS to in RAM if you don't wish to use the default location.
+Use the optional arguments to specify the physical address for the
+secondary IFS source and destination:
+</p>
+
+
+<ul class="ul">
+<li class="li"><var class="keyword varname">paddr_src</var> is the physical location where the secondary IFS is located in flash</li>
+
+<li class="li"><var class="keyword varname">paddr_dst</var> is the physical location where the secondary IFS will be copied to in RAM</li>
+
+</ul>
+
+
+<p class="p">
+To calculate the destination in RAM:
+</p>
+
+
+<p class="p">
+<var class="keyword varname">paddr_dst</var> = <var class="keyword varname">paddr_start_of_RAM</var> + <var class="keyword varname">paddr_location_in_RAM</var>
+</p>
+
+
+<p class="p">
+For example, on the EDOSK7780, there is 128 MB of RAM starting at the address 0x08000000.
+To put the secondary IFS at the 120 MB location in RAM:
+</p>
+
+
+<p class="p">
+<var class="keyword varname">paddr_dst</var> = 0x08000000 + 120 * 1024 * 1024 = 0x0F800000
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The destination location in RAM must lie on a 4 KB page boundary.
+The address passed in is automatically adjusted to ensure this:
+
+<p class="p">
+<var class="keyword varname">paddr_dst</var> = <var class="keyword varname">paddr_dst</var> &amp; 0xFFFFF000.
+</p>
+
+</div>
+
+
+<p class="p">
+To manually specify the source of the secondary IFS located in flash at 0x00040000:
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000,0x00040000
+</pre>
+
+<p class="p">
+To manually specify the source of the secondary IFS located in flash
+at 0x00040000, and the destination of the secondary IFS in RAM at 0x0F800000:
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000,0x00040000,0x0F800000
+</pre>
+
+<p class="p">
+To manually specify the source of the secondary IFS located in flash
+at 0x00040000, the destination of the secondary IFS in RAM at 0xF8000000,
+and enable restoring with checksum:
+</p>
+
+
+<pre class="pre codeblock">startup-edosk7780 -Dscif..115200.1843200.16 -f400000000 -i0x700000,K,0x00040000,0x0F800000
+</pre>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/reloadable_ifs.html">Reloadable Image Filesystems</a></div>
+</div>
+</div></body>
+</html>

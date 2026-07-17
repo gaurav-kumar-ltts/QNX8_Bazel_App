@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Filesystem security" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="filesystem_security" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Filesystem security</title>
+</head>
+<body id="filesystem_security">
+
+
+	<h1 class="title topictitle1" id="ariaid-title1">Filesystem security</h1>
+
+	
+	<div class="body conbody">
+        <div class="section"><h2 class="title sectiontitle">File systems and mount points</h2>
+            <p class="p"></p>
+
+            <p class="p"></p>
+
+            <p class="p">Best practices for securing file systems and mount points include the following:</p>
+
+            <ul class="ul">
+                <li class="li">Use the <span class="ph filepath">io-blk.so</span> library's <span class="keyword option">dperms</span>,
+						<span class="keyword option">fperms</span>, <span class="keyword option">perms</span>, and <span class="keyword option">uid</span>
+					options to control the permissions of mount points, if required (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/i/io-blk.so.html"><span class="ph filepath">io-blk.so</span></a> in the <cite class="cite">Utilities
+						Reference</cite>).</li>
+
+				<li class="li">Pay attention to how you set ownership, file permissions, and access modes. For
+					example, if a file is not meant to be written to, make it non-writable.</li>
+
+                <li class="li">Mark all executables as non-writable or use an integrity protected disk solution
+					such as QNX Trusted Disk.</li>
+
+                <li class="li">Many UNIX systems have mountpoints that require you to create a node or
+                    directory in an underlying filesystem before mounting a new filesystem at that
+                    point. However, <span class="keyword">QNX OS</span> does not. Don't rely on parent directory
+                    permissions to protect the mountpoint of an attached pathname space. </li>
+
+                    <li class="li">There is no exclusivity of mountpoints when filesystems are unioned. Use
+					security policies to restrict mountpoints that can be registered. To prevent
+					resource managers from being accessed by specific clients, use security
+					policies. Using POSIX permissions and access control lists (ACLs) on the parent
+					directory of a mountpoint does not prevent the mountpoint from being accessed.
+					Check the POSIX permissions and ACLs before you grant access to a client.</li>
+
+            </ul>
+
+        </div>
+
+		<div class="section"><h2 class="title sectiontitle">QNX Trusted Disk</h2>
+			
+			<p class="p">QNX Trusted Disk (QTD) devices provide integrity protection of the underlying disk data in
+				secure boot environments. They can extend the secure boot chain up to the core
+				operating system filesystem that stores additional system binaries and configuration
+				files.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> <a class="xref" href="mkqnximage_QTD.html">mkqnximage</a> supports the <span class="keyword option">--qtd</span>
+				option, which demonstrates how to enable this feature.</div>
+
+			<p class="p">QTD can also be used as a protected container format (app model).</p>
+
+			<p class="p">For complete information, see <a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_qtd.html"><q class="q">QNX Trusted
+						Disk</q></a> in the <cite class="cite">System Architecture</cite> guide.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">File-based encryption</h2>The Power-Safe filesystem supports file-based
+			encryption where files and folders are aggregated into encryption domains. Each domain
+			has a unique encryption key which encrypts the unique file encryption key. Access to the
+			files require that some external actor unlock the domain, providing the domain
+			encryption key to the filesystem driver, allowing it to decrypt the file encryption key
+			and granting access to the encrypted file contents.<p class="p">For more information, see <a class="xref" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_encryption.html"><q class="q">Encryption</q></a> in the <q class="q">Filesystems</q> chapter of the
+					<cite class="cite">System Architecture</cite> guide. </p>
+</div>
+
+						<div class="section"><h2 class="title sectiontitle">Unioned filesystems</h2>
+			
+			<p class="p">Although <span class="keyword">QNX OS</span> supports unioned filesystems, they are generally a bad idea and only useful in a
+				limited number of situations that you are unlikely to encounter. Further, unioned
+				filesystems incur a performance penalty when searching for files that may reside on
+				any of the unioned filesystems.</p>
+
+			<p class="p">The <span class="keyword">QNX OS</span> IFS is unioned by default and mounted at "/'"and all
+				files in the IFS are prefixed with <span class="ph filepath">proc/boot</span>. This incurs a
+				performance penalty on object path lookup starting with <span class="ph filepath">/proc</span>
+				because the <span class="ph filepath">/proc</span> filesystem (<span class="ph filepath">procfs</span>) is
+				always mounted first at startup time by <span class="keyword cmdname">procnto</span>. Add these lines
+				to your IFS build file to mount the IFS at its own mount point
+					(/<span class="ph filepath">ifs</span>) and also gain a minor performance boost.</p>
+
+			<pre class="pre codeblock">[prefix=]
+[mount=/ifs]</pre>
+							<div class="note"><span class="notetitle">Note:</span> <a class="xref" href="mkqnximage_procfs.html">mkqnximage</a> supports the
+					<span class="keyword option">--union</span> option, which demonstrates how to enable this
+				feature.</div>
+				
+		</div>
+
+	</div>
+
+</body>
+</html>

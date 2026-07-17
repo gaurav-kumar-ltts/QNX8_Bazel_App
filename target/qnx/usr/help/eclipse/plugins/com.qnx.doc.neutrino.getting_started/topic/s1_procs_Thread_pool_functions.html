@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The thread pool functions" />
+<meta name="abstract" content="Now that we have a good feel for how the number of threads is controlled, let's turn our attention to the other members of the thread pool attribute structure (from above)." />
+<meta name="description" content="Now that we have a good feel for how the number of threads is controlled, let's turn our attention to the other members of the thread pool attribute structure (from above)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_tpool.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Thread_pool_functions" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The thread pool functions</title>
+</head>
+<body id="Thread_pool_functions">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The thread pool functions</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Now that we have a good feel for how the number of threads is controlled,
+let's turn our attention to the other members of the thread pool attribute
+structure (from above).
+</p>
+
+
+<div class="p">
+
+These members include:
+
+<pre class="pre codeblock">// thread pool functions and handle
+THREAD_POOL_HANDLE_T    *<var class="keyword varname">handle</var>;
+
+THREAD_POOL_PARAM_T *(*<var class="keyword varname">block_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+void (*<var class="keyword varname">unblock_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+int (*<var class="keyword varname">handler_func</var>)(THREAD_POOL_PARAM_T *ctp);
+
+THREAD_POOL_PARAM_T *(*<var class="keyword varname">context_alloc</var>)(THREAD_POOL_HANDLE_T *handle);
+
+void (*<var class="keyword varname">context_free</var>)(THREAD_POOL_PARAM_T *ctp);
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+
+In order to correctly define <span class="keyword dtype">THREAD_POOL_PARAM_T</span>,
+<span class="ph codeph">#include</span> <span class="ph filepath">&lt;sys/resmgr.h&gt;</span> before
+<span class="ph filepath">&lt;sys/dispatch.h&gt;</span>.
+</div>
+
+
+<p class="p">
+Recall from the diagram <q class="q">Thread flow when using thread pools,</q> that the
+<span class="keyword apiname">context_alloc()</span> function gets called for every new thread being created.
+(Similarly, the <span class="keyword apiname">context_free()</span> function gets called for every thread being
+destroyed.)
+
+
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">handle</var> member of the structure (above) is passed to the
+<span class="keyword apiname">context_alloc()</span> function as its sole parameter.
+The <span class="keyword apiname">context_alloc()</span> function is responsible for performing any <em class="ph i">per-thread</em>
+setup required and for returning a context pointer (called <var class="keyword varname">ctp</var> in the parameter
+lists).
+Note that the contents of the context pointer are entirely up to you—the library doesn't
+care what you put into the context pointer.
+</p>
+
+
+<p class="p">
+Now that the context has been created by <span class="keyword apiname">context_alloc()</span>,
+the <span class="keyword apiname">block_func()</span> function is called to perform the blocking operation.
+Note that the <span class="keyword apiname">block_func()</span> function gets passed the results of the
+<span class="keyword apiname">context_alloc()</span> function.
+Once the <span class="keyword apiname">block_func()</span> function unblocks, it returns a context pointer, which gets
+passed by the library to the <span class="keyword apiname">handler_func()</span>.
+The <span class="keyword apiname">handler_func()</span> is responsible for performing the <q class="q">work</q>—for example,
+in a typical server, this is where the message from the client is processed.
+The <span class="keyword apiname">handler_func()</span> must return a zero for now—nonzero values are reserved
+for future expansion by <span class="keyword">BlackBerry QNX</span>.
+The <span class="keyword apiname">unblock_func()</span> is also reserved at this time; just leave it as
+<span class="keyword const">NULL</span>.
+</p>
+
+
+<div class="p">Perhaps this pseudo code sample will clear things up (it's based on the same
+flow as shown in <q class="q">Thread flow when using thread pools,</q> above):
+
+
+
+
+
+
+<pre class="pre codeblock">FOREVER DO
+    retval = (*block_func) (context);
+    IF (#threads &lt; lo_water) THEN
+        IF (#threads_total &lt; maximum) THEN
+            create new thread
+            context = (*context_alloc) (handle);
+        ENDIF
+    ENDIF
+
+    (*handler_func) (retval);
+    IF (#threads &gt; hi_water) THEN
+       (*context_free) (context)
+       kill thread
+    ENDIF
+DONE
+</pre>
+</div>
+
+
+<p class="p">
+Note that the above is greatly simplified; its only purpose is to show you the data flow
+of the <var class="keyword varname">ctp</var> and <var class="keyword varname">handle</var> parameters and to give some sense of the
+algorithms used to control the number of threads.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_tpool.html" title="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits.">Pools of threads</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/skeleton_SIMPLE_MT_EG.html">Multithreaded device resource manager (Writing a Resource Manager)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/multithread.html">Multithreaded Resource Managers (Writing a Resource Manager)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_control.html">thread_pool_control()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html">thread_pool_create()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_destroy.html">thread_pool_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_limits.html">thread_pool_limits()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_start.html">thread_pool_start()</a></li></ul></div>
+</div></body>
+</html>

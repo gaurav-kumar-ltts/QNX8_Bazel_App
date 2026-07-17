@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="QNX Trusted Disk" />
+<meta name="abstract" content="QNX Trusted Disk (QTD) devices provide integrity protection of the underlying disk data in secure boot environments. They can extend the secure boot chain up to the core operating system filesystem that stores the critical binaries and configuration files." />
+<meta name="description" content="QNX Trusted Disk (QTD) devices provide integrity protection of the underlying disk data in secure boot environments. They can extend the secure boot chain up to the core operating system filesystem that stores the critical binaries and configuration files." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="FFS3" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>QNX Trusted Disk</title>
+</head>
+<body id="FFS3">
+
+<h1 class="title topictitle1" id="ariaid-title1">QNX Trusted Disk</h1>
+
+
+
+<div class="body conbody"><p class="shortdesc">
+  QNX Trusted Disk (QTD) devices provide integrity protection of the underlying disk data
+  in secure boot environments. They can extend the secure boot chain up to the core operating
+  system filesystem that stores the critical binaries and configuration files.
+</p>
+
+  <p class="p">
+    
+    
+    The QTD protection mechanism is based on a Merkle tree and is supported by the
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html"><span class="ph filepath">fs-qtd.so</span></a> shared object.</p>
+
+  <p class="p">When building a QTD image, a metadata hash tree is constructed from the blocks of the source
+      filesystem image.</p>
+
+  <img class="image" src="../images/QIPFS_Merkle_Hash_Tree.svg" />
+  <p class="p">QTD disk devices are read-only. The QTD driver sits between the raw block device and the
+    upper filesystem layer that is supported (for example, a Power-Safe filesystem supported by
+    <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="ph filepath">fs-qnx6.so</span></a>).
+    On read access, it uses the hash tree metadata to verify the integrity of the data.
+    If the verification fails, an error is returned instead.</p>
+
+  <p class="p">The QTD metadata is signed and verified using a key pair. Verifying the signature
+    ensures that the root hash of the tree is valid and hasn't been tampered with. It is the root
+    of the trusted verification mechanism.</p>
+
+  <p class="p">The size of the QTD image depends on the chosen block size as well as the chosen digest
+      algorithm. You can use the <span class="keyword cmdname">mkqfs</span> utility to generate statistics that
+      describe how much additional space the metadata consumes.</p>
+
+  <div class="section"><h2 class="title sectiontitle">Using QTD as a protected container (app model)</h2>
+    
+    <p class="p">You can use QTD as a package container solution by mounting files that are themselves QTD
+        images. For an example, see the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html"><span class="ph filepath">fs-qtd.so</span></a> entry in the <cite class="cite">Utilities Reference</cite>.</p>
+
+  </div>
+
+  <div class="section"><h2 class="title sectiontitle">Secure hash algorithms</h2>
+    
+    <p class="p">Use the following table to choose the best performing algorithm based on
+        the desired security strength of the digest function.</p>
+
+      
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:1.5in" /><col style="width:1.5in" /><col style="width:1.5in" /></colgroup><thead class="thead" style="text-align:left;">
+            <tr class="row">
+              <th class="entry cellrowborder" rowspan="2" style="vertical-align:top;" id="d17670e123">Architecture</th>
+
+              <th class="entry cellrowborder" colspan="2" style="vertical-align:top;" id="d17670e126">Digest security</th>
+
+            </tr>
+
+            <tr class="row">
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d17670e132">128 bits</th>
+
+              <th class="entry cellrowborder" style="vertical-align:top;" id="d17670e135">256 bits</th>
+
+            </tr>
+
+          </thead>
+<tbody class="tbody">
+            <tr class="row">
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d17670e123 ">64-bit</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d17670e126 d17670e132 "><p class="p">sha512‑256</p>
+<p class="p">blake2b256</p>
+<p class="p">blake3</p>
+</td>
+
+              <td class="entry cellrowborder" style="vertical-align:top;" headers="d17670e126 d17670e135 "><p class="p">sha512</p>
+<p class="p">blake2b512</p>
+</td>
+
+            </tr>
+
+          </tbody>
+</table>
+</div>
+
+  </div>
+
+  <div class="section"><h2 class="title sectiontitle">Signing keys</h2>
+    
+    <p class="p">Refer to the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkqfs.html"><span class="keyword cmdname">mkqfs</span></a> utility for the supported key types and signing
+        algorithms.</p>
+
+  </div>
+
+  <div class="section"><h2 class="title sectiontitle">Crypto engines</h2>
+    
+    <p class="p">QTD uses the cryptographic algorithms available via the QNX cryptography library
+          (<span class="ph filepath">qcrypto</span>). It can use any <span class="ph filepath">qcrypto</span> plugin that
+        supports the chosen digest algorithm and signature type. For more information, see <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/qcrypto.html">QNX Cryptography
+            Library</a></q> in the <cite class="cite">System Security Guide</cite>.</p>
+
+  </div>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys.html" title="The QNX OS provides a rich variety of filesystems. Like most service-providing processes in the OS, these filesystems execute outside the kernel; applications use them by communicating via messages generated by the shared-library implementation of the POSIX API.">Filesystems</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html">Filesystem limits (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html">fs-qtd.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li></ul></div>
+</div></body>
+</html>

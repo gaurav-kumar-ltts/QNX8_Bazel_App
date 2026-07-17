@@ -1,0 +1,619 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="quotactl" />
+<meta name="abstract" content="Administer filesystem disk quotas" />
+<meta name="description" content="Administer filesystem disk quotas" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-q.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/f/fs-qnx6.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="quotactl" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>quotactl</title>
+</head>
+<body id="quotactl">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">quotactl</span></h1>
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Administer filesystem disk quotas</em></p>
+
+
+<div class="section">
+
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">quotactl <var class="keyword varname">mountpoint</var> <var class="keyword varname">command</var> [<var class="keyword varname">command-options</var>]
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<h3 class="title sectiontitle">Mountpoint</h3>
+<p class="p">The <var class="keyword varname">mountpoint</var> is the root directory of the target pathname space managed by
+  the filesystem (e.g., <span class="ph filepath">/fsys/data</span>).</p>
+
+
+
+<h3 class="title sectiontitle">Commands</h3>
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword cmdname">ON [-0|-1] [-t </span><var class="keyword varname">args</var><span class="keyword cmdname">]</span></dt>
+
+<dd class="dd">Enable quotas for the specified filesystem.
+  This command creates the quota database and starts the monitoring of all per-ID file usage and
+  total block allocation (i.e., total size of files).
+  You can set a grace period during which soft limits for filesystem usage quotas may be exceeded;
+  hard limits are enforced immediately. For more information, see the <a class="xref" href="quotactl.html#quotactl__t_opt"><span class="keyword option">-t</span> option description</a>.
+  <p class="p">When the <span class="keyword cmdname">ON</span> command is issued, no limits for specific IDs
+    are in effect; to configure them, use <span class="keyword cmdname">EDIT</span>.</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">OFF</span></dt>
+
+<dd class="dd">Disable quotas for the specified filesystem.
+  This command removes the quota database and stops the monitoring of per-ID file and block usage.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">QUERY</span></dt>
+
+<dd class="dd">Report the current status of quotas for the filesystem.
+  Possible values are <tt class="ph tt">on</tt>, <tt class="ph tt">off</tt>, or <tt class="ph tt">unsupported</tt>.
+  The value <tt class="ph tt">unsupported</tt> applies if the target is not a QNX6 filesystem.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">EDIT [-0|-1] [-hn] [-t </span><var class="keyword varname">args</var><span class="keyword cmdname">]
+   [-p </span><var class="keyword varname">default_limits</var><span class="keyword cmdname">]
+   [-u </span><var class="keyword varname">UIDs</var> <var class="keyword varname">limits</var><span class="keyword cmdname">]*
+   [-g </span><var class="keyword varname">GIDs</var> <var class="keyword varname">limits</var><span class="keyword cmdname">]*</span></dt>
+
+<dd class="dd">Adjust (set, change, delete) the quota limits of particular users or groups on the filesystem.
+  If you specify user or group IDs through command options, the quota limits that you provide in the same
+  <span class="keyword cmdname">EDIT</span> command are immediately applied to these IDs only.
+  For the syntax and semantics of specifying the IDs and quota limits, refer to <q class="q"><a class="xref" href="quotactl.html#quotactl__cmd_opts">Options:</a></q>.
+  <p class="p">
+    
+    If you don't specify any IDs when issuing this command, <span class="keyword cmdname">quotactl</span>
+    gathers the current quota limits and filesystem usage data into a temporary text file using <span class="keyword cmdname">READ -v</span>
+    and opens that file for editing.
+    In this interactive mode, you can adjust the limits on the number of files and total file sizes for particular IDs.
+    You can also add or remove lines for particular IDs.
+    In the text file, individual limit values must be separated by normal spaces, tabs, or newlines.
+    Unlike with the <span class="keyword cmdname">quotactl</span> command options, colons (<span class="ph codeph">:</span>) aren't used.
+    When you finish editing and save the file, <span class="keyword cmdname">quotactl</span> parses it and tries to apply the new set of limits.
+  </p>
+
+  <p class="p">
+    If <span class="keyword cmdname">quotactl</span> encounters any invalid lines in the saved text file or invalid command option settings
+    (e.g., due to typos), <span class="keyword cmdname">quotactl</span> reports an error and doesn't apply any updates.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword cmdname">READ [-hnstv]
+   [-u </span><var class="keyword varname">UID</var><span class="keyword cmdname">]*
+   [-g </span><var class="keyword varname">GID</var><span class="keyword cmdname">]*</span></dt>
+
+<dd class="dd">Report the current quota limits and filesystem usage. The output is written to stdout.
+  You can filter the output by specifying user ID (UID) and/or group ID (GID) values and adjust how the information is shown.
+  For more information, refer to the <a class="xref" href="quotactl.html#quotactl__cmd_opts">command options</a> below.
+  If you don't provide IDs, the quota limits and filesystem usage data are shown for all IDs that have quotas.
+</dd>
+
+
+
+</dl>
+
+
+
+<h3 class="title sectiontitle">Command options</h3>
+
+<div class="note"><span class="notetitle">Note:</span> 
+  Be sure to check the <q class="q">Applies to</q> list at the start of any option description
+  to know which commands apply to which options.
+</div>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm" id="quotactl__0_opt"><span class="keyword option">-0</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">ON</span>, <span class="keyword cmdname">EDIT</span>
+  <p class="p">Set a global default value of zero (0) for all hard filesystem usage limits.
+    A global default value applies to any ID (user or group) that doesn't have explicitly defined limits.
+    A zero value means no limit, and, therefore, unlimited filesystem use is permitted.
+    In this case, the soft limits aren't relevant.
+  </p>
+
+  <p class="p">This option is mutually exclusive with the <span class="keyword option">-1</span> option.
+    If you set both, the last (rightmost) one in the command string applies.
+    If you set neither, <span class="keyword cmdname">quotactl</span> uses built-in default values of zero for all limits,
+    which is equivalent to setting <span class="keyword option">-0</span>.
+  </p>
+
+  <p class="p">You can set this option with the <span class="keyword cmdname">ON</span> command to make it clear in your configuration that all IDs
+    initially have unlimited file creation and block allocation (i.e., file size) capabilities.
+    You can set it with <span class="keyword cmdname">EDIT</span> to ensure that after the command is processed, all IDs without explicit limits
+    are granted unlimited filesystem usage.
+  </p>
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="quotactl__-1_opt"><span class="keyword option">-1</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">ON</span>, <span class="keyword cmdname">EDIT</span>
+  <p class="p">Set a global default value of minus one (-1) for all hard filesystem usage limits.
+    A global default value applies to any ID (user or group) that doesn't have explicitly defined limits.
+    A value of minus one means no filesystem usage is permitted.
+    In this case, the soft limits aren't relevant.
+  </p>
+
+  <p class="p">This option is mutually exclusive with the <span class="keyword option">-0</span> option.
+    If you set both, the last (rightmost) one in the command string applies.
+  </p>
+
+  <p class="p">If you set the <span class="keyword option">-1</span> option with the <span class="keyword cmdname">ON</span> command, any ID without explicit limits
+    is prevented from creating files or allocating blocks for them (i.e., increasing their size) provided there's at least one
+    ID that has an explicit limit; the remaining IDs are denied any filesystem usage.
+    Imposing an initial restriction of any filesystem usage for all IDs would prevent the system from doing anything.
+  </p>
+
+  <p class="p">You can set this option with <span class="keyword cmdname">EDIT</span> to ensure that after the command is processed, any ID without explicit
+    limits is denied any filesystem usage.
+  </p>
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-g</span> <var class="keyword varname">first_id</var>[-<var class="keyword varname">last_id</var>][:<var class="keyword varname">soft_inodes_limit</var>:<var class="keyword varname">hard_inodes_limit</var>:<var class="keyword varname">soft_filesize_limit</var>:<var class="keyword varname">hard_filesize_limit</var>]
+</dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">EDIT</span>
+  <p class="p">Adjust the quota limits for the specified GIDs.
+    You can specify one GID (<span class="ph codeph"><var class="keyword varname">first_id</var></span>) to indicate only that group,
+    or a GID range (<span class="ph codeph"><var class="keyword varname">first_id</var>-<var class="keyword varname">last_id</var></span>) to indicate several groups.
+  </p>
+
+  <p class="p">The <span class="keyword option">-g</span> option arguments are parsed so <span class="keyword cmdname">quotactl</span> can learn of any new soft and hard limits
+    for the number of file entries (inodes) and number of block allocations (i.e., total size of files).
+    If the parsing succeeds, these limits are applied for the specified GIDs.
+  </p>
+
+  <p class="p">The quota limits must be given as four numeric values separated from each other and from the GIDs by colons (<span class="ph codeph">:</span>).
+    If the <span class="keyword option">-h</span> option is also set, each value can be followed by a unit suffix.
+    For more information, see the <a class="xref" href="quotactl.html#quotactl__h_opt"><span class="keyword option">-h</span> description</a>.
+  </p>
+
+  <p class="p">If you don't provide any limit arguments, the quotas for the specified GIDs are reset to their default values.
+    These values are either the limits defined by the <span class="keyword option">-p</span> option (which apply to all <span class="keyword option">-g</span> and
+    <span class="keyword option">-u</span> arguments in this invocation) or the global default limits, in which case the quotas are removed.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-g</span> <var class="keyword varname">first_id</var>[-<var class="keyword varname">last_id</var>]</dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">READ</span>
+  <p class="p">Display the quota limits for the specified GIDs.
+    You can specify one GID (<span class="ph codeph"><var class="keyword varname">first_id</var></span>) to indicate only that group,
+    or a GID range (<span class="ph codeph"><var class="keyword varname">first_id</var>-<var class="keyword varname">last_id</var></span>) to indicate several groups.
+  </p>
+
+  <div class="note"><span class="notetitle">Note:</span> You must not provide any limit arguments for this option with <span class="keyword cmdname">READ</span>,
+    or <span class="keyword cmdname">quotactl</span> fails with an error.</div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="quotactl__h_opt"><span class="keyword option">-h</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">EDIT</span>, <span class="keyword cmdname">READ</span>
+  <p class="p">Use a human-readable form for the filesystem usage limits to indicate the size units.</p>
+
+  <p class="p">This option affects the output of <span class="keyword cmdname">READ</span> and, therefore, the contents of the
+    temporary text file generated by <span class="keyword cmdname">EDIT</span> when the command is issued without IDs.
+    For example, for file sizes, <span class="keyword cmdname">quotactl</span> shows <tt class="ph tt">10M</tt> for 10 megabytes.
+    Without this option, it shows file sizes in their default measurement of kilobytes
+    but without the unit suffix (e.g., <tt class="ph tt">512</tt> means <tt class="ph tt">512k</tt>).
+    Kilobytes are the default unit because disk blocks are allocated several kilobytes at a time
+    and thus, this unit choice is the historical standard for UNIX systems.
+  </p>
+
+  <div class="p">For an <span class="keyword cmdname">EDIT</span> command issued with IDs, setting the <span class="keyword option">-h</span> option tells
+    <span class="keyword cmdname">quotactl</span> to handle unit suffixes for any soft and hard limit values.
+    Each suffix is one letter, case-insensitive, and may be any of:
+    <ul class="ul">
+      <li class="li"><span class="ph codeph">k</span> (kilo)</li>
+
+      <li class="li"><span class="ph codeph">M</span> (mega)</li>
+
+      <li class="li"><span class="ph codeph">G</span> (giga)</li>
+
+      <li class="li"><span class="ph codeph">T</span> (tera)</li>
+
+    </ul>
+</div>
+
+  <p class="p">For numbers of inodes, the suffixes represent powers of ten instead of powers of two.
+    For instance, <q class="q">kilo</q> means 1000 (not 1024) and thus, a <span class="ph codeph">2k</span> soft or hard limit for number of inodes
+    means the associated ID can create up to 2000 file entries (i.e., files, directories, symbolic links, or hard links).
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-n</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">EDIT</span>, <span class="keyword cmdname">READ</span>
+  <p class="p">Use numeric IDs for users and groups when displaying quota limits.
+    By default, <span class="keyword cmdname">quotactl</span> displays the user and group names from the <span class="keyword cmdname">passwd</span> files.
+  </p>
+
+  <p class="p">This option affects the output of <span class="keyword cmdname">READ</span> and, thus, the contents of the temporary
+    text file generated by <span class="keyword cmdname">EDIT</span> when the command is issued without IDs.
+    In the latter case, you are expected to enter numeric IDs, rather than user and group strings used by <span class="keyword cmdname">passwd</span>,
+    when adjusting the quota limits in interactive mode.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-p</span> <var class="keyword varname">soft_inodes_limit</var>:<var class="keyword varname">hard_inodes_limit</var>:<var class="keyword varname">soft_filesize_limit</var>:<var class="keyword varname">hard_filesize_limit</var></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">EDIT</span>
+  <p class="p">Set default quota limits for the IDs given in the <span class="keyword option">-u</span> and <span class="keyword option">-g</span> options.
+    The <span class="keyword option">-p</span> option is provided for convenience, because it lets you override the default limits for multiple IDs
+    and saves you from typing in new limits for each of them.
+  </p>
+
+  <p class="p">The quota limits must be given as four numeric values separated from each other by colons (<span class="ph codeph">:</span>).
+    If the <span class="keyword option">-h</span> option is also set, each value can be followed by a unit suffix.
+    For more information, refer to the <a class="xref" href="quotactl.html#quotactl__h_opt"><span class="keyword option">-h</span> description</a>.
+  </p>
+
+  <div class="note"><span class="notetitle">Note:</span> 
+    The rules by which <span class="keyword cmdname">quotactl</span> applies quota limits to a specific ID are as follows:
+    <ul class="ul">
+       <li class="li">A temporary quota limit record is created based on the current global <span class="keyword option">-0</span> or <span class="keyword option">-1</span> setting.
+          If <span class="keyword option">-0</span> is set, the record is <tt class="ph tt">0:0:0:0</tt> (i.e., the default is to allow for unlimited filesystem usage).
+          If <span class="keyword option">-1</span> is set, the record is <tt class="ph tt">-1:-1:-1:-1</tt> (i.e., the default is to deny any filesystem usage).</li>
+
+       <li class="li">If <span class="keyword option">-p</span> is specified, then this temporary record is replaced with the quota limits given by this option.</li>
+
+       <li class="li">Then, for each explicit <span class="keyword option">-u</span> and <span class="keyword option">-g</span> specified, an <span class="keyword cmdname">EDIT</span> quota limit record
+          is made, as a copy of what came out of applying the above two rules,
+          and overridden with any limit fields given with that <span class="keyword option">-u</span> or <span class="keyword option">-g</span>.
+          The resulting record is then applied to that one ID.</li>
+
+    </ul>
+
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-s</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">READ</span>, <span class="keyword cmdname">EDIT</span> in interactive mode
+  <p class="p">Don't sort by UID/GID; instead, display in the order the quotas were created.</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm" id="quotactl__t_opt"><span class="keyword option">-t</span> <var class="keyword varname">inodes_grace_period</var>:<var class="keyword varname">files_size_grace_period</var></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">ON</span>, <span class="keyword cmdname">EDIT</span>
+  <p class="p">Set the grace periods for any soft limits on the number of file entries (inodes)
+    and the number of block allocations (i.e., total size of files) allowed for any ID.
+    Here, inodes means files, directories, symbolic links, or hard links.
+    During the grace period, an ID's filesystem usage can exceed these soft limits; hard limits are enforced immediately.
+  </p>
+
+  <div class="p">You can specify different values for these two soft limits, separated by a colon (<tt class="ph tt">:</tt>).
+    The default time unit is seconds, meaning that if you don't specify a unit, <span class="keyword cmdname">quotactl</span> interprets a time value
+    as seconds. You can add the following one-letter, case-insensitive unit suffixes:
+    <ul class="ul">
+      <li class="li"><span class="ph codeph">d</span> (days)</li>
+
+      <li class="li"><span class="ph codeph">h</span> (hours)</li>
+
+      <li class="li"><span class="ph codeph">m</span> (minutes)</li>
+
+      <li class="li"><span class="ph codeph">s</span> (seconds)</li>
+
+    </ul>
+
+  </div>
+
+  <p class="p">If you don't provide the <span class="keyword option">-t</span> option, the default setting for each soft limit is 1 day.
+    For an explanation of soft limits and how they differ from hard limits,
+    see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/fsystems_quotas.html">Managing disk quotas</a></q> in the <cite class="cite"><span class="keyword">QNX OS</span> User's Guide</cite>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-t</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">READ</span>
+  <p class="p">Display additional information for IDs that are in their grace period.
+    The output shows an extra field, <tt class="ph tt">Grace</tt>, with the time remaining to reduce usage below a soft limit.
+    The user can infer which soft limit (number of inodes or total size of files) this field is referring to
+    by examining the other fields.</p>
+
+   <p class="p">For instance, suppose UID 500 has soft and hard limits of 10 and 20 for the number of inodes,
+    no limits on the total size of all files, and has 15 file entries (inodes).
+    In this case, the time value shown in <tt class="ph tt">Grace</tt> reflects how long UID 500 has to reduce its number of files to be
+    10 or fewer before the <var class="keyword varname">inodes_grace_period</var> set with <span class="keyword option">-t</span> expires
+    and the lower limit of 10 files is enforced.
+    Note that the time value can have the same suffixes listed above for the
+    <span class="keyword cmdname">ON</span> and <span class="keyword cmdname">EDIT</span> commands.</p>
+
+  <p class="p">If the grace period has already expired, the <tt class="ph tt">Grace</tt> field shows <tt class="ph tt">Expired</tt>.
+    If the ID has exceeded a hard limit because this limit was reduced to something below its current usage level,
+    the field shows <tt class="ph tt">Exceed</tt>. If the ID has not exceeded any soft or hard limit, the field is blank.</p>
+
+  <div class="note"><span class="notetitle">Note:</span> You must not provide any grace period arguments for this option with <span class="keyword cmdname">READ</span>,
+    or <span class="keyword cmdname">quotactl</span> fails with an error.</div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-u</span> <var class="keyword varname">first_id</var>[-<var class="keyword varname">last_id</var>]:[<var class="keyword varname">soft_inodes_limit</var>:<var class="keyword varname">hard_inodes_limit</var>:<var class="keyword varname">soft_filesize_limit</var>:<var class="keyword varname">hard_filesize_limit</var>]
+</dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">EDIT</span>
+  <p class="p">Adjust the quota limits for the specified UIDs.
+    You can specify one UID (<span class="ph codeph"><var class="keyword varname">first_id</var></span>) to indicate only that user,
+    or a UID range (<span class="ph codeph"><var class="keyword varname">first_id</var>-<var class="keyword varname">last_id</var></span>) to indicate several users.
+  </p>
+
+  <p class="p">The <span class="keyword option">-u</span> option arguments are parsed so <span class="keyword cmdname">quotactl</span> can learn of any new soft and hard limits
+    for the number of file entries (inodes) and number of block allocations (i.e., total size of files).
+    If the parsing succeeds, these limits are applied for the specified UIDs.
+  </p>
+
+  <p class="p">The quota limits must be given as four numeric values separated from each other and from the UIDs by colons (<span class="ph codeph">:</span>).
+    If the <span class="keyword option">-h</span> option is also set, each value can be followed by a unit suffix.
+    For more information, see the <a class="xref" href="quotactl.html#quotactl__h_opt"><span class="keyword option">-h</span> description</a>.
+  </p>
+
+  <p class="p">If you don't provide any limit arguments, the quotas for the specified UIDs are reset to their default values.
+    These values are either the limits defined by the <span class="keyword option">-p</span> option (which apply to all <span class="keyword option">-g</span> and
+    <span class="keyword option">-u</span> arguments in this invocation) or the global default limits, in which case the quotas are removed.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-u</span> <var class="keyword varname">first_id</var>[-<var class="keyword varname">last_id</var>]</dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">READ</span>
+  <p class="p">Display the quota limits for the specified UIDs.
+    You can specify one UID (<span class="ph codeph"><var class="keyword varname">first_id</var></span>) to indicate only that user,
+    or a UID range (<span class="ph codeph"><var class="keyword varname">first_id</var>-<var class="keyword varname">last_id</var></span>) to indicate several users.
+  </p>
+
+  <div class="note"><span class="notetitle">Note:</span> You must not provide any <var class="keyword varname">*_limit</var> arguments for this option with <span class="keyword cmdname">READ</span>,
+    or <span class="keyword cmdname">quotactl</span> fails with an error.</div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+<dd class="dd">Applies to: <span class="keyword cmdname">READ</span>
+  <p class="p">Display additional information about the overall filesystem usage and column labels.</p>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+<p class="p"><span class="keyword">QNX OS</span></p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">Use the <span class="keyword cmdname">quotactl</span> utility to manage filesystem disk quotas
+  that limit the number of file entries (inodes) and the total size of files that users or groups can create.
+</p>
+
+<p class="p">Each filesystem has its own database that stores disk quota information about both users (UIDs) and groups (GIDs).
+  When you issue the <span class="keyword cmdname">quotactl</span> commands to enable or disable quotas for a given filesystem
+  (<span class="keyword cmdname">ON</span> or <span class="keyword cmdname">OFF</span>), its corresponding database gets dynamically created or deleted.
+  The database is stored on the filesystem itself.
+</p>
+
+<p class="p">There are also commands to report the overall quota status (<span class="keyword cmdname">QUERY</span>); the current limits and filesystem usage
+  (<span class="keyword cmdname">READ</span>); and to adjust the quota limits for particular users and groups (<span class="keyword cmdname">EDIT</span>).
+  This last activity can be done with individual commands or interactively through a temporary text file.
+</p>
+
+<p class="p">All command names are case-insensitive.</p>
+
+<p class="p">Only the Power-Safe (QNX6) filesystem supports disk quotas.
+  This filesystem uses its snapshot feature to ensure consistency of the quota database against the actual filesystem usage.
+  Usage updates to the quota database become part of the filesystem state that transitions from snapshot to snapshot.
+  For example, creating a file is bundled with the database update of the associated ID owning one more file.
+  Both pieces of information are committed at the same logical time; or, if a power loss or crash happens, neither are.
+  This design guarantees consistency because the quota accounting update associated with an operation occurs in the same snapshot
+  as the operation itself.
+  For further explanation of the snapshot feature, see the
+  <q class="q"><a class="xref" href="../f/fs-qnx6.so.html#fs-qnx6.so__Device_properties">Required properties of the device</a></q>
+  section in the <span class="keyword cmdname">fs-qnx6.so</span> reference.
+</p>
+
+<p class="p">For details about the semantics of disk quotas,
+  see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.user_guide/topic/fsystems_quotas.html">Managing disk quotas</a></q> in the
+  <cite class="cite"><span class="keyword">QNX OS</span> User's Guide</cite>.
+</p>
+
+
+</div>
+
+
+<div class="section" id="quotactl__examples"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<div class="p">
+Enable disk quotas on the <span class="ph filepath">/fsys/data</span> filesystem:
+<pre class="pre codeblock"># quotactl /fsys/data on</pre>
+</div>
+
+
+<div class="p">
+Give UID 101 a hard limit of 10MB but no soft limit on the total size of files and no limits on the number
+of files, UID 102 a hard limit of 250 files but no other limits, and GID 500 a soft limit of
+100 files, a hard limit of 150 files, but no limits on the total size of files:
+<pre class="pre codeblock"># quotactl /fsys/data edit -u<strong class="ph b">101:0:0:0:10000</strong> -u<strong class="ph b">102:0:250:0:0</strong> -g<strong class="ph b">500:100:150:0:0</strong></pre>
+</div>
+
+
+<div class="p">
+Remove specific quotas from UID 102 (so the allowed usage goes back to the default values), and add UID 115 with
+hard limits of 500 files and 4GB of content:
+<pre class="pre codeblock"># quotactl /fsys/data edit -h -u<strong class="ph b">102</strong> -u<strong class="ph b">115:0:500:0:4g</strong></pre>
+</div>
+
+
+<div class="p">
+Give UIDs 300 through 320 no soft limits but hard limits of 100 files and 128MB of content:
+<pre class="pre codeblock"># quotactl /fsys/data edit -h -p<strong class="ph b">0:100:0:128m</strong> -u<strong class="ph b">300-320</strong></pre>
+</div>
+
+
+<div class="p">
+Display the current list of quotas and usage, with human-readable units:
+<pre class="pre codeblock"># quotactl /fsys/data read -hv
+FILESYSTEM /q6  (qnx6)  4096-blocksize
+Inodes 172k/460k  Files 8259M/112G
+
+UID                   Inodes  Soft  Hard  Files  Soft  Hard
+root                    171k     0    1M  4550M     0  100G
+300                       88    50   100   870M     0    1G
+301                       44    50   100   676M  500M    1G
+</pre>
+
+In this case, root is well within its limits for number of files and total size of files.
+However, UID 300 has exceeded its soft limit for number of files
+and UID 301 has exceeded its soft limit on total size.
+</div>
+
+
+<div class="p">
+Specify no limits (i.e., unlimited usage) as the global default,
+then for UID 500, configure no soft limit but a hard limit of one for the number of files:
+<pre class="pre codeblock"># quotactl /q6 on -0
+# quotactl /q6 edit -u<strong class="ph b">500:0:1:0:1M</strong>
+# on -u500 touch /q6/tmp/file1
+# on -u500 touch /q6/tmp/file2
+File size limit exceeded (core dumped)
+#
+</pre>
+In this example, UID 500 can create one file but not a second file.
+</div>
+
+
+<div class="p">
+Specify limits of minus one (i.e., no usage) as the global default, then set explicit limits only for UID 502:
+<pre class="pre codeblock"># quotactl /q6 on -1
+# quotactl /q6 edit -u502:0:10:0:10000
+# on -u500 touch /q6/tmp/file
+File size limit exceeded (core dumped)
+# on -u501 touch /q6/tmp/file
+File size limit exceeded (core dumped)
+</pre>
+In this example, neither UID 500 nor UID 501 can create a file, because the default quota limits
+allow for no usage, and neither UID has its own limits set.
+</div>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-q.html">Q</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys.html">Filesystems (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/f/fs-qnx6.so.html" title="Shared object that supports the Power-Safe filesystem (QNX OS)">fs-qnx6.so</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,97 @@
+#!/bin/bash
+
+. $TOOL_DIR/functions
+
+function brief()
+{
+    if [ -n "$HAVE_QVM" -o -e $QNX_TARGET/x86_64/sbin/qvm ]; then
+        echo "--qvm=[yes|no]"
+        export HAVE_QVM=1
+    fi
+}
+
+function help()
+{
+    brief
+    if [ -n "$HAVE_QVM" ]; then
+       cat <<EOF
+    If yes, include components for running the QNX hypervisor.
+
+    The default is no.
+EOF
+    fi
+}
+
+function validate() {
+    if [ "$OPT_QVM" = yes -o "$OPT_QVM" = no ]; then
+        status=0
+        if [ "$OPT_QVM" = yes ]; then
+            if ! check_dependency sbin/qvm '--qvm=yes option requires the "Hypervisor Core" package'; then
+                status=1
+            fi
+        fi
+        exit $status
+    else
+        echo "--qvm must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_qvm
+    if [ "$OPT_QVM" = yes ]; then
+		cat >output/option_files/options.opt_qvm <<EOF
+STARTUP_OPTIONS="-Q enable"
+EOF
+		cat >output/option_files/definitions.opt_qvm <<EOF
+#define __IOSOCK_QVM_OPTIONS__ -m vdevpeer-net
+EOF
+        cat >output/option_files/system_files.opt_qvm <<EOF
+#############################################
+### Hypervisor  --qvm=yes
+#############################################
+/bin/qvm-check=bin/qvm-check
+/bin/qvm=sbin/qvm
+/bin/vpctl=sbin/vpctl
+#if defined(OPT_ARCH_x86_64)
+/lib/dll/vdev-8259.so=lib/dll/vdev-8259.so
+/lib/dll/vdev-hpet.so=lib/dll/vdev-hpet.so
+/lib/dll/vdev-ioapic.so=lib/dll/vdev-ioapic.so
+/lib/dll/vdev-mc146818.so=lib/dll/vdev-mc146818.so
+/lib/dll/vdev-pckeyboard.so=lib/dll/vdev-pckeyboard.so
+/lib/dll/vdev-timer8254.so=lib/dll/vdev-timer8254.so
+/lib/dll/vdev-wdt-ib700.so=lib/dll/vdev-wdt-ib700.so
+#endif
+
+#if defined(OPT_ARCH_aarch64le)
+/lib/dll/vdev-pl011.so=lib/dll/vdev-pl011.so
+#endif
+
+/lib/dll/vdev-pci-dummy.so=lib/dll/vdev-pci-dummy.so
+/lib/dll/vdev-progress.so=lib/dll/vdev-progress.so
+/lib/dll/vdev-ser8250.so=lib/dll/vdev-ser8250.so
+/lib/dll/vdev-shmem.so=lib/dll/vdev-shmem.so
+/lib/dll/vdev-virtio-blk.so=lib/dll/vdev-virtio-blk.so
+/lib/dll/vdev-virtio-console.so=lib/dll/vdev-virtio-console.so
+/lib/dll/vdev-virtio-net.so=lib/dll/vdev-virtio-net.so
+/lib/dll/mods-vdevpeer-net.so=lib/dll/mods-vdevpeer-net.so
+/lib/libfdt.so=usr/lib/libfdt.so
+EOF
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+	default)
+		echo no;;
+esac

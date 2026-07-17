@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using a barrier" />
+<meta name="abstract" content="When we talked about the synchronization of the main() function to the completion of the worker threads (in “Synchronizing to the termination of a thread,” above), we mentioned two methods: pthread_join(), which we've looked at, and a barrier." />
+<meta name="description" content="When we talked about the synchronization of the main() function to the completion of the worker threads (in “Synchronizing to the termination of a thread,” above), we mentioned two methods: pthread_join(), which we've looked at, and a barrier." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_parallel.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SYNCHRO.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_getpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_wait.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="barriers" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Using a barrier</title>
+</head>
+<body id="barriers">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Using a barrier</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When we talked about the synchronization of the <span class="keyword apiname">main()</span> function to the
+completion of the worker threads (in <q class="q">Synchronizing to the termination of a thread,</q> above),
+we mentioned two methods: <span class="keyword apiname">pthread_join()</span>, which we've looked at, and a barrier.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+Returning to our house analogy, suppose that the family wanted to take a trip somewhere.
+The driver gets in the minivan and starts the engine.
+And waits.
+The driver waits until <em class="ph i">all</em> the family members have boarded, and only
+then does the van leave to go on the trip—we can't leave anyone behind!
+
+</p>
+
+
+<p class="p">
+This is exactly what happened with the graphics example.
+The main thread needs to wait until all the worker threads have completed,
+and only then can the next part of the program begin.
+</p>
+
+
+<p class="p">
+Note an important distinction, however.
+With <span class="keyword apiname">pthread_join()</span>, we're
+waiting for the <em class="ph i">termination</em> of the threads.
+This means that the threads are no longer with us; they've exited.
+</p>
+
+
+<p class="p">
+With the <em class="ph i">barrier</em>, we're waiting for a certain number of threads to rendezvous at the barrier.
+Then, when the requisite number are present, we unblock <em class="ph i">all of them</em>.
+(Note that the threads continue to run.)
+</p>
+
+
+<div class="p">
+You first create a barrier with
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_init.html"><span class="keyword apiname">pthread_barrier_init()</span></a>:
+
+
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_barrier_init (pthread_barrier_t *<var class="keyword varname">barrier</var>,
+                          const pthread_barrierattr_t *<var class="keyword varname">attr</var>,
+                          unsigned int <var class="keyword varname">count</var>);
+</pre>
+</div>
+
+
+<p class="p">
+This creates a barrier object at the passed address (pointer to the barrier object is in
+<var class="keyword varname">barrier</var>), with the attributes as specified by <var class="keyword varname">attr</var>
+(we'll just use <span class="keyword const">NULL</span> to get the defaults).
+The number of threads that must call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_wait.html"><span class="keyword apiname">pthread_barrier_wait()</span></a> is passed in <var class="keyword varname">count</var>.
+
+
+</p>
+
+
+<div class="p">
+Once the barrier is created, we then want each of the threads to call
+<span class="keyword apiname">pthread_barrier_wait()</span> to indicate that it has completed:
+
+<pre class="pre codeblock">#include &lt;pthread.h&gt;
+
+int pthread_barrier_wait (pthread_barrier_t *<var class="keyword varname">barrier</var>);
+</pre>
+</div>
+
+
+<p class="p">
+When a thread calls <span class="keyword apiname">pthread_barrier_wait()</span>, it will block until the number of threads specified
+initially in <span class="keyword apiname">pthread_barrier_init()</span> have called <span class="keyword apiname">pthread_barrier_wait()</span> (and blocked too).
+When the correct number of threads have called <span class="keyword apiname">pthread_barrier_wait()</span>, all those threads will
+<q class="q">simultaneously</q> unblock.
+</p>
+
+
+<div class="p">
+Here's an example:
+
+
+
+
+
+
+
+
+
+<pre class="pre codeblock">/*
+ *  barrier1.c
+ */
+#include &lt;stdio.h&gt;
+#include &lt;time.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;sys/neutrino.h&gt;
+
+pthread_barrier_t   barrier; // the barrier synchronization object
+
+void * thread1 (void *not_used)
+{
+    time_t  now;
+    char    buf [27];
+
+    time (&amp;now);
+    printf ("thread1 starting at %s", ctime_r (&amp;now, buf));
+
+    // do the computation
+    // let's just do a sleep here...
+    sleep (20);
+    pthread_barrier_wait (&amp;barrier);
+    // after this point, all three threads have completed.
+    time (&amp;now);
+    printf ("barrier in thread1() done at %s", ctime_r (&amp;now, buf));
+}
+
+void * thread2 (void *not_used)
+{
+    time_t  now;
+    char    buf [27];
+
+    time (&amp;now);
+    printf ("thread2 starting at %s", ctime_r (&amp;now, buf));
+
+    // do the computation
+    // let's just do a sleep here...
+    sleep (40);
+    pthread_barrier_wait (&amp;barrier);
+    // after this point, all three threads have completed.
+    time (&amp;now);
+    printf ("barrier in thread2() done at %s", ctime_r (&amp;now, buf));
+}
+
+main () // ignore arguments
+{
+    time_t  now;
+    char    buf [27];
+
+    // create a barrier object with a count of 3
+    pthread_barrier_init (&amp;barrier, NULL, 3);
+
+    // start up two threads, thread1 and thread2
+    pthread_create (NULL, NULL, thread1, NULL);
+    pthread_create (NULL, NULL, thread2, NULL);
+
+    // at this point, thread1 and thread2 are running
+
+    // now wait for completion
+    time (&amp;now);
+    printf ("main () waiting for barrier at %s", ctime_r (&amp;now, buf));
+    pthread_barrier_wait (&amp;barrier);
+
+    // after this point, all three threads have completed.
+    time (&amp;now);
+    printf ("barrier in main () done at %s", ctime_r (&amp;now, buf));
+}
+</pre>
+</div>
+
+
+<p class="p">
+The main thread created the barrier object and initialized it with a count of
+how many threads (<em class="ph i">including itself</em>!)
+should be synchronized to the barrier before it <q class="q">breaks through.</q>
+In our sample, this was a count of three: one for the <span class="keyword apiname">main()</span> thread,
+one for <span class="keyword apiname">thread1()</span>, and one for <span class="keyword apiname">thread2()</span>.
+Then the graphics computational threads (<span class="keyword apiname">thread1()</span> and <span class="keyword apiname">thread2()</span>
+in our case here) are started, as before.
+For illustration, instead of showing source for graphics computations, we just
+stuck in a <span class="ph codeph">sleep (20);</span> and <span class="ph codeph">sleep (40);</span> to cause a
+delay, as if computations were occurring.
+To synchronize, the main thread simply blocks itself on the barrier, knowing
+that the barrier will unblock only after the worker threads have joined it as well.
+</p>
+
+
+<p class="p">
+As mentioned earlier, with the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_join.html"><span class="keyword apiname">pthread_join()</span></a>, the worker threads are done and
+dead in order for the main thread to synchronize with them.
+But with the barrier, the threads are alive and well.
+In fact, they've just unblocked from the <span class="keyword apiname">pthread_barrier_wait()</span> when all
+have completed.
+The wrinkle introduced here is that you should be prepared to do something with these threads!
+In our graphics example, there's nothing for them to do (as we've written it).
+In real life, you may wish to start the next frame calculations.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_parallel.html" title="Suppose that we have a graphics program that performs ray tracing. Each raster line on the screen is dependent on the main database (which describes the actual picture being generated). The key here is this: each raster line is independent of the others. This immediately causes the problem to stand out as a threadable program.">Threads in mathematical operations</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_SYNCHRO.html">Synchronization services (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_destroy.html">pthread_barrierattr_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_getpshared.html">pthread_barrierattr_getpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_init.html">pthread_barrierattr_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_setpshared.html">pthread_barrierattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_destroy.html">pthread_barrier_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_init.html">pthread_barrier_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrier_wait.html">pthread_barrier_wait()</a></li></ul></div>
+</div></body>
+</html>

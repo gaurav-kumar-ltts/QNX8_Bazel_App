@@ -1,0 +1,465 @@
+#!/usr/bin/env bash
+#
+# Some modifications Copyright 2020-2023, BlackBerry Limited. All rights reserved.
+#
+# BlackBerry Limited and its licensors retain all intellectual property and
+# proprietary rights in and to this software and related documentation. Any
+# use, reproduction, disclosure or distribution of this software and related
+# documentation without an express license agreement from BlackBerry Limited
+# is strictly prohibited.
+#
+#
+# This file may contain contributions from others.  Please review
+# this entire file for other proprietary rights or license notices,
+# as well as the QNX Development Suite License Guide at
+# http://licensing.qnx.com/license-guide/ for other information.
+
+# This tool adapted to QNX
+# from https://github.com/slimm609/checksec.sh
+# licensed as follows:
+
+# Copyright (c) 2014-2019, Brian Davis
+# Copyright (c) 2013, Robin David
+# Copyright (c) 2009-2011, Tobias Klein
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# * Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# * Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in
+#   the documentation and/or other materials provided with the
+#   distribution.
+# * Neither the name of Tobias Klein nor the name of trapkit.de may be
+#   used to endorse or promote products derived from this software
+#   without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+# DAMAGE.
+
+export LC_ALL=C
+export LC_COLLATE=C
+
+# global vars
+debug=false
+verbose=false
+
+QCHKSEC_MAJOR=1
+QCHKSEC_MINOR=0
+QCHKSEC_REVISION=0
+arch=unknown
+
+SED=sed
+
+clr_red="\033[31m"
+clr_green="\033[32m"
+clr_yellow="\033[33m"
+clr_clear="\033[m"
+
+warning() {
+	echo -e "\e[31mWARNING: ${1}\e[0m"
+}
+
+error() {
+	echo -e "\n\e[31mERROR: ${1}\e[0m\n"
+}
+
+format_msg() {
+	echo -n -e "${1}"
+}
+
+cmd_avail() {
+	type "${1}" > /dev/null 2>&1;
+}
+
+# Usage message
+usage() {
+  echo "Usage: qchecksec [OPTION]"
+  echo
+  echo "Options:"
+  echo
+  echo " ## Actions"
+  echo "  --file={file}"
+  echo "  --dir={directory}"
+  echo "  --version"
+  echo "  --help"
+  echo
+  echo " ## Modifiers"
+  echo "  --debug"
+  echo "  --verbose"
+  echo "  --nocolor"
+  echo
+}
+
+if [[ $(uname) == "WINNT " ]]; then
+readlinkf() {
+	echo "${1}"
+}
+else
+readlinkf() {
+	readlink -f "${1}"
+}
+fi
+
+clear_colors() {
+	clr_red=""
+	clr_green=""
+	clr_yellow=""
+	clr_clear=""
+}
+
+# version information
+version() {
+  echo "qchecksec v${QCHKSEC_MAJOR}.${QCHKSEC_MINOR}.${QCHKSEC_REVISION}"
+}
+
+readelf-arch() {
+	nto${arch}-readelf $*
+}
+
+detect_arch()
+{
+	mach=$(ntox86_64-readelf -h "${1}" | grep Machine)
+	${debug} && echo "${mach}"
+	case ${mach} in
+		*X86-64*)
+			arch=x86_64
+			;;
+		*AArch64*)
+			arch=aarch64
+			;;
+		*)
+			error "Unknown architecture '${mach}'"
+			exit 1;
+	esac
+}
+
+format_hdr() {
+		format_msg "RELRO           STACK CANARY       PIE             NX            RPATH           RUNPATH           FORTIFY             FILE\n"
+}
+
+# Verify security related checks in a file
+
+qchksec_file() {
+	if [[ -z "${QCHKSEC_FILE}" ]] ; then
+		error "Please provide a valid file."
+		exit 1
+	fi
+
+	# does the file exist?
+	if [[ ! -e "${QCHKSEC_FILE}" ]] ; then
+		error "The file '${QCHKSEC_FILE}' does not exist."
+		exit 1
+	fi
+
+	# ELF binary?
+	realfile=$(readlinkf "${QCHKSEC_FILE}")
+	out=$(file "${realfile}")
+	if [[ ! ${out} =~ ELF ]] ; then
+		error "Not an ELF file: '${QCHKSEC_FILE}'"
+		exit 1
+	fi
+
+	format_hdr
+
+	qchksec_file_nocheck "${realfile}"
+}
+
+qchksec_file_nocheck() {
+
+	detect_arch "${1}"
+
+	# check for RELRO partial and full support
+	${debug} && echo "***function qchksec_file->RELRO"
+	${debug} && ${verbose} && readelf-arch -l "${1}"
+	if readelf-arch -l "${1}" 2>/dev/null | grep -q 'GNU_RELRO'; then
+		${debug} && ${verbose} && readelf-arch -d "${1}"
+		if readelf-arch -d "${1}" 2>/dev/null | grep -q 'BIND_NOW'; then
+			format_msg "${clr_green}Full RELRO   ${clr_clear}   "
+		else
+			format_msg "${clr_yellow}Partial RELRO${clr_clear}   "
+		fi
+	else
+		format_msg "${clr_red}No RELRO     ${clr_clear}   "
+	fi
+
+	# check for stack canary support -fstack-protector[-strong|-all]
+	# - Canary is either present in the binary because its applicable
+	# - Or we can confirm that the compiler option was turned on but produced no canary because
+	#   the code doesn't require any additional checks to be added
+	${debug} && echo -e "\n***function qchksec_file->canary"
+	if readelf-arch -s "${1}" 2>/dev/null | grep -Eq '__stack_chk_fail'; then
+		format_msg "${clr_green}Canary found    ${clr_clear}   "
+	else
+		# command line parameters given in binary directly
+		if [[ $(readelf-arch -p .QNX.command.line "${1}" 2>/dev/null) != "" ]]; then
+			${debug} && ${verbose} && readelf-arch -p .QNX.command.line "${1}"
+			if readelf-arch -p .QNX.command.line "${1}" 2>/dev/null | grep -Eq '\-fstack-protector'; then
+				format_msg "${clr_green}No canary needed${clr_clear}   "
+			else
+				format_msg "${clr_red}No canary found ${clr_clear}   "
+			fi
+		# else check if there's a symbol file
+		elif [[ -f "${1}.sym" ]]; then
+			${debug} && ${verbose} && readelf-arch -p .QNX.command.line "${1}.sym"
+			if readelf-arch -p .QNX.command.line "${1}.sym" 2>/dev/null | grep -Eq '\-fstack-protector'; then
+				format_msg "${clr_green}No canary needed${clr_clear}   "
+			else
+				format_msg "${clr_red}No canary found ${clr_clear}   "
+			fi
+		else
+			# Can't assess correctly so report unknown
+			format_msg "${clr_yellow}Canary unknown  ${clr_clear}   "
+		fi
+	fi
+
+	# check for PIE support
+	EXEC=false
+	${debug} && echo -e "\n***function qchksec_file->pie"
+	${debug} && ${verbose} && readelf-arch -h "${1}"
+	if readelf-arch -h "${1}" 2>/dev/null | grep -q 'Type:[[:space:]]*EXEC'; then
+		format_msg "${clr_red}No PIE       ${clr_clear}   "
+		EXEC=true
+	elif readelf-arch -h "${1}" 2>/dev/null | grep -q 'Type:[[:space:]]*DYN'; then
+		${debug} && ${verbose} && readelf-arch -d "${1}"
+		if readelf-arch -d "${1}" 2>/dev/null | grep -q 'DEBUG'; then
+			format_msg "${clr_green}PIE enabled  ${clr_clear}   "
+			EXEC=true
+		else
+			format_msg "${clr_green}DSO          ${clr_clear}   "
+		fi
+	else
+		format_msg "${clr_yellow}No ELF exec  ${clr_clear}   "
+	fi
+
+	# check for excutable stack support
+	${debug} && echo -e "\n***function qchksec_file->nx"
+	${debug} && ${verbose} && elfnote -tQNT_STACK -p "${1}"
+	# library stack executability has no effect on QNX like other OSes
+	# Only executables control this through their elfnote
+	if [[ ${EXEC} == false ]]; then
+		format_msg "${clr_green}DSO        ${clr_clear}   "
+	else
+		if elfnote -tQNT_STACK -p "${1}" 2>/dev/null | grep -q 'executable'; then
+			if elfnote -tQNT_STACK -p "${1}" 2>/dev/null | grep 'executable' | grep -q 'yes'; then
+				format_msg "${clr_red}NX disabled${clr_clear}   "
+			else
+				format_msg "${clr_green}NX enabled ${clr_clear}   "
+			fi
+		else
+			format_msg "${clr_yellow}NX unknown ${clr_clear}   "
+		fi
+	fi
+
+	# check for rpath / run path
+	${debug} && echo -e "\n***function qchksec_file->rpath"
+	# search for a line that matches RPATH and extract the colon-separated path list within brackets
+	# example input: "0x000000000000000f (RPATH) Library rpath: [/lib/systemd:/lib/apparmor]"
+	${debug} && ${verbose} && readelf-arch -d "${1}" 2>/dev/null
+	IFS=: read -a rpath_array <<< $(readelf-arch -d "${1}" 2>/dev/null | grep 'RPATH' | ${SED} -E 's/.*\[(.*)\].*/\1/')
+	if [[ "${#rpath_array[@]}" -gt 0 ]]; then
+		format_msg "${clr_red}RPATH enabled ${clr_clear}  "
+	else
+		format_msg "${clr_green}RPATH disabled${clr_clear}  "
+	fi
+
+	${debug} && echo -e "\n***function qchksec_file->runpath"
+	# search for a line that matches RUNPATH and extract the colon-separated path list within brackets
+	IFS=: read -a runpath_array <<< $(readelf-arch -d "${1}" 2>/dev/null | grep 'RUNPATH' | ${SED} -E 's/.*\[(.*)\].*/\1/')
+	if [[ "${#runpath_array[@]}" -gt 0 ]]; then
+		format_msg "${clr_red}RUNPATH enabled ${clr_clear}  "
+	else
+		format_msg "${clr_green}RUNPATH disabled${clr_clear}  "
+	fi
+
+	# check for stripped symbols in the binary
+	#${debug} && echo -e "\n***function qchksec_file->symbols"
+	#${debug} && ${verbose} && $readelf-arch --symbols "${1}" 2>/dev/null
+	#if readelf-arch --symbols "${1}" 2>/dev/null | grep -q '\.symtab'; then
+	#	sym_cnt=$(readelf-arch --symbols "${1}" 2>/dev/null | grep '\.symtab' | cut -d' ' -f5 | cut -d: -f1)
+	#	format_msg "${clr_red}${sym_cnt[0]} Symbols   ${clr_clear}\t"
+	#else
+	#	format_msg "${clr_green}No Symbols    ${clr_clear}\t"
+	#fi
+
+	# QNX's fortify implementation is not like on other OSes
+	# The way to test this is to check if the compiler option
+	# is recorded
+	${debug} && echo -e "\n***function qchksec_file->fortify"
+	if [[ $(readelf-arch -p .QNX.command.line "${1}" 2>/dev/null) != "" ]]; then
+		${debug} && ${verbose} && readelf-arch -p .QNX.command.line "${1}"
+		if readelf-arch -p .QNX.command.line "${1}" 2>/dev/null | grep -Eq '_FORTIFY_SOURCE=[1-9]'; then
+			format_msg "${clr_green}FORTIFY enabled  ${clr_clear}   "
+		else
+			format_msg "${clr_red}FORTIFY disabled ${clr_clear}   "
+		fi
+	# else check if there's a symbol file
+	elif [[ -f "${1}.sym" ]]; then
+		${debug} && ${verbose} && readelf-arch -p .QNX.command.line "${1}.sym"
+		if readelf-arch -p .QNX.command.line "${1}.sym" 2>/dev/null | grep -Eq '_FORTIFY_SOURCE=[1-9]'; then
+			format_msg "${clr_green}FORTIFY enabled  ${clr_clear}   "
+		else
+			format_msg "${clr_red}FORTIFY disabled ${clr_clear}   "
+		fi
+	else
+		# Can't assess correctly so report unknown
+		format_msg "${clr_yellow}FORTIFY unknown  ${clr_clear}   "
+	fi
+
+	# Change output to indicate if symbols file was present and if it
+	# contains compiler options
+	if [[ $(uname) == "WINNT " ]]; then
+		if [[ -f "${1}.sym" ]]; then
+			if readelf-arch -p .QNX.command.line "${1}.sym" 2>&1 | grep -Eq 'readelf: Warning:'; then
+				format_msg "$(cygpath -m $(pwd))/${1} [sym]\n"
+			else
+				format_msg "$(cygpath -m $(pwd))/${1} [sym,options]\n"
+
+			fi
+		else
+			if readelf-arch -p .QNX.command.line "${1}" 2>&1 | grep -Eq 'readelf: Warning:'; then
+				format_msg "$(cygpath -m $(pwd))/${1} []\n"
+			else
+				format_msg "$(cygpath -m $(pwd))/${1} [options]\n"
+			fi
+		fi
+	else
+		if [[ -f "${1}.sym" ]]; then
+			if readelf-arch -p .QNX.command.line "${1}.sym" 2>&1 | grep -Eq 'readelf: Warning:'; then
+				format_msg "${1} [sym]\n"
+			else
+				format_msg "${1} [sym,options]\n"
+
+			fi
+		else
+			if readelf-arch -p .QNX.command.line "${1}" 2>&1 | grep -Eq 'readelf: Warning:'; then
+				format_msg "${1} []\n"
+			else
+				format_msg "${1} [options]\n"
+			fi
+		fi
+	fi
+}
+
+# Verify security related checks of all files in a directory
+qchksec_dir() {
+	if [[ -z "${QCHKSEC_DIR}" ]] ; then
+		error "Invalid directory."
+		exit 1
+	fi
+
+	# remove trailing slashes
+	realdir=$(echo "${QCHKSEC_DIR}" | ${SED} -e "s/\/*$//")
+	if [[ ! -d "${realdir}" ]] ; then
+		error "The directory '${realdir}' does not exist."
+		exit 1
+	fi
+
+	format_hdr
+
+	while read -d ' ' FNAME; do
+		realfile=$(readlinkf "${FNAME}")
+		out=$(file "${realfile}")
+		if [[ ! ${out} =~ ELF ]] ; then
+			continue
+		fi
+		qchksec_file_nocheck "${realfile}"
+	done <<< `find -L "${realdir}" -type f ! -name "*.sym" | ${SED} ':loop;N;s/\n/ /g;t loop'`
+}
+
+### MAIN ###
+
+if [ "${QNX_HOST}" == "" ]; then
+	error "QNX_HOST environment variable not set, setup your QNX env"
+	exit 1
+fi
+
+cmds="file grep ${SED}"
+for cmd in ${cmds}; do
+	if !(cmd_avail ${cmd}); then
+		warning "'${cmd}' command not found! It's required for most checks."
+		cmdsmissing=true
+	fi
+done
+
+if [[ ${cmdsmissing} == true ]]; then
+	warning "Not all necessary commands found. Some tests might not work!"
+	sleep 2
+fi
+
+# run usage if nothing is passed
+if [[ $# -lt 1 ]]; then
+	usage
+	exit 1
+fi
+
+OPTS=0
+optspec=":h-:"
+while getopts "${optspec}" optchar; do
+	case "${optchar}" in
+	-)
+		case "${OPTARG}" in
+		version)
+			version
+			exit 0
+			;;
+		debug)
+			debug=true
+			;;
+		help)
+			usage
+			exit 0
+			;;
+		no-color)
+			clear_colors
+			;;
+		verbose)
+			verbose=true
+			;;
+		file=*|file)
+			QCHKSEC_FILE=${OPTARG#*=};
+			OPTS=$((OPTS + 1))
+			QCHKSEC_WHAT="qchksec_file"
+			;;
+		dir=*|dir)
+			QCHKSEC_DIR=${OPTARG#*=};
+			OPTS=$((OPTS + 1))
+			QCHKSEC_WHAT="qchksec_dir"
+			;;
+		*)
+			error "Unknown option '${OPTARG}'"
+			usage
+			exit 0
+			;;
+		esac
+		;;
+	*)
+		usage
+		exit 0
+		;;
+	esac
+done
+
+if [[ "${OPTS}" == 0 ]]; then
+	error "No action selected. Please select an action"
+	exit 1
+elif [[ "${OPTS}" -gt 1 ]]; then
+	error "To many options selected. Please select one at a time."
+	exit 1
+fi
+
+# call what is requested
+${QCHKSEC_WHAT}

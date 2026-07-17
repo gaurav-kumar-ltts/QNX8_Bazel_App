@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="About the SPI Framework" />
+<meta name="DC.subject" content="QNX SDP, 8.0, SPI Framework Technotes, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, SPI Framework Technotes, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="spi_ch_ov_intro" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>About the SPI Framework</title>
+</head>
+<body>
+<div class="nested0" aria-labelledby="ariaid-title1" id="spi_ch_ov_intro">
+<h1 class="title topictitle1" id="ariaid-title1">About the SPI Framework</h1>
+
+
+<div class="body conbody">
+
+<p class="p">This chapter describes the SPI framework.</p>
+
+
+</div>
+
+<div class="topic concept nested1" aria-labelledby="ariaid-title2" xml:lang="en-us" lang="en-us" id="spi_framework">
+<h2 class="title topictitle2" id="ariaid-title2">SPI framework</h2>
+
+
+<div class="body conbody">
+
+<p class="p">The SPI (Serial Peripheral Interface) is an interface bus used to exchange
+	data between SoCs running <span class="keyword">QNX OS</span>
+	and peripheral ICs (integrated circuits), also known as "SPI devices".
+	The framework supports uni-directional and bi-directional communication.
+	It also supports DMA, SMMU, and secpol.
+</p>
+
+
+<div class="p">The SPI framework has two main components that enable communication
+	between the SPI applications and the SPI devices:
+	<ul class="ul">
+		<li class="li">the <span class="keyword apiname">io-spi</span> resource manager</li>
+
+		<li class="li">the SPI drivers</li>
+
+	</ul>
+
+	The SPI applications interface with the <span class="keyword apiname">io-spi</span>
+	resource manager using standard POSIX <span class="keyword apiname">open()</span>,
+	<span class="keyword apiname">close()</span>, <span class="keyword apiname">read()</span>,
+	and <span class="keyword apiname">write()</span> functions as well
+	as custom <span class="keyword apiname">devctl()</span> commands.
+	The <span class="keyword apiname">io-spi</span> resource manager interfaces
+	with the SPI driver using the SPI function list
+	(<span class="keyword dtype">spi_funcs_t</span>) provided by the driver.
+	<span class="keyword apiname">io-spi</span> calls the functions from this list, as necessary.
+	<div class="note"><span class="notetitle">Note:</span> 
+		The <span class="keyword apiname">io-spi</span> resource manager functionality
+		is compiled into the SPI driver at build-time so only one
+		binary runs on the target: <span class="keyword cmdname">spi-XXX</span>
+		(<kbd class="ph userinput">XXX</kbd> is a specific name to the target board).
+	</div>
+
+	<br /><div class="imagecenter"><img class="image imagecenter" src="../images/SPI_diagram.png" width="250" /></div><br />
+</div>
+
+
+<p class="p">A single SPI driver process can support one
+	or more SPI buses with one thread per bus.
+	To configure the available SPI buses and devices,
+	the SPI driver uses a configuration file, <span class="ph filepath">spi.conf</span>.
+	After parsing the configuration file,
+	the SPI driver creates a unique device path for each SPI device
+	specified (e.g., <span class="ph filepath">/dev/io-spi/spi0/dev0</span>).
+</p>
+
+
+</div>
+
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title3" xml:lang="en-us" lang="en-us" id="ch_if1_intro">
+<h2 class="title topictitle2" id="ariaid-title3">Interfacing SPI applications and <span class="keyword apiname">io-spi</span></h2>
+
+
+<div class="body conbody">
+
+<div class="section" id="ch_if1_intro__intro">
+<p class="p">This section describes the interface between
+	the SPI applications and <span class="keyword apiname">io-spi</span>.
+	The interface uses standard POSIX functions and custom
+	<span class="keyword apiname">devctl()</span> commands.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="topic concept nested2" aria-labelledby="ariaid-title4" xml:lang="en-us" lang="en-us" id="SPI_POSIX">
+<h3 class="title topictitle3" id="ariaid-title4">SPI POSIX functions</h3>
+
+
+<div class="body conbody">
+
+<div class="section" id="SPI_POSIX__SPI_POSIX_functions">
+<div class="p">You can use the following standard POSIX functions in the SPI framework:
+	<dl class="dl">
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>
+			</dt>
+
+			<dd class="dd">Open a connection to a SPI device.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>
+			</dt>
+
+			<dd class="dd">Close a connection to a SPI device.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a>
+			</dt>
+
+			<dd class="dd">Read data from a SPI device.
+				The low-level device driver decides whether to
+				send dummy data to device first before reading.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>
+			</dt>
+
+			<dd class="dd">Write data to a SPI device.</dd>
+
+		
+	</dl>
+
+	For details on the POSIX functions,
+	check out the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/about.html"><em class="ph i">C library Reference</em></a>.
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+<div class="topic concept nested2" aria-labelledby="ariaid-title5" xml:lang="en-us" lang="en-us" id="SPI_devctl">
+<h3 class="title topictitle3" id="ariaid-title5">SPI devctl() commands</h3>
+
+
+<div class="body conbody">
+
+<div class="section" id="SPI_devctl__SPI_devctl_cmds">
+
+
+
+
+<div class="p">The <span class="ph filepath">&lt;hw/io-spi.h&gt;</span> header file
+	defines the custom SPI <span class="keyword apiname">devctl()</span> commands.
+	You can use the following <span class="keyword apiname">devctl()</span> commands in the SPI framework:
+	<dl class="dl">
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/spi/dcmd_spi_set_config.html"><span class="keyword const">DCMD_SPI_SET_CONFIG</span></a></dt>
+
+			<dd class="dd">Set the configuration for a specific device on the SPI bus.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/spi/dcmd_spi_get_drvinfo.html"><span class="keyword const">DCMD_SPI_GET_DRVINFO</span></a></dt>
+
+			<dd class="dd">Get the driver information for the low-level module.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/spi/dcmd_spi_get_devinfo.html"><span class="keyword const">DCMD_SPI_GET_DEVINFO</span></a></dt>
+
+			<dd class="dd">Get the information for a specific device on the SPI bus.</dd>
+
+		
+		
+			<dt class="dt dlterm"><a class="xref" href="../../com.qnx.doc.neutrino.devctl/topic/spi/dcmd_spi_data_xchng.html"><span class="keyword const">DCMD_SPI_DATA_XCHNG</span></a></dt>
+
+			<dd class="dd">Exchange data between a specific device and the client application.</dd>
+
+		
+	</dl>
+
+	For details on using the <span class="keyword const">DCMD_SPI_*</span> devctl() commands,
+	check out <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+	in the <cite class="cite">C library Reference</cite>.
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+</div>
+<div class="topic concept nested1" aria-labelledby="ariaid-title6" xml:lang="en-us" lang="en-us" id="ch_if2_intro">
+<h2 class="title topictitle2" id="ariaid-title6">Interfacing io-spi and SPI drivers</h2>
+
+
+<div class="body conbody">
+
+<div class="section" id="ch_if2_intro__intro">
+	<p class="p">This section describes the interface between
+		<dfn class="term">io-spi</dfn> and the SPI drivers.
+</p>
+
+<p class="p">
+	The SPI device driver sends SPI data to
+	and receives data from the SPI hardware.
+	Each SPI driver must implement the <span class="keyword apiname">spi_init()</span>
+	function to access the device driver structures and functions
+	defined in <span class="ph filepath">&lt;hw/io-spi.h&gt;</span>.
+	The two key structures for interfacing <span class="keyword apiname">io-spi</span> and the
+	SPI drivers are <span class="keyword dtype">spi_dev_t</span> and <span class="keyword dtype">spi_funcs_t</span>.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="topic concept nested2" aria-labelledby="ariaid-title7" xml:lang="en-us" lang="en-us" id="spi_dev_t">
+<h3 class="title topictitle3" id="ariaid-title7">SPI devices list, <span class="keyword dtype">spi_dev_t</span></h3>
+
+
+<div class="body conbody">
+
+<div class="section" id="spi_dev_t__spi_dev_t">
+<p class="p">The <span class="keyword dtype">spi_dev_t</span> structure contains
+	information about all SPI devices in the system.
+	<span class="keyword apiname">io-spi</span> initializes this list based on the
+	contents of the SPI config file, <span class="ph filepath">spi.conf</span>.
+	The low-level SPI driver can modify the individual fields, as necessary.
+</p>
+
+<div class="p">The definition of <span class="keyword dtype">spi_dev_t</span> is:
+	<pre class="pre codeblock">typedef struct _spi_dev spi_dev_t;
+
+/* SPI hardware device structure */
+struct _spi_dev {
+    iofunc_attr_t  attr;        /* Note: attr has to be the first member!!!
+                                 * We'll use it to get the addr of spi_dev_t
+                                 */
+    int            parent_busno;/* Device parent bus No. */
+    spi_devinfo_t  devinfo;
+    uint32_t       devctrl;     /* SPI device control register value. Calculated by setcfg */
+    int            resmgr_id;
+    spi_bus_t      *parent_bus; /* The address of its parent bus node *
+    spi_dev_t      *next;       /* Pointer to the next dev node */
+};</pre>
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+<div class="topic concept nested2" aria-labelledby="ariaid-title8" xml:lang="en-us" lang="en-us" id="spi_funcs_t">
+<h3 class="title topictitle3" id="ariaid-title8">SPI function structure, <span class="keyword dtype">spi_funcs_t</span></h3>
+
+
+<div class="body conbody">
+
+<div class="section" id="spi_funcs_t__spi_funcs_t">
+<p class="p">The <span class="keyword dtype">spi_funcs_t</span> structure is the interface between
+	<span class="keyword apiname">io-spi</span> and low-level SPI device driver.
+	It defines functions that <span class="keyword apiname">io-spi</span>
+	calls for the hardware-specific low-level module.
+</p>
+
+<div class="p">The definition of <span class="keyword dtype">spi_funcs_t</span> is:
+	<pre class="pre codeblock">#include &lt;hw/io-spi.h&gt;
+
+typedef struct _spi_funcs spi_funcs_t;
+
+struct _spi_funcs {
+	void (*spi_fini)    ( void *const hdl );
+
+	void (*drvinfo)     ( const void *const hdl,
+				   spi_drvinfo_t *info );
+
+	void (*devinfo)     ( const void *const hdl,
+				   const spi_dev_t *const spi_dev,
+				   spi_devinfo_t *const info );
+
+	int (*setcfg)       ( const void *const hdl,
+				   spi_dev_t *spi_dev,
+				   const spi_cfg_t *const cfg );
+
+	int (*xfer)         ( void *const hdl,
+				   spi_dev_t *const spi_dev,
+				   uint8_t *const buf,
+				   const uint32_t tnbytes,
+				   const uint32_t rnbytes );
+
+	int (*dma_xfer)     ( void *const hdl,
+				   spi_dev_t *spi_dev,
+				   dma_addr_t *addr,
+				   const uint32_t tnbytes,
+				   const uint32_t rnbytes );
+
+	int (*dma_allocbuf) ( void *const hdl,
+				   dma_addr_t *addr,
+				   const uint32_t len );
+
+	int (*dma_freebuf)  ( void *const hdl,
+				   dma_addr_t *addr );
+};</pre>
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+</div>
+</div>
+</body>
+</html>

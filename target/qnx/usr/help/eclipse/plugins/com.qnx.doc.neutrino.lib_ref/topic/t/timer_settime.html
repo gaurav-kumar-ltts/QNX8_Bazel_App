@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="timer_settime()" />
+<meta name="abstract" content="Arm a timer with the given expiration time, disarm it, or set its tolerance" />
+<meta name="description" content="Arm a timer with the given expiration time, disarm it, or set its tolerance" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/timing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/clock_getres.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/clock_gettime.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/clock_settime.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/e/errno.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/n/nanosleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sleep.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_create.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_delete.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_getexpstatus.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_getoverrun.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/timer_gettime.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timer_settime" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>timer_settime()</title>
+</head>
+<body id="timer_settime">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">timer_settime()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Arm a timer with the given expiration time, disarm it, or set its tolerance</em></p>
+
+
+<div class="section">
+
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;time.h&gt;
+
+int timer_settime( timer_t <var class="keyword varname">timerid</var>,
+                   int <var class="keyword varname">flags</var>,
+                   const struct itimerspec * <var class="keyword varname">value</var>,
+                   struct itimerspec * <var class="keyword varname">ovalue</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">timerid</var></dt>
+
+<dd class="dd">A <span class="keyword dtype">timer_t</span> object representing the timer that you want to modify.
+  This object holds a timer ID, as set by
+  <a class="xref" href="timer_create.html" title="Create a timer"><span class="keyword apiname">timer_create()</span></a>.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags that specify what you want to set for the timer. The valid flags include:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">TIMER_ABSTIME</span> — the <var class="keyword varname">it_value</var> member in the
+    <var class="keyword varname">value</var> object represents an absolute expiration date, in seconds and 
+    nanoseconds from the start of 1970. If the specified date has already passed, the function 
+    succeeds and the expiration notice is made.
+    
+
+    <p class="p">If you don't set this bit, the <var class="keyword varname">it_value</var> represents a relative expiration 
+        period that's offset from the current system time by the specified number of seconds and 
+        nanoseconds.</p>
+
+  </li>
+
+  </ul>
+
+
+  <p class="p">
+  The following are <span class="keyword">QNX OS</span> extensions:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">TIMER_TOLERANCE</span> — specify the amount of the tolerance to allow the kernel in
+    low-power situations.
+    You can't set this and <span class="keyword const">TIMER_ABSTIME</span> in the same call.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">TIMER_PRECISE</span> — override any default tolerance that was set for
+    the process (see
+    <a class="xref" href="../p/procmgr_timer_tolerance.html" title="Get or set the default timer tolerance for a process"><span class="keyword apiname">procmgr_timer_tolerance()</span></a>).
+    You can OR this into the flags if you're setting an expiration time (i.e., you didn't specify
+    <span class="keyword const">TIMER_TOLERANCE</span>).
+    
+  </li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">value</var></dt>
+
+<dd class="dd">A pointer to an <span class="keyword dtype">itimerspec</span> structure that specifies the new amount of time left 
+  before the timer expires, or the timer tolerance, depending on the flags.
+  For more information about this structure, see
+  <a class="xref" href="timer_gettime.html" title="Get the amount of time left on a timer"><span class="keyword apiname">timer_gettime()</span></a>.
+
+  <p class="p">
+  If you specify the <span class="keyword const">TIMER_TOLERANCE</span> flag, this argument can be <span class="keyword const">NULL</span>.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ovalue</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to an <span class="keyword dtype">itimerspec</span>
+  structure that the function fills in with either the timer's former time until
+  expiry or its tolerance, depending on the flags.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">timer_settime()</span> function either sets the expiration time of the
+timer specified by <var class="keyword varname">timerid</var>, or sets the tolerance for that timer,
+depending on the flags provided.
+When you don't specify <span class="keyword const">TIMER_TOLERANCE</span>, the expiration time is set from the 
+<var class="keyword varname">it_value</var> member of the <var class="keyword varname">value</var> argument. 
+If <var class="keyword varname">it_value</var> is non-zero, then the timer is armed (or rearmed).
+If this member is zero, then the timer is disarmed.
+When you do specify <span class="keyword const">TIMER_TOLERANCE</span>, the tolerance is set from the 
+<var class="keyword varname">it_value</var> member.
+</p>
+
+
+<p class="p">
+The <span class="keyword apiname">timer_settime()</span> function rounds up time values that are
+between two consecutive nonnegative integer multiples of the
+resolution of the specified timer to the larger multiple of the resolution.
+</p>
+
+
+<p class="p">
+If the <var class="keyword varname">it_interval</var> member of <var class="keyword varname">value</var> is nonzero, then
+it specifies a repeat rate that is added to the timer once the
+<var class="keyword varname">it_value</var> period has expired. Subsequently, the timer is
+automatically rearmed, causing it to become continuous with a period of <var class="keyword varname">it_interval</var>.
+</p>
+
+
+<p class="p">
+If the <var class="keyword varname">ovalue</var> parameter isn't <span class="keyword const">NULL</span>, then on return 
+from this function it contains a value representing the previous amount
+of time left before the timer was to have expired, or zero if the timer
+was disarmed. The previous interval timer period is also stored in the
+<var class="keyword varname">it_interval</var> member.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">timerid</var> is local to the calling process, and must have
+been created using <span class="keyword apiname">timer_create()</span>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Because of the nature of time measurement, the timer might actually expire after the specified time.
+For more information, see the
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time</a></q>
+chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</div>
+
+
+<p class="p"><strong class="ph b">Timer tolerance</strong></p>
+
+
+<p class="p">
+As a <span class="keyword">QNX OS</span> extension, if you specify the <span class="keyword const">TIMER_TOLERANCE</span> flag, then:
+</p>
+
+
+<ul class="ul">
+<li class="li">If <var class="keyword varname">value</var> isn't <span class="keyword const">NULL</span>, the <var class="keyword varname">it_value</var> member specifies the
+  amount of tolerance that the kernel is allowed with regard to the expiry time.
+  If you want to specify infinite timer tolerance, call
+  <a class="xref" href="timersettime.html" title="Arm a timer with the given expiration time, disarm it, or set its tolerance"><span class="keyword apiname">TimerSettime()</span></a>
+  instead of <span class="keyword apiname">timer_settime()</span>.
+</li>
+
+
+<li class="li">If <var class="keyword varname">ovalue</var> isn't <span class="keyword const">NULL</span>, the function sets the <var class="keyword varname">it_value</var>
+  member to the previous tolerance.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+        In order to set the
+        tolerance to a value between 0 and the clock period, you need to have the
+          <span class="keyword const">PROCMGR_AID_HIGH_RESOLUTION_TIMER</span> ability enabled. For more information,
+        see <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>. </p>
+
+
+<p class="p">
+You can set the tolerance at any time without affecting the active/inactive status of the timer.
+For more information, see
+<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/timing_tolerance.html">Tolerant and high-resolution timers</a></q> in the
+<q class="q">Understanding the Microkernel's Concept of Time</q>
+chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm">-1</dt>
+
+<dd class="dd">An error occurred
+  (<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred trying to access the buffers provided.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The timer <var class="keyword varname">timerid</var> isn't attached to the calling process
+  or the number of nanoseconds specified by the <var class="keyword varname">tv_nsec</var> member
+  of one of the <a class="xref" href="timespec.html" title="Time-specification structure"><span class="keyword dtype">timespec</span></a> 
+  structures in the <span class="keyword dtype">itimerspec</span> structure pointed to by
+  <var class="keyword varname">value</var> is less than zero or greater than or equal to 1000 million.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EOVERFLOW</span></dt>
+
+<dd class="dd">The sum of the current time and the provided relative time represented as nanoseconds results in a value
+that exceeds <span class="keyword const">UINT64_MAX</span>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<p class="p">
+See <a class="xref" href="timer_create.html" title="Create a timer"><span class="keyword apiname">timer_create()</span></a>.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d827166e599">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d827166e601"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e599 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e601 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e599 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e601 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e599 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d827166e601 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/timing.html">Understanding the Microkernel's Concept of Time (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/c/clock_getres.html" title="Get the resolution of the clock">clock_getres()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/clock_gettime.html" title="Get the current time of a clock">clock_gettime()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/clock_settime.html" title="Set a clock">clock_settime()</a></li>
+<li class="linklist"><a class="link" href="../../topic/e/errno.html" title="Thread-local error variable">errno</a></li>
+<li class="linklist"><a class="link" href="../../topic/n/nanosleep.html" title="Suspend a thread until a timeout or signal occurs">nanosleep()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sleep.html" title="Suspend a thread for a given length of time">sleep()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_create.html" title="Create a timer">timer_create()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_delete.html" title="Delete a timer">timer_delete()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_getexpstatus.html" title="Get the expiry status of a timer">timer_getexpstatus()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_getoverrun.html" title="Return the number of timer overruns">timer_getoverrun()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/timer_gettime.html" title="Get the amount of time left on a timer">timer_gettime()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="flashctl" />
+<meta name="abstract" content="Manage a flash filesystem" />
+<meta name="description" content="Manage a flash filesystem" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-f.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_FFS3.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/devf-ram.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mkefs.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="flashctl" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>flashctl</title>
+</head>
+<body id="flashctl">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">flashctl</span></h1>
+
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Manage a flash filesystem</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">flashctl [-eFfimruvxz] [-A] [-a <var class="keyword varname">flags</var>] [-b <var class="keyword varname">align</var>]
+         [-c <var class="keyword varname">flag</var>] [-L] [-l <var class="keyword varname">limit</var>] [-n <var class="keyword varname">path</var>] [-o <var class="keyword varname">offset</var>]
+         -p <var class="keyword varname">path</var> [-s <var class="keyword varname">num</var>] [-U] [-u] [-v...]
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p">
+<span class="keyword">QNX OS</span>
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<p class="p">
+The options are processed in the order given, and apply to the last
+partition specified by a <span class="keyword option">-p</span> option, letting you control
+multiple partitions with one command.
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword option">-A</span></dt>
+
+<dd class="dd">Unlock the entire flash array specified by the preceding <span class="keyword option">-p</span> option.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  Use this option only with a <q class="q">raw</q> device (e.g., <span class="ph filepath">/dev/fs0</span>);
+  don't use it with a mounted partition.
+  You can't use the <span class="keyword option">-l</span> and <span class="keyword option">-o</span> options with the <span class="keyword option">-A</span> option.
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-a</span> <var class="keyword varname">flags</var></dt>
+
+<dd class="dd">The mount-attribute flags
+  (the <span class="keyword const">_MOUNT_*</span> bits defined in <span class="ph filepath">&lt;sys/mount.h&gt;</span>, and
+  the <span class="keyword const">IOFUNC_MOUNT_*</span> bits defined in <span class="ph filepath">&lt;sys/iofunc.h&gt;</span>).
+  The default is 0.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-b</span> <var class="keyword varname">align</var></dt>
+
+<dd class="dd">Set the alignment to 2<sup class="ph sup"><var class="keyword varname">align</var></sup>.
+  The default value of <var class="keyword varname">align</var> is 2, resulting in an alignment of 2<sup class="ph sup">2</sup>.
+
+  <div class="p"> If you start the <a class="xref" href="../d/devf-ram.html" title="Simulate flash filesystem using RAM memory"><span class="keyword cmdname">devf-*</span></a> driver
+              with the <span class="keyword option">-D</span> (automatic detection of error-correcting code mode) or
+                <span class="keyword option">-x</span> (enable software ECC mode) option, you need to specify the
+              alignment. If you're using 64-byte alignment ECC, specify 6. For example: <pre class="pre codeblock">devf-ram -x1 -s0x20000000,16M
+flashctl -p /dev/fs0 -o1M -ev
+flashctl -p /dev/fs0p0 -o1M -f -b6 
+</pre>
+            </div>
+
+
+  <div class="p"> If you're using 32-byte alignment ECC, specify 5 for <var class="keyword varname">align</var>. For example:
+              <pre class="pre codeblock">devf-ram -x2 -s0x20000000,16M
+flashctl -p /dev/fs0 -o1M -ev
+flashctl -p /dev/fs0p0 -o1M -fv -b5
+</pre>
+            </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-c</span> <var class="keyword varname">flag</var></dt>
+
+<dd class="dd">Set the compression flag (default 1).</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-e</span></dt>
+
+<dd class="dd">Erase the raw partition specified by the preceding <span class="keyword option">-p</span> option
+  from the <var class="keyword varname">offset</var> specified by the <span class="keyword option">-o</span> option through to
+  <var class="keyword varname">limit</var> specified by the <span class="keyword option">-l</span> option.
+
+  <p class="p">
+  If you specify the <span class="keyword option">-v</span> option for verbose output, 
+  <span class="keyword cmdname">flashctl</span> outputs a period (<span class="ph codeph">.</span>) for every partition unit that it erases.
+  On RAM disk, the unit size is 64K; on other devices, it varies.
+  This output is reassuring because it can take several minutes to erase slow flash devices.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-f</span></dt>
+
+<dd class="dd">Format the raw partition specified by the preceding <span class="keyword option">-p</span> option
+  from the <var class="keyword varname">offset</var> specified by the <span class="keyword option">-o</span> option through to
+  <var class="keyword varname">limit</var> specified by the <span class="keyword option">-l</span> option.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-F</span></dt>
+
+<dd class="dd">Force the driver to use the given offset and length parameters, even
+  if the offset and length parameters don't fall within the bounds
+  of the partition specified by the preceding <span class="keyword option">-p</span> option. The range
+  provided by the <span class="keyword option">-o</span> and <span class="keyword option">-l</span> arguments must fit in a single
+  partition, and can't cross partition boundaries.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-i</span></dt>
+
+<dd class="dd">Print filesystem information for the partition specified by the preceding <span class="keyword option">-p</span> option; see
+  <q class="q"><a class="xref" href="flashctl.html#flashctl__Information">Filesystem information</a>,</q>
+  below.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-L</span></dt>
+
+<dd class="dd">Lock the raw partition specified by the preceding <span class="keyword option">-p</span> option
+  from the <var class="keyword varname">offset</var> specified by the <span class="keyword option">-o</span> option 
+  through to <var class="keyword varname">limit</var> specified by the <span class="keyword option">-1</span> option.   
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The <span class="keyword option">-L</span> option fails if the partition (e.g., <span class="ph filepath">/dev/fs0p0</span>) is mounted. 
+
+  <p class="p">
+  You can use <span class="ph filepath">/dev/fs0</span> to bypass the mounted 
+  filesystem check, but we don't recommend that you do so, because
+  the <span class="ph filepath">/dev/fs0</span> path bypasses all protection mechanisms.
+  If you use it, the flash driver doesn't know what filesystem or partition the locking affects.
+  The filesystem might think the flash is writable and suddenly it isn't.
+  The filesystem will get very confused, and write operations will start to fail.
+  Worse yet, if you lock a single block in a filesystem via
+  <span class="ph filepath">/dev/fs0</span>, <em class="ph i">most</em> of your writes will fail and suddenly stop working.
+  </p>
+
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-l</span> <var class="keyword varname">limit</var></dt>
+
+<dd class="dd">Specify a size limit in bytes (default 2 GB) for the
+  partition specified by the preceding <span class="keyword option">-p</span> option.
+  The <var class="keyword varname">limit</var> can include a suffix of <span class="ph codeph">k</span>, <span class="ph codeph">K</span>,
+  <span class="ph codeph">m</span>, <span class="ph codeph">M</span>, <span class="ph codeph">g</span>, or <span class="ph codeph">G</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-m</span></dt>
+
+<dd class="dd">Mount the filesystem partition specified by the preceding <span class="keyword option">-p</span> option.
+  The <span class="keyword option">-m</span> option doesn't work when you use the <span class="keyword option">-o</span> offset option.
+  You must restart the driver for the partition to be recognized.  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-n</span> <var class="keyword varname">path</var></dt>
+
+<dd class="dd">Specify the filesystem mountpoint for the partition specified by the preceding <span class="keyword option">-p</span> option.
+ 
+  <p class="p">
+  This option overrides any mountpoint specified with the <span class="keyword cmdname">mount</span> attribute of the 
+  <a class="xref" href="../m/mkefs.html" title="Build an embedded filesystem (QNX)"><span class="keyword cmdname">mkefs</span></a>
+  command.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-o</span> <var class="keyword varname">offset</var></dt>
+
+<dd class="dd">Specify the offset in bytes (default 0 bytes).
+  The <var class="keyword varname">offset</var> can include a suffix of <span class="ph codeph">k</span>, <span class="ph codeph">K</span>,
+  <span class="ph codeph">m</span>, <span class="ph codeph">M</span>, <span class="ph codeph">g</span>, or <span class="ph codeph">G</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-p</span> <var class="keyword varname">path</var></dt>
+
+<dd class="dd">Specify the raw mountpoint for the partition.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-r</span></dt>
+
+<dd class="dd">Reclaim deleted blocks on the partition specified by the preceding 
+  <span class="keyword option">-p</span> option, up to the <var class="keyword varname">limit</var> specified by the <span class="keyword option">-l</span> option.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-s</span> <var class="keyword varname">num</var></dt>
+
+<dd class="dd">Specify the number of spare blocks (default <span class="ph codeph">1</span>) on the
+  partition specified by the preceding <span class="keyword option">-p</span> option.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-U</span></dt>
+
+<dd class="dd">Unlock the raw partition specified by the preceding <span class="keyword option">-p</span>
+  option from the offset specified by the <span class="keyword option">-o</span> option through
+  to limit specified by <span class="keyword option">-l</span> option.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  The <span class="keyword option">-U</span> option fails if the partition (e.g., <span class="ph filepath">/dev/fs0p0</span>) is mounted.
+
+  <p class="p">
+  You can use <span class="ph filepath">/dev/fs0</span> to bypass the mounted 
+  filesystem check, but we don't recommend that you do so.
+  </p>
+
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-u</span></dt>
+
+<dd class="dd">Unmount the filesystem partition specified by the preceding <span class="keyword option">-p</span> option.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v...</span></dt>
+
+<dd class="dd">Be verbose; more <span class="ph codeph">v</span> characters cause more verbosity.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-x</span></dt>
+
+<dd class="dd">Exit the driver.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-z</span></dt>
+
+<dd class="dd">Query for the compression flag.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword cmdname">flashctl</span> utility is used to manage a flash filesystem.
+The utility interacts with the flash filesystem driver using
+<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a> 
+messages.
+Using <span class="keyword cmdname">flashctl</span>, you can erase and format a raw partition,
+force a reclaim operation, and get information about flash filesystem partitions.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">The options are processed in the order entered.
+  For example, you must erase (<span class="keyword option">-e</span>), format (<span class="keyword option">-f</span>),
+  and mount (<span class="keyword option">-m</span>) a partition in this order.
+</li>
+
+
+<li class="li">
+  For now, use <span class="keyword cmdname">flashctl</span> instead of <span class="keyword cmdname">mount</span> and
+ <span class="keyword cmdname">umount</span> to mount and unmount flash partitions.
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The <span class="keyword cmdname">flashctl</span> utility rounds the values of the <span class="keyword option">-o</span> and
+<span class="keyword option">-l</span> (<q class="q">el</q>) options down to the nearest block bound.
+If the range specified exceeds the partition size, it's rounded down to fit.
+If you use the <span class="keyword option">-v</span> option, <span class="keyword cmdname">flashctl</span> displays
+what the values have been rounded to.
+</p>
+
+
+<p class="p" id="flashctl__Information"><strong class="ph b">Filesystem information</strong></p>
+
+
+<div class="p">
+If you use the <span class="keyword option">-i</span> option, <span class="keyword cmdname">flashctl</span> displays
+information about the partition that you chose with the <span class="keyword option">-p</span> option;
+the amount of information depends on what you chose
+(the raw socket, raw partition, or formatted mounted filesystem):
+
+<ul class="ul">
+<li class="li"><span class="ph filepath">/dev/fs0</span> points to the entire socket, which means the
+  whole chip (or all physically contiguous chips).
+  This is the <span class="ph codeph">Array Info</span> listed below.
+</li>
+
+
+<li class="li"><span class="ph filepath">/dev/fs0p</span><var class="keyword varname">X</var> refers to a partition, referred
+  to as a <span class="ph codeph">Part</span>.
+</li>
+
+
+<li class="li">The erase sectors on flash are referred to as <span class="ph codeph">Units</span>.</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+Here's an example of the output:
+
+<pre class="pre codeblock">Array Info
+ Total      :  0x00800000  100%
+  Chip Size :  0x00800000  100%
+  Unit Size :  0x00020000    1%
+Part Info
+ Total      :  0x00800000  100%
+  Spare     :  0x00020000    1%
+  Headers   :  0x00001A34    0%
+  Padding   :  0x00000000    0%
+   Overhead :  0x00021A34    1%
+  Free      :  0x007DE5AC   98%
+  Stale     :  0x00000000    0%
+   Avail.   :  0x007DE5AC   98%
+  Reserved  :  0x00000020    0%
+Unit Info
+ Erase Stats
+  Average   :  0
+  Minimum   :  0
+  Maximum   :  0
+  Total     :  0
+</pre>
+</div>
+
+
+<div class="p">
+Here's how to interpret the output:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph codeph">Array Info</span></dt>
+
+<dd class="dd">The total amount of contiguous flash at the specified base address:
+
+  <ul class="ul">
+  <li class="li"><span class="ph codeph">Total</span> — the size.</li>
+
+  <li class="li"><span class="ph codeph">Chip Size</span> — the size of each chip if there are
+    multiple physical chips (they're assumed to all be the same size).
+  </li>
+
+  <li class="li"><span class="ph codeph">Unit Size</span> — the size of one sector, and the percentage of the total size.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph codeph">Part Info</span></dt>
+
+<dd class="dd">Information for the requested partition.
+  Sizes are given in bytes and as a percentage of the size of the partition; some fields might not be filled in:
+
+  <ul class="ul">
+  <li class="li"><span class="ph codeph">Total</span> — the partition size.</li>
+
+  <li class="li"><span class="ph codeph">Spare</span> — the amount of space used for spare blocks;
+    <span class="ph codeph">Spare</span>/<span class="ph codeph">Unit Size</span> gives the number of spare blocks.
+  </li>
+
+  <li class="li"><span class="ph codeph">Headers</span> — the space used for filesystem extent headers.</li>
+
+  <li class="li"><span class="ph codeph">Padding</span> —  the space used for alignment padding.</li>
+
+  <li class="li"><span class="ph codeph">Overhead</span> — the total of <span class="ph codeph">Headers</span> + <span class="ph codeph">Padding</span>.</li>
+
+  <li class="li"><span class="ph codeph">Free</span> — the amount of free space (no reclaim necessary).</li>
+
+  <li class="li"><span class="ph codeph">Stale</span> — the amount of stale space.</li>
+
+  <li class="li"><span class="ph codeph">Avail.</span> —  the total amount of usable space; this is
+    the total of <span class="ph codeph">Free</span> + <span class="ph codeph">Stale</span>.
+  </li>
+
+  <li class="li"><span class="ph codeph">Reserved</span> — internal reserved space for unlinking, etc.</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph codeph">Unit Info</span></dt>
+
+<dd class="dd">Information pertaining to individual sectors:
+
+  <ul class="ul">
+  <li class="li"><span class="ph codeph">Erase Stats</span> — the average, minimum, maximum, and
+    total number of erasures performed within the specified partition.
+  </li>
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<div class="p">
+Create a flash filesystem between 1 MB and 3 MB in a 4 MB raw partition: 
+
+<pre class="pre codeblock">flashctl -p /dev/fs0p0 -o 1M -l 2M -e -f
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+This command line results in this organization:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/fs0p0</span></dt>
+
+<dd class="dd">A raw partition at 0–1 MB</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/fs0p1 </span></dt>
+
+<dd class="dd">A flash filesystem partition at 1–3 MB (mounted as <span class="ph filepath">/fs0p1</span>)</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/dev/fs0p2</span></dt>
+
+<dd class="dd">A raw partition at 3–4 MB</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+Erase, format, and then mount (as <span class="ph filepath">/fs0p0</span>) the flash filesystem
+partition <span class="ph filepath">/dev/fs0p0</span>:
+
+<pre class="pre codeblock">flashctl -p /dev/fs0p0 -e -f -m 
+</pre>
+</div>
+
+
+<div class="p">
+Mount the given flash filesystem partition as <span class="ph filepath">/flash</span>:
+
+<pre class="pre codeblock">flashctl -p /dev/fs0p0 -n /flash -m
+</pre>
+</div>
+
+
+<div class="p">
+Use the following command to format the range from 3 to 6 MB, if the layout is unknown:
+
+<pre class="pre codeblock">flashctl -p /dev/fs0p0 -F -o 3m -l 6m -f
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+For <a class="xref" href="../d/devf-ram.html" title="Simulate flash filesystem using RAM memory"><span class="keyword cmdname">devf-ram</span></a>
+partitions only, you must format and erase a
+partition before you can mount the flash filesystem.
+Otherwise, you may get an error message
+<span class="ph codeph">flashctl: mounting partition failed.</span>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The mount facility (with the <span class="keyword option">-m</span> and <span class="keyword option">-u</span> options) 
+doesn't provide complete <span class="keyword cmdname">mount</span> functionality, such
+as read-only (<span class="keyword cmdname">mount</span> <span class="keyword option">-r</span>) and special options
+(<span class="keyword cmdname">mount</span> <span class="keyword option">-o</span>).
+</p>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-f.html">F</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.sys_arch/topic/fsys_FFS3.html">FFS3 filesystem (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/d/devf-ram.html" title="Simulate flash filesystem using RAM memory">devf-ram</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/mkefs.html" title="Build an embedded filesystem (QNX)">mkefs</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Secure boot" />
+<meta name="abstract" content="Secure boot is a mechanism that ensures the integrity of the running system, by cryptographically verifying each stage of the boot process." />
+<meta name="description" content="Secure boot is a mechanism that ensures the integrity of the running system, by cryptographically verifying each stage of the boot process." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="secure_boot" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Secure boot</title>
+</head>
+<body id="secure_boot">
+
+
+	<h1 class="title topictitle1" id="ariaid-title1">Secure boot</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Secure boot is a mechanism that ensures the integrity of the running system, by cryptographically verifying each stage of the boot process.</p>
+
+        <p class="p"></p>
+ 
+        <p class="p"></p>
+
+		<p class="p">This secure boot process involves having an immutable root of trust embedded in the hardware, either in an EEPROM or One-Time Programmable (OTP) chip. The number of steps in the bootchain varies based on the device SoC and system design but starts at a minimum of two. There are two approaches in how the root of trust is handled with their advantages and disadvantages.</p>
+
+		<p class="p">The following diagram illustrates the secure boot process from initial power on to the optional mounting of an integrity protected filesystem containing protected binaries and data that execute on the system. Each solution for the root of trust is described in further details below. The cryptographic keys used in this process are all public keys that come from generated PKI key pairs. The specific details of the cryptographic keys are not essential in understanding how secure boot operates. Bootloaders execute many tasks at each stage of device power up and these specific details are omitted in this description</p>
+
+		<p class="p">The only thing we mention is what the role of each bootloader is in progressing along the secure boot chain to reach system readiness.</p>
+
+		<p class="p">The use of Public Key Infrastructure (PKI) cryptography has several advantages such
+			as:</p>
+
+		<div class="p"><ul class="ul" id="secure_boot__ul_jjs_rbz_xjb">
+				<li class="li">No secret is involved on the device. The secret is the private key(s), which need to be secured offline.</li>
+
+				<li class="li">Any modification of the binary executable code between it being signed and being booted is detected. Maintaining the integrity of the binary does not depend on limiting access to the binary.</li>
+
+			</ul>
+The process starts with the SoC power on executable (BOOT CODE) using the Code Verification Key (CVK) contained in the root of trust to cryptographically verify the signature (SIG) of the executable code of bootloader #1. If verification is successful, bootloader #1 starts executing. Bootloader #1 also contains (or has access to) the public key of the next bootloader in the chain. This process of execution, verification and launch of the next stage continues until we reach the IFS, which is when the operating system (<span class="keyword">QNX OS</span>) starts executing. From there an optional Integrity Protected Filesystem can be mounted.  If any stage fails validation, the system stops the boot process.</div>
+
+		<div class="p">Note that because the root of trust is usually SoC-specific, the solution that is chosen needs to take the risks inherent to the selected hardware into consideration. Further, the type and strength of the cryptographic keys may be limited by what the SoC supports so these details also need to be factored into the desired security level of the solution.
+			<br /><img class="image" width="816" src="../../images/secure_boot.png" /><br /></div>
+
+		<div class="section"><h2 class="title sectiontitle">Secure boot solution 1</h2>
+		<p class="p">In this solution, the SoC vendor has in his or her possession the Master Root Key (MRK) which he or she uses to sign, using the private part of the MRK pair, the device owner's Code Verification Key (CVK)  (usually an X509 certificate that contains the CVK). The root of trust is entirely in the SoC OEM's hands since they control the MRK and BOOT CODE and the public parts of these elements are written to immutable device memory. The CVK is cryptographically verified, on power on boot, by the SoC BOOT CODE using the public part of the MRK. Once the CVK is verified it is then used to verify the following stage of the boot chain as described above. The CVK doesn't need to be stored in any protected memory (OTP or EEPROM) since it is tied to the MRK. The device producer cryptographically signs the Bootloader #1 code using the private key part of the CVK stored offline.</p>
+
+			<p class="p">Advantages:</p>
+
+			<div class="p">
+				<ul class="ul" id="secure_boot__ul_qgz_p2g_yjb">
+					<li class="li">Can be used in an insecure manufacturing process as the CVK is just a public key that is signed privately by the SoC OEM that owns the MRK</li>
+
+					<li class="li">IIf the CVK is compromised, then it could be replaced if it's possible for the specific SoC</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">Disadvantages:</p>
+
+			<div class="p">
+				<ul class="ul" id="secure_boot__ul_hcv_s2g_yjb">
+					<li class="li">Requires the SoC OEM to sign the device producer's CVK keys anytime a new
+						key is required</li>
+
+				</ul>
+
+			</div>
+
+					<h3 class="title sectiontitle">Secure boot solution 2</h3>
+		<p class="p">This second approach doesn't require any prior keys and allows the device producer to inject his chosen key into the device. The SoC BOOT CODE is also contained in immutable device memory. At manufacturing time, the cryptographically secure hash of the CVK is written to protected memory (OTP). This hash allows the BOOT CODE to verify the integrity of the CVK before using it to cryptographically verify the signature of bootloader #1. The root of trust is the combination of the BOOT CODE and the hash of the CVK. The CVK can be stored in non- protected memory since it needs to match the cryptographic CVK hash (OTP is expensive, and a hash is always of the same short length compared to keys which vary in size based on strength and algorithm). The device producer cryptographically signs the Bootloader #1 code using the private key part of the CVK stored offline.</p>
+
+			<p class="p">Note that the selection of the cryptographic hash may be constrained by the SoC
+				vendor.</p>
+
+			<p class="p">Advantages:</p>
+
+			<div class="p">
+				<ul class="ul">
+					<li class="li">Complete control of the keys used on the device</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">Disadvantages:</p>
+
+			<div class="p">
+				<ul class="ul">
+					<li class="li">Requires the device manufacturer to have complete control of the key injection process
+						during manufacturing to avoid key compromise</li>
+
+					<li class="li">Can't change the key if it's compromised</li>
+
+				</ul>
+
+			</div>
+
+											<h3 class="title sectiontitle">Secure boot additional details</h3>
+		<p class="p">While secure boot is the basis of security, there are situations that it doesn’t protect out of the box and require attention. Often these are possible only if the SoC secure boot function supports them.</p>
+
+			<div class="p">
+				<ul class="ul" id="secure_boot__ul_zwf_npx_xkb">
+					<li class="li">Downgrade attacks are also a threat that should be protected against. This type of attack consists of an attacker being able to reflash an older version of a correctly signed image on a device. The way to defend against this type of abuse is normally to have a way to blacklist past image versions so that the device does not boot if an image is encountered with a version that is below the acceptable baseline image version configured on the device.</li>
+
+					<li class="li">Secure boot does not prevent an attacker from decompiling, reverse engineering, or using the firmware on untrusted hardware. Encrypted boot is designed to protect against these attacks.   Encrypted boot is often referred to as a method for protecting the firmware intellectual property (IP). Support for encrypted boot depends on the SoC. While secure boot prevents untrusted code from running on trusted hardware, encrypted boot prevents trusted code from being extracted from trusted hardware. Whether secure boot, encrypted boot, both, or neither is supported depends on the SoC.</li>
+
+				</ul>
+
+			</div>
+
+
+			</div>
+
+	</div>
+
+</body>
+</html>

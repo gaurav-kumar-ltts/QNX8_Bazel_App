@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="atoz.c" />
+<meta name="abstract" content="For more information about this program, see the example in the “Returning directory entries” section of the Resource Managers chapter." />
+<meta name="description" content="For more information about this program, see the example in the “Returning directory entries” section of the Resource Managers chapter." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_returning_dirents.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="atoz.c" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>atoz.c</title>
+</head>
+<body id="atoz.c">
+
+   
+<h1 class="title topictitle1" id="ariaid-title1"><span class="ph filepath">atoz.c</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+For more information about this program, see the example in the
+<q class="q"><a class="xref" href="s1_resmgr_returning_dirents.html">Returning directory entries</a></q>
+section of the Resource Managers chapter.
+</p>
+
+
+<pre class="pre codeblock">/*
+ *  atoz.c
+ *
+ *  /dev/atoz using the resource manager library
+*/
+
+#include &lt;stdio.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;dirent.h&gt;
+#include &lt;limits.h&gt;
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+#define ALIGN(x) (((x) + 3) &amp; ~3)
+#define NUM_ENTS            26
+
+static  iofunc_attr_t   atoz_attrs [NUM_ENTS];
+
+static int
+my_open (resmgr_context_t *ctp, io_open_t *msg, iofunc_attr_t *attr, void *extra)
+{
+    if (msg -&gt; connect.path [0] == 0)
+    {   // the directory (/dev/atoz)
+        return (iofunc_open_default (ctp, msg, attr, extra));
+    } else if (msg -&gt; connect.path [1] == 0 &amp;&amp;
+              (msg -&gt; connect.path [0] &gt;= 'a' &amp;&amp;
+               msg -&gt; connect.path [0] &lt;= 'z'))
+    {   // the file (/dev/atoz/[a-z])
+        return (iofunc_open_default (ctp, msg,
+                  atoz_attrs + msg -&gt; connect.path [0] - 'a', extra));
+    } else {
+        return (ENOENT);
+    }
+}
+
+int
+dirent_size (char *fname)
+{
+    return (ALIGN (sizeof (struct dirent) - 4 + strlen (fname)));
+}
+
+struct dirent *
+dirent_fill (struct dirent *dp, int inode, int offset, char *fname)
+{
+    dp -&gt; d_ino = inode;
+    dp -&gt; d_offset = offset;
+    strcpy (dp -&gt; d_name, fname);
+    dp -&gt; d_namelen = strlen (dp -&gt; d_name);
+    dp -&gt; d_reclen = ALIGN (sizeof (struct dirent) - 4 + dp -&gt; d_namelen);
+    return ((struct dirent *) ((char *) dp + dp -&gt; d_reclen));
+}
+
+static int
+my_read_dir (resmgr_context_t *ctp, io_read_t *msg, iofunc_ocb_t *ocb)
+{
+    int     nbytes;
+    int     nleft;
+    struct  dirent *dp;
+    char    *reply_msg;
+    char    fname [_POSIX_PATH_MAX];
+
+    // allocate a buffer for the reply
+    reply_msg = calloc (1, msg -&gt; i.nbytes);
+    if (reply_msg == NULL) {
+        return (ENOMEM);
+    }
+
+    // assign output buffer
+    dp = (struct dirent *) reply_msg;
+
+    // we have "nleft" bytes left
+    nleft = msg -&gt; i.nbytes;
+    while (ocb -&gt; offset &lt; NUM_ENTS) {
+
+        // create the filename
+        sprintf (fname, "%c", ocb -&gt; offset + 'a');
+
+        // see how big the result is
+        nbytes = dirent_size (fname);
+
+        // do we have room for it?
+        if (nleft - nbytes &gt;= 0) {
+
+            // fill the dirent, and advance the dirent pointer
+            dp = dirent_fill (dp, ocb -&gt; offset + 1, ocb -&gt; offset, fname);
+
+            // move the OCB offset
+            ocb -&gt; offset++;
+
+            // account for the bytes we just used up
+            nleft -= nbytes;
+        } else {
+
+            // don't have any more room, stop
+            break;
+        }
+    }
+
+    // return info back to the client
+    MsgReply (ctp -&gt; rcvid, (char *) dp - reply_msg, reply_msg,
+              (char *) dp - reply_msg);
+
+    // release our buffer
+    free (reply_msg);
+
+    // tell resource manager library we already did the reply
+    return (_RESMGR_NOREPLY);
+}
+
+static int
+my_read_file (resmgr_context_t *ctp, io_read_t *msg, iofunc_ocb_t *ocb)
+{
+    int     nbytes;
+    int     nleft;
+    char    string;
+
+    // we don't do any xtypes here...
+    if ((msg -&gt; i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE) {
+        return (ENOSYS);
+    }
+
+    // figure out how many bytes are left
+    nleft = ocb -&gt; attr -&gt; nbytes - ocb -&gt; offset;
+
+    // and how many we can return to the client
+    nbytes = min (nleft, msg -&gt; i.nbytes);
+
+    if (nbytes) {
+        // create the output string
+        string = ocb -&gt; attr -&gt; inode - 1 + 'A';
+
+        // return it to the client
+        MsgReply (ctp -&gt; rcvid, nbytes, &amp;string + ocb -&gt; offset, nbytes);
+
+        // update flags and offset
+        ocb -&gt; attr -&gt; flags |= IOFUNC_ATTR_ATIME | IOFUNC_ATTR_DIRTY_TIME;
+        ocb -&gt; offset += nbytes;
+    } else {
+        // nothing to return, indicate End Of File
+        MsgReply (ctp -&gt; rcvid, EOK, NULL, 0);
+    }
+
+    // already done the reply ourselves
+    return (_RESMGR_NOREPLY);
+}
+
+static int
+my_read (resmgr_context_t *ctp, io_read_t *msg, iofunc_ocb_t *ocb)
+{
+    int     sts;
+
+    // use the helper function to decide if valid
+    if ((sts = iofunc_read_verify (ctp, msg, ocb, NULL)) != EOK) {
+        return (sts);
+    }
+
+    // decide if we should perform the "file" or "dir" read
+    if (S_ISDIR (ocb -&gt; attr -&gt; mode)) {
+        return (my_read_dir (ctp, msg, ocb));
+    } else if (S_ISREG (ocb -&gt; attr -&gt; mode)) {
+        return (my_read_file (ctp, msg, ocb));
+    } else {
+        return (EBADF);
+    }
+}
+
+int
+main (int argc, char **argv)
+{
+    dispatch_t              *dpp;
+    resmgr_attr_t           resmgr_attr;
+    dispatch_context_t      *ctp;
+    resmgr_connect_funcs_t  connect_func;
+    resmgr_io_funcs_t       io_func;
+    iofunc_attr_t           attr;
+    int                     i;
+
+    // create the dispatch structure
+    if ((dpp = dispatch_create ()) == NULL) {
+        perror ("Unable to dispatch_create");
+        exit (EXIT_FAILURE);
+    }
+
+    // initialize the various data structures
+    memset (&amp;resmgr_attr, 0, sizeof (resmgr_attr));
+    resmgr_attr.nparts_max = 1;
+    resmgr_attr.msg_max_size = 2048;
+
+    // bind default functions into the outcall tables
+    iofunc_func_init (_RESMGR_CONNECT_NFUNCS, &amp;connect_func,
+                      _RESMGR_IO_NFUNCS, &amp;io_func);
+
+    // create and initialize the attributes structure for the directory
+    iofunc_attr_init (&amp;attr, S_IFDIR | 0555, 0, 0);
+    attr.inode = NUM_ENTS + 1;  // 1-26 are reserved for 'a' through 'z' files
+    attr.nbytes = NUM_ENTS;     // 26 entries contained in this directory
+
+    // and for the "a" through "z" names
+    for (i = 0; i &lt; NUM_ENTS; i++) {
+        iofunc_attr_init (&amp;atoz_attrs [i], S_IFREG | 0444, 0, 0);
+        atoz_attrs [i].inode = i + 1;
+        atoz_attrs [i].nbytes = 1;
+    }
+
+    // add our functions; we're only interested in the open connect
+    // function and read I/O function handlers
+    connect_func.open = my_open;
+    io_func.read = my_read;
+
+    // establish a name in the pathname space
+    if (resmgr_attach (dpp, &amp;resmgr_attr, "/dev/atoz", _FTYPE_ANY,
+                      _RESMGR_FLAG_DIR, &amp;connect_func, &amp;io_func,
+                      &amp;attr) == -1) {
+        perror ("Unable to resmgr_attach");
+        exit (EXIT_FAILURE);
+    }
+
+    // allocate a context
+    ctp = dispatch_context_alloc (dpp);
+
+    // wait here forever, handling messages
+    while (1) {
+        if ((ctp = dispatch_block (ctp)) == NULL) {
+            perror ("Unable to dispatch_block");
+            exit (EXIT_FAILURE);
+        }
+        dispatch_handler (ctp);
+    }
+
+    // you'll never get here
+    return (EXIT_SUCCESS);
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/examples.html" title="This appendix contains the complete versions of some of the sample programs discussed in this book.">Sample Programs</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/s1_resmgr_returning_dirents.html" title="In the example for the read I/O function handler above, we saw how to return data. As mentioned in the description of the read I/O function handler (in the “Alphabetical listing of Connect and I/O functions”), this handler may return directory entries as well. Since this isn't something that everyone will want to do, I discuss it here.">Returning directory entries</a></li></ul></div>
+</div></body>
+</html>

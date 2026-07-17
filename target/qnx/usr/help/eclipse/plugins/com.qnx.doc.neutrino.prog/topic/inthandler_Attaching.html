@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Attaching and detaching interrupts" />
+<meta name="abstract" content="In order to handle interrupts, the software must tell the OS that it wants to associate a thread or an event with a particular source of interrrupts, a hardware interrupt request (IRQ)." />
+<meta name="description" content="In order to handle interrupts, the software must tell the OS that it wants to associate a thread or an event with a particular source of interrrupts, a hardware interrupt request (IRQ)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/inthandler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_inter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Attaching" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Attaching and detaching interrupts</title>
+</head>
+<body id="Attaching">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Attaching and detaching interrupts</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+  In order to handle interrupts, the software must tell the OS that it wants to associate a thread or an event with a particular source of interrrupts,
+  a hardware interrupt request (IRQ).
+</p>
+
+
+<p class="p">
+
+  The actual interrupts request number depends on the hardware configuration supplied by the board's manufacturer.
+  For the interrupt assignments for specific boards, see the buildfile in that board's BSP.
+</p>
+
+
+<p class="p">
+
+
+  In any case, a thread specifies which interrupt source it wants to associate with using the 
+  <span class="keyword apiname">InterruptAttachThread()</span> or <span class="keyword apiname">InterruptAttachEvent()</span> function calls;
+  when the software wishes to dissociate the IST from the interrupt source, it can call <span class="keyword apiname">InterruptDetach()</span>.
+</p>
+
+
+<pre class="pre codeblock">#define IRQ_NUM 76
+
+void* hardware_ist(void *unused)
+{
+    // Attach this thread to the interrupt source.
+    int const id = InterruptAttachThread(IRQ_NUM, _NTO_INTR_FLAGS_NO_UNMASK);
+    if (id == -1) {
+        // Handle errors.
+    }
+
+    while (!done) {
+        // Wait for the interrupt to assert.
+        // The FAST flag is more efficient, but cannot handle timeouts.
+        int const rc = InterruptWait(_NTO_INTR_WAIT_FLAGS_UNMASK |
+                                     _NTO_INTR_WAIT_FLAGS_FAST, NULL);
+        if (rc == -1) {
+            // Handle errors.
+        }
+
+        // Handle the interrupt. The interrupt is masked and will not be asserted again
+        // until InterruptWait() is called again with the UNMASK flag.
+    }
+    InterruptDetach(id);
+    return NULL;
+}
+</pre>
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+  The startup code is responsible for making sure that all interrupt sources are masked during system initialization.
+  When the first call to <span class="keyword apiname">InterruptAttachThread()</span> or <span class="keyword apiname">InterruptAttachEvent()</span> is done for an interrupt vector, the kernel unmasks it.
+  Similarly, when the last <span class="keyword apiname">InterruptDetach()</span> is done for an interrupt vector, the kernel remasks the level.
+</div>
+
+
+<p class="p">
+
+
+  Because interrupts can potentially impose a significant load on the machine, we don't let just anybody associate a thread with an interrupt.
+  The process must have the <span class="keyword const">PROCMGR_AID_INTERRUPT</span> ability enabled.
+For more information, see
+  <a class="xref" href="../../com.qnx.doc.security.system/topic/manual/abilities.html">Abilities</a>
+in the security manual.
+</p>
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/inthandler.html" title="This chapter explains the QNX OS mechanisms for quickly reacting to hardware events.">Handling Hardware Interrupts</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html">Interrupt handling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_inter.html">Interrupts (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html">InterruptAttachEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html">InterruptDetach()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html">InterruptDisable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html">InterruptEnable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html">InterruptLock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html">InterruptMask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html">InterruptUnlock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html">InterruptUnmask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html">ThreadCtl()</a></li></ul></div>
+</div></body>
+</html>

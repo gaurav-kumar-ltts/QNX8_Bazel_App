@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Registering a pathname" />
+<meta name="abstract" content="The resource manager needs to tell the process manager that one or more pathnames are now under its domain of authority—effectively, that this particular resource manager is prepared to handle client requests for those pathnames." />
+<meta name="description" content="The resource manager needs to tell the process manager that one or more pathnames are now under its domain of authority—effectively, that this particular resource manager is prepared to handle client requests for those pathnames." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Resmgr_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Registering_pathname" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Registering a pathname</title>
+</head>
+<body id="Registering_pathname">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Registering a pathname</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The resource manager needs to tell the process manager that one or
+more pathnames are now under its <em class="ph i">domain of authority</em>—effectively,
+that this particular resource manager is prepared to handle
+client requests for those pathnames.
+</p>
+
+<p class="p">
+
+The serial port resource manager might handle (let's say) four serial ports.
+In this case, it would register four different pathnames with the
+process manager:  <span class="ph filepath">/dev/ser1</span>, <span class="ph filepath">/dev/ser2</span>,
+<span class="ph filepath">/dev/ser3</span>, and <span class="ph filepath">/dev/ser4</span>.
+The impact of this is that there are now four distinct entries in the
+process manager's pathname tree, one for each of the serial ports.
+Four entries isn't too bad.
+But what if the serial port resource manager handled one of those fancy
+multiport cards, with 256 ports on it?
+Registering 256 <em class="ph i">individual</em> pathnames (i.e., <span class="ph filepath">/dev/ser1</span>
+through <span class="ph filepath">/dev/ser256</span>) would result in 256 different entries
+in the process manager's pathname tree!
+The process manager isn't optimized for searching this tree; it assumes that
+there will be a few entries in the tree, not hundreds.
+</p>
+
+
+<div class="p">
+As a rule, you shouldn't <em class="ph i">discretely</em> register more
+than a few dozen pathnames at each level—this is because a linear search is performed.
+The 256 port registration is clearly beyond that.
+In that case, what the multiport serial resource manager should do is
+register a <em class="ph i">directory</em>-style pathname, for example <span class="ph filepath">/dev/multiport</span>.
+This occupies only one entry in the process manager's pathname tree.
+Suppose a client opens a serial port, let's say port 57:
+
+<pre class="pre codeblock">fp = fopen ("/dev/multiport/57", "w");
+</pre>
+</div>
+
+
+<div class="p"> The process manager resolves this to the PID/CHID/handle for the multiport serial resource
+            manager; it's up to that resource manager to decide if the rest of the pathname (in our
+            case, the <q class="q">57</q>) is valid. In this example, assuming that the variable
+                <var class="keyword varname">path</var> contains the rest of the pathname past the mountpoint, this
+            means that the resource manager could do checking in a <em class="ph i">very</em> simple manner:
+                
+            
+
+<pre class="pre codeblock">devnum = atoi (path);
+if ((devnum &lt;= 0) || (devnum &gt;= 256)) {
+    // bad device number specified
+} else {
+    // good device number specified
+}
+</pre>
+</div>
+
+
+<p class="p">
+This search would certainly be faster than anything the process manager could do,
+because the process manager must, by design, be much more general-purpose
+than our resource manager.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Resmgr_view.html" title="Let's look at things from the resource manager's perspective.">The resource manager's view</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

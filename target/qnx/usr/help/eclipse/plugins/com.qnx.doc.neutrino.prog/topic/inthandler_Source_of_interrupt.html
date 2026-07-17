@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Determining the source of the interrupt" />
+<meta name="abstract" content="Depending on your hardware configuration, there may actually be multiple hardware sources associated with an interrupt. This issue is a function of your specific hardware and bus type. This characteristic (plus good programming style) mandates that your IST ensure that the hardware associated with it actually caused the interrupt." />
+<meta name="description" content="Depending on your hardware configuration, there may actually be multiple hardware sources associated with an interrupt. This issue is a function of your specific hardware and bus type. This characteristic (plus good programming style) mandates that your IST ensure that the hardware associated with it actually caused the interrupt." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/inthandler_IST.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_inter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Source_of_interrupt" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Determining the source of the interrupt</title>
+</head>
+<body id="Source_of_interrupt">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Determining the source of the interrupt</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Depending on your hardware configuration, there may actually
+be <em class="ph i">multiple</em> hardware sources associated with an
+interrupt. This issue is a function of your specific
+hardware and bus type. This characteristic (plus good
+programming style) mandates that your IST ensure that the
+hardware associated with it actually <em class="ph i">caused</em> the
+interrupt.
+</p>
+
+
+<p class="p">
+Most <em class="ph i">PIC</em> (Programmable Interrupt Controller) chips
+can be programmed to respond to interrupts in either an
+<em class="ph i">edge-sensitive</em> or <em class="ph i">level-sensitive</em>
+manner. Depending on this programming, interrupts may be sharable.
+
+
+
+
+</p>
+
+
+<div class="p">
+For example:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Interrupt request assertion with multiple interrupt sources.</span>
+
+<br /><img class="image" src="../images/irqassrt.svg" alt="Figure showing interrupt request assertion" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+In the above scenario, if the PIC is operating in a
+level-sensitive mode, the IRQ is considered active whenever
+it's high. In this configuration, while the second assertion
+(step 2) doesn't itself <em class="ph i">cause</em> a new interrupt, the
+interrupt is still considered active even when the original
+cause of the interrupt is removed (step 3). Not until the
+last assertion is cleared (step 4) will the interrupt be
+considered inactive.
+
+</p>
+
+
+<p class="p">
+In edge-triggered mode, the interrupt is
+<q class="q">noticed</q> only once, at step 1. Only when the
+interrupt line is cleared, and then reasserted, does the
+PIC consider another interrupt to have occurred.
+
+</p>
+
+
+<p class="p">
+  <span class="keyword">QNX OS</span> allows IRQs to be shared, meaning that multiple ISTs can be associated with one particular IRQ.
+  The impact of this is that each thread in
+the chain must look at its associated hardware and determine
+if it caused the interrupt. This works reliably in a
+level-sensitive environment, but not an edge-triggered
+environment.
+</p>
+
+
+<p class="p">
+To illustrate this, consider the case where two hardware
+devices are sharing an interrupt. We'll call these devices
+<q class="q">HW-A</q> and <q class="q">HW-B.</q> Two ISTs are attached to one interrupt source (via the
+<span class="keyword apiname">InterruptAttachThread()</span> or <span class="keyword apiname">InterruptAttachEvent()</span>
+call), with priorities such that IST-A is run first, then IST-B second.
+</p>
+
+
+<p class="p">
+  Now, suppose HW-B asserts the interrupt line first. <span class="keyword">QNX OS</span> detects the interrupt and dispatches the two threads in order.
+  IST-A runs first and decides (correctly) that its hardware didn't cause the interrupt.
+  Then IST-B runs and decides (correctly) that its hardware did cause the interrupt; it then starts servicing the interrupt.
+  However, before IST-B clears the source of the interrupt, suppose HW-A asserts an interrupt; what happens depends on the type of IRQ:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Edge-triggered IRQ</dt>
+
+<dd class="dd">If you have an edge-triggered bus, when IST-B clears the
+  source of the interrupt, the IRQ line is still held active (by HW-A).
+  But because it's edge-triggered, the PIC is
+  waiting for the next clear/assert transition before it
+  decides that another interrupt has occurred.
+  Since IST-A already ran, it can't possibly run again to actually
+  <em class="ph i">clear</em> the source of the interrupt.
+  The result is a <q class="q">hung</q> system, because the interrupt will
+  <em class="ph i">never</em> transit between clear and asserted again, so no further
+  interrupts on that IRQ line will ever be recognized.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Level-sensitive IRQ</dt>
+
+  <dd class="dd">On a level-sensitive bus, when IST-B clears the source of the interrupt, the IRQ line is still held active (by HW-A).
+    When IST-B finishes running and <span class="keyword">QNX OS</span> unmasks the interrupt, the PIC immediately reinterrupts the kernel,
+    causing IST-A (and then IST-B) to run.
+  
+  
+
+  <p class="p">
+    Since IST-A clears the source of the interrupt (and IST-B doesn't do anything, because its associated hardware doesn't require servicing),
+    everything functions as expected.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/inthandler_IST.html">Interrupt Service Thread (IST)</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/kernel_INTERRUPTHANDLING.html">Interrupt handling (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_inter.html">Interrupts (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptattachevent.html">InterruptAttachEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdetach.html">InterruptDetach()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptdisable.html">InterruptDisable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptenable.html">InterruptEnable()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptlock.html">InterruptLock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptmask.html">InterruptMask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunlock.html">InterruptUnlock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptunmask.html">InterruptUnmask()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/interruptwait.html">InterruptWait()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/threadctl.html">ThreadCtl()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Generating startup debug symbols" />
+<meta name="abstract" content="To generate debug symbols for the startup program, you must recompile both the startup library and the board's startup program with debug information." />
+<meta name="description" content="To generate debug symbols for the startup program, you must recompile both the startup library and the board's startup program with debug information." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startupdebugsymbols" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Generating startup debug symbols</title>
+</head>
+<body id="startupdebugsymbols">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Generating startup debug symbols</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">To generate debug symbols for the startup program, you must recompile both the startup library and the board's
+		startup program with debug information.</p>
+
+		<div class="p">
+			The general procedure is:
+			<ol class="ol">
+				<li class="li">Build the startup library and the target board's startup program with debug information.
+					(Ensure any modifications you require are complete before you build.)</li>
+
+				<li class="li">Rebuild the image and symbol file.</li>
+
+				<li class="li">Load the symbol file into the hardware debugger program.</li>
+
+				<li class="li">Transfer the startup to the board; for example, write the startup into flash memory using a flash
+					writer or JTAG, transfer it over a serial or network connection, or load it from an SD card or
+					other removable media.</li>
+
+			</ol>
+
+		</div>
+
+		<div class="p">To build the startup library with debug information:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib/<var class="keyword varname">target</var>/a.be
+# make clean
+# make CCOPTS=-g 
+# cp libstartup.a <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/install/<var class="keyword varname">processor</var>/lib
+# make install
+</pre></div>
+
+		<p class="p">The above steps recompile the startup library (<span class="ph filepath">libstartup.a</span>) with debug
+			information and copy this library to the <span class="ph filepath">install/<var class="keyword varname">processor</var>/lib</span> directory,
+			assuming that the BSP is configured to look for this library first in this directory.
+			The <span class="keyword cmdname">make install</span> is optional, and copies <span class="ph filepath">libstartup.a</span> to
+			<span class="ph filepath">/<var class="keyword varname">processor</var>/usr/lib</span>.
+
+		</p>
+
+		<div class="p">To build the board's startup with debugging information:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/src/hardware/startup/boards/<var class="keyword varname">board_name</var>/<var class="keyword varname">target</var>/be
+# make clean
+# make CCOPTS=-g
+# make install 
+</pre></div>
+
+		<p class="p">The above steps generate the file <span class="ph filepath">startup-<var class="keyword varname">board_name</var></span> with symbol and
+			debug information. The <span class="keyword cmdname">make install</span> is necessary, and copies
+			<span class="ph filepath">startup-<var class="keyword varname">board_name</var></span> into the <span class="ph filepath">install</span> directory,
+			<span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/install/
+				<var class="keyword varname">processor</var>/boot/sys</span>.</p>
+
+		<div class="note"><span class="notetitle">Note:</span> You can't load the <span class="ph filepath">startup-<var class="keyword varname">board_name</var></span> ELF file into the hardware
+			debugger to obtain the debug symbols, because the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a>
+			utility adds an offset to the addresses defined in the symbols according to the offset specified in the buildfile.</div>
+
+		<div class="p">
+			
+			Modify the buildfile to include the <span class="keyword option">+keeplinked</span> attribute for startup:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/images
+</pre></div>
+
+		<div class="p">Modify the startup line of your buildfile to look like:
+<pre class="pre codeblock">[image=0x10000]
+[virtual=<var class="keyword varname">processor</var>,binary +compress] .bootstrap = {
+        [+keeplinked] startup-<var class="keyword varname">board_name</var> -vvv -D8250
+    PATH=/proc/boot
+    procnto-smp-instr -vv
+}
+</pre></div>
+
+		<p class="p">The <span class="keyword option">+keeplinked</span> option instructs <span class="keyword cmdname">mkifs</span> to generate a symbol file that
+			represents the debug information, positioned by the specified offset in the image filesystem.</p>
+
+		<div class="p">To rebuild the image to generate the symbol file:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/images
+# make clean
+</pre></div>
+
+		<div class="p">Then, if you're using one of the provided <span class="ph filepath">.build</span> files:
+<pre class="pre codeblock"># make all
+</pre>
+			otherwise:
+<pre class="pre codeblock"># mkifs -v -r ../install myfile.build image
+</pre></div>
+
+		<p class="p">These commands create the symbol file,
+			<span class="ph filepath">startup-<var class="keyword varname">board_name</var>.sym</span>. You can use the
+			<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/o/objdump.html"><span class="keyword cmdname">objdump</span></a> utility to view the ELF information.</p>
+
+		<div class="p">To view the symbol information contained in the
+			<span class="ph filepath">startup-<var class="keyword varname">board_name</var>.sym</span> file:
+<pre class="pre codeblock"># objdump -t startup-<var class="keyword varname">board_name</var>.sym | less
+</pre></div>
+
+			<div class="p">You can now import the <span class="ph filepath">startup-<var class="keyword varname">board_name</var>.sym</span>
+				file into a hardware debugger to provide the symbol information required for debugging startup.
+				In addition to the <span class="ph filepath">startup-<var class="keyword varname">board_name</var>.sym</span> file, the
+				hardware debugger needs the source code listings found in the following directories:
+			<ul class="ul">
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib</span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib/public/<var class="keyword varname">target</var></span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib/public/sys</span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/startup/lib/<var class="keyword varname">target</var></span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/src/hardware/startup/boards/
+					<var class="keyword varname">board_name</var></span></li>
+
+			</ul>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

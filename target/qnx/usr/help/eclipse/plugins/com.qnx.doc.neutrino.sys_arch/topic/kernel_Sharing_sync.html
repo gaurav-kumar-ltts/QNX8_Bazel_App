@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Safely sharing mutexes, barriers, and reader/writer locks between processes" />
+<meta name="abstract" content="You can share most synchronization objects between processes, but security can be a concern." />
+<meta name="description" content="You can share most synchronization objects between processes, but security can be a concern." />
+<meta name="DC.subject" content="processes, sharing synchronization services between, synchronization services, safe shared mutexes, mutexes, safe shared, shared mutexes, safe, barriers, reader/writer locks, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="processes, sharing synchronization services between, synchronization services, safe shared mutexes, mutexes, safe shared, shared mutexes, safe, barriers, reader/writer locks, QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SYNCHRO.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Mutexes.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Condvars.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Barriers.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_Reader_writer_locks.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setprotocol.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlockattr_setpshared.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncmutexlock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="kernel_Sharing_sync" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Safely sharing mutexes, barriers, and reader/writer locks between processes</title>
+</head>
+<body id="kernel_Sharing_sync">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Safely sharing mutexes, barriers, and reader/writer locks between processes</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+You can share most synchronization objects between processes, but security can be a concern.
+</p>
+
+
+<p class="p">
+Most of this discussion involves mutexes, but barriers and reader/writer locks are built from mutexes, so
+it applies to them too.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In order for processes to share a synchronization object, they must also share the memory in which it resides.
+</div>
+
+
+<p class="p">
+The problem with shared mutexes is that a thread in any process can claim that
+another thread (in any process) owns the mutex;
+when priority inheritance is applied, the latter's priority is boosted to that of the former.
+If an application needs to share a mutex between separate processes, then it must decide whether to
+expose itself to potential interference from unrelated processes,
+disable priority inheritance on the shared mutex,
+or force all operations on the shared mutex to enter the
+kernel—which they don't normally do—resulting in a performance penalty.
+</p>
+
+
+<p class="p">
+You can configure the kernel to reject attempts to lock shared mutexes
+that would cause priority inheritance unless all mutex locking operations enter the kernel.
+This has a significant impact on the performance of shared mutexes that use the priority-inheritence protocol,
+but guarantees that noncooperating threads can't interfere with each other.
+In order to use a shared mutex in a safe manner, you must do the following:
+</p>
+
+
+<ul class="ul">
+<li class="li">Specify the <span class="keyword option">-s</span> option for
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>
+  to force all mutex operations on shared mutexes that support priority inheritance to enter the kernel.
+</li>
+
+
+<li class="li">Either disable priority inheritance for the mutex by using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setprotocol.html"><span class="keyword apiname">pthread_mutexattr_setprotocol()</span></a>
+  to set the <span class="keyword const">PTHREAD_PRIO_NONE</span> flag,
+  or explicitly identify the mutex as shared by using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setpshared.html"><span class="keyword apiname">pthread_mutexattr_setpshared()</span></a>
+  to set the process-shared attribute to <span class="keyword const">PTHREAD_PROCESS_SHARED</span>.
+  
+  
+  
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+
+If you specify the <span class="keyword option">-s</span> option, the kernel rejects any attempts to lock a
+<span class="keyword const">PTHREAD_PRIO_INHERIT</span> mutex
+that doesn't have <span class="keyword const">PTHREAD_PROCESS_SHARED</span> set.
+In this case,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html"><span class="keyword apiname">pthread_mutex_lock()</span></a>
+and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncmutexlock.html"><span class="keyword apiname">SyncMutexLock()</span></a>
+give an error of <span class="keyword const">EINVAL</span>.
+</p>
+
+
+<p class="p">
+
+
+Similarly, if you use <span class="keyword cmdname">procnto</span>'s <span class="keyword option">-s</span> option, and you share
+a barrier or reader/writer lock between processes, you should use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_setpshared.html"><span class="keyword apiname">pthread_barrierattr_setpshared()</span></a>
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlockattr_setpshared.html"><span class="keyword apiname">pthread_rwlockattr_setpshared()</span></a>
+to set its process-shared attribute to <span class="keyword const">PTHREAD_PROCESS_SHARED</span>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SYNCHRO.html" title="The QNX OS provides the POSIX-standard thread-level synchronization primitives, some of which are useful even between threads in different processes.">Synchronization services</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../topic/kernel_Mutexes.html" title="Mutual exclusion locks, or mutexes, are the simplest of the synchronization services. A mutex is used to ensure exclusive access to data shared between threads.">Mutexes: mutual exclusion locks</a></li>
+<li class="linklist"><a class="link" href="../topic/kernel_Condvars.html" title="A condition variable, or condvar, is used to block a thread within a critical section until some condition is satisfied. The condition can be arbitrarily complex and is independent of the condvar. However, the condvar must always be used with a mutex lock in order to implement a monitor.">Condvars: condition variables</a></li>
+<li class="linklist"><a class="link" href="../topic/kernel_Barriers.html" title="A barrier is a synchronization mechanism that lets you “corral” several cooperating threads (e.g., in a matrix computation), forcing them to wait at a specific point until all have finished before any one thread can continue.">Barriers</a></li>
+<li class="linklist"><a class="link" href="../topic/kernel_Reader_writer_locks.html" title="More formally known as “Multiple readers, single writer locks,” these locks are used when the access pattern for a data structure consists of many threads reading the data, and (at most) one thread writing the data. These locks are more expensive than mutexes, but are useful for this data access pattern.">Reader/writer locks</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_barrierattr_setpshared.html">pthread_barrierattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_condattr_setpshared.html">pthread_condattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html">pthread_mutex_lock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setprotocol.html">pthread_mutexattr_setprotocol()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setpshared.html">pthread_mutexattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlockattr_setpshared.html">pthread_rwlockattr_setpshared()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/syncmutexlock.html">SyncMutexLock()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html">procnto</a></li></ul></div>
+</div></body>
+</html>

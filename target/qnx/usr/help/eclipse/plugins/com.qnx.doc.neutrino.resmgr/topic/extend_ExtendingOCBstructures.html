@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Extending the OCB and attribute structures" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/structures.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ExtendingOCBstructures" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Extending the OCB and attribute structures</title>
+</head>
+<body id="ExtendingOCBstructures">
+
+<h1 class="title topictitle1" id="ariaid-title1">Extending the OCB and attribute structures</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+In our <span class="ph filepath">/dev/sample</span> example, we had a static
+buffer associated with the entire resource. Sometimes you
+may want to keep a pointer to a buffer associated with the
+resource, rather than in a global area. To maintain the
+pointer with the resource, we would have to store it in the
+<span class="keyword dtype">iofunc_attr_t</span> attribute structure.
+Since the attribute structure doesn't
+have any spare fields, we would have to extend it to contain that pointer.
+</p>
+
+
+<p class="p">
+
+
+Sometimes you may want to add extra entries to the standard
+<span class="keyword apiname">iofunc_*()</span> OCB (<span class="keyword dtype">iofunc_ocb_t</span>).
+</p>
+
+
+<div class="p">
+Let's see how we can extend both of these structures.
+The basic strategy used is to encapsulate the existing attributes and OCB structures
+within a newly defined superstructure that also contains our extensions.
+Here's the code (see the text following the listing for comments):
+
+
+
+
+
+
+<pre class="pre codeblock">/* Define our overrides before including &lt;sys/iofunc.h&gt;  */
+struct device;
+#define IOFUNC_ATTR_T       struct device  /* see note 1 */
+struct ocb;
+#define IOFUNC_OCB_T        struct ocb     /* see note 1 */
+
+#include &lt;sys/iofunc.h&gt;
+#include &lt;sys/dispatch.h&gt;
+
+struct ocb {                               /* see note 2 */
+    iofunc_ocb_t            hdr;           /* see note 4; must always be first */
+    struct ocb              *next;
+    struct ocb              **prev;        /* see note 3 */
+};
+
+struct device {                            /* see note 2 */
+    iofunc_attr_t           attr;          /* must always be first */
+    struct ocb              *list;         /* waiting for write */
+};
+
+/* Prototypes, needed since we refer to them a few lines down */
+
+struct ocb *ocb_calloc (resmgr_context_t *ctp, struct device *device);
+void ocb_free (struct ocb *ocb);
+
+static iofunc_funcs_t ocb_funcs = { /* our ocb allocating &amp; freeing functions */
+    _IOFUNC_NFUNCS,
+    ocb_calloc,
+    ocb_free
+};
+
+/* The mount structure; we have only one, so we statically declare it */
+static iofunc_mount_t          mountpoint;
+
+/* One struct device per attached name (there's only one name in this example) */
+static struct device           deviceattr;
+
+main (void)
+{
+    ...
+
+    iofunc_mount_init(&amp;mountpoint, sizeof(mountpoint));
+    mountpoint.funcs = &amp;ocb_funcs;
+    mountpoint.conf |= IOFUNC_PC_ACL;
+
+    /*
+     *  deviceattr will indirectly contain the addresses
+     *  of the OCB allocating and freeing functions
+     */
+
+    deviceattr.attr.mount = &amp;mountpoint;
+    resmgr_attach (..., &amp;deviceattr);
+    ...
+}
+
+/*
+ * ocb_calloc
+ *
+ *  The purpose of this is to give us a place to allocate our own OCB.
+ *  It is called as a result of the open being done
+ *  (e.g., iofunc_open_default causes it to be called).
+ *  We registered it through the mount structure.
+ */
+IOFUNC_OCB_T *ocb_calloc (resmgr_context_t *ctp, IOFUNC_ATTR_T *device)
+{
+    struct ocb *ocb;
+
+    if (!(ocb = calloc (1, sizeof (*ocb)))) {
+        return 0;
+    }
+
+    /* see note 3 */
+    ocb -&gt; prev = &amp;device -&gt; list;
+    if (ocb -&gt; next = device -&gt; list) {
+        device -&gt; list -&gt; prev = &amp;ocb -&gt; next;
+    }
+    device -&gt; list = ocb;
+
+    return (ocb);
+}
+
+/*
+ * ocb_free
+ *
+ * The purpose of this is to give us a place to free our OCB.
+ * It is called as a result of the close being done
+ * (e.g., iofunc_close_ocb_default causes it to be called).
+ * We registered it through the mount structure.
+ */
+void ocb_free (IOFUNC_OCB_T *ocb)
+{
+    /* see note 3 */
+    if (*ocb -&gt; prev = ocb -&gt; next) {
+        ocb -&gt; next -&gt; prev = ocb -&gt; prev;
+    }
+    free (ocb);
+}
+</pre>
+</div>
+
+
+<p class="p">
+Here are the notes for the above code:
+</p>
+
+
+<ol class="ol">
+<li class="li"> We place the definitions for our enhanced structures
+  <em class="ph i">before</em> including the standard I/O functions header file.
+  Because the standard I/O functions header file checks to see
+  if the two manifest constants are already defined, this allows
+  a convenient way for us to semantically override the structures.
+</li>
+
+
+<li class="li"> Define our new enhanced data structures, being sure to
+  place the encapsulated members first.
+</li>
+
+
+<li class="li"> The <span class="keyword apiname">ocb_calloc()</span> and <span class="keyword apiname">ocb_free()</span>
+  sample functions shown here cause the newly allocated OCBs to be maintained in a linked list.
+  Note the use of dual indirection on the <span class="ph codeph">struct ocb **prev;</span> member.
+</li>
+
+
+<li class="li"> You <strong class="ph b">must always</strong> place the <span class="keyword dtype">iofunc</span>
+  structure that you're overriding as the first member of the new extended structure.
+  This lets the common library work properly in the default cases.
+</li>
+
+
+</ol>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/structures.html" title="The resource manager library defines (in &lt;sys/iofunc.h&gt;) several key structures that are related to the POSIX-layer support routines.">POSIX-Layer Data Structures</a></div>
+</div>
+</div></body>
+</html>

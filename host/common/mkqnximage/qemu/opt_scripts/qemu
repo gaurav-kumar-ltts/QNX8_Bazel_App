@@ -1,0 +1,46 @@
+#!/bin/bash
+
+. $TOOL_DIR/functions
+
+function validate()
+{
+	status=0
+	if [ "${OPT_ARCH}" = x86_64 ]; then
+		if ! check_dependency lib/dll/pci/pci_hw-Intel_x86.so "--type=qemu --arch=${OPT_ARCH} requires the \"Connectivity - PCI HW Module x86\" package"; then
+			status=1
+		fi
+		if ! check_dependency lib/dll/devs-vtnet_pci.so '--type=qemu option requires the "Networking - io-sock Virtio Drivers" package'; then
+			status=1
+		fi
+	elif [ "$OPT_ARCH" == "aarch64le" ]; then
+		if ! check_dependency lib/dll/devs-vtnet_mmio.so '--type=qemu option requires the "Networking - io-sock Virtio Drivers" package'; then
+			status=1
+		fi
+	fi
+	if [ "${OPT_GRAPHICS}" = yes ]; then
+		if ! check_dependency usr/lib/graphics/virtio-drm/gpu_drm-virtio.so '--graphics=yes requires the "Screen Board Support VirtIO" package'; then
+			status=1
+		fi
+	fi
+
+	exit $status
+}
+
+function configure()
+{
+	rm -f output/option_files/*.opt_type_qemu
+
+	if [ -e "${QNX_TARGET}/${OPT_ARCH}/lib/dll/devr-virtio.so" ]; then
+		if [ "$OPT_ARCH" == "aarch64le" ]; then
+			echo "#define __RANDOM_OTHER_ENTROPY__ -l devr-virtio.so:mem=0xa003a00" >>output/option_files/definitions.opt_type_qemu
+			echo lib/dll/devr-virtio.so=lib/dll/devr-virtio.so >>output/option_files/system_files.opt_type_qemu
+		fi
+	fi
+}
+
+case "$1" in
+	validate)
+		validate;;
+	configure)
+		configure;;
+esac

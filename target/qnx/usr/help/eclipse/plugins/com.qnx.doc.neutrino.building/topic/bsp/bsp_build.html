@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Building a BSP" />
+<meta name="abstract" content="When you have finished building the BSP, you will have a complete image that you can transfer from your host to your target system and boot into." />
+<meta name="description" content="When you have finished building the BSP, you will have a complete image that you can transfer from your host to your target system and boot into." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bsp_build" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Building a BSP</title>
+</head>
+<body id="bsp_build">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Building a BSP</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">When you have finished building the BSP, you will have a complete image that you can
+		transfer from your host to your target system and boot into.</p>
+
+		<div class="section"><h2 class="title sectiontitle">Overview</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">A BSP can be extracted to any directory and built there. The BSP is anchored in the
+				directory you extract or copy it to. No matter where you move this directory, if you
+				type <span class="keyword cmdname">make</span> from inside the directory, the process pulls in
+				everything it needs (aside from standard system headers) from the BSP's own
+				directory, and everything that <span class="keyword cmdname">make</span> builds is installed in the
+				BSP's directory.</p>
+
+			<p class="p">If you plan to work with multiple, different BSPs, we recommend that you create a
+				top-level BSP directory, then create subdirectories for each different BSP.
+				The directory you create for each BSP is that BSP's root directory.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				The instructions provided here are generic. For step-by-step instructions,
+				see your <cite class="cite">BSP User's Guide</cite>.
+				<p class="p">After you have the QNX system up and running, you probably need to
+					modify its configuration. For information about the buildfile, its syntax, and
+					how to modify it, see the chapter <a class="xref" href="../buildfiles/buildfile.html" title="You can edit OS image buildfiles to configure OS images.">OS Image Buildfiles</a>.</p>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">The build process</h2>
+			
+			<div class="p">You can build an OS image from either the command line or the IDE, as explained in the subsections that follow.
+				The BSP build process uses the <span class="ph filepath">Makefile</span> that is shipped with the BSP.
+				When you run <span class="keyword cmdname">make</span>, the command uses instructions in the <span class="ph filepath">Makefile</span> to:
+				<ul class="ul">
+					<li class="li">Copy the contents of the <span class="ph filepath">prebuilt</span> directory into the
+						<span class="ph filepath">install</span> directory.</li>
+
+					<li class="li">Run <span class="keyword cmdname">mkifs</span> with a modified search path, which prepares the IFS.</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">The <span class="ph filepath">install</span> directory is the first directory <span class="keyword cmdname">mkifs</span>
+				searches when it looks for the components it needs to generate an IFS.
+				If <span class="keyword cmdname">mkifs</span> needs a component that it can't locate in the BSP directories,
+				it scans the QNX SDP's <span class="ph filepath">/target</span> directory for binaries or libraries,
+				and uses the component it finds there.</p>
+
+			<p class="p">The BSP build doesn't overwrite anything in your QNX SDP installation's <span class="ph filepath">/host</span> or
+				<span class="ph filepath">/target</span> directories. Any binaries, libraries, or images that are generated
+				by the build remain in the BSP directory from which they are extracted.</p>
+
+			<p class="p">For more information, see the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/make.html"><span class="keyword cmdname">make</span></a> and
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a> entries in the <cite class="cite">Utilities Reference</cite>.</p>
+
+			<h3 class="title sectiontitle">Cleaning up the <span class="ph filepath">/images</span> directory</h3>
+			<p class="p">After you have extracted the BSP, you may notice prebuilt IFS files in the BSP's
+					<span class="ph filepath">/images</span> directory (e.g.,
+					<span class="ph filepath">x86_64-nuc-graphics.bin</span> and
+					<span class="ph filepath">x86_64-generic.bin</span>).</p>
+
+			<p class="p">You must run <span class="keyword cmdname">make clean</span> (command line) or <span class="ph uicontrol">Clean
+					Project</span> (IDE) to remove these files before you build the BSP.</p>
+
+		</div>
+
+		<div class="section" id="bsp_build__cl"><h2 class="title sectiontitle">Build the BSP (command line)</h2>
+			
+			
+			
+			
+			<p class="p">You can use the command line on Linux or Windows to work with a BSP.</p>
+
+			<div class="p">To build a BSP using the command line, open a terminal, then:
+			<ol class="ol">
+				<li class="li">Download the BSP archive, and extract it (see <q class="q"><a class="xref" href="bsp_get.html#bsp_get__commandline">Extracting from the command line</a></q>).</li>
+
+				<li class="li"><div class="p">Set the environment variables for the appropriate QNX SDP version: <ul class="ul">
+						<li class="li">Windows: Run the <span class="ph codeph">qnx<var class="keyword varname">sdp_ver</var>-env.bat</span> script.</li>
+
+						<li class="li">Linux: Source the <span class="ph codeph">qnx<var class="keyword varname">sdp_ver</var>-env.sh</span> script.</li>
+
+					</ul>
+</div>
+
+				</li>
+
+				<li class="li"><p class="p">In the BSP's root directory, type <span class="keyword cmdname">make clean</span> to remove the default image files
+						from the <span class="ph filepath">/images</span> directory.</p>
+
+					<p class="p">This action removes all default IFS images.</p>
+</li>
+
+				<li class="li"><div class="p">In the BSP's root directory, type <span class="keyword cmdname">make</span>. This command: <ul class="ul">
+						<li class="li">Builds the BSP and creates its directories</li>
+
+						<li class="li">Places the IFS image in the <span class="ph filepath">/images</span> directory</li>
+
+					</ul>
+</div>
+
+					<div class="note"><span class="notetitle">Note:</span> We recommend that you use <span class="keyword cmdname">make</span> to build the OS image. If you use
+						<span class="keyword cmdname">mkifs</span> directly, you need to use the <span class="keyword option">-r</span> option to tell
+						<span class="keyword cmdname">mkifs</span> where to find the binaries (see the
+						<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a> reference in the <em class="ph i">Utilities Reference</em>).</div>
+
+				</li>
+
+			</ol>
+</div>
+
+			<p class="p">You can now prepare the IFS image that you will copy to your target.</p>
+
+		</div>
+
+		<div class="section" id="bsp_build__ide"><h2 class="title sectiontitle">Build the BSP (IDE)</h2>
+			
+			
+			
+			
+			
+			<div class="p">You can use the QNX Momentics IDE on Linux or Windows to work with a BSP.
+				You can build the entire BSP in the IDE, which includes building the source and the IPL and IFS images.
+				To do so:
+			<ol class="ol">
+				<li class="li">Launch the IDE, then import the BSP archive (which was downloaded for you using the QNX Software Center)
+					into the IDE (see <q class="q">Import to the QNX Momentics IDE</q> section below for details).</li>
+
+				<li class="li">
+					<p class="p">If necessary, switch to the C/C++ Perspective, then in the
+						<span class="keyword wintitle">Project Explorer</span> view, right-click the BSP source project
+						
+						and select <span class="ph uicontrol">Build Project</span>.</p>
+
+					<p class="p">This step builds the entire BSP, which includes the images and the binaries required for them.
+						You can check the progress and outcome of your build in the <span class="keyword wintitle">Console</span> view.</p>
+
+				</li>
+
+				<li class="li">If you want to modify the image, open the <span class="ph filepath">.build</span> file under the
+					<span class="ph uicontrol">System Builder Files</span> folder.
+					After you've made your changes, right-click the BSP source project and select
+					<span class="ph uicontrol">Build Project</span>.
+				</li>
+
+			</ol>
+</div>
+
+		</div>
+
+		<div class="section" id="bsp_build__import"><h2 class="title sectiontitle">Import to the QNX Momentics IDE</h2>
+			
+			<div class="p">If you use the QNX Momentics IDE to build your BSP, you don't need to extract the ZIP file.
+				You can import the BSP code into the IDE:
+			<ol class="ol">
+				<li class="li">
+					<p class="p">Open the QNX Momentics IDE.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">From the C/C++ Perspective, select <span class="ph uicontrol">File</span> &gt; <span class="ph uicontrol">Import</span>.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Expand the <span class="ph filepath">QNX</span> folder.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Select <span class="ph uicontrol">QNX Source Package and BSP (archive)</span>
+						from the list and then click <span class="ph uicontrol">Next</span>.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">In the <span class="ph uicontrol">Select the package</span> dialog, click <span class="ph uicontrol">Browse for ZIP Archive...</span>.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">In the file selector, navigate to and select the BSP archive file that you downloaded earlier,
+						and then click <span class="ph uicontrol">Open</span> and then click <span class="ph uicontrol">Next</span>.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Confirm the BSP package you want is shown in the <span class="ph uicontrol">Selected Package</span> list and
+						then click <span class="ph uicontrol">Next</span>.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Optionally, set the <span class="ph uicontrol">Project Name</span> and <span class="ph uicontrol">Location</span> to import the
+						BSP archive file. Defaults are provided for the project name and location,
+						but you can override them if you choose.</p>
+
+				</li>
+
+				<li class="li">
+					<p class="p">Click <span class="ph uicontrol">Finish</span>. The project is created and the source is imported from the archive.</p>
+
+				</li>
+
+			</ol>
+</div>
+
+			<p class="p">You should see the project in the <span class="ph uicontrol">Project Explorer</span> view
+				(e.g., <span class="ph filepath">bsp-renesas-r-car-h3</span>). You can now build your BSP.</p>
+
+		</div>
+
+		
+	</div>
+
+</body>
+</html>

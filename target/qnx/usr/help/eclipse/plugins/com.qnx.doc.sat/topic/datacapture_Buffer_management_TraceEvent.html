@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Managing trace buffers" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/datacapture_Using_TraceEvent.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Buffer_management_TraceEvent" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Managing trace buffers</title>
+</head>
+<body id="Buffer_management_TraceEvent">
+
+<h1 class="title topictitle1" id="ariaid-title1">Managing trace buffers</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+
+As mentioned above, you can use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html"><span class="keyword apiname">TraceEvent()</span></a>
+to manage the instrumented kernel's buffers, but it's probably easier to run
+<span class="keyword cmdname">tracelogger</span> in daemon mode and let it look after the buffers.
+Nevertheless, here's a summary of how to do it with <span class="keyword apiname">TraceEvent()</span>:
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+In order to allocate or free the trace buffers, your application must have the
+<span class="keyword const">PROCMGR_AID_TRACE</span> ability enabled.
+For more information, see the entry
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+
+</div>
+
+
+<ul class="ul">
+<li class="li">To allocate the buffers, use the <span class="keyword const">_NTO_TRACE_ALLOCBUFFER</span>
+  command, specifying the number of buffers and a pointer to a location
+  where <span class="keyword apiname">TraceEvent()</span> can store the physical address of
+  the beginning of the ring of allocated trace buffers:
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_ALLOCBUFFER, <var class="keyword varname">bufnum</var>, <var class="keyword varname">paddr</var>); 
+</pre>
+
+  <p class="p">
+  Allocated trace buffers can store 1024 simple trace events.
+  </p>
+
+
+  <div class="p">
+  
+  Once you've allocated the buffers, you can use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+  to map the buffers into your process's address space and get their virtual address.
+  For example:
+
+<pre class="pre codeblock">paddr_t paddr;
+tracebuf_t *kbufs;
+
+ret = TraceEvent(_NTO_TRACE_ALLOCBUFFER, num_buffers, &amp;paddr);
+if( ret == -1 )
+{
+    // Handle the error.
+}
+
+kbufs = mmap( 0, 
+              num_buffers * sizeof(tracebuf_t), 
+              PROT_READ | PROT_WRITE,
+              MAP_PHYS | MAP_SHARED, NOFD, paddr );
+
+if( kbufs == MAP_FAILED )
+{
+    // Handle the error.
+}
+</pre>
+  </div>
+
+</li>
+
+
+<li class="li">To free the buffers, use the <span class="keyword const">_NTO_TRACE_DEALLOCBUFFER</span> command.
+  It doesn't take any additional arguments:
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_DEALLOCBUFFER);
+</pre>
+
+  <p class="p">
+  All events stored in the trace buffers are lost.
+  </p>
+
+</li>
+
+
+<li class="li">To flush the buffer, regardless of the number of trace events it
+  contains, use the <span class="keyword const">_NTO_TRACE_FLUSHBUFFER</span> command:
+  
+  
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_FLUSHBUFFER);
+</pre>
+</li>
+
+
+<li class="li">To get the number of simple trace events that are currently stored in
+  the trace buffer, use the <span class="keyword const">_NTO_TRACE_QUERYEVENTS</span> command:
+  
+  
+
+<pre class="pre codeblock">num_events = TraceEvent(_NTO_TRACE_QUERYEVENTS);
+</pre>
+</li>
+
+
+</ul>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/datacapture_Using_TraceEvent.html">Using TraceEvent() to control tracing</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Memory leaks" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="memory, leaks, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="memory, leaks, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="MemoryLeaks" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Memory leaks</title>
+</head>
+<body id="MemoryLeaks">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Memory leaks</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+The ability of the <span class="ph filepath">librcheck</span> library to keep full allocation chains of all the 
+heap memory allocated by the program—as opposed to just accounting for some 
+heap buffers—allows heap memory leaks to be detected by the library in response 
+to requests by the program. Leaks can be detected by performing <em class="ph i">tracing</em> on the entire heap.
+</p>
+
+
+<p class="p">
+
+Tracing is an operation that attempts to determine whether a heap object is reachable by the program.
+In order to be reachable, a heap buffer must be available either directly or indirectly from a pointer in a 
+global variable or on the stack of one of the threads. If this isn't 
+the case, then the heap buffer is no longer visible to the program and
+can't be accessed without constructing a pointer that refers to the heap 
+buffer—presumably by obtaining it from a persistent store such as a 
+file or a shared memory object.
+</p>
+
+
+<p class="p">
+
+The set of global variables and stack for all threads is called the <em class="ph i">root set</em>.
+Because the root set must be stable for tracing to yield valid results, tracing requires that all 
+threads other than the one performing the trace be suspended while the trace is performed.
+</p>
+
+
+<div class="p">
+Tracing operates by constructing a reachability graph of the entire heap.
+It begins with a <em class="ph i">root set scan</em> that determines the root set 
+comprising the initial state of the graph. The roots that can be found by tracing are:
+
+<ul class="ul">
+<li class="li">data of the program</li>
+
+<li class="li">uninitialized data of the program</li>
+
+<li class="li">initialized and uninitialized data of any shared objects dynamically linked into the program</li>
+
+<li class="li">used portion of the stacks of all active threads in the program</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+Once the root set scan is complete, tracing initiates a <em class="ph i">mark</em> operation 
+for each element of the root set. The mark operation looks at a node of 
+the reachability graph, scanning the memory space represented by the 
+node, looking for pointers into the heap. Since the program may not 
+actually have a pointer directly to the start of the buffer—but to 
+some interior location—and it isn't possible to know which part of 
+the root set or a heap object actually contains a pointer, tracing 
+uses specialized techniques for coping with <em class="ph i">ambiguous roots</em>. The 
+approach taken is described as a conservative pointer estimation since 
+it assumes that any word-sized object on a word-aligned memory cell that 
+<em class="ph i">could</em> point to a heap buffer or the interior of that heap buffer 
+actually points to the heap buffer itself.
+</p>
+
+
+<p class="p">
+Using conservative pointer estimation for dealing with ambiguous roots, 
+the mark operation finds all children of a node of the reachability 
+graph. For each child in the heap that's found, it checks to see whether 
+the heap buffer has been marked as <em class="ph i">referenced</em>. If the buffer has been 
+marked, the operation moves on to the next child. Otherwise, the trace 
+marks the buffer, and then recursively initiates a mark operation on that 
+heap buffer.
+</p>
+
+
+<p class="p">
+The tracing operation is complete when the reachability graph has been 
+fully traversed. At this time every heap buffer that's reachable will 
+have been marked, as could some buffers that aren't actually reachable, 
+due to the conservative pointer estimation. Any heap buffer that hasn't 
+been marked is definitely unreachable, constituting a memory leak. At 
+the end of the tracing operation, all unmarked nodes can be reported as leaks.
+</p>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Starting a trace and giving results</h2>
+
+
+<div class="p">
+
+
+
+A program can cause a trace to be performed and memory leaks to be reported
+by calling the <span class="ph filepath">librcheck</span> version of
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html"><span class="keyword apiname">mallopt()</span></a>
+with a command of <span class="keyword const">MALLOC_DUMP_LEAKS</span>:
+
+<pre class="pre codeblock">mallopt( MALLOC_DUMP_LEAKS, 1);
+</pre>
+</div>
+
+
+<p class="p">
+The second argument is ignored.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Analyzing dumps</h2>
+
+
+<p class="p">
+The dump of unreferenced buffers prints one line of information for each unreferenced buffer.
+The information provided for a buffer includes:
+</p>
+
+
+<ul class="ul">
+<li class="li">its address</li>
+
+<li class="li">the function that was used to allocate it (<span class="keyword apiname">malloc()</span>, <span class="keyword apiname">calloc()</span>,
+   <span class="keyword apiname">realloc()</span>)</li>
+
+<li class="li">the file that contained the allocation request, if available</li>
+
+<li class="li">the line number or return address of the call to the allocation function</li>
+
+<li class="li">the size of the allocated buffer</li>
+
+</ul>
+
+
+<p class="p">
+File and line information is available if the call to allocate the buffer 
+was made using one of the library's debug interfaces. Otherwise, the return 
+address of the call is reported in place of the line number. In some circumstances, 
+no return address information is available. This usually indicates that 
+the call was made from a function with no frame information, such as the system 
+libraries. In such cases, the entry can usually be ignored and probably isn't 
+a leak.
+</p>
+
+
+<p class="p">
+From the way tracing is performed, we can see that some leaks may escape detection 
+and may not be reported in the output. This happens if the root set or a 
+reachable buffer in the heap has something that looks like a pointer to the buffer.
+</p>
+
+
+<p class="p">
+Likewise, you should check each reported leak against the suspected code identified 
+by the line or call return address information. If the code in question keeps 
+interior pointers—pointers to a location inside the buffer, rather than 
+the start of the buffer—the trace operation will likely fail to find a reference 
+to the buffer. In this case, the buffer may well not be a leak. In other cases, 
+there is almost certainly a memory leak.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat.html" title="If you develop a program that dynamically allocates memory, you're also responsible for tracking any memory that you allocate whenever a task is performed, and for releasing that memory when you no longer need it. If you fail to track the memory correctly, you may introduce memory leaks or unintentionally write to an area outside of the allocated memory space.">Heap analysis</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

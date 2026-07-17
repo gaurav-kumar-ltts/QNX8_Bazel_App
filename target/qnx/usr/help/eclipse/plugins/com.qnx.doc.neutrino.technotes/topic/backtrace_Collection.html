@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Backtracing a collection of threads" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/backtrace_Examples.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Collection" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Backtracing a collection of threads</title>
+</head>
+<body id="Collection">
+
+<h1 class="title topictitle1" id="ariaid-title1">Backtracing a collection of threads</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Occasionally, it may be useful to backtrace a collection of threads in
+a coherent manner.
+You can accomplish this by freezing all the threads, backtracing the threads,
+and then unfreezing them.
+For example: 
+</p>
+
+
+<pre class="pre codeblock">bt_accessor_t acc;
+int count;
+
+hold_all_threads();
+
+for (i=0; i &lt; max_thread; i++) {
+    if (bt_init_accessor(&amp;acc, BT_PROCESS, pid, i) == -1)
+    {
+      fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+               "bt_init_accessor", errno, strerror(errno));
+      return -1;
+    }
+
+    if (bt_set_flags(&amp;acc, BTF_LIVE_BACKTRACE, 1) == -1)
+    {
+      fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+               "bt_set_flags", errno, strerror(errno));
+      return -1;
+    }
+
+    count = bt_get_backtrace(&amp;acc, addrs, len);
+    ...
+
+    if (bt_release_accessor(&amp;acc) == -1)
+    {
+      fprintf( stderr, "%s:%i %s (%i)%s\n", __FUNCTION__, __LINE__,
+               "bt_release_accessor", errno, strerror(errno));
+      return -1;
+    }
+
+    save_addrs(addrs);
+}
+
+cont_all_threads();
+</pre>
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/backtrace_Examples.html">Examples</a></div>
+</div>
+</div></body>
+</html>

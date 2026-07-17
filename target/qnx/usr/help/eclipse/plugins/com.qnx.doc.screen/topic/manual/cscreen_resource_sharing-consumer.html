@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Consumer" />
+<meta name="abstract" content="The consumer takes content from a producer to perform additional processing." />
+<meta name="description" content="The consumer takes content from a producer to perform additional processing." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing-streams.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_consumer" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Consumer</title>
+</head>
+<body id="cscreen_consumer">
+
+    <h1 class="title topictitle1" id="ariaid-title1"> Consumer </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        The consumer takes content from a producer to perform additional processing.
+    </p>
+
+        <p class="p">
+            
+            The consumer takes content from a producer and performs some form of processing with it (e.g.,
+            image processing, compositing). It could also eventually display the content from the producer. 
+            Generally, you need to perform the following steps in your consumer application to acquire the content 
+            from the producer:
+        </p>
+
+        <ol class="ol">
+            <li class="li">Create the consumer's stream. <p class="p"> Call <a class="xref" href="../screen_create_stream.html" title="Create a stream that can be used to provide graphical content to generic consumers"><span class="keyword apiname">screen_create_stream()</span></a> to create a stream for the consumer. For example: </p>
+
+                <pre class="pre codeblock">...
+screen_context_t screen_cctx;
+screen_create_context(&amp;screen_cctx, SCREEN_APPLICATION_CONTEXT);
+...
+/* Create the consumer's stream */
+screen_stream_t stream_c;
+screen_create_stream(&amp;stream_c, screen_cctx);
+...
+                </pre>
+            </li>
+
+            <li class="li">Get the producer's stream.
+                <p class="p">
+                    The consumer needs to access the stream that it's taking content from. The consumer gets access to a
+                    producer's stream when the producer grants the access by setting the permissions on its stream.
+                    When the producer sets its <span class="keyword const">SCREEN_PROPERTY_PERMISSSIONS</span> property to grant the consumer
+                    access, the consumer receives a <span class="keyword const">SCREEN_EVENT_CREATE</span> event. On the contrary, when a
+                    consumer loses access to a stream (by way of the producer changing permissions on its stream), the
+                    consumer receives a <span class="keyword const">SCREEN_EVENT_CLOSE</span> event. We recommend that when the consumer
+                    receives a <span class="keyword const">SCREEN_EVENT_CLOSE</span> event for a producer stream that it's connected to, it
+                    complete its processing, release any acquired buffers, and then free up the resources
+                    that were locally allocated to track this stream (i.e., call
+                    <a class="xref" href="../screen_destroy_stream.html" title="Destroy a stream and free associated resources"><span class="keyword apiname">screen_destroy_stream()</span></a> on
+                    your reference to the producer stream)
+                </p>
+
+                <p class="p"> Similar to managers, consumers need an event-handling loop to look for, and handle, among others, the
+                    <span class="keyword const">SCREEN_EVENT_CREATE</span> and <span class="keyword const">SCREEN_EVENT_CLOSE</span> events when the object
+                    type is a stream.
+                </p>
+
+                <pre class="pre codeblock">...
+screen_event_t event;
+int stream_p_id = -1;
+screen_stream_t stream_p = NULL;
+screen_buffer_t acquired_buffer;                /* Buffer that's been acquired from a stream */
+
+/* Create an event so that you can retrieve an event from Screen. */
+screen_create_event(&amp;event);
+while (1) {
+    int event_type = SCREEN_EVENT_NONE;
+    int object_type;
+    
+    /* Get event from Screen for the consumer's context. */
+    screen_get_event(screen_cctx, event, -1);
+    
+    /* Get the type of event from the event retrieved. */
+    screen_get_event_property_iv(event, SCREEN_PROPERTY_TYPE, &amp;event_type);
+    
+    /* Process the event if it's a SCREEN_EVENT_CREATE event. */
+    if (event_type == SCREEN_EVENT_CREATE) {
+            /* Determine that this event is due to a producer stream granting permissions. */
+            screen_get_event_property_iv(event, SCREEN_PROPERTY_OBJECT_TYPE, &amp;object_type);
+            
+            if (object_type == SCREEN_OBJECT_TYPE_STREAM) {
+            
+                /* Get the handle for the producer's stream from the event. */
+                screen_get_event_property_pv(event, SCREEN_PROPERTY_STREAM, (void **)&amp;stream_p);
+                
+                if (stream_p != NULL) {
+                    /* Get the handle for the producer's stream ID from the event.
+                     * If there are multiple producers in the system, consumers
+                     * can use the producer's stream ID as a way to verify whether the
+                     * SCREEN_EVENT_CREATE event is from the producer that the consumer
+                     * is expecting. In this example, we assume there's only one
+                     * producer in the system.
+                     */
+                    screen_get_stream_property_iv(stream_p, SCREEN_PROPERTY_ID, &amp;stream_p_id);
+                        ...
+                }
+            }
+        }
+        if (event_type == SCREEN_EVENT_CLOSE) {
+            /* Determine that this event is due to a producer stream denying permissions. */
+            screen_get_event_property_iv(event, SCREEN_PROPERTY_OBJECT_TYPE, &amp;object_type);
+            
+            if (object_type == SCREEN_OBJECT_TYPE_STREAM) {
+            
+                /* Get the handle for the producer's stream from the event. */
+                screen_get_event_property_pv(event, SCREEN_PROPERTY_STREAM, (void **)&amp;stream_p);
+                
+                if (stream_p != NULL) {
+                    /* Get the handle for the producer's stream ID from the event.
+                     * If there are multiple producers in the system, consumers
+                     * can use the producer's stream ID as a way to verify whether the
+                     * SCREEN_EVENT_CREATE event is from the producer that the consumer
+                     * is expecting. In this example, we assume there's only one
+                     * producer in the system.
+                     */
+                    screen_get_stream_property_iv(stream_p, SCREEN_PROPERTY_ID, &amp;stream_p_id);
+                        ...
+                    /* Release any buffers that have been acquired. */
+                    screen_release_buffer(acquired_buffer);
+                     ...
+                    /* Deregister asynchronous notifications of updates, if necessary. */
+                    screen_notify(screen_cctx, SCREEN_NOTIFY_UPDATE, stream_p, NULL);
+                    ...
+                    /* Destroy the consumer stream that's connected to this producer stream. */
+                    screen_destroy_stream(stream_c);
+                    ...
+                    /* Free up any resources that were locally allocated to track this stream. */
+                    screen_destroy_stream(stream_p);
+                     ...
+                }
+            }
+        }
+        ...
+}
+screen_destroy_event(event);
+...
+                </pre>
+            </li>
+
+            <li class="li">Establish the connection between the consumer's stream and the producer's stream. <p class="p"> Once the consumer receives the <span class="keyword const">SCREEN_EVENT_CREATE</span> event from the producer stream, the consumer calls <a class="xref" href="../screen_consume_stream_buffers.html" title="Cause a stream to become a consumer endpoint to another stream"><span class="keyword apiname">screen_consume_stream_buffers()</span></a>. This function connects the consumer's stream to the producer's stream. You must pass in 0 to ensure that the consumer shares the same number of buffers that the producer has. For example: </p>
+
+                <pre class="pre codeblock">...
+screen_consume_stream_buffers(stream_c, 0, stream_p);
+...
+                </pre>
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-consumers-consume.svg" width="672" /><br />
+                </div>
+
+                <p class="p"> After the consumer's stream is connected with the producer's stream, the consumer's stream inherits certain stream properties from the producer's stream. These properties are: </p>
+
+                <ul class="ul">
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_STATUS</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_DISPLAY</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_MODE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_SWAP_INTERVAL</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFER_SIZE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_FORMAT</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_COLOR_SPACE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_SOURCE_CLIP_SIZE</span></li>
+
+                </ul>
+
+                <p class="p"> The consumer can undo the connection between its stream and the producer's stream by calling <a class="xref" href="../screen_destroy_stream_buffers.html" title="Send a request to Screen to destroy the buffers of the specified stream"><span class="keyword apiname">screen_destroy_stream_buffers()</span></a> on the consumer's stream.</p>
+
+            </li>
+
+            <li class="li">Acquire buffer(s) from the producer. <p class="p"> Call <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> to acquire the front buffer from the producer. For example: </p>
+
+                <pre class="pre codeblock">screen_buffer_t buffer_1;
+...
+while (1) {
+    screen_acquire_buffer(&amp;buffer_1, stream_c, NULL, NULL, NULL, 0);
+    ...
+                </pre>
+                <p class="p"> The function <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> returns the front buffer available from the producer's stream. It also returns the regions of the buffer that's been updated by the producer. </p>
+
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-consumers-acquire.svg" width="672" /><br />
+                </div>
+
+                <p class="p"> Depending on the mode of the producer's stream, there may be multiple front buffers available. The consumer can call <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> multiple times to acquire each of the available front buffers. The consumer isn't required to release any of the acquired buffers before calling <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> again. However, note that the consumer can block the producer if it continues to acquire buffers without releasing them. </p>
+
+                <p class="p">
+                    By default, <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>
+                    blocks until there's a front buffer available to acquire. However, if you call
+                    <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> with its
+                    <span class="keyword parmname">flags</span> parameter set to <span class="keyword const">SCREEN_ACQUIRE_DONT_BLOCK</span>, the function returns
+                    immediately. If no front buffer is available at the time, then the buffer pointer that's returned
+                    is set to NULL.
+                </p>
+
+                <p class="p"> It's up to the consumer to handle the case when there's no new front buffer available. In most cases, the consumer keeps track of the previously acquired buffer (or buffers), or it doesn't release the acquired buffer until it can acquire a new front buffer (i.e., release the previously acquired buffer only after a call to <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a> successfully returns a new front buffer). Of course, if the producer's stream is single-buffered, then there's no option for the consumer but to immediately release the buffer once it's done with it. Otherwise, the producer is blocked. </p>
+
+                <p class="p"> If you don't want to be blocked on <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>, and want to acquire a front buffer only when there's one available, then use asynchronous notifications. The consumer can request notifications that are of type <span class="keyword const">SCREEN_NOTIFY_UPDATE</span> from the producer. The consumer calls <a class="xref" href="../screen_acquire_buffer.html" title="Wait for the next buffer to become available from a producer"><span class="keyword apiname">screen_acquire_buffer()</span></a>, with the <span class="keyword parmname">flags</span> parameter set to <span class="keyword const">SCREEN_ACQUIRE_DONT_BLOCK</span>, only when it's been notified that an update has been posted by the producer. See the <a class="xref" href="cscreen_asynchronous.html" title="Applications can request to be asynchronously notified of specific Screen events by way of a sigevent.">Asynchronous Notifications</a> chapter for more details on how to use asynchronous notifications. </p>
+
+            </li>
+
+            <li class="li">Process the content.
+                <p class="p">
+                    When the consumer has acquired the front buffer successfully from the producer's stream, it
+                    can take content to perform any necessary rendering or processing. While the consumer has
+                    acquired the buffer, this buffer remains as a front buffer and isn't listed in the producer's
+                    <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>.
+                </p>
+
+            </li>
+
+            <li class="li">Release the buffer(s) back to the producer. <p class="p"> Once the consumer completes processing the producer's front buffer, the consumer must release the buffer so that it becomes available for the producer to again render into. </p>
+
+                <pre class="pre codeblock">...
+screen_release_buffer(buffer_1);
+...
+                </pre>
+                <p class="p">
+                    The consumer must call <a class="xref" href="../screen_release_buffer.html" title="Return a buffer to the producer"><span class="keyword apiname">screen_release_buffer()</span></a>
+                    for each buffer that's been acquired. The producer doesn't gain access to the buffer to render into
+                    until <em class="ph i">all</em> consumers that had the buffer acquired release it.
+                </p>
+
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-consumers-release.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+        </ol>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_resource_sharing-streams.html" title="Streams are off-screen, multi-buffered render targets that are provided by the Screen API.">Using Streams</a></div>
+</div>
+</div></body>
+</html>

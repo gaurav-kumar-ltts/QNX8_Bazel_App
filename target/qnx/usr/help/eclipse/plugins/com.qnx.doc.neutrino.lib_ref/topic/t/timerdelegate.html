@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="TimerDelegate(), TimerDelegate_r()" />
+<meta name="abstract" content="Delegate timers between CPUs" />
+<meta name="description" content="Delegate timers between CPUs" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-t.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="timerdelegate" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>TimerDelegate(), TimerDelegate_r()</title>
+</head>
+<body id="timerdelegate">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">TimerDelegate()</span>, <span class="keyword apiname">TimerDelegate_r()</span></h1>
+
+
+    
+    
+    <div class="body refbody"><p class="shortdesc"><em class="ph i">Delegate timers between CPUs</em></p>
+
+        <div class="section">
+            <div class="note"><span class="notetitle">Note:</span> The <span class="keyword apiname">TimerDelegate*()</span> functions are experimental along with the
+                offlining and onlining scheduling feature.</div>
+
+        </div>
+
+        <div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+            
+            <pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int TimerDelegate( uint32_t action,
+                   int32_t owner_cpu,
+                   int32_t delegate_cpu );
+
+int TimerDelegate_r( uint32_t action,
+                     int32_t owner_cpu,
+                     int32_t delegate_cpu );
+</pre>
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+            
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">action</var></dt>
+
+                    <dd class="dd">The action to perform. One of the following: <ul class="ul">
+                            <li class="li"><span class="keyword const">_NTO_TIMER_DELEGATE</span> — Delegate a CPU's
+                                timers to a delegate CPU.</li>
+
+                            <li class="li"><span class="keyword const">_NTO_TIMER_RECLAIM</span> — Reclaim a CPU's
+                                timers from a delegate CPU.</li>
+
+                            <li class="li"><span class="keyword const">_NTO_TIMER_QUERY_DELEGATE</span> — Query the kernel to
+                                determine a CPU's current delegate CPU.</li>
+
+                        </ul>
+
+                    </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">owner_cpu</var></dt>
+
+                    <dd class="dd">The CPU the call originated from, or -1 to use the current CPU. The
+                            <var class="keyword varname">owner_cpu</var> can't be a CPU that's acting on the behalf
+                        of another CPU.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">delegate_cpu</var></dt>
+
+                    <dd class="dd">The delegate CPU. The acceptable values depend on the
+                            <var class="keyword varname">action</var> you specified: <ul class="ul">
+                            <li class="li">DELEGATE — You can't specify a CPU that has timers delegated to
+                                another CPU.</li>
+
+                            <li class="li">RECLAIM — Either specify the CPU that's taking care of the
+                                timers from <var class="keyword varname">owner_cpu</var>, or set this field to -1 to
+                                let the kernel decide.</li>
+
+                            <li class="li">QUERY — Ignored.</li>
+
+                        </ul>
+</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Library:</h2>
+            
+            <p class="p"><span class="ph filepath">libc</span></p>
+
+            <p class="p"> Use the <span class="keyword option">-l c</span> option to <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a> to link against this library. This library is
+                usually included automatically. </p>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Description:</h2>
+            
+            <p class="p">The <span class="keyword apiname">TimerDelegate()</span> and <span class="keyword apiname">TimerDelegate_r()</span>
+                functions move the handling of timers between processors. This allows one processor
+                to temporarily delegate (i.e., give ownership of) its timers to another processor,
+                and then reclaim (i.e., take back the ownership of) these timers.
+                Software timer queues are associated with a CPU in
+                the QNX OS; the purpose of these functions is to delegate a CPU's timers to
+                another CPU allowing you to take a CPU offline and keep its assigned timers
+                firing.</p>
+
+            <p class="p">The <span class="keyword apiname">TimerDelegate()</span> and <span class="keyword apiname">TimerDelegate_r()</span> functions are identical,
+                except in the way they indicate errors. Refer to the
+                "Returns" section for details. Privileged applications responsible for
+                offlining and onlining CPUs, such as power managers, should call these
+                functions.</p>
+
+            <p class="p">Only one thread can call <span class="keyword apiname">TimerDelegate()</span> at a time. The function
+                returns <span class="keyword const">EBUSY</span> if multiple threads attempt to call the function
+                concurrently. The thread calling this function can loop on EBUSY until the function
+                returns another return code.</p>
+
+            <div class="p"><div class="cautiontitle">CAUTION:</div><div class="note caution">If you set <span class="keyword const">_NTO_TIMER_DELEGATE</span> as the
+                    action, <span class="keyword apiname">TimerDelegate()</span> blocks if it has to wait for the
+                    clock IST to finish running. Once the function successfully returns, the thread
+                    that called it must call <span class="keyword apiname">TimerDelegate()</span> again with the
+                        <span class="keyword const">_NTO_TIMER_RECLAIM</span> action before performing any
+                    blocking operation or causing a context switch to a thread of lower
+                    priority.</div>
+</div>
+
+            <p class="p"><strong class="ph b">Delegating a CPU's timer to another CPU</strong></p>
+
+            <p class="p">You should delegate a CPU's timers before taking the CPU offline. To do so, call
+                    <span class="keyword apiname">TimerDelegate()</span> with the
+                    <span class="keyword const">_NTO_TIMER_DELEGATE</span> action to delegate a CPU's timers.
+                The application then proposes a delegate CPU candidate. The kernel can refuse the
+                proposed CPU if the CPU isn't handling its own timers at that moment (i.e., the
+                proposed CPU already delegated its timers to another CPU).</p>
+
+            <p class="p"><strong class="ph b">Reclaiming a CPU's timer from another CPU</strong></p>
+
+            <p class="p">Once a CPU is back in operation, you should ensure that it reclaims its timers before
+                the CPU notifies the kernel that it's ready to take part in scheduling. To do so,
+                call <span class="keyword apiname">TimerDelegate()</span> with the
+                    <span class="keyword const">_NTO_TIMER_RECLAIM</span> action to reclaim a CPU's timers. If
+                the application is responsible for tracking the delegate CPU, the application passes
+                on this information to the kernel. Otherwise, the kernel must find the delegate CPU
+                itself (set <var class="keyword varname">delegate_cpu</var> to -1), but this is costly.</p>
+
+            <p class="p">The CPU only reclaims its own timers, which excludes any timers that it had
+                previously been delegated with as a delegate CPU (refer to the section below on
+                "Transitive Delegation" for more information).</p>
+
+            <p class="p"><strong class="ph b">Transitive Delegation</strong></p>
+
+            <p class="p">When a CPU delegates its timers with a delegate CPU, all timers in its care go to the
+                delegate CPU. When the CPU comes back online, it only reclaims its own timers. The
+                delegate CPU takes care of the timers the CPU was previously delegated with before
+                going offline.</p>
+
+            <p class="p">For example, imagine a system with four CPUs. CPU3 needs to be taken offline and has
+                previously been delegated with CPU2's timers. CPU3 delegates its timers to CPU1. CPU1
+                is then responsible for the timers of both CPU2 and CPU3.</p>
+
+            <p class="p">If CPU3 comes back online before CPU2, then CPU3 is only responsible for its own
+                timers from that point on. Subsequently, CPU1 is responsible for its own timers and
+                CPU2's timers, until CPU2 reclaims its timers.</p>
+
+            <h3 class="title sectiontitle">Requirements</h3>
+            <p class="p">The <span class="keyword apiname">TimerDelegate*()</span> functions only succeed if the following
+                requirements are met:</p>
+
+            <div class="p"><ul class="ul">
+                    <li class="li">The privileged application can run a thread at a higher priority that the
+                        clock IST (254 by default) and a lower priority than the IPI IST (always
+                        255). Therefore, you must configure the system so that the clock IST runs at
+                        a maximum priority of 253, by passing the <span class="keyword option">-C</span> option to
+                            <span class="keyword cmdname">procnto</span> as follows:
+                        <pre class="pre codeblock" id="timerdelegate__codeblock_gmm_q1s_nzb">procnto-smp-instr -C0,253</pre></li>
+
+                    <li class="li">The process must have the <span class="keyword const">PROCMGR_AID_RUNSTATE</span> ability
+                        enabled. For more information, go to <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.</li>
+
+                    <li class="li">The thread that calls the function must:<ul class="ul">
+                            <li class="li">be pinned to the CPU delegating its timers.</li>
+
+                            <li class="li">have its scheduling policy set to <span class="keyword const">SCHED_OFFLINING</span>.
+                                This policy is a FIFO scheduling policy that allows a thread to be
+                                of higher priority than the clock IST.</li>
+
+                            <li class="li">have a higher priority than the clock IST.</li>
+
+                        </ul>
+</li>
+
+                </ul>
+</div>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Returns:</h2>
+            
+            <div class="p">On success, <span class="keyword const">DELEGATE</span> and <span class="keyword const">RECLAIM</span> return
+                    <span class="keyword const">EOK</span>, and <span class="keyword const">QUERY</span> returns a CPU number. On failure; <ul class="ul">
+                    <li class="li"><span class="keyword apiname">TimerDelegate()</span> returns -1 and sets <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>.</li>
+
+                    <li class="li"><span class="keyword apiname">TimerDelegate_r()</span> returns the negative of a value from
+                        the Errors section and <strong class="ph b">doesn't</strong> set <span class="keyword apiname">errno</span>.</li>
+
+                </ul>
+</div>
+
+        </div>
+
+
+
+        <div class="section"><h2 class="title sectiontitle">Errors:</h2>
+            
+            <dl class="dl compact">
+                
+                    <dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+                    <dd class="dd">The kernel refused the proposed <var class="keyword varname">delegate_cpu</var> during a
+                        DELEGATE operation. For more information, refer to the <q class="q">Delegating a CPU's
+                            timer to another CPU</q> section.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">EBUSY</span></dt>
+
+                    <dd class="dd">Multiple threads tried to call <span class="keyword apiname">TimerDelegate()</span>
+                        concurrently.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+                    <dd class="dd">An invalid CPU was provided.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">ENOEXEC</span></dt>
+
+                    <dd class="dd">The calling thread doesn't have its scheduling policy set to
+                            <span class="keyword const">SCHED_OFFLINING</span>.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">ENOSYS</span></dt>
+
+                    <dd class="dd">An invalid <var class="keyword varname">action</var> was provided, or the CPU provided isn't
+                        the current CPU.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword const">ENOTSUP</span></dt>
+
+                    <dd class="dd">The call was performed on a uniprocessor system.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+                    <dd class="dd">The application process didn't have the <span class="keyword const">PROCMGR_AID_RUNSTATE</span>
+                        ability enabled.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">ERANGE</span></dt>
+
+                    <dd class="dd">The calling thread's priority is less than or equal to that of the clock
+                        IST.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+                    <dd class="dd">The kernel couldn't find the current delegate CPU (i.e., the current CPU
+                        hasn't delegated its timers).</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Examples:</h2>
+            
+            <div class="p"><pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/syspage.h&gt;
+#include &lt;sys/resource.h&gt;
+#include &lt;sys/cpuinline.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdbool.h&gt;
+#include &lt;inttypes.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;time.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;assert.h&gt;
+#include &lt;pthread.h&gt;
+
+#define cps SYSPAGE_ENTRY(qtime)-&gt;cycles_per_sec
+#define cc ClockCycles()
+
+static unsigned ncpus;
+
+static void burn(uint64_t const sec)
+{
+    uint64_t now_cc = ClockCycles(), end_cc = now_cc + sec * cps;
+    while(ClockCycles() &lt; end_cc) {
+        // Burn CPU cycles.
+        __cpu_bus_backoff();
+    }
+}
+
+static void pin(unsigned const cpu)
+{
+    unsigned const runmask = (1U &lt;&lt; cpu);
+    void *threadctl_arg = (void *)(uintptr_t)runmask;
+    assert(ThreadCtl(_NTO_TCTL_RUNMASK, threadctl_arg) != -1);
+}
+
+static void unpin(void)
+{
+    unsigned const runmask = ~0U;
+    void *threadctl_arg = (void *)(uintptr_t)runmask;
+    assert(ThreadCtl(_NTO_TCTL_RUNMASK, threadctl_arg) != -1);
+}
+
+static void powerdown(unsigned const delegate_cpu)
+{
+    for (;;) {
+        int const rc = TimerDelegate_r(_NTO_TIMER_DELEGATE,
+                                        -1, delegate_cpu);
+        if (rc == 0) { break; }
+        if (rc == -EBUSY) { __cpu_bus_backoff(); continue; }
+        // A real power manager would do some handling because it did something
+        // wrong if it gets here.
+        exit(3);
+    }
+}
+
+static void powerup(unsigned const delegate_cpu)
+{
+    for (;;) {
+        int const rc = TimerDelegate_r(_NTO_TIMER_RECLAIM,
+                                        -1, delegate_cpu);
+        if (rc == 0) { break; }
+        if (rc == -EBUSY) { __cpu_bus_backoff(); continue; }
+        // A real power manager would do some handling because it did something
+        // wrong if it gets here.
+        exit(3);
+    }
+}
+
+static unsigned find_delegate(void)
+{
+    unsigned delegate_cpu = -1;
+    for (;;) {
+        int const rc = TimerDelegate_r(_NTO_TIMER_QUERY_DELEGATE,
+                                         -1, delegate_cpu);
+        if (rc &gt;= 0) { delegate_cpu = (unsigned)rc; break; }
+        if (rc == -EBUSY) { __cpu_bus_backoff(); continue; }
+        // A real power manager would do some handling because it did something
+        // wrong if it gets here.
+        exit(3);
+    }
+    return delegate_cpu;
+}
+
+static void *powerman(void * const arg)
+{
+    assert(arg == (void *)0UL);
+
+    // Thread will be pinned on CPU0 and will delegate CPU0's timers to CPU1
+    int const owner_cpu = (int)(intptr_t)arg;
+    int const delegate_cpu = owner_cpu + 1;
+
+    pin(owner_cpu);
+
+    struct sched_param const param = { .sched_priority = 254, };
+    pthread_t const self = pthread_self();
+    int const rc = pthread_setschedparam(self, SCHED_OFFLINING, &amp;param);
+    assert(rc == 0);
+
+    // Powering down CPU0, the timer associated with CPU0 will keep ticking on
+    // CPU1.
+    powerdown(delegate_cpu);
+    // Burn CPU cycles for two seconds, we should see 10 more ticks from the
+    // timer at 200ms interval.
+    burn(2);
+    // Reclaim timers.
+    powerup(find_delegate());
+
+    return NULL;
+}
+
+static void SIGALRM_handler(int const signo)
+{
+    printf("%lu ms got signo %d\n", clock_gettime_mon_ns()/1000000UL, signo);
+}
+
+#define MS(x) ((uint64_t)(x) * 1000000UL)
+int main(int argc, char *argv[])
+{
+    ncpus = _syspage_ptr-&gt;num_cpu;
+    assert(ncpus &gt; 1U);
+
+    int rc;
+
+    // Pin current thread on CPU0, that will force the timer to be associated
+    // with CPU0, starts after 500ms, ticks every 200ms
+    pin(0);
+    signal(SIGALRM, SIGALRM_handler);
+    int t = TimerCreate(CLOCK_MONOTONIC, NULL); // SIGALRM
+    assert(t != -1);
+    struct _itimer itime = { MS(500), MS(200), };
+    rc = TimerSettime(t, 0, &amp;itime, NULL);
+    assert(rc != -1);
+    unpin();
+
+    // let timer fire for a few times
+    burn(1);
+
+    // until end point, CPU0 is down, timer keeps firing on CPU1
+    printf("start @ %lu ms\n", clock_gettime_mon_ns()/1000000UL);
+
+    // spawn thread that simulates a powerdown of CPU0
+    pthread_t powerman_tid;
+    rc = pthread_create(&amp;powerman_tid, NULL, powerman, (void *)(uintptr_t)0);
+    assert(rc == 0);
+
+    rc = pthread_join(powerman_tid, NULL);
+
+    // until end point, CPU0 has reclaimed its timers.
+    printf("end @ %lu ms\n", clock_gettime_mon_ns()/1000000UL);
+
+    burn(1); // run timer for an extra second
+
+    return 0;
+}
+</pre></div>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Classification:</h2>
+            
+            <p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">QNX OS</a></p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d842940e512">Safety:</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d842940e515"> </th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e512 ">Cancellation point</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e515 ">No</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e512 ">Signal handler</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e515 ">No</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e512 ">Thread</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d842940e515 ">Yes</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-t.html">T</a></div>
+</div>
+</div></body>
+</html>

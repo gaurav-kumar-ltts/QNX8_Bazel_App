@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="InterruptQuery(), InterruptQuery_r()" />
+<meta name="abstract" content="Obtain data about an interrupt source or Interrupt Service Thread (IST)" />
+<meta name="description" content="Obtain data about an interrupt source or Interrupt Service Thread (IST)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-i.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/interruptattachevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/i/interruptattachthread.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/sigevent.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="interruptquery" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>InterruptQuery(), InterruptQuery_r()</title>
+</head>
+<body id="interruptquery">
+
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        <span class="keyword apiname">InterruptQuery()</span>, <span class="keyword apiname">InterruptQuery_r()</span>
+    </h1>
+
+
+    
+    
+    <div class="body refbody"><p class="shortdesc">
+        <em class="ph i">Obtain data about an interrupt source or Interrupt Service Thread (IST)</em>
+    </p>
+
+
+        <div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+            
+            <pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int InterruptQuery( unsigned <var class="keyword varname">type</var>,
+                    int <var class="keyword varname">id</var>,
+                    unsigned long <var class="keyword varname">extra</var>,
+                    struct interrupt_query_data *<var class="keyword varname">data</var>);
+
+int InterruptQuery_r( unsigned <var class="keyword varname">type</var>,
+                      int <var class="keyword varname">id</var>,
+                      unsigned long <var class="keyword varname">extra</var>,
+                      struct interrupt_query_data *<var class="keyword varname">data</var>);</pre>
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+            
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+                    <dd class="dd">The query type; defines whether <var class="keyword varname">id</var> is an interrupt source
+                        or IST. One of: <ul class="ul">
+                            <li class="li"><span class="keyword const">_NTO_INTR_QUERY_HANDLER</span></li>
+
+                            <li class="li"><span class="keyword const">_NTO_INTR_QUERY_SOURCE</span></li>
+
+                        </ul>
+ For more information, refer to the <a class="xref" href="#interruptquery__interrupt_query_data"><span class="keyword dtype">interrupt_query_data</span></a> structure below. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">id</var></dt>
+
+                    <dd class="dd">The query's unique identifier; either the interrupt vector number given to,
+                        or unique interrupt ID returned by <a class="xref" href="interruptattachthread.html" title="Attach a thread to an interrupt source"><span class="keyword apiname">InterruptAttach*()</span></a>.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">extra</var></dt>
+
+                    <dd class="dd">Specifies additional parameters based on the query type (refer to the
+                        Description below for details). For example, you can use the
+                            <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> query type to specify which core
+                        to use for per-core interrupts.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><var class="keyword varname">data</var></dt>
+
+                    <dd class="dd">A pointer to the <a class="xref" href="#interruptquery__interrupt_query_data"><span class="keyword dtype">interrupt_query_data</span></a> structure, which
+                        provides data about the interrupt source or IST.</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Library:</h2>
+            
+            <p class="p">
+                <span class="ph filepath">libc</span>
+            </p>
+
+            <p class="p">Use the <span class="keyword option">-l c</span> option to <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a> to link against this library. This library is
+                usually included automatically.</p>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Description:</h2>
+            
+            <p class="p">
+                
+                The <span class="keyword apiname">InterruptQuery()</span> and <span class="keyword apiname">InterruptQuery_r()</span>
+                functions obtain data about an interrupt source or IST depending on the query type
+                you set. These functions are identical except in the way they indicate errors. See
+                the <q class="q"><a class="xref" href="#interruptquery__Returns">Returns</a></q> section for details.</p>
+
+            <p class="p">The usage of the <var class="keyword varname">extra</var> parameter depends on the query type that
+                you set. If you set the <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> type, the
+                    <var class="keyword varname">extra</var> parameter specifies which core to use for per-core
+                interrupts. Otherwise, if you set the <span class="keyword const">_NTO_INTR_QUERY_HANDLER</span> type,
+                the query ignores the <var class="keyword varname">extra</var> parameter.</p>
+
+            <p class="p">If you set <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> as the query type, then the process
+                must have the <span class="keyword const">PROCMGR_AID_INTERRUPT</span> ability enabled. For more
+                information, refer to <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>. </p>
+
+            <h3 class="title sectiontitle">The <span class="keyword dtype">interrupt_query_data</span>
+                structure</h3>
+            <p class="p">The <span class="keyword dtype">interrupt_query_data</span> structure holds the data of an interrupt
+                source or IST:</p>
+
+            <pre class="pre codeblock">struct interrupt_query_data {
+   uint32_t type;
+   uint32_t vector;
+   uint64_t deliver_time;
+   uint64_t deliver_count;
+
+   union {
+      struct {
+         uint16_t startup_flags;
+         uint16_t startup_config;
+         uint32_t num_handlers;
+         uint32_t mask_count;
+         uint32_t flags;
+         uint64_t route;
+      } source;
+
+      struct {
+         pid_t ist_pid;
+         pthread_t ist_tid;
+         uint64_t ist_runmask;
+         int32_t attach_id;
+         uint32_t attach_flags;
+         uint32_t mask_count;
+         struct sigevent event;
+      } handler;
+   } data;
+};</pre>
+            <p class="p"> This structure includes the following members:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+                    <dd class="dd">The type of interrupt query. One of the following: <ul class="ul">
+                            <li class="li">A value of <span class="keyword const">_NTO_INTR_QUERY_HANDLER</span> indicates that the
+                                <span class="ph codeph">handler</span> structure was filled in the <span class="ph codeph">data</span> union. This
+                                structure holds the data of an IST.</li>
+
+                            <li class="li">A value of <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> indicates that the
+                                <span class="ph codeph">source</span> structure was filled in the <span class="ph codeph">data</span> union. This structure
+                                holds the data of an interrupt source.</li>
+
+                        </ul>
+</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">vector</var></dt>
+
+                    <dd class="dd">The interrupt vector number.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">deliver_time</var></dt>
+
+                    <dd class="dd">The timestamp, in clock cycles, of the last delivered interrupt.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">deliver_count</var></dt>
+
+                    <dd class="dd">The number of times the kernel has received the interrupt. <div class="note"><span class="notetitle">Note:</span> Currently,
+                            the delivery count isn't tracked, so this field is always
+                        zero.</div>
+</dd>
+
+                
+            </dl>
+
+            <p class="p"> Specifying <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> as the query type provides the
+                following data about an interrupt source:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">startup_flags</var></dt>
+
+                    <dd class="dd">The flags provided by startup for the interrupt source.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">startup_config</var></dt>
+
+                    <dd class="dd">The config provided by startup for the interrupt source.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">num_handlers</var></dt>
+
+                    <dd class="dd">The number of ISTs attached to the interrupt.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">mask_count</var></dt>
+
+                    <dd class="dd">The mask count of the interrupt source.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+                    <dd class="dd">Controller-specific flags.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">route</var></dt>
+
+                    <dd class="dd">Controller-specific destination the process routed the interrupt to.</dd>
+
+                
+            </dl>
+
+            <p class="p"> Specifying <span class="keyword const">_NTO_INTR_QUERY_HANDLER</span> as the query type provides the
+                following data about an IST:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm"><var class="keyword varname">ist_pid</var></dt>
+
+                    <dd class="dd">The IST's process ID.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">ist_tid</var></dt>
+
+                    <dd class="dd">The IST's thread ID.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">ist_runmask</var></dt>
+
+                    <dd class="dd">The IST's runmask.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">attach_id</var></dt>
+
+                    <dd class="dd">The ID the process assigned to this handler when it called
+                            <span class="keyword apiname">InterruptAttach*()</span>.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">attach_flags</var></dt>
+
+                    <dd class="dd">The <span class="keyword const">_NTO_INTR_FLAGS_*</span> defined in
+                            <span class="keyword apiname">InterruptAttach*()</span>.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">mask_count</var></dt>
+
+                    <dd class="dd">The mask count of the handler.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><var class="keyword varname">event</var></dt>
+
+                    <dd class="dd">A copy of the <span class="keyword dtype">sigevent</span> provided to
+                            <span class="keyword apiname">InterruptAttachEvent*()</span>.</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section" id="interruptquery__Returns"><h2 class="title sectiontitle">Returns:</h2>
+            
+            <p class="p"> The only difference between these functions is the way they indicate errors: </p>
+
+            <dl class="dl compact">
+                
+                    <dt class="dt dlterm"><span class="keyword apiname">InterruptQuery()</span></dt>
+
+                    <dd class="dd">If an error occurs, -1 is returned and <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set. Any other value returned
+                        indicates success. </dd>
+
+                
+
+                
+                    <dt class="dt dlterm"><span class="keyword apiname">InterruptQuery_r()</span></dt>
+
+                    <dd class="dd"><span class="keyword const">EOK</span> is returned on success. This function does <strong class="ph b">NOT</strong> set
+                            <var class="keyword varname">errno</var>. If an error occurs, the negative of a value in
+                        the Errors section may be returned. </dd>
+
+                
+
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Errors:</h2>
+            
+            <dl class="dl compact">
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword const">EINVAL</span>
+                    </dt>
+
+                    <dd class="dd">One of the following errors occurred: <ul class="ul">
+                            <li class="li">You didn't specify a valid query type.</li>
+
+                            <li class="li">You set <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> as the query type, but
+                                the ID doesn't correspond to an interrupt source.</li>
+
+                        </ul>
+</dd>
+
+                
+
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword const">EPERM</span>
+                    </dt>
+
+                    <dd class="dd">You set <span class="keyword const">_NTO_INTR_QUERY_SOURCE</span> as the query type, but the
+                        caller doesn't have the <span class="keyword const">PROCMGR_AID_INTERRUPT</span> ability
+                        enabled.</dd>
+
+                
+
+                
+                    <dt class="dt dlterm">
+                        <span class="keyword const">ESRCH</span>
+                    </dt>
+
+                    <dd class="dd">You set <span class="keyword const">_NTO_INTR_QUERY_HANDLER</span> as the query type, but the
+                        specified ID doesn't match the ID of an attached IST.</dd>
+
+                
+            </dl>
+
+        </div>
+
+
+        <div class="section"><h2 class="title sectiontitle">Classification:</h2>
+            
+            <p class="p">
+                <a class="xref" href="../summary.html#summary__CLASSIFICATION">
+                    <span class="keyword">QNX OS</span>
+                </a>
+            </p>
+
+            
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                        <tr class="row">
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d867156e652">Safety:</th>
+
+                            <th class="entry cellrowborder" style="vertical-align:top;" id="d867156e655"> </th>
+
+                        </tr>
+
+                    </thead>
+<tbody class="tbody">
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e652 ">Cancellation point</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e655 ">No</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e652 ">Signal handler</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e655 ">Yes</td>
+
+                        </tr>
+
+                        <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e652 ">Thread</td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d867156e655 ">Yes</td>
+
+                        </tr>
+
+                    </tbody>
+</table>
+</div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-i.html">I</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/i/interruptattachevent.html" title="Attach an event to an interrupt source">InterruptAttachEvent(), InterruptAttachEvent_r(), InterruptAttachEventPriority(), InterruptAttachEventPriority_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/i/interruptattachthread.html" title="Attach a thread to an interrupt source">InterruptAttachThread(), InterruptAttachThread_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/sigevent.html" title="Structure that describes an event">sigevent</a></li></ul></div>
+</div></body>
+</html>

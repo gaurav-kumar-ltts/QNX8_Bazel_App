@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="my_read_dir()" />
+<meta name="abstract" content="In my_read_dir() is where the fun begins. From a high-level perspective, we allocate a buffer that's going to hold the result of this operation (called reply_msg). We then use dp to “walk” along the output buffer, stuffing struct dirent entries as we go along. The helper routine dirent_size() is used to determine if we have sufficient room in the output buffer to stuff the next entry; the helper routine dirent_fill() is used to perform the stuffing." />
+<meta name="description" content="In my_read_dir() is where the fun begins. From a high-level perspective, we allocate a buffer that's going to hold the result of this operation (called reply_msg). We then use dp to “walk” along the output buffer, stuffing struct dirent entries as we go along. The helper routine dirent_size() is used to determine if we have sufficient room in the output buffer to stuff the next entry; the helper routine dirent_fill() is used to perform the stuffing." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_complex.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="rc_my_read_dir" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>my_read_dir()</title>
+</head>
+<body id="rc_my_read_dir">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">my_read_dir()</span></h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In <span class="keyword apiname">my_read_dir()</span> is where the fun begins.
+From a high-level perspective, we allocate a buffer that's going to hold
+the result of this operation (called <var class="keyword varname">reply_msg</var>).
+We then use <var class="keyword varname">dp</var> to <q class="q">walk</q> along the output buffer,
+stuffing <span class="keyword dtype">struct dirent</span> entries as we go along.
+The helper routine <span class="keyword apiname">dirent_size()</span>
+is used to determine if we have sufficient room in the output buffer to stuff
+the next entry; the helper routine <span class="keyword apiname">dirent_fill()</span>
+is used to perform the stuffing.
+</p>
+
+
+<p class="p">
+Note that these routines are not part of the resource manager library; they're discussed
+and documented below.
+</p>
+
+
+<p class="p">
+On first glance this code may look inefficient; we're using <span class="keyword apiname">sprintf()</span> to
+create a two-byte filename (the filename character and a NUL terminator) into a buffer
+that's <span class="keyword const">_POSIX_PATH_MAX</span> (256) bytes long.
+This was done to keep the code as generic as possible.
+</p>
+
+
+<p class="p">
+Finally, notice that we use the OCB's <var class="keyword varname">offset</var> member to indicate to us which
+particular filename we're generating the <span class="keyword dtype">struct dirent</span> for at any given time.
+This means that we also have to update the <var class="keyword varname">offset</var> field whenever we return data.
+</p>
+
+
+<p class="p">
+The return of data to the client is accomplished in the <q class="q">usual</q> way, via
+<span class="keyword apiname">MsgReply()</span>.
+Note that the status field of <span class="keyword apiname">MsgReply()</span> is used to indicate the
+number of bytes that were sent to the client.
+</p>
+
+
+<pre class="pre codeblock">static int
+my_read_dir (resmgr_context_t *ctp, io_read_t *msg,
+             iofunc_ocb_t *ocb)
+{
+    size_t  nbytes;
+    size_t  nleft;
+    struct  dirent *dp;
+    char    *reply_msg;
+    char    fname [_POSIX_PATH_MAX];
+
+    // allocate a buffer for the reply
+    reply_msg = calloc (1, _IO_READ_GET_NBYTES(msg));
+    if (reply_msg == NULL) {
+        return (ENOMEM);
+    }
+
+    // assign output buffer
+    dp = (struct dirent *) reply_msg;
+
+    // we have "nleft" bytes left
+    nleft = _IO_READ_GET_NBYTES(msg);
+    while (ocb -&gt; offset &lt; NUM_ENTS) {
+
+        // create the filename
+        sprintf (fname, "%c", ocb -&gt; offset + 'a');
+
+        // see how big the result is
+        nbytes = dirent_size (fname);
+
+        // do we have room for it?
+        if (nleft - nbytes &gt;= 0) {
+
+            // fill the dirent, and advance the dirent pointer
+            dp = dirent_fill (dp, ocb -&gt; offset + 1,
+                              ocb -&gt; offset, fname);
+
+            // move the OCB offset
+            ocb -&gt; offset++;
+
+            // account for the bytes we just used up
+            nleft -= nbytes;
+        } else {
+
+            // don't have any more room, stop
+            break;
+        }
+    }
+
+    // return info back to the client
+    MsgReply (ctp -&gt; rcvid, (char *) dp - reply_msg,
+              reply_msg, (char *) dp - reply_msg);
+
+    // release our buffer
+    free (reply_msg);
+
+    // tell resource manager library we already did the reply
+    return (_RESMGR_NOREPLY);
+}
+</pre>
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_complex.html" title="In this example, we're going to create a resource manager called /dev/atoz that will be a directory resource manager. It's going to manifest the “files” /dev/atoz/a through to dev/atoz/z, with a cat of any of the files returning the uppercase letter corresponding to the filename.">Example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

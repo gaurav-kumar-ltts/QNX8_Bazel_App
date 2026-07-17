@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Lazy loading" />
+<meta name="abstract" content="Lazy dependency loading (or on-demand dependency loading) is a method of loading the required objects when they're actually required." />
+<meta name="description" content="Lazy dependency loading (or on-demand dependency loading) is a method of loading the required objects when they're actually required." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Optimizing_linker.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Lazy_loading" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Lazy loading</title>
+</head>
+<body id="Lazy_loading">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Lazy loading</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Lazy dependency loading (or on-demand dependency loading) is a method of
+loading the required objects when they're actually required.
+</p>
+
+
+<p class="p">
+
+
+
+The most important effect of lazy loading is that the resolution 
+scope is different for a lazyload dependency.
+While in a <q class="q">normal</q> dependency, the resolution scope contains
+immediate dependencies followed by their dependencies sorted in 
+breadth-first order, for a lazy-loaded object, the resolution scope 
+ends with its first-level dependencies. Therefore, all of 
+the lazy-loaded symbols must be satisfied by definitions in its 
+first level dependencies.
+</p>
+
+
+<p class="p">
+Due to this difference, you must carefully consider whether 
+lazy-load dependencies are suitable for your application.
+</p>
+
+
+<p class="p">
+
+
+Each dynamic object can have multiple dependencies.
+dependencies can be <em class="ph i">immediate</em> or <em class="ph i">implicit</em>:
+</p>
+
+
+<ul class="ul">
+<li class="li">Immediate dependencies are those that directly satisfy all external references of the object.</li>
+
+<li class="li">Implicit dependencies are those that satisfy dependencies of the object's dependencies.</li>
+
+</ul>
+
+
+<p class="p">
+The ultimate dependent object is the executable binary itself, but we
+consider any object that needs to resolve its external symbols to be dependent.
+When referring to immediate or implicit dependencies,
+we always view them from the point of view of the dependent object.
+</p>
+
+
+<p class="p">
+Here are some other terms:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Lazy-load dependency</dt>
+
+<dd class="dd">Dependencies that aren't immediately loaded are referred to as <em class="ph i">lazy-load dependencies</em>.</dd>
+
+
+
+
+<dt class="dt dlterm">Lookup scope/resolution scope</dt>
+
+<dd class="dd">A list of objects where a symbol is looked for.
+  The lookup scope is determined at the object's load time.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Immediate and lazy symbol resolution</dt>
+
+<dd class="dd">All symbolic references must be resolved.
+  Some symbol resolutions need to be performed immediately, such as
+  symbolic references to global data.
+  Another type of symbolic references can be resolved on first use:
+  external function calls.
+  The first type of symbolic references are referred to as
+  <em class="ph i">immediate</em>, and the second as <em class="ph i">lazy</em>.
+</dd>
+
+
+</dl>
+
+
+
+
+<p class="p">
+
+
+To use lazy loading, specify the <span class="keyword const">RTLD_LAZYLOAD</span> flag when you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a>.
+</p>
+
+
+<p class="p">
+The runtime linker creates the link map for the executable in the usual way,
+by creating links for each <span class="keyword const">DT_NEEDED</span> object.
+Lazy dependencies are represented by a special link, a placeholder
+that doesn't refer to actual object yet.
+It does, however, contain enough information for
+the runtime linker to look up the object and load it on demand.
+</p>
+
+
+<p class="p">
+
+
+
+
+The lookup scope for the dependent object and its
+regular dependencies is the link map, while for each lazy dependency symbol,
+the lookup scope gets determined on-demand, when the object is actually loaded.
+Its lookup scope is defined in the same way that we define the lookup scope
+for an object loaded with <span class="ph codeph">dlopen(RTLD_GROUP)</span> (it's
+important that <span class="keyword const">RTLD_WORLD</span> not be specified, or else we'd
+be including all <span class="keyword const">RTLD_GLOBAL</span> objects in the lookup scope).
+</p>
+
+
+<p class="p">
+When a call to an external function is made from dependent object,
+by using the lazy binding mechanism we traverse its scope of resolution
+in the usual way.
+If we find the definition, we're done.
+If, however, we reach a link that refers to a not-yet-loaded dependency, we
+load the dependency and then look it up for the definition.
+We repeat this process until either a definition is found, or we've
+traversed the entire dependency list.
+We don't traverse any of the implicit dependencies.
+</p>
+
+
+<p class="p">
+The same mechanism applies to resolving immediate relocations.
+If a dependent object has a reference to global data, and we don't find the
+definition of it in the currently loaded objects, we proceed to load the
+lazy dependencies, the same way as described above for resolving a
+function symbol.
+The difference is that this happens at the load time of the dependent
+object, not on first reference.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+This approach preserves the symbol-overriding mechanisms provided by <span class="keyword envar">LD_PRELOAD</span>.
+</div>
+
+
+<p class="p">
+Another important thing to note is that lazy-loaded dependencies change their own lookup scope;
+therefore, when resolving a function call from a lazy-loaded dependency,
+the lookup scope is different than if the dependency was a normal dependency.
+As a consequence, lazy loading can't be transparent as, for example,
+lazy binding is (lazy binding doesn't change the lookup scope, only the
+time of the symbol lookup).
+</p>
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel_Optimizing_linker.html">Optimizing the runtime linker</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html">dlopen()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/g/gdb.html">gdb</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/l/ld.html">ld</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/p/pdebug.html">pdebug</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li></ul></div>
+</div></body>
+</html>

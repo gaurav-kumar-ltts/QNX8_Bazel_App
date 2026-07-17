@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example devcrypto plugin: openssl_digest.c" />
+<meta name="abstract" content="This example illustrates how to implement a devcrypto plugin." />
+<meta name="description" content="This example illustrates how to implement a devcrypto plugin." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Example devcrypto plugin: openssl_digest.c</title>
+</head>
+<body id="bluetooth_client_api">
+
+<h1 class="title topictitle1" id="ariaid-title1">Example <span class="keyword cmdname">devcrypto</span> plugin: <span class="ph filepath">openssl_digest.c</span></h1>
+
+
+    
+    <div class="body conbody"><p class="shortdesc"> This example illustrates how to implement a <span class="keyword cmdname">devcrypto</span>
+        plugin.</p>
+
+        <p class="p">For more information, see <a class="xref" href="devcrypto_plugin_api.html" title="The devcrypto plugin API allows you to create a software backend to the devcrypto service, which provides access to cryptographic accelerators."><q class="q">The
+                        <span class="keyword cmdname">devcrypto</span> plugin API
+                        (<span class="ph filepath">devcrypto_plugin.h</span></q>)</a> and the entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/devcrypto.html"><span class="ph filepath">devcrypto</span></a> in the <cite class="cite">Utilities Reference</cite>. </p>
+
+  <pre class="pre codeblock">/*
+ * $QNXLicenseC:
+ * Copyright 2018, QNX Software Systems. All Rights Reserved.
+ *
+ * You must obtain a written license from and pay applicable license fees to QNX
+ * Software Systems before you may reproduce, modify or distribute this software,
+ * or any work that includes all or part of this software.   Free development
+ * licenses are available for evaluation and non-commercial purposes.  For more
+ * information visit http://licensing.qnx.com or email licensing@qnx.com.
+ *
+ * This file may contain contributions from others.  Please review this entire
+ * file for other proprietary rights or license notices, as well as the QNX
+ * Development Suite License Guide at http://licensing.qnx.com/license-guide/
+ * for other information.
+ * $
+ */
+
+#include &lt;errno.h&gt;
+#include &lt;stdlib.h&gt;
+
+#include &lt;crypto/devcrypto_plugin.h&gt;
+
+#include &lt;openssl/evp.h&gt;
+
+#include "openssl.h"
+
+/*
+ * Openssl digest context
+ */
+typedef struct _digest_ctx
+{
+    const EVP_MD    *md;       /* digest algorithm */
+    EVP_MD_CTX      *mdctx;    /* digest context */
+} digest_ctx;
+
+/*
+ * Openssl digest algorithm initialization
+ *
+ * @sctx: state context object
+ * @alg: algorithm object
+ *
+ * Return:
+ * - EOK on success
+ * - errno on failure
+ */
+static int devcrypto_openssl_digest_alg_init(devcrypto_state_ctx_t *sctx)
+{
+	int ret = EOK;
+	digest_ctx *ctx;
+
+	ctx = calloc(1, sizeof(*ctx));
+	if (!ctx) {
+		ret = ENOMEM;
+		goto done;
+	}
+
+	ctx-&gt;md = EVP_get_digestbyname(sctx-&gt;alg-&gt;name);
+	if (!ctx-&gt;md) {
+		ret = ELIBBAD;
+		goto err;
+	}
+
+	ctx-&gt;mdctx = EVP_MD_CTX_create();
+	if (!ctx-&gt;mdctx) {
+		ret = ENOMEM;
+		goto err;
+	}
+
+	sctx-&gt;data = ctx;
+	ret = EOK;
+
+	goto done;
+
+err:
+	free(ctx);
+
+done:
+	return ret;
+}
+
+/*
+ * Openssl digest algorithm un-initialization
+ *
+ * @sctx: state context object
+ *
+ * Return:
+ * - EOK on success
+ */
+static void devcrypto_openssl_digest_alg_uninit(devcrypto_state_ctx_t *sctx)
+{
+	digest_ctx *ctx = sctx-&gt;data;
+
+	EVP_MD_CTX_destroy(ctx-&gt;mdctx);
+	free(ctx);
+}
+
+/*
+ * Openssl Digest Init
+ *
+ * @sctx: state context object
+ *
+ * Return:
+ * - EOK on success
+ * - errno on failure
+ */
+static int devcrypto_openssl_digest_init(devcrypto_state_ctx_t *sctx)
+{
+	int ret;
+	digest_ctx *ctx = sctx-&gt;data;
+
+	ret = EVP_DigestInit(ctx-&gt;mdctx, ctx-&gt;md);
+	if (ret &lt;= 0) {
+		return ELIBBAD;
+	}
+	return EOK;
+}
+
+/*
+ * Openssl Digest Update
+ *
+ * @sctx: state context object
+ * @data: binary data to hash in digest
+ * @size: size of @data
+ *
+ * Return:
+ * - EOK on success
+ * - errno on failure
+ */
+static int devcrypto_openssl_digest_update(devcrypto_state_ctx_t *sctx, const uint8_t *data, uint32_t size)
+{
+	int ret;
+	digest_ctx *ctx = sctx-&gt;data;
+
+	ret = EVP_DigestUpdate(ctx-&gt;mdctx, data, size);
+	if (ret &lt;= 0) {
+		return ELIBBAD;
+	}
+	return EOK;
+}
+
+/*
+ * Openssl Digest Init
+ *
+ * @sctx: state context object
+ * @digest: buffer to store digest value
+ * @size: pointer to store digest size
+ *
+ * Return:
+ * - EOK on success
+ * - errno on failure
+ */
+static int devcrypto_openssl_digest_final(devcrypto_state_ctx_t *sctx, uint8_t *digest, uint32_t *size)
+{
+	int ret;
+	digest_ctx *ctx = sctx-&gt;data;
+	unsigned int dsize;
+
+	ret = EVP_DigestFinal(ctx-&gt;mdctx, digest, &amp;dsize);
+	if (ret &lt;= 0) {
+		return ELIBBAD;
+	}
+
+	if (size) {
+		*size = (uint32_t)dsize;
+	}
+
+	return EOK;
+}
+
+/* Algorithms */
+
+/*
+ * Digests
+ */
+#define OPENSSL_DIGEST_ALG(dgstname, dgst, DGST)        \
+static const devcrypto_algorithm_t dgst = {             \
+    .name =    dgstname,                                \
+    .type =    CRYPTO_ ## DGST,                         \
+    .init =    devcrypto_openssl_digest_alg_init,       \
+    .uninit =  devcrypto_openssl_digest_alg_uninit,     \
+    .digest = {                                         \
+        .params = {                                     \
+            .digestsize =   DGST ## _DIGEST_SIZE,       \
+            .blocksize =    DGST ## _BLOCK_SIZE,        \
+        },                                              \
+        .ops = {                                        \
+            .init =     devcrypto_openssl_digest_init,  \
+            .update =   devcrypto_openssl_digest_update,\
+            .final =    devcrypto_openssl_digest_final, \
+        },                                              \
+    },                                                  \
+};
+
+/* Define algorithms */
+OPENSSL_DIGEST_ALG("md5",md5,MD5)
+OPENSSL_DIGEST_ALG("sha1",sha1,SHA1)
+OPENSSL_DIGEST_ALG("sha224",sha224,SHA224)
+OPENSSL_DIGEST_ALG("sha256",sha256,SHA256)
+OPENSSL_DIGEST_ALG("sha384",sha384,SHA384)
+OPENSSL_DIGEST_ALG("sha512",sha512,SHA512)
+OPENSSL_DIGEST_ALG("sha512-224",sha512_224,SHA512_224)
+OPENSSL_DIGEST_ALG("sha512-256",sha512_256,SHA512_256)
+
+/*
+ * TODO
+ */
+void devcrypto_openssl_digest_register(void)
+{
+	devcrypto_plugin_register_algorithm(&amp;md5);
+	devcrypto_plugin_register_algorithm(&amp;sha1);
+	devcrypto_plugin_register_algorithm(&amp;sha224);
+	devcrypto_plugin_register_algorithm(&amp;sha256);
+	devcrypto_plugin_register_algorithm(&amp;sha384);
+	devcrypto_plugin_register_algorithm(&amp;sha512);
+	devcrypto_plugin_register_algorithm(&amp;sha512_224);
+	devcrypto_plugin_register_algorithm(&amp;sha512_256);
+}
+  </pre>
+</div>
+
+</body>
+</html>

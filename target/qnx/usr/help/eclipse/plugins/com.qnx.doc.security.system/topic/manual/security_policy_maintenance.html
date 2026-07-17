@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Security policy maintenance" />
+<meta name="abstract" content="Maintenance tasks for your security policy can include determining whether any generated rules should be edited or removed, manually editing policies for efficiency and simplicity, and reviewing the contents of /dev/secpolgenerate/unused." />
+<meta name="description" content="Maintenance tasks for your security policy can include determining whether any generated rules should be edited or removed, manually editing policies for efficiency and simplicity, and reviewing the contents of /dev/secpolgenerate/unused." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Security policy maintenance</title>
+</head>
+<body id="bluetooth_client_api">
+
+  <h1 class="title topictitle1" id="ariaid-title1">Security policy maintenance</h1>
+
+  
+  
+  <div class="body conbody"><p class="shortdesc"> Maintenance tasks for your security policy can include determining whether any
+    generated rules should be edited or removed, manually editing policies for efficiency and
+    simplicity, and reviewing the contents of
+    <span class="ph filepath">/dev/secpolgenerate/unused</span>.</p>
+
+    <p class="p">
+      
+    </p>
+
+    <p class="p">The <span class="keyword cmdname">secpolgenerate</span> utility is not designed to generate a security policy
+      that you can use <q class="q">as is.</q> Rather, it is intended to provide input into a policy that you
+      modify based on the actual needs of the system. For example, in some cases, the rules for
+      programs like <span class="keyword cmdname">dumper</span> need to change to allow it to function.</p>
+
+    <p class="p">It is also possible to use the automatically generated policy only as a guide for producing
+      policies that are equivalent to but better than ones that <span class="keyword cmdname">secpolgenerate</span>
+      produces. For example, you can use attributes in the security policy language to group related
+      sets of capabilities and assign them to types.</p>
+
+    <p class="p">In other cases, you can rewrite rules to improve them. For example, the following rule is a
+      candidate for simplification:</p>
+
+    <pre class="pre codeblock">allow_attach devc_pty_t {
+    /dev/ttyp0
+    /dev/ptyp0
+    /dev/ttyp1
+    /dev/ptyp1
+    /dev/ttyp2
+    /dev/ptyp2
+    /dev/ttyp3
+    /dev/ptyp3
+    /dev/ttyp4
+    /dev/ptyp4
+    /dev/ttyp5
+    /dev/ptyp5
+    /dev/ttyp6
+    /dev/ptyp6
+    /dev/ttyp7
+    /dev/ptyp7
+};</pre>
+    <p class="p">This rule can be replaced with the following one:</p>
+
+    <pre class="pre codeblock">allow_attach devc_pty_t {
+    /dev/ttyp*
+    /dev/ptyp*
+};    </pre>
+    <p class="p">When the system is exercised in new ways or as new services are added and others are taken
+      away, you need to update the policy. To perform these updates, first use
+        <span class="keyword cmdname">secpolgenerate</span> to remove restrictions from types to allow processes to do
+      what they like without encountering errors (see <q class="q"><a class="xref" href="tuning.html" title="In most development environments, security policies will need to be revised or updated. For example, your initial attempt at a policy may not account for all desired behavior, or you might add a new program or new version of a program. Although you can capture any new rules that are required by running secpolgenerate again in an unrestricted manner, in most cases it's better to selectively remove restrictions using the configuration file.">Developing systems with a security policy</a></q>). Then, use
+      the contents of <span class="ph filepath">/dev/secpolgenerate/policy</span> to determine which rules to
+      add to the policy. In most cases, these additional rules are merged with existing rules rather
+      than concatenated to the end of the existing policy file.</p>
+
+    <p class="p"><span class="keyword cmdname">secpolgenerate</span> also provides the file
+        <span class="ph filepath">/dev/secpolgenerate/unused</span>, which indicates rules or types that the
+      system did not require. It can be used as a guide for rules or types to remove. However, it is
+      important to consider why the rules are there because it is possible that they're only
+      required under circumstances that have not yet occured.</p>
+
+  </div>
+
+</body>
+</html>

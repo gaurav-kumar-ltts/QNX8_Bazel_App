@@ -1,0 +1,1003 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="slm" />
+<meta name="abstract" content="System launch and monitor: launch complex applications consisting of many processes that must be started in a specific order" />
+<meta name="description" content="System launch and monitor: launch complex applications consisting of many processes that must be started in a specific order" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/o/on.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/slmctl.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="slm" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>slm</title>
+</head>
+<body id="slm">
+
+ <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">slm</span></h1>
+
+    
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">System launch and  monitor: launch complex applications consisting of many processes that must be started in a specific order</em></p>
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+            
+            
+            
+            <pre class="pre codeblock">slm [-avV] [-b <var class="keyword varname">seconds</var>] [-D <var class="keyword varname">debug_mode</var>] [-n <var class="keyword varname">subsystem_path</var>]
+    [-p <var class="keyword varname">priority</var>] [-P <var class="keyword varname">search_path</var>] [-r <var class="keyword varname">recovery_mode</var>]
+    [-R <var class="keyword varname">frequency</var>/sec|min|hour][-s <var class="keyword varname">comp_name</var>] [-t <var class="keyword varname">polling_interval</var>]
+    [-T <var class="keyword varname">total_wait</var>][-x <var class="keyword varname">comp_name</var>] <var class="keyword varname">config_file</var>
+</pre>
+        </div>
+
+
+    <div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+        
+        <p class="p"><span class="keyword">QNX OS</span></p>
+
+    </div>
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+        
+
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><span class="keyword option">-a</span></dt>
+
+            <dd class="dd">Adopt running processes. Use this option to integrate SLM with an existing system
+                        where some processes may already be running. If you place component entries
+                        for all relevant system processes in the configuration file, SLM will adopt
+                        these processes at startup as if it had launched them itself (and can thus
+                        control the processes via the command interface or restart them
+                        automatically if they terminate abnormally; see <q class="q"><a class="xref" href="slm.html#slm__normalvsabnormal">Normal vs. abnormal
+                            termination</a></q>).<p class="p">The adoption mechanism works only if the
+                            component in the configuration file that corresponds to the running
+                            process uses exactly the same arguments (specified using the
+                                <span class="ph codeph">args</span> element) as the running process and the
+                            arguments are in the same order. Otherwise, SLM does not recognize that
+                            the component corresponds to the running process.</p>
+</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-b</span>
+                        <var class="keyword varname">seconds</var></dt>
+
+            <dd class="dd">Specify a back-off period for all components. When a component terminates
+                        abnormally, SLM waits this number of seconds before it attempts to restart
+                        it. If the restart is not successful, it adds this number of seconds to the
+                        wait time for each subsequent attempt. For example, if you start SLM with
+                            <tt class="ph tt">-b 2</tt>, SLM waits two seconds before it attempts to restart the
+                        process for the first time, waits four seconds before the second attempt,
+                        waits six seconds before the third attempt, and so on. After SLM
+                        successfully starts a component, it resets the back-off period to its
+                        original value. <p class="p">You can set a different back-off period for an individual
+                            component by specifying a <span class="ph codeph">repair</span> element with a
+                                    <span class="ph codeph">backoff=<var class="keyword varname">seconds</var></span> attribute
+                            for the component in the SLM configuration file.</p>
+<p class="p">If not specified,
+                            the back-off period is 0 seconds. </p>
+</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-D</span> <var class="keyword varname">debug_mode</var></dt>
+
+            <dd class="dd">Specify when to use the <span class="ph codeph">&lt;SLM:debug&gt;</span> argument list (instead of
+                        the normal <span class="ph codeph">&lt;SLM:args&gt;</span> list). One of:
+                            <span class="ph codeph">cmd</span> (default), <span class="ph codeph">startup</span>, or
+                            <span class="ph codeph">always</span>. With <span class="ph codeph">cmd</span>, the debug list is
+                        used only when the module is started using <span class="keyword cmdname">slmctl</span> with
+                            <a class="xref" href="slmctl.html#slmctl__dash_d"><span class="keyword option">-d</span></a>. With
+                            <span class="ph codeph">startup</span>, all components launched at startup (see the
+                            <a class="xref" href="slm.html#slm__dash_s"><span class="keyword option">-s</span></a> option) initially
+                        use the debug list, but then honor the <span class="keyword option">-d</span> option of
+                        subsequent restarts. With <span class="ph codeph">always</span>, the debug list is always
+                        used.</dd>
+
+               
+        
+            <dt class="dt dlterm"><span class="keyword option">-n</span> <var class="keyword varname">subsystem_path</var></dt>
+
+            <dd class="dd">Set the access point (default is <span class="ph filepath">/dev/slm</span>) for client
+                        applications to write control and query
+                            commands. For more information on the control and query commands,
+                        see <a class="xref" href="slmctl.html" title="Control and query System Launch and Monitor (slm)"><span class="keyword cmdname">slmctl</span></a>.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-p</span> <var class="keyword varname">priority</var></dt>
+
+            <dd class="dd">Set the priority of the SLM server thread (default is 30).</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-P</span> <var class="keyword varname">search_path</var></dt>
+
+            <dd class="dd">Set the search path for executables (default is <span class="ph codeph">$PATH</span>). When
+                        launching a process, SLM looks in the search path to find the executable if
+                        the corresponding <span class="ph codeph">command</span> element doesn't contain a full
+                        path.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-r</span> <var class="keyword varname">recovery_mode</var></dt>
+
+            <dd class="dd">Set the recovery mode for components monitored by SLM. One of:
+                        <span class="ph codeph">none</span>, <span class="ph codeph">stop</span>, or <span class="ph codeph">restart</span>
+                        (the default). The action specified with the <span class="keyword option">-r</span> option is
+                        performed when a component terminates abnormally if that component doesn't
+                        override this setting in its <span class="ph codeph">repair</span> element.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-R</span>
+                        <var class="keyword varname">frequency</var></dt>
+
+            <dd class="dd">
+                        <p class="p">Set how frequently SLM attempts to recover a component that has
+                            terminated abnormally. The <var class="keyword varname">frequency</var> argument
+                            specifies the maximum number of recovery attempts as an integer and one
+                            of the following suffixes, separated by a forward slash:
+                                <span class="ph codeph">sec</span> (seconds), <span class="ph codeph">min</span> (minutes), or
+                                <span class="ph codeph">hour</span>. For example, <span class="ph codeph">1/min</span>. Default
+                            is <span class="ph codeph">2/min</span> (2 times per minute).</p>
+
+                    </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option" id="slm__dash_s">-s</span> <var class="keyword varname">comp_name</var></dt>
+
+            <dd class="dd">Name a component or module to launch when <span class="keyword cmdname">slm</span> starts. For
+                        convenience, you can use the built-in pseudo-modules <span class="ph codeph">all</span>
+                        and <span class="ph codeph">none</span> (default is <span class="ph codeph">all</span>).</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-t</span> <var class="keyword varname">polling_interval</var></dt>
+
+            <dd class="dd">Set the polling interval in milliseconds for the <span class="ph codeph">wait</span> property.
+Default is <span class="ph codeph">100</span>.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-T</span> <var class="keyword varname">total_wait</var></dt>
+
+            <dd class="dd">Set the total wait time in milliseconds. Default is <span class="ph codeph">50000</span> (50
+                        seconds).</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-v</span></dt>
+
+            <dd class="dd">Specifies output verbosity (messages are written to <span class="ph filepath">slog2info</span>).
+                        The <span class="keyword option">-v</span> option is cumulative; each additional
+                            <span class="keyword option">v</span> adds a level of verbosity, up to 7 levels. Default
+                        level is warning messages.</dd>
+  
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-V</span></dt>
+
+            <dd class="dd">Log output messages to the console. The <span class="keyword option">-V</span> option is cumulative;
+                        each additional <span class="keyword option">V</span> adds a level of verbosity. Default level
+                        is error messages.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword option">-x</span> <var class="keyword varname">comp_name</var></dt>
+
+            <dd class="dd">Name a component or module to terminate when <span class="keyword cmdname">slm</span> terminates. For
+                        convenience, you can use the built-in pseudo-modules <span class="ph codeph">all</span>
+                        and <span class="ph codeph">none</span> (default is <span class="ph codeph">all</span>).</dd>
+
+        
+    </dl>
+
+    
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+    
+            <p class="p">The System Launch and Monitor (SLM) service automates the management of complex,
+                multi-process applications that must be started in a specific order.</p>
+
+            <p class="p">A configuration file controls SLM's behavior. It specifies the processes to run,
+                their properties, and any interprocess dependencies. You can include other XML files
+                using XML external entities, if needed.</p>
+
+            <p class="p">SLM uses the information in the configuration file to internally construct a directed
+                acyclic graph (DAG). SLM uses the DAG to determine the order in which it starts the
+                processes.</p>
+
+            <p class="p">Similarly, when a process fails, SLM determines any dependent processes to terminate
+                and restart, when SLM starts the process again.</p>
+
+            <p class="p">SLM can specify that a process is critical to the system functionality, meaning if the
+                process dies, the system crashes (for more information, see the description of the
+                    <tt class="ph tt">launch</tt> attribute that is available for the configuration file
+                    <span class="ph codeph">command</span> element).</p>
+
+            <p class="p">When you start SLM, you must make sure that <span class="keyword cmdname">slogger2</span> is running
+                and specify a configuration file, but all the other parameters are optional.</p>
+
+            <p class="p">Client applications can control SLM using the <span class="keyword cmdname">slmctl</span> utility or by
+                directly writing commands to the <span class="ph filepath">/dev/slm</span> interface. For more
+                information including the control and query commands, see <a class="xref" href="slmctl.html" title="Control and query System Launch and Monitor (slm)"><span class="keyword cmdname">slmctl</span></a>.</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">SLM configuration file</h2>
+
+
+<p class="p">
+                
+                 SLM uses an XML configuration file
+                to determine the appropriate order for starting processes. The configuration file
+                lists all the programs for SLM to manage, any dependencies between the programs, the
+                commands for launching the processes, and other properties. </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Configuration file structure</h2>
+
+<p class="p"> The root XML element of the configuration file is <span class="ph codeph">system</span>. All element names
+                start with <span class="ph codeph">SLM:</span>, so the root element (and the outline of the file)
+                looks like this:</p>
+
+<pre class="pre codeblock">&lt;SLM:system&gt;
+    -- component and module descriptions --
+&lt;/SLM:system&gt;
+</pre>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Components</h2>
+
+<p class="p">
+                 A process managed by SLM is represented by a
+                    <dfn class="term">component</dfn>. You must provide a component name (usually based on the
+                process name) to use within the configuration file when specifying interprocess
+                dependencies or membership in a module. </p>
+
+<p class="p"> All <span class="ph codeph">component</span> elements are children of the root element and contain other
+                elements that describe the properties of individual components. The
+                    <span class="ph codeph">component</span> element uses the following syntax:  </p>
+
+                    <pre class="pre codeblock">&lt;SLM:component name="<var class="keyword varname">component_name</var>"&gt;
+    &lt;SLM:ability&gt; <var class="keyword varname">ability</var> &lt;/SLM:ability&gt;
+    &lt;SLM:args&gt; <var class="keyword varname">args</var> &lt;/SLM:args&gt;
+    &lt;SLM:cd&gt; <var class="keyword varname">directory</var> &lt;/SLM:cd&gt;
+    &lt;SLM:command [launch=" <var class="keyword varname">launch_option</var>[,<var class="keyword varname">launch_option</var>]... "]&gt;
+                 <var class="keyword varname">executable_path</var>&lt;/SLM:command&gt;
+    &lt;SLM:debug&gt; <var class="keyword varname">command_args</var> &lt;/SLM:debug&gt;
+    &lt;SLM:depend [state="session|stateless"]&gt;
+                <var class="keyword varname">component_name</var> &lt;/SLM:depend&gt;
+    &lt;SLM:envvar [clear="none|login|all"]&gt;
+               <var class="keyword varname">environment_variables</var> &lt;/SLM:envvar&gt;
+    &lt;SLM:groups&gt; <var class="keyword varname">gid_1</var>[,<var class="keyword varname">gid_2</var>]... &lt;/SLM:groups&gt;
+    &lt;SLM:priority&gt; <var class="keyword varname">priority_algorithm</var> &lt;/SLM:priority&gt;
+    &lt;SLM:repair [backoff=<var class="keyword varname">seconds</var>]&gt;  default|none|stop|restart  &lt;/SLM:repair&gt;
+    &lt;SLM:rlimit&gt; <var class="keyword varname">resource</var>:<var class="keyword varname">soft_limit</var>:<var class="keyword varname">hard_limit</var>[,<var class="keyword varname">resource</var>:<var class="keyword varname">soft_limit</var>:<var class="keyword varname">hard_limit</var>,...] &lt;/SLM:rlimit&gt;
+    &lt;SLM:runmask&gt; <var class="keyword varname">component_runmask</var>  &lt;/SLM:runmask&gt;
+    &lt;SLM:stderr [iomode="w[+]|a[+]"]&gt; <var class="keyword varname">filename</var> &lt;/SLM:stderr&gt;
+    &lt;SLM:stdin [iomode="r[+]"]&gt; <var class="keyword varname">filename</var> &lt;/SLM:stdin&gt;
+    &lt;SLM:stdout [iomode="w|a"]&gt; <var class="keyword varname">filename</var> &lt;/SLM:stdout&gt;
+    &lt;SLM:stop 
+        [stop="none|signal"] [child="false|true"] [timeout="<var class="keyword varname">timeout_time</var>"]&gt;
+        <var class="keyword varname">data</var> &lt;/SLM:stop&gt;
+    &lt;SLM:tty&gt; <var class="keyword varname">filename</var> &lt;/SLM:tty&gt;
+    &lt;SLM:type&gt; <var class="keyword varname">type_name</var> &lt;/SLM:type&gt;
+    &lt;SLM:user&gt; <var class="keyword varname">uid</var>|:<var class="keyword varname">gid</var>|<var class="keyword varname">uid</var>:<var class="keyword varname">gid</var> &lt;/SLM:user&gt;
+    &lt;SLM:waitfor [wait="none|delay|pathname|exits|blocks"]
+                 [polltime="<var class="keyword varname">poll_time</var>:<var class="keyword varname">timeout_time</var>"]&gt; <var class="keyword varname">data</var> &lt;/SLM:waitfor&gt;
+&lt;/SLM:component&gt;
+</pre>
+
+<p class="p">  Only the <span class="ph codeph">command</span> element is mandatory—all components must have a path
+                to the binary. The remaining elements are optional.</p>
+
+
+<h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:ability&gt;</span></h3><pre class="pre codeblock">&lt;SLM:ability&gt; <var class="keyword varname">ability</var> &lt;/SLM:ability&gt;</pre>
+                <dl class="dl">
+                
+            <dt class="dt dlterm"><var class="keyword varname">ability</var></dt>
+<dd class="dd">
+                            <p class="p">A <span class="ph filepath">procnto</span> ability to give the process. This
+                            element is equivalent to the <span class="keyword option">–A</span> option of the
+                                <span class="keyword cmdname">on</span> command, and the syntax of the ability
+                            specification is the same. Specify an <span class="ph codeph">ability</span> element
+                            for each required ability.</p>
+<p class="p">Using many ability 
+        specifications to launch processes is generally a bad idea; using types to configure abilities is simpler and safer.</p>
+
+                            </dd>
+</dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:args&gt;</span></h3><pre class="pre codeblock">&lt;SLM:args&gt; <var class="keyword varname">args</var> &lt;/SLM:args&gt;</pre>
+                <dl class="dl">
+                                <dt class="dt dlterm"><var class="keyword varname">args</var></dt>
+<dd class="dd">The list of command-line arguments to launch the process. Use spaces to separate individual
+                        arguments. If an argument includes embedded spaces, enclose it in single or
+                        double quotes.<p class="p">If you are specifying arguments for a
+                                <span class="ph codeph">built-in</span> command, you separate arguments with
+                            spaces and sets of arguments with a semi-colon (;). For more
+                            information, see the <span class="ph codeph">&lt;SLM:command&gt;</span>
+                            description.</p>
+<p class="p">If the component corresponds to a running process
+                            that SLM will adopt as if SLM had launched it (specified by the
+                                <span class="keyword option">-a</span> option) make sure that the arguments are
+                            identical to the ones the running process uses. </p>
+</dd>
+</dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:cd&gt;</span></h3><pre class="pre codeblock">&lt;SLM:cd&gt; <var class="keyword varname">directory</var> &lt;/SLM:cd&gt;</pre>
+                <dl class="dl">
+                                                
+                            <dt class="dt dlterm"><var class="keyword varname">directory</var></dt>
+<dd class="dd"> The directory to switch into when launching the process; this directory becomes the process's
+                        working directory. </dd>
+</dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:command&gt;</span></h3><pre class="pre codeblock">&lt;SLM:command [launch=" <var class="keyword varname">launch_option</var>[ <var class="keyword varname">launch_option</var>]... "]&gt;
+             <var class="keyword varname">executable_path</var>&lt;/SLM:command&gt;</pre>
+                <dl class="dl">
+                                <dt class="dt dlterm"><span class="ph codeph">launch=" <var class="keyword varname">launch_option</var>[
+                            <var class="keyword varname">launch_option</var>]..."</span></dt>
+<dd class="dd">Specify one or more of the following options, separated by spaces:<ul class="ul">
+                            <li class="li"><span class="ph codeph">builtin</span> — The name of a built-in SLM command.
+                                The following options are valid:<ul class="ul">
+                                    <li class="li"><span class="ph codeph">chmod</span>
+                                        <var class="keyword varname">path</var>
+                                        <var class="keyword varname">mode</var> — Call
+                                            <span class="keyword apiname">chmod()</span> and pass it the specified
+                                            <var class="keyword varname">path</var> and <var class="keyword varname">mode</var>
+                                        values. </li>
+
+                                    <li class="li"><span class="ph codeph">no_op</span> — Does nothing. Can be used to
+                                        wait for a filepath or detect whether a process started
+                                        outside of SLM is ready.</li>
+
+                                    <li class="li"><span class="ph codeph">link</span>
+                                        <var class="keyword varname">existing</var>
+                                        <var class="keyword varname">new</var> — Call
+                                            <span class="keyword apiname">link()</span> and pass the specified
+                                        arguments to it.</li>
+
+                                    <li class="li"><span class="ph codeph">mkdir</span>
+                                        <var class="keyword varname">path</var>
+                                        <var class="keyword varname">mode</var> — Call
+                                            <span class="keyword apiname">mkdir()</span> and pass it the specified
+                                            <var class="keyword varname">path</var> and <var class="keyword varname">mode</var>
+                                        values.</li>
+
+                                    <li class="li"><span class="ph codeph">pathmgr_symlink</span>
+                                        <var class="keyword varname">path</var>
+                                        <var class="keyword varname">symlink</var> — Call
+                                            <span class="keyword apiname">pathmgr_symlink()</span> and pass the
+                                        specified arguments to it.</li>
+
+                                    <li class="li"><span class="ph codeph">pathmgr_unlink</span>
+                                        <var class="keyword varname">path</var> — Call
+                                            <span class="keyword apiname">pathmgr_unlink()</span> and pass the
+                                        specified arguments to it.</li>
+
+                                    <li class="li"><span class="ph codeph">remove</span>
+                                        <var class="keyword varname">filename</var> — Call
+                                            <span class="keyword apiname">remove()</span> and pass the specified
+                                        argument to it.</li>
+
+                                    <li class="li"><span class="ph codeph">symlink</span>
+                                        <var class="keyword varname">path</var>
+                                        <var class="keyword varname">symlink</var> — Call
+                                            <span class="keyword apiname">symlink()</span> and pass the specified
+                                        arguments to it.</li>
+
+                                    <li class="li"><span class="ph codeph">system</span>
+                                        <var class="keyword varname">command</var> — Call
+                                            <span class="keyword apiname">system()</span> and pass the specified
+                                        argument to it.</li>
+
+                                    <li class="li"><span class="ph codeph">unlink</span>
+                                        <var class="keyword varname">path</var> — Call
+                                            <span class="keyword apiname">unlink()</span> and pass the specified
+                                        argument to it.</li>
+
+                                </ul>
+You specify arguments to the functions in the
+                                    <span class="ph codeph">&lt;SLM:args&gt;</span> element. Separate arguments with
+                                spaces and sets of arguments with a semi-colon (;). For example, the
+                                following entry creates two arguments to use with
+                                    <span class="ph codeph">pathmgr_symlink</span>:
+                                <pre class="pre codeblock">&lt;SLM:args&gt;path1 symlink1; path2 symlink2&lt;/SLM:args&gt;</pre>The
+                                sample configuration files provided below include a component that
+                                uses the<span class="ph codeph"> builtin</span> option.</li>
+
+                            <li class="li"><span class="ph codeph">critical</span> — Start a process with the
+                                    <span class="keyword const">POSIX_SPAWN_CRITICAL</span> flag. This flag indicates
+                                that if this process dies, the system crashes.</li>
+
+                            <li class="li"><span class="ph codeph">pathname</span> — When calling
+                                    <span class="keyword apiname">posix_spawn()</span>, pass the full pathname in
+                                    <span class="ph codeph">argv[0]</span> instead of truncating the value to a
+                                filename. This information is required by some utilities, such as
+                                    <span class="ph codeph">sshd</span>.</li>
+
+                                <li class="li"><span class="ph codeph">session</span> — To start a process as a session
+                                leader, the launch attribute of the
+                                    <span class="ph codeph">&lt;SLM:command&gt;</span> element must include the
+                                value <span class="ph codeph">session</span> and the
+                                    <span class="ph codeph">&lt;SLM:component&gt;</span> element must have a
+                                    <span class="ph codeph">&lt;SLM:tty&gt;</span> child element. The
+                                    <span class="ph codeph">&lt;SLM:tty&gt;</span> element value specifies where
+                                to redirect the <span class="ph filepath">stdin</span>,
+                                    <span class="ph filepath">stdout</span>, and <span class="ph filepath">stderr</span> of
+                                the process. See the examples for more information on how to use SLM
+                                to start a shell.</li>
+
+                        </ul>
+</dd>
+
+                                                
+                            <dt class="dt dlterm"><var class="keyword varname">executable_path</var></dt>
+<dd class="dd"> Specifies the path (absolute or relative) of the binary or script to execute. </dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:debug&gt;</span></h3><pre class="pre codeblock">&lt;SLM:debug&gt; <var class="keyword varname">command_args</var> &lt;/SLM:debug&gt;</pre>
+                <dl class="dl">
+                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">command_args</var></dt>
+<dd class="dd">
+                        An alternative list of command-line arguments to use when SLM launches
+                            the process in debug mode. For example, including
+                                <span class="ph codeph">-vvvvvv</span> in the list starts the associated process
+                            with increased verbosity when it's run in debug mode. </dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:depend&gt;</span></h3>
+                <pre class="pre codeblock">&lt;SLM:depend [state="session|stateless"]&gt; <var class="keyword varname">component_name</var> &lt;/SLM:depend&gt;</pre>
+                <dl class="dl">
+                                                                
+                            <dt class="dt dlterm"><span class="ph codeph">state="session|stateless"</span></dt>
+
+                    <dd class="dd">
+                        <ul class="ul">
+                            <li class="li"><span class="ph codeph">session</span>— if a component must be stopped or
+                                restarted, SLM first stops the component that depends on it
+                                (specified by <var class="keyword varname">component_name</var>). Typically, you
+                                specify <span class="ph codeph">session</span> when there is a client-server
+                                relationship between the components and the server maintains client
+                                information.</li>
+
+                            <li class="li"><span class="ph codeph">stateless</span>— if a component must be stopped or
+                                restarted, the component that depends on it is unaffected. For
+                                example, if there is a client-server relationship between the
+                                components but the server doesn't maintain any client information,
+                                it's not necessary to restart clients if the server is
+                                restarted.</li>
+
+                        </ul>
+
+                    </dd>
+
+                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">component_name</var></dt>
+<dd class="dd">The name of the prerequisite component. A component can have zero or more dependencies.
+                            <p class="p">You must define a separate element for each dependency.
+                            </p>
+<p class="p">SLM won't start a component until all the prerequisites are
+                            running and any <span class="keyword cmdname">waitfors</span> are complete.</p>
+</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:envvar&gt;</span></h3>
+                <pre class="pre codeblock">&lt;SLM:envvar [clear="none|login|all"]&gt; <var class="keyword varname">environment_variables</var> &lt;/SLM:envvar&gt;</pre>
+                <dl class="dl">
+                                                                                
+                            <dt class="dt dlterm"><span class="ph codeph">clear="none|login|all"</span></dt>
+<dd class="dd">Specifies changes to environment variables. By default, the variables are inherited from SLM. The
+                                        <span class="ph codeph">clear</span> attribute specifies which current
+                                    environment variables to clear or preserve:<ul class="ul">
+                                        <li class="li"><span class="ph codeph">none</span>—Preserve all current
+                                environment variables (default).</li>
+
+                                        <li class="li"><span class="ph codeph">login</span>—Clear all environment
+                                variables except for any that the <span class="ph codeph">envvar</span> element
+                                specifies and <span class="keyword envar">BAUD</span>, <span class="keyword envar">DISPLAY</span>,
+                                    <span class="keyword envar">HZ</span>, <span class="keyword envar">PHOTON</span>,
+                                <span class="keyword envar">SYSNAME</span>, <span class="keyword envar">TERM</span>, <span class="keyword envar">TZ</span>,
+                                    <span class="keyword envar">HOME</span>, <span class="keyword envar">LOGNAME</span>,
+                                <span class="keyword envar">PATH</span>, <span class="keyword envar">SHELL</span>, <span class="keyword envar">TERM</span>, and
+                                    <span class="keyword envar">USERNAME</span>.</li>
+
+                                        <li class="li"><span class="ph codeph">all</span>—Clear all current
+                                environment variables.</li>
+
+                                    </ul>
+</dd>
+
+                                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">environment_variables</var></dt>
+<dd class="dd">A list of environment variables to either merge with or override the current environment
+                        variables. Use the format <span class="ph codeph">VAR=</span><var class="keyword varname">value</var> to
+                        specify each variable.</dd>
+
+                    </dl>
+
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:groups&gt;</span></h3><pre class="pre codeblock">&lt;SLM:groups&gt; <var class="keyword varname">gid_1</var>[,<var class="keyword varname">gid_2</var>]... &lt;/SLM:groups&gt;</pre>
+                <dl class="dl">
+                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">gid_1</var>[,<var class="keyword varname">gid_2</var>]...</dt>
+<dd class="dd">A list of group IDs that specifies the group access list for the component's process. </dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:priority&gt;</span></h3><pre class="pre codeblock">&lt;SLM:priority&gt; <var class="keyword varname">priority_algorithm</var> &lt;/SLM:priority&gt;</pre>
+                <dl class="dl">
+                
+                            <dt class="dt dlterm"><var class="keyword varname">priority_algorithm</var></dt>
+<dd class="dd">An alphanumeric value that indicates the priority level and scheduling policy to assign the
+                        process (e.g., <span class="ph codeph">10r</span>).<ul class="ul">
+                            <li class="li"><span class="ph codeph">f</span>—<span class="keyword const">SCHED_FIFO</span> (FIFO
+                                scheduling)</li>
+
+                            <li class="li"><span class="ph codeph">r</span>—<span class="keyword const">SCHED_RR</span> (Round-robin
+                                scheduling)</li>
+
+                            <li class="li"><span class="ph codeph">o</span>—<span class="keyword const">SCHED_OTHER</span> (other
+                                scheduling)</li>
+
+                        </ul>
+For descriptions of the scheduling policies, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/overview_SCHEDS.html">Scheduling polices</a></q> in the
+                            <cite class="cite">Programmer's Guide</cite>.</dd>
+
+                </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:repair&gt;</span></h3><pre class="pre codeblock">&lt;SLM:repair [backoff=<var class="keyword varname">seconds</var>]&gt;  default|none|stop|restart  &lt;/SLM:repair&gt;</pre>
+                <dl class="dl">
+                                
+                            <dt class="dt dlterm"></dt>
+<dd class="dd">Specifies the action to take if the component terminates abnormally:<ul class="ul">
+                                        <li class="li"><span class="ph codeph">backoff=<var class="keyword varname">seconds</var></span>—SLM
+                                waits the specified number of seconds and then attempts to restart
+                                the failed component. If the restart is not successful, it adds this
+                                number of seconds to the wait time for each subsequent attempt. For
+                                an example, see the <span class="keyword option">-b</span> command-line option
+                                description.</li>
+
+                                        <li class="li"><span class="ph codeph">default</span>—SLM performs the action
+                                            specified by the <span class="keyword option">-r</span> command-line
+                                            option.</li>
+
+                                        <li class="li"><span class="ph codeph">none</span>—SLM takes no recovery
+                                            action.</li>
+
+                                        <li class="li"><span class="ph codeph">stop</span>—SLM stops any other
+                                components that depend on the component that failed.̵̵</li>
+
+                                        <li class="li"><span class="ph codeph">restart</span>—SLM restarts the failed
+                                            component.</li>
+
+                                    </ul>
+</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:rlimit&gt;</span></h3><pre class="pre codeblock">&lt;SLM:rlimit&gt; <var class="keyword varname">resource</var>:<var class="keyword varname">soft_limit</var>:<var class="keyword varname">hard_limit</var>[,<var class="keyword varname">resource</var>:<var class="keyword varname">soft_limit</var>:<var class="keyword varname">hard_limit</var>,...] &lt;/SLM:rlimit&gt;</pre>
+                <dl class="dl">
+                                
+                            <dt class="dt dlterm"><var class="keyword varname">resource</var></dt>
+<dd class="dd">A system resource to limit the consumption of by the component's process.<p class="p">For information on
+                            possible resources and the actions taken when limits are exceeded, see
+                                    <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/prlimit.html"><span class="keyword apiname">prlimit()</span></a></q> in the
+                                <cite class="cite">C Library Reference</cite>.</p>
+</dd>
+
+                                                   
+                            <dt class="dt dlterm"><var class="keyword varname">soft_limit</var></dt>
+<dd class="dd">The soft limit for the resource.</dd>
+
+
+                            <dt class="dt dlterm"><var class="keyword varname">hard_limit</var></dt>
+<dd class="dd">The hard limit for the resource.</dd>
+
+                </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:runmask&gt;</span></h3><pre class="pre codeblock">&lt;SLM:runmask&gt; <var class="keyword varname">component_runmask</var>  &lt;/SLM:runmask&gt;</pre>
+                <dl class="dl">
+                                                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">component_runmask</var></dt>
+<dd class="dd">A value that is interpreted as a bitmask, which specifies on which processors a process can run.
+                        It is a 32-bit integer and can be specified using any format that
+                            <span class="keyword apiname">strtol()</span> recognizes.<p class="p">For example, the decimal value
+                                <tt class="ph tt">5</tt> corresponds to the bitmask 00000101, which allows the
+                            thread to run on CPUs 0 and 2.</p>
+<p class="p">Only specify the runmask once.
+                            </p>
+<p class="p">A valid runmask is always inherited by children. </p>
+<p class="p">For more
+                            information about runmasks, see the <a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/multicore.html">Multicore Processing</a> chapter of
+                            the <span class="keyword">QNX OS</span>
+                            <em class="ph i">Programmer's Guide</em>.</p>
+</dd>
+</dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:stderr&gt;</span></h3><pre class="pre codeblock">&lt;SLM:stderr [iomode="w[+]|a[+]"]&gt; <var class="keyword varname">stderr_filename</var> &lt;/SLM:stderr&gt;</pre>
+                <dl class="dl">
+                                                                                
+                            <dt class="dt dlterm"><span class="ph codeph">iomode="w[+]|a[+]"</span></dt>
+<dd class="dd">The access mode: overwrite (<span class="ph codeph">w</span>), read and overwrite (<span class="ph codeph">w+</span>;
+                        default), append (<span class="ph codeph">a</span>), or read and append
+                            (<span class="ph codeph">a+</span>).</dd>
+
+                                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">stderr_filename</var></dt>
+<dd class="dd">Name of the file to which the standard error stream (<span class="ph codeph">stderr</span>) is
+                        redirected.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:stdin&gt;</span></h3><pre class="pre codeblock">&lt;SLM:stdin [iomode="r[+]"]&gt; <var class="keyword varname">stdin_filename</var> &lt;/SLM:stdin&gt;</pre>
+                <dl class="dl">
+                                                                                
+                            <dt class="dt dlterm"><span class="ph codeph">iomode="r[+]"</span></dt>
+<dd class="dd">The access mode: read only (<span class="ph codeph">r</span>) or read and write (<span class="ph codeph">r+</span>).</dd>
+
+              
+                
+                                                                                
+                            <dt class="dt dlterm"><var class="keyword varname">stdin_filename</var></dt>
+<dd class="dd">Name of the file to which standard input (<span class="ph codeph">stdin</span>) is redirected.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:stdout&gt;</span></h3><pre class="pre codeblock">&lt;SLM:stdout [iomode="w|a"]&gt; <var class="keyword varname">stdout_filename</var> &lt;/SLM:stdout&gt;</pre>
+                <dl class="dl">
+                                                                                
+                            <dt class="dt dlterm"><span class="ph codeph">iomode="w|a"</span></dt>
+<dd class="dd">The access mode: overwrite (<span class="ph codeph">w</span>) or append (<span class="ph codeph">a</span>).</dd>
+
+                
+                
+                            <dt class="dt dlterm"><var class="keyword varname">stdout_filename</var></dt>
+<dd class="dd">Name of the file to which standard output (<span class="ph codeph">stdout</span>) is redirected.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:stop&gt;</span></h3><pre class="pre codeblock">&lt;SLM:stop 
+        [stop="none|signal"] [child="false|true"] [timeout="<var class="keyword varname">timeout_time</var>"]&gt;
+        <var class="keyword varname">stop_data</var> &lt;/SLM:stop&gt;</pre>
+                <dl class="dl">
+                    
+                            <dt class="dt dlterm"><span class="ph codeph">stop="none|signal"</span></dt>
+<dd class="dd">The <span class="ph codeph">signal</span> setting (the default) causes SLM to send a signal number or name to
+                        the underlying process. The <span class="ph codeph">none</span> setting disables the
+                        signaling; in this case, SLM takes no action to stop a process.</dd>
+
+                            <dt class="dt dlterm"><span class="ph codeph">child="false|true"</span></dt>
+<dd class="dd">When set to <span class="ph codeph">false</span> (the default), no child of the process is terminated. When
+                        set to <span class="ph codeph">true</span>, SLM uses application groups to reliably
+                        terminate all children of the process before it terminates the process
+                        itself.</dd>
+
+                            <dt class="dt dlterm"><span class="ph codeph">timeout="<var class="keyword varname">timeout_time</var>"</span></dt>
+<dd class="dd">The maximum amount of time to try to stop a process nicely, in milliseconds. If the process
+                        can't be stopped nicely, <span class="keyword const">SIGKILL</span> is sent to it. For no
+                        timeout, specify 0 (the default).</dd>
+
+                
+                            <dt class="dt dlterm"><var class="keyword varname">stop_data</var></dt>
+<dd class="dd">
+                        <p class="p">Contains the signal number or name to send the process to stop it. By
+                            default, <span class="ph codeph">SIGTERM</span> is sent, but you can change this to
+                            any signal. Because a signal name does not need to begin with "SIG", all
+                            of the following example values are valid:</p>
+
+                        <ul class="ul" id="slm__ul_dxp_mfd_1kb">
+                            <li class="li"><span class="ph codeph">15</span></li>
+
+                            <li class="li"><span class="ph codeph">TERM</span></li>
+
+                            <li class="li"><span class="ph codeph">SIGTERM</span></li>
+
+                        </ul>
+
+                    </dd>
+
+                    <dd class="dd ddexpand">The name string is case-insensitive.</dd>
+
+                    <dd class="dd ddexpand">If repeated failed attempts to stop the process fail,
+                            <span class="ph codeph">SIGKILL</span> is sent.</dd>
+
+                    <dd class="dd ddexpand">This element value isn't needed when the <span class="ph codeph">stop</span> attribute is
+                        set to <span class="ph codeph">none</span>.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:tty&gt;</span></h3><pre class="pre codeblock">&lt;SLM:tty&gt; <var class="keyword varname">tty_filename</var> &lt;/SLM:tty&gt;</pre>
+                <dl class="dl">
+                                
+                            <dt class="dt dlterm"><var class="keyword varname">tty_filename</var></dt>
+<dd class="dd">Name of the file to which <span class="ph codeph">stderr</span>, <span class="ph codeph">stdin</span>, and
+                            <span class="ph codeph">stdout</span> are redirected to when a process is opened as
+                        the session leader.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:type&gt;</span></h3><pre class="pre codeblock">&lt;SLM:type&gt; <var class="keyword varname">type_name</var> &lt;/SLM:type&gt;</pre>
+                <dl class="dl">
+                                
+                            <dt class="dt dlterm"><var class="keyword varname">type_name</var></dt>
+
+                    <dd class="dd">Name of the security type to launch the component as. The name is a label
+                        that reflects the security policy being enforced. Generally, you should pick
+                        a name based on what you're trying to launch. For information about security
+                        policies, see the <a class="xref" href="../../../com.qnx.doc.security.system/topic/manual/security_policies.html"><q class="q">Security Policies</q></a> chapter in
+                        the <cite class="cite">Security Developer's Guide</cite>.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:user&gt;</span></h3><pre class="pre codeblock">&lt;SLM:user&gt; <var class="keyword varname">uid</var>|:<var class="keyword varname">gid</var>|<var class="keyword varname">uid</var>:<var class="keyword varname">gid</var> &lt;/SLM:user&gt;</pre>
+                <dl class="dl">
+                                
+                            <dt class="dt dlterm"><span class="ph codeph"><var class="keyword varname">uid</var>|:<var class="keyword varname">gid</var>|<var class="keyword varname">uid</var>:<var class="keyword varname">gid</var></span></dt>
+<dd class="dd">Assigns a user ID (UID), group ID (GID), or both to the underlying process. The values can be
+                        names to look up in <span class="ph filepath">/etc/passwd</span> and
+                            <span class="ph filepath">/etc/group</span>.</dd>
+
+                    </dl>
+
+    <h3 class="title sectiontitle"><span class="ph codeph">&lt;SLM:waitfor&gt;</span></h3><pre class="pre codeblock">&lt;SLM:waitfor [wait="none|delay|pathname|exits|blocks"]
+                 [ polltime=<var class="keyword varname">poll_time</var>:<var class="keyword varname">timeout_time</var>]&gt; <var class="keyword varname">waitfor_data</var> &lt;/SLM:waitfor&gt;</pre>
+                <dl class="dl">            
+                    
+                            <dt class="dt dlterm"><span class="ph codeph">wait="none|delay|pathname|exits|blocks"</span></dt>
+<dd class="dd">Once a component has been launched, SLM can wait for that component to set itself up
+            before starting any dependent components. Values:
+<ul class="ul">
+  <li class="li"><span class="ph codeph">none</span> (the default)—Causes SLM to start other dependent components
+                                            immediately.</li>
+
+  <li class="li"><span class="ph codeph">delay</span>—SLM pauses for the specified number of milliseconds before it
+                                            starts the dependent components.</li>
+
+  <li class="li"><span class="ph codeph">pathname</span>—SLM probes for the appearance of the specified pathname.</li>
+
+  <li class="li"><span class="ph codeph">exits</span>—SLM waits for the process to exit with the specified exit code.
+                                            If the exit code is different from the expected one, SLM
+                                            restarts the process.</li>
+
+  <li class="li"><span class="ph codeph">blocks</span>—SLM waits for a specified thread in the process to reach the
+                                                <span class="ph codeph">RECV-blocked</span> state.</li>
+
+</ul>
+</dd>
+
+                                                
+                            <dt class="dt dlterm"><span class="ph codeph">polltime=<var class="keyword varname">poll_time</var>:<var class="keyword varname">timeout_time</var></span></dt>
+<dd class="dd">
+                        <p class="p">Use with <span class="ph codeph">wait="pathname"</span> or
+                                <span class="ph codeph">wait="exits"</span> to specify a polling interval and
+                            total wait time (both in milliseconds) that override the global
+                            values.</p>
+
+                        <p class="p">For example, <span class="ph codeph">polltime="100:20000"</span> results in polling
+                            every 100 milliseconds and timing out after 20 seconds.</p>
+
+                    </dd>
+
+                                
+                            <dt class="dt dlterm"><var class="keyword varname">waitfor_data</var></dt>
+<dd class="dd">Contains data for the specified <span class="ph codeph">wait</span> condition: <ul class="ul" id="slm__ul_avt_fym_wjb">
+                            <li class="li"><span class="ph codeph">none</span> — No data required.</li>
+
+                            <li class="li"><span class="ph codeph">delay</span> — A time in milliseconds (e.g., 5000
+                                for a 5-second delay).</li>
+
+                            <li class="li"><span class="ph codeph">pathname</span> — A path.</li>
+
+                            <li class="li"><span class="ph codeph">exits</span> — The expected exit code (default is
+                                0).</li>
+
+                            <li class="li"><span class="ph codeph">blocks</span> — A thread ID.</li>
+
+                        </ul>
+</dd>
+
+
+
+                
+            </dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Modules</h2>
+
+<p class="p">
+                
+                You can group components into <dfn class="term">modules</dfn>. The processes within a module
+                could make up a subsystem or could be used to establish a set of system states, such
+                as a base level of operation and various higher levels. Modules must be named so
+                they can be internally referenced. Each module must be described in an element, as
+                follows: </p>
+
+<pre class="pre codeblock">&lt;SLM:module name="device_monitors"&gt;
+    -- module description --
+&lt;/SLM:module&gt;
+</pre>
+<p class="p"> To list the components within a module, use the <span class="ph codeph">member</span> element. There are no
+                attributes for <span class="ph codeph">member</span> elements; the element values refer to member
+                components by the internal names defined in their respective
+                    <span class="ph codeph">component</span> elements. Modules cannot contain
+                    <span class="ph codeph">depend</span> elements.</p>
+
+<div class="note"><span class="notetitle">Note:</span> 
+<p class="p"> You can include multiple components in a module by using one <span class="ph codeph">member</span> element
+                    with wildcards in the component names. For example, you can write:</p>
+
+<p class="p">
+<span class="ph codeph">&lt;SLM:member&gt;devb-*&lt;/SLM:member&gt;</span>
+</p>
+
+</div>
+
+
+<p class="p"> Components and modules may be specified in any order in the XML configuration file, but SLM
+                raises an error if any circular dependencies are found.</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Reusing SLM modules and components</h2>
+            <p class="p"> You can define modules and components for reuse in one or more SLM files. This can
+                be useful for breaking up your SLM modules and components to reuse in different SLM
+                configuration files. </p>
+
+            <p class="p"> In the SLM configuration file where you are reusing modules and components from
+                other SLM files, you need to define the filenames of where these reusable sections
+                reside. The syntax to do so is as follows: </p>
+
+<pre class="pre codeblock">&lt;!DOCTYPE SLM_system [
+    &lt;!ENTITY <var class="keyword varname">inclusion_name</var> SYSTEM '<var class="keyword varname">filename</var>'&gt;
+]&gt;
+</pre>
+            where <var class="keyword varname">inclusion_name</var> is a name that you use in your SLM configuration
+            file to identify the reusable entities and <var class="keyword varname">filename</var> is a separate
+            file on your system where your reusable SLM modules and components are defined. <p class="p"> At
+                the point in your SLM configuration file where you want to include the reusable
+                entities, include them by specifying the following: </p>
+
+<pre class="pre codeblock">&amp;<var class="keyword varname">inclusion_name</var>;
+</pre>
+            <p class="p"> For example, in your system you have a file called
+                    <span class="ph filepath">my_reusable_modules.xml</span> where you have defined the SLM
+                modules and components that can be included in different SLM configuration files.
+                Then, in one of your SLM configuration files, you can define an entity named
+                    <span class="ph codeph">reuseModules</span> and later include it: </p>
+
+<pre class="pre codeblock">&lt;!DOCTYPE SLM_system [
+    &lt;!ENTITY reuseModules SYSTEM 'my_reusable_modules.xml'&gt;
+]&gt;
+...
+&lt;SLM:system&gt;
+    ...
+    &lt;!-- Include the contents of what's specified in 'my_reusable_modules.xml'
+            by specifying the entity 'reuseModules' --&gt;
+    &amp;reuseModules;
+    ...
+&lt;/SLM:system&gt;
+</pre>
+        </div>
+
+<div class="section"><h2 class="title sectiontitle">Sample configuration files</h2>
+
+<p class="p"> Suppose you want to automate the setup of your system's IP connectivity. This would require running <span class="keyword cmdname">io-sock</span>, which creates an IP socket for network traffic, running <span class="keyword cmdname">if_up</span> to wait for an interface to be ready for configuration, and then running <span class="keyword cmdname">ifconfig</span> to bind an IP address to the socket. You can create a module that includes three components that correspond to <span class="keyword cmdname">io-sock</span> and the two utilities. You can then describe the dependency of <span class="keyword cmdname">if_up</span> on <span class="keyword cmdname">io-sock</span>, and <span class="keyword cmdname">ifconfig</span> on <span class="keyword cmdname">if_up</span>, in the component entries. The XML file would then look like this: </p>
+
+<pre class="pre codeblock">&lt;SLM:system&gt;
+    &lt;SLM:component name="io-sock"&gt;
+        &lt;SLM:command&gt;/sbin/io-sock&lt;/SLM:command&gt;
+        &lt;SLM:args&gt;-m phy -m pci -m em&lt;/SLM:args&gt;
+        &lt;SLM:waitfor wait="pathname"&gt;/dev/socket&lt;/SLM:waitfor&gt;
+    &lt;/SLM:component&gt;
+    &lt;SLM:component name="if_up"&gt;
+        &lt;SLM:depend&gt;io-sock&lt;/SLM:depend&gt;
+        &lt;SLM:command&gt;/sbin/if_up&lt;/SLM:command&gt;
+        &lt;SLM:args&gt;-p em0&lt;/SLM:args&gt;
+        &lt;SLM:waitfor wait="exits"&gt;&lt;/SLM:waitfor&gt;
+    &lt;/SLM:component&gt;
+    &lt;SLM:component name="ifconfig"&gt;
+        &lt;SLM:depend&gt;if_up&lt;/SLM:depend&gt;
+        &lt;SLM:command&gt;/sbin/ifconfig&lt;/SLM:command&gt;
+        &lt;SLM:args&gt;em0 192.168.1.5 up&lt;/SLM:args&gt;
+        &lt;SLM:waitfor wait="exits"&gt;&lt;/SLM:waitfor&gt;
+    &lt;/SLM:component&gt;
+    &lt;SLM:module name="net-setup"&gt;
+        &lt;SLM:member&gt;io-sock&lt;/SLM:member&gt;
+        &lt;SLM:member&gt;if_up&lt;/SLM:member&gt;
+        &lt;SLM:member&gt;ifconfig&lt;/SLM:member&gt;
+    &lt;/SLM:module&gt;
+&lt;/SLM:system&gt;
+</pre>
+    <p class="p">The following example shows how to use SLM to start a shell:</p>
+
+<pre class="pre codeblock">&lt;SLM:component name="console"&gt; 
+    &lt;SLM:command launch="session"&gt;/bin/ksh&lt;/SLM:command&gt; 
+    &lt;SLM:args&gt;-l&lt;/SLM:args&gt; 
+    &lt;SLM:tty&gt;/dev/ser1&lt;/SLM:tty&gt; 
+    ... 
+&lt;/SLM:component&gt;
+</pre>
+    <p class="p">The following example shows how <span class="ph codeph">sshd</span> could be started by SLM (so that
+                    <span class="ph codeph">sshd</span> could be monitored):</p>
+
+<pre class="pre codeblock">&lt;SLM:component name="sshd"&gt;
+    &lt;SLM:command launch="pathname"&gt;/system/xbin/sshd&lt;/SLM:command&gt; 
+    &lt;SLM:args&gt;-D&lt;/SLM:args&gt;
+    ... 
+&lt;/SLM:component&gt; 
+</pre>
+    
+    <p class="p">The following example shows how to use the <span class="ph codeph">builtin</span> option to call a built-in
+                SLM function (<span class="keyword apiname">system()</span>) and pass arguments to it using the
+                    <span class="ph codeph">args</span> element:</p>
+
+<pre class="pre codeblock">&lt;SLM:component name="root-fs"&gt;
+     &lt;SLM:depend&gt;mount-fs&lt;/SLM:depend&gt;    
+     &lt;SLM:command launch="builtin"&gt;system&lt;/SLM:command&gt;
+     &lt;SLM:args&gt;setconf _CS_HOSTNAME __HOSTNAME__&lt;/SLM:args&gt;
+&lt;/SLM:component&gt;
+</pre>
+    
+</div>
+
+    <div class="section" id="slm__normalvsabnormal"><h2 class="title sectiontitle">Normal vs. abnormal termination</h2><div class="p">SLM considers a
+                process to have terminated normally in the following situations only:<ul class="ul" id="slm__ul_vll_ghb_2gb">
+                    <li class="li">SLM terminates a component's process because:<ul class="ul" id="slm__ul_u2l_rhb_2gb">
+                            <li class="li"> a stop action was created by executing <span class="ph codeph">slmctl stop
+                                        <var class="keyword varname">component</var></span>.</li>
+
+                            <li class="li"> a dependency required SLM to stop the component's process.</li>
+
+                        </ul>
+</li>
+
+                    <li class="li">The component is configured with a <span class="ph codeph">waitfor=exits</span> and the
+                        component's process exits with the expected exit code.</li>
+
+                </ul>
+</div>
+All other process terminations are considered abnormal and cause SLM to
+            restart the component's process. If a process has died too frequently in a certain time
+            period, SLM stops trying to restart the process even though the termination is abnormal. </div>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/o/on.html" title="Execute a command in a non-default way (QNX OS)">on</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/slmctl.html" title="Control and query System Launch and Monitor (slm)">slmctl</a></li></ul></div>
+</div></body>
+</html>

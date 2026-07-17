@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Time before giving up
+timeout=50
+
+while getopts "n:" opt; do
+    case "$opt" in
+        n)
+            timeout=${OPTARG}
+            ;;
+        [?])
+            exit
+            ;;
+    esac
+done
+
+. ${TOOL_DIR}/functions
+if [ -e local/options ]; then
+   . local/options
+fi
+
+HOSTNAME=`get_hostname`
+
+if [ "${HOST_UNAME}" = WINNT ]; then
+    PING_OPT="-n 1 -w 1000"
+else
+    PING_OPT="-nc 1 -W 1"
+fi
+
+function do_ping {
+    name=$1
+    # Pick out a line that will indicate that we've both resolved the address and
+    # the target is alive.
+    line=`ping ${PING_OPT} $1  2>/dev/null | grep -E ' from [0-9]+'`
+    found=$?
+    if [ $found = 0 ]; then
+        echo $line | sed -E 's/.* from ([0-9.]+).*/\1/'
+        exit 0
+    fi
+}
+
+while [ $timeout -gt 0 ]; do
+    if [ -n "${OPT_ASSUMED_IP}" -a "${OPT_ASSUMED_IP}" != "none" ]; then
+        do_ping ${OPT_ASSUMED_IP}
+    fi
+    # Try pinging via multicast. This depends just on the host and the target but
+    # won't work if requires routing (since uses a link local MC address).
+    do_ping ${HOSTNAME}.local
+    # Try pinging by its hostname. This depends on the DHCP server making hostnames
+    # resolvable so also might not work.
+    do_ping ${HOSTNAME}
+    timeout=$(($timeout - 1))
+done
+
+cat 1>&2 <<EOF
+Failed to find address
+This might mean:
+  - The target failed to boot or is otherwise not running
+  - The target is not on the same subnet (in which case use --assumed-ip)
+  - There is a genuine networking problem
+EOF
+exit 1

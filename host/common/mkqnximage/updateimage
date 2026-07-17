@@ -1,0 +1,111 @@
+#!/bin/bash
+
+. ${TOOL_DIR}/functions
+
+if [ "${OPT_PART_SIZES}" == full ]; then
+	echo "Unable to update an image that doesn't use --part-sizes option"
+	exit 1
+fi
+
+ip=`mkqnximage --getip`
+if [ -z "$ip" ]; then
+	echo Target does not appear to be up
+	exit 1
+fi
+
+# Work out the sizes of the boot and system partitions
+IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+BOOT_SECTORS=$((${PART_SIZES[0]} * 2048))
+SYS_SECTORS=$((${PART_SIZES[1]} * 2048))
+
+# The size we make the data partition is unimportant at this time. Just pick a size
+# which is plausible as a partition size, it can be bigger or smaller than the data.
+DATA_SECTORS=20480
+
+boot_part=
+sytem_part=
+sytem_qtd_part=
+data_part=
+
+rm -f output/diskupdate.layout
+
+# Work out which partitions we have to copy.
+partitions=$1
+if [ "$partitions" = all ]; then
+	partitions=bsd
+fi
+if [[ $partitions = *b* ]]; then
+	boot_part='output/boot.part'
+fi
+if [[ $partitions = *s* ]]; then
+	system_part='output/system.part'
+fi
+if [[ $partitions = *d* ]]; then
+	data_part='output/data.part'
+fi
+
+# If we're not updating the system partition, the info needs to match what is currently
+# in use.
+if [ -z "${system_part}" ]; then
+	. local/misc_files/part.info
+else
+	if [ "$OPT_QTD" = yes ]; then
+		SYS_TYPE=185
+		SYS_GUID=qtd
+	elif [ "$OPT_QCFS" != no ]; then
+		SYS_TYPE=181
+		SYS_GUID=qcfs
+	elif [ "$OPT_QTSAFEFS" != no ]; then
+		SYS_TYPE=186
+		SYS_GUID=qtsafe
+	else
+		SYS_TYPE=178
+		SYS_GUID=qnx6
+	fi
+	rm -f local/misc_files/part.info
+	echo SYS_TYPE=$SYS_TYPE >>local/misc_files/part.info
+	echo SYS_GUID=$SYS_GUID >>local/misc_files/part.info
+fi
+
+# If the system is using qtd, then work out the offset near the end of the system partition
+# to write the qtd metadata.
+if [ -n "${system_part}" -a ${SYS_GUID} = qtd ]; then
+	QTD_SECTORS=`file_size output/system-qtd.part 512`
+	QTD_OFFSET=$((${SYS_SECTORS} - ${QTD_SECTORS}))
+	system_qtd_part=output/system-qtd.part
+else
+	unset QTD_OFFSET
+fi
+
+# Collect the information needed to construct a new boot sector for the disk
+cp local/misc_files/part.info output/build/part.info
+echo QTD_OFFSET=${QTD_OFFSET} >>output/build/part.info
+grep ^OPT_PART_SIZES local/options >>output/build/part.info
+
+cat >output/update_script <<EOF
+#!/bin/sh
+
+cd /dev/shmem
+chmod a+x updatefs.sh
+/bin/sh /dev/shmem/systemupdate.sh
+EOF
+
+rm -f output/sftp.cmds
+cat >output/sftp.cmds <<EOF
+cd /dev/shmem
+put output/update_script
+put output/build/part.info
+put output/build/systemupdate.sh
+put ${TOOL_DIR}/inputs/updatefs.sh
+EOF
+
+for file in $boot_part $system_part $data_part; do
+	echo put $file >>output/sftp.cmds
+done
+
+sftp root@${ip} <output/sftp.cmds
+# /dev/shmem is mounted noexec so we can't execute update_script directly.
+# Windows ssh (or some variants of it) will substitute their own paths in place
+# of /bin/sh if we use that. So use a relative path that nobody knows how to
+# mangle.
+ssh -l root ${ip} "../../../bin/sh /dev/shmem/update_script"

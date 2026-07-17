@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Locking in the resource manager" />
+<meta name="abstract" content="The resource manager framework provides facilities for safe thread synchronization in your resource manager. Before you write a multi-threaded resource manager, make sure you are familiar with the default behavior of the shared data structures that thread synchronization uses and the requirements for safely overriding them." />
+<meta name="description" content="The resource manager framework provides facilities for safe thread synchronization in your resource manager. Before you write a multi-threaded resource manager, make sure you are familiar with the default behavior of the shared data structures that thread synchronization uses and the requirements for safely overriding them." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Advanced.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="extocb" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Locking in the resource manager</title>
+</head>
+<body id="extocb">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Locking in the resource manager</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> The resource manager framework provides facilities for safe thread synchronization in
+your resource manager. Before you write a multi-threaded resource manager, make sure you are
+familiar with the default behavior of the shared data structures that thread synchronization uses
+and the requirements for safely overriding them. </p>
+
+
+<div class="section"><h2 class="title sectiontitle">Shared data structures for multi-threaded resource managers</h2>
+
+<p class="p">
+  
+  The OCB contains the open mode of the file descriptor (<span class="keyword const">RDONLY</span>,
+  <span class="keyword const">WRONLY</span>, <span class="keyword const">RDWR</span>), its current offset, and a count of how many times it
+  has been duplicated (using <span class="keyword apiname">dup()</span>). Some of these items are static, but the
+  offset changes frequently. Successive operations on the same file descriptor have a dependency on
+  the offset set by the previous operation.
+</p>
+
+<p class="p">
+  The attributes structure represents the file itself. It stores information that changes rapidly
+  such as the file credentials, the access permissions, size, and timestamps.
+</p>
+
+<p class="p">
+  
+  
+  
+  
+  Because POSIX requires that simultaneous reads and writes to a file don’t result in half-updates,
+  the attribute structure needs to be locked for all operations. The resource manager framework
+  meets this requirement by effectively having a single mutex for each attribute structure.
+  By default, this mutex is manipulated by <span class="keyword apiname">io_func_attr_lock()</span> and
+  <span class="keyword apiname">io_func_attr_unlock()</span>. The resource manager framework acquires it on the
+  relevant attribute structure before it invokes any I/O handlers and releases it once the handler
+  returns.
+</p>
+
+<p class="p">
+  
+  
+  Because this mechanism finds the attribute structure to lock via the OCB associated with the file
+  descriptor, it only works for file descriptor-based operations. Connect operations are
+  pathname-based and do not have a file descriptor or OCB. Instead, the attribute structure of the
+  mountpoint (the path given to <span class="keyword apiname">resmgr_attach()</span>) is the <var class="keyword varname">handle</var>
+  parameter of <span class="keyword apiname">resmgr_attach()</span>. In filesystem resource managers (i.e., when the
+  <span class="keyword const">_RESMGR_FLAG_DIR</span> flag is passed to <span class="keyword apiname">resmgr_attach()</span>), the
+  framework can provide the attribute structure for the mountpoint, but does not know how to locate
+  the correct attribute structure for the file or directory being processed.
+  
+  Therefore, it is the responsibility of your own connect handlers to determine and acquire the
+  attribute structure associated with the named file.
+</p>
+
+<div class="note"><span class="notetitle">Note:</span> 
+  Do not simply allocate a fresh attribute structure on every <span class="keyword apiname">open()</span>. For both
+  locking and memory-mapped files to function correctly, every <span class="keyword apiname">open()</span> called on a
+  file requires a call to <span class="keyword apiname">iofunc_ocb_attach()</span> against the same attribute
+  structure.
+</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Overriding the locking behavior</h2>
+
+<p class="p">
+  
+  
+  
+  
+  Before it invokes your I/O handler function, the resource manager framework invokes the functions
+  pointed to by the <span class="keyword dtype">resmgr_io_funcs</span> members <var class="keyword varname">lock_ocb</var> and
+  <var class="keyword varname">unlock_ocb</var> to lock and unlock the OCB structure (see <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a> and <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>). By default,
+  <span class="keyword apiname">iofunc_lock_ocb_default()</span> and <span class="keyword apiname">iofunc_unlock_ocb_default()</span>
+  are used, which simply lock or unlock the attribute structure associated with the OCB.
+</p>
+
+<p class="p">
+  
+  
+  
+  
+  The attribute structure is locked and unlocked via the functions that the
+  <span class="keyword dtype">iofunc_mount_t</span> member <var class="keyword varname">funcs</var> points to
+  (<span class="keyword dtype">_iofunc_funcs</span> members <var class="keyword varname">attr_lock</var>,
+  <var class="keyword varname">attr_unlock</var>, and <var class="keyword varname">attr_trylock</var>).
+  When these function pointers are not populated (the default behavior), the OCB locking functions
+  call <span class="keyword apiname">iofunc_attr_lock()</span> or <span class="keyword apiname">iofunc_attr_unlock()</span>, which means
+  that the resource manager framework expects that calls to <span class="keyword apiname">lock_ocb()</span> and
+  <span class="keyword apiname">unlock_ocb()</span> also lock or unlock the related attribute structure. This default
+  behavior is "one-level" locking—attribute locks are used to lock OCBs—and should be sufficient for
+  most resource managers.
+</p>
+
+<p class="p">
+  
+  However, if required, you can implement "two-level" locking, which allows your resource manager
+  handler to release the lock on a shared attribute but preserve the OCB lock. This behavior is
+  useful if your resource manager supports independent operations on the same named entry.
+</p>
+
+<div class="p">For both "one-level" and "two-level" locking:
+  <ul class="ul">
+    <li class="li">You can either use the default <span class="keyword apiname">iofunc_attr_lock()</span> and
+      <span class="keyword apiname">iofunc_attr_unlock()</span> for the attribute lock or implement your own and
+      populate <var class="keyword varname">attr_lock</var> and <var class="keyword varname">attr_unlock</var>.</li>
+
+    <li class="li">Make sure locking is recursive (see <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutexattr_setrecursive.html"><span class="keyword apiname">pthread_mutexattr_setrecursive()</span></a>).</li>
+
+  </ul>
+
+</div>
+
+<p class="p">
+  For "one-level" locks, <span class="keyword apiname">iofunc_lock_ocb_default()</span> and
+  <span class="keyword apiname">iofunc_unlock_ocb_default()</span> use your <var class="keyword varname">attr_lock</var> and
+  <var class="keyword varname">attr_unlock</var> if you populate them. You don't need to create your own functions
+  for <var class="keyword varname">lock_ocb</var> and <var class="keyword varname">unlock_ocb</var> in
+  <span class="keyword dtype">resmgr_io_funcs</span>.
+</p>
+
+<p class="p">
+  Creating "two-level" locks requires you to create your own functions for
+  <var class="keyword varname">lock_ocb</var> and <var class="keyword varname">unlock_ocb</var>. To allow your code to work well
+  with the default resource manager handlers, make sure that these functions use the same attribute
+  structure lock functions as the ones that <span class="keyword dtype">iofunc_mount_t</span> references.
+</p>
+
+<div class="p">
+  For "two-level" locks, make sure your code also includes the following behavior:
+  <ul class="ul">
+    <li class="li">Calls to <span class="keyword apiname">lock_ocb()</span> also lock the attribute.</li>
+
+    <li class="li">The OCB is locked first and the attribute structure is locked second, which allows you to
+      unlock <span class="keyword dtype">iofunc_attr_t</span> as needed while retaining the OCB lock.</li>
+
+  </ul>
+
+</div>
+
+<p class="p">
+  For both default and custom locking (using one or two levels), it’s safe for a handler to
+  temporarily unlock the attribute structure (or the OCB, or both the attribute and OCB, in the case
+  of "two-level" locks), as long as it locks the affected items before it returns. If you use custom
+  lock functions, make sure they cannot fail.
+</p>
+
+<p class="p">
+  Having handlers that temporarily unlock structures means that other threads are allowed to run
+  handlers. In particular, if you unlock the OCB, another thread could close it.
+  After you lock the OCB again, the OCB is still valid (it is not free until
+  after the handler returns) but you might need to be careful about anything in the OCB that your
+  <var class="keyword varname">close_ocb</var> handler might have invalidated.
+</p>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Advanced.html" title="Now that we've covered the “basics” of resource managers, it's time to look at some more complicated aspects.">Advanced topics</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Targeting your displays" />
+<meta name="abstract" content="The display is typically controlled by a window manager. However, an application can choose a display in the absence of a window manager." />
+<meta name="description" content="The display is typically controlled by a window manager. However, an application can choose a display in the absence of a window manager." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_displaying.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_displays-setup" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Targeting your displays</title>
+</head>
+<body id="cscreen_displays-setup">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Targeting your displays
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        The display is typically controlled by a window manager. However, an application can choose a display in the
+        absence of a window manager.
+    </p>
+
+        <div class="section"><h2 class="title sectiontitle">Default Display</h2>
+            
+            
+            <p class="p">
+                <span class="keyword">Screen</span> uses the concept of a <dfn class="term">default display</dfn>. The default
+                display is the display that <span class="keyword">Screen</span> shows content on when you haven't
+                explicitly assigned a display to be associated with your window.
+            </p>
+
+            <p class="p">
+                To configure the display that's to be your default display, specify the <span class="keyword parmname">default-display</span>
+                parameter in the <tt class="ph tt">globals</tt> subsection of your graphics configuration file (e.g., <span class="ph filepath">graphics.conf</span>). See
+                <a class="xref" href="cscreen_config_intro.html#screen_config_introduction" title="You configure libraries, drivers, and Screen parameters using the configuration file, graphics.conf."><q class="q">Configuring Screen</q></a> for more information.
+                If you don't specify a default display at configuration,  <span class="keyword">Screen</span> will
+                designate the default display.
+            </p>
+
+            <p class="p">
+                The default display is always the first element in the list of displays that you
+                retrieve from calling <a class="xref" href="../screen_get_context_property_pv.html" title="Retrieve the current value of the specified context property of type void*"><span class="keyword apiname">screen_get_context_property_pv()</span></a>
+                with the <span class="keyword const">SCREEN_PROPERTY_DISPLAYS</span> property. To determine the default display:
+            </p>
+
+            <ol class="ol">
+                <li class="li">
+                    Retrieve the number of displays in your context using the <span class="keyword const">SCREEN_PROPERTY_DISPLAY_COUNT</span> property.
+                    <p class="p">For example:</p>
+
+                    <pre class="pre codeblock">...
+int ndisplays = 0;
+screen_context_t screen_ctx;
+...
+screen_get_context_property_iv(screen_ctx, SCREEN_PROPERTY_DISPLAY_COUNT, &amp;ndisplays);
+...
+            </pre>
+                </li>
+
+                <li class="li">
+                      Use the number of displays returned from your query to allocate enough memory to retrieve an array
+                      of pointers to <span class="keyword dtype">screen_display_t</span>. 
+                    <p class="p">For example:</p>
+
+                    <pre class="pre codeblock">screen_display_t *screen_dpy = calloc(ndisplays, sizeof(screen_display_t));
+            </pre>
+                </li>
+
+                <li class="li">
+                    Retrieve the first element from your array of pointers to obtain the default display for your context.
+                    <p class="p">For example, <span class="ph codeph">screen_dpy[0]</span>.</p>
+
+
+                </li>
+
+              </ol>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Enumerating displays</h2>
+            
+            
+            <p class="p">
+                You need to start by finding out what, and how many displays are available to you in your context.
+            </p>
+
+            <ol class="ol">
+                <li class="li">
+                    <p class="p">
+                        After having connected <span class="keyword">Screen</span>, get the number of displays available
+                        in your context using the <span class="keyword const">SCREEN_PROPERTY_DISPLAY_COUNT</span> property.
+                    </p>
+
+                    <p class="p">
+                        Use the <a class="xref" href="../screen_get_context_property_iv.html" title="Retrieve the current value of the specified context property of type integer"><span class="keyword apiname">screen_get_context_property_iv()</span></a>
+                        function with the <span class="keyword const">SCREEN_PROPERTY_DISPLAY_COUNT</span> property in your context.
+                    </p>
+
+                    <pre class="pre codeblock">int ndisplays = 0;
+screen_context_t screen_ctx;
+...
+screen_get_context_property_iv(screen_ctx, SCREEN_PROPERTY_DISPLAY_COUNT, &amp;ndisplays);
+...
+            </pre>
+                </li>
+
+                <li class="li">
+                    <p class="p">
+                        Next, using the number of displays returned from your query, allocate enough memory to retrieve an array
+                        of pointers to <span class="keyword dtype">screen_display_t</span>.
+                    </p>
+
+                    <pre class="pre codeblock">screen_display_t *screen_dpy = calloc(ndisplays, sizeof(screen_display_t));
+            </pre>
+                </li>
+
+                <li class="li">
+                    <p class="p">
+                        Once you have the number of displays available in your context, retrieve the array of displays.
+                    </p>
+
+                    <pre class="pre codeblock">screen_get_context_property_pv(screen_ctx, SCREEN_PROPERTY_DISPLAYS, (void **)screen_dpy);
+                   </pre>
+                    <p class="p">
+                        If you're using multiple displays, you may wish to use some sort of data structure to track
+                        your displays and the state of each display. For example:
+                    </p>
+
+                    <pre class="pre codeblock">struct {
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	enum { detached, attached, focused } state;
+} *displays;
+
+displays = calloc(ndisplays, sizeof(*displays));
+                    </pre>
+                    <p class="p">
+                        In the above example, the structure for each display tracks, in addition to the state of the
+                        display, a mutex, and a condition object. This example tracks three states for the display:
+                        detached, attached, and focused. Your application affects which display states you need to
+                        keep track of. The display property <span class="keyword const">SCREEN_PROPERTY_ATTACHED</span> gives you
+                        the attached or detached state of the display, but you must determine from your application
+                        which display is the one in focus, if you're tracking that state as well.
+                    </p>
+
+                </li>
+
+                <li class="li">
+                    <p class="p">
+                        Iterate over this display list to determine the state of each display. The state of
+                        a display can be determined by its <span class="keyword const">SCREEN_PROPERTY_ATTACHED</span> property. This
+                        property indicates whether the display is currently attached. Although the display may exist
+                        in the context, it might not be attached (connected, and usable) (e.g., a display that
+                        uses a HDMI cable).
+                    </p>
+
+                    <p class="p">
+                        For each attached display, this example initializes a mutex and calls
+                        <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_create.html"><span class="keyword apiname">pthread_create()</span></a>
+                        to create a new thread to process the rendering specific to that display. It passes in a
+                        start routine that handles the graphics operations for that display to the new thread.
+                        This approach used in this example helps when you're using multiple displays. If you spawn a child thread to handle
+                        the processing for each of your displays, each display will be written to and updated within its
+                        own process. This allows the graphics processor to handle intensive operations, and ensures
+                        that if an error occurs or the display becomes detached, the application itself will not fail.
+                    </p>
+
+                    <pre class="pre codeblock">int i, idx = -1;
+for (i = 0; i &lt; ndisplays; i++) {
+    int active = 0;
+    screen_get_display_property_iv(screen_dpy[i], SCREEN_PROPERTY_ATTACHED, &amp;active);
+    if (active) {
+        if (idx == -1) {
+            displays[i].state = focused;
+            idx = i;
+        } else {
+            displays[i].state = attached;
+        }
+    } else {
+        displays[i].state = detached;
+    }
+    pthread_mutex_init(&amp;displays[i].mutex, NULL);
+    pthread_cond_init(&amp;displays[i].cond, NULL);
+
+    pthread_t thread;
+    pthread_create(&amp;thread, NULL, display, (void *)i);
+}
+                    </pre>
+                    <p class="p">
+                        In the above example, the <span class="keyword apiname">display()</span> function is passed in as the thread's
+                        start routine. This function is responsible for setting up the display and the window, then
+                        locking the mutex to determine whether the current display is active and has focus. The
+                        function also posts the window so that its contents are displayed.
+                    </p>
+
+                </li>
+
+            </ol>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Targeting displays</h2>
+            
+            
+            <p class="p">
+                The example we're using runs without a window manager, and targets displays. This example is useful
+                to a window manager, or to an application that's running in a system without a window manager.
+            </p>
+
+            <p class="p">
+                After having enumerated your displays, and having created your application windows, you can associate each
+                window to a display. You must call
+                <a class="xref" href="../screen_set_window_property_pv.html" title="Set the value of the specified window property of type void*"><span class="keyword apiname">screen_set_window_property_pv()</span></a>
+                using the <span class="keyword const">SCREEN_PROPERTY_DISPLAY</span> property to make this association. And by "you", we
+                mean whoever is the manager (which could be the parent) of the window.
+                <span class="keyword const">SCREEN_PROPERTY_DISPLAY</span> is a property that can't normally be set by the owner of the
+                window.
+            </p>
+
+            <pre class="pre codeblock">screen_context_t screen_ctx;
+screen_create_context(&amp;screen_ctx, SCREEN_INPUT_PROVIDER_CONTEXT);
+
+int ndisplays = 0;
+screen_get_context_property_iv(screen_ctx, SCREEN_PROPERTY_DISPLAY_COUNT, &amp;ndisplays);
+
+screen_display_t *screen_dlist = calloc(ndisplays, sizeof(*screen_dlist));
+screen_get_context_property_pv(screen_ctx, SCREEN_PROPERTY_DISPLAYS, (void **)screen_dlist);
+
+screen_display_t disp = screen_dlist[0]; // any screen_display_t from screen_dlist
+screen_set_window_property_pv(screen_win, SCREEN_PROPERTY_DISPLAY, (void **)&amp;disp);
+            </pre>
+            <p class="p">
+                Child windows inherit the <span class="keyword const">SCREEN_PROPERTY_DISPLAY</span> property from their parent, but
+                ultimately, it's the window manager that's targeting the display. Sometimes, window managers have to
+                manage the illusion of one window appearing on multiple displays. Refer to the
+                <a class="xref" href="cscreen_rendering-cloning-windows.html" title="Use buffer sharing when you want one window to display the same content as another.">Windows</a> section from the "Cloning" chapter.
+                The function <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>
+                can be used to achieve this effect.
+            </p>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_displaying.html" title="Displays are used to show the contents of your windows on physical hardware such as a computer monitor or a touchscreen display.">Displaying the contents of windows</a></div>
+</div>
+</div></body>
+</html>

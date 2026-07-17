@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="task" />
+<meta name="DC.title" content="Tutorial: Using screen_notify()" />
+<meta name="abstract" content="The following procedure describes how an application can request an asynchronous notification from Screen for keyboard events." />
+<meta name="description" content="The following procedure describes how an application can request an asynchronous notification from Screen for keyboard events." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_asynchronous.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="screen_notify" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Tutorial: Using screen_notify()</title>
+</head>
+<body id="screen_notify">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Tutorial: Using <span class="keyword apiname">screen_notify()</span></h1>
+
+    
+    
+    <div class="body taskbody"><p class="shortdesc">
+        The following procedure describes how an application can request an
+        asynchronous notification from <span class="keyword">Screen</span> for
+        keyboard events.
+    </p>
+
+        <div class="section context">
+            
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">You will learn to:</h2>
+            
+            <ul class="ul">
+                <li class="li">create a native context</li>
+
+                <li class="li">
+                    establish a connection between your application and
+                    <span class="keyword">Screen</span>
+                </li>
+
+                <li class="li">
+                    use a specific <span class="keyword">Screen</span> object to filter for specific events
+                </li>
+
+                <li class="li">
+                    receive and handle a notification from <span class="keyword">Screen</span>
+                </li>
+
+                <li class="li">disarm notification and release resources</li>
+
+            </ul>
+
+        </div>
+
+        <ol class="ol steps"><li class="li step stepexpand">
+                <span class="ph cmd">Define your pulse code:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">#define MY_PULSE_CODE _PULSE_CODE_MINAVAIL
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">
+                    Create variables for your <span class="keyword">Screen</span>
+                    and a keyboard device:
+                </span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">screen_context_t screen_ctx = NULL;
+screen_device_t  keyboard   = NULL;
+screen_device_t* devices    = NULL;
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Create a native context:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">screen_create_context(&amp;screen_ctx, SCREEN_APPLICATION_CONTEXT);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Set up your device object as a keyboard type:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">int devcnt;
+screen_get_context_property_iv(screen_ctx, SCREEN_PROPERTY_DEVICE_COUNT, &amp;devcnt);
+devices = malloc(devcnt*sizeof(void*));
+
+screen_get_context_property_pv(screen_ctx, SCREEN_PROPERTY_DEVICES, (void**)devices);
+
+int i=0;
+int type;
+for(; i&lt;devcnt; i++)
+{
+   screen_get_device_property_iv(devices[i], SCREEN_PROPERTY_TYPE, &amp;type);
+   if (type == SCREEN_EVENT_KEYBOARD)
+   {
+      keyboard = devices[i];
+   }
+}
+
+if (keyboard == NULL)
+{
+   printf("FATAL: Couldn't get keyboard device\n");
+   exit(EXIT_FAILURE);
+}
+</pre>
+                    <p class="p">
+                        Events specific to a keyboard can be detected by passing
+                        the appropriate <span class="keyword dtype">screen_device_t</span> handle
+                        in the <var class="keyword varname">obj</var> argument of
+                        <span class="keyword apiname">screen_notify()</span>. 
+                    </p>
+
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Establish a connection:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">int chid = -1;
+chid = ChannelCreate(0);
+int coid = -1;
+coid = ConnectAttach(0, 0, chid, _NTO_SIDE_CHANNEL, 0);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Request notification from <span class="keyword">Screen</span>:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">struct sigevent event;
+SIGEV_PULSE_INIT(&amp;event, coid, SIGEV_PULSE_PRIO_INHERIT, MY_PULSE_CODE, 0);
+screen_register_event(screen_ctx, &amp;event);
+screen_notify(screen_ctx, SCREEN_NOTIFY_INPUT, keyboard, &amp;event);
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Check for receipt of notification:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">while (1) {
+   struct _pulse pulse;
+   int rcvid = MsgReceivePulse(chid, &amp;pulse, sizeof(pulse), NULL);
+   if (rcvid == 0) {
+      printf("keyboard input detected...\n");
+   }
+   ...
+}
+</pre>
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">
+                    Disarm any further notifications of keyboard events from
+                    <span class="keyword">Screen</span> in this context:
+                </span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">SIGEV_NONE_INIT(&amp;event);
+screen_notify(screen_ctx, SCREEN_NOTIFY_INPUT, keyboard, &amp;event);
+screen_unregister_event(&amp;event);
+free(devices);
+</pre>
+                    <p class="p">
+                        Passing NULL or an <span class="keyword parmname">event</span> with
+                        the type of <span class="keyword const">SIGEV_NONE</span> disables notifications
+                        that were enabled with the same combination of arguments:
+                        <span class="keyword parmname">ctx</span>, <span class="keyword parmname">flags</span>,
+                        and <span class="keyword parmname">obj</span>. 
+                    </p>
+
+                </div>
+            </li>
+<li class="li step stepexpand">
+                <span class="ph cmd">Clean up your resources:</span>
+                <div class="itemgroup stepxmp">
+<pre class="pre codeblock">ConnectDetach(coid);
+ChannelDestroy(chid);
+screen_destroy_context(screen_ctx);
+</pre>
+                </div>
+            </li>
+</ol>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_asynchronous.html" title="Applications can request to be asynchronously notified of specific Screen events by way of a sigevent.">Asynchronous Notifications</a></div>
+</div>
+</div></body>
+</html>

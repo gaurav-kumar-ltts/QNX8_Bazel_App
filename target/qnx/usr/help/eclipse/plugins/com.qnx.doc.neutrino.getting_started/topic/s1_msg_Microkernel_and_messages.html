@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A small microkernel and message passing" />
+<meta name="abstract" content="One of the principal advantages of QNX OS is that it's scalable. By “scalable” I mean that it can be tailored to work on tiny embedded boxes with tight memory constraints, right up to large networks of multiprocessor SMP boxes with almost unlimited memory." />
+<meta name="description" content="One of the principal advantages of QNX OS is that it's scalable. By “scalable” I mean that it can be tailored to work on tiny embedded boxes with tight memory constraints, right up to large networks of multiprocessor SMP boxes with almost unlimited memory." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Microkernel_and_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A small microkernel and message passing</title>
+</head>
+<body id="Microkernel_and_messages">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A small microkernel and message passing</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+One of the principal advantages of <span class="keyword">QNX OS</span> is that it's scalable.
+By <q class="q">scalable</q> I mean that it can be tailored to work
+on tiny embedded boxes with tight memory constraints, right up to large networks
+of multiprocessor SMP boxes with almost unlimited memory.
+</p>
+
+
+<p class="p">
+
+
+
+<span class="keyword">QNX OS</span> achieves its scalability by making each service-providing
+component <em class="ph i">modular</em>.
+This way, you can include only the components you need in the final system.
+By using threads in the design, you'll also help to make it scalable to
+SMP systems (we'll see some more uses for threads in this chapter).
+
+
+</p>
+
+
+<p class="p">
+This is the philosophy that was used during the initial
+design of the QNX family of operating systems and has been carried through
+to this day.
+The key is a small <em class="ph i">microkernel</em> architecture, with modules
+that would traditionally be incorporated into a monolithic kernel
+as optional components.
+
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span><span class="keyword">QNX OS</span>'s modular architecture.</span>
+   
+   <br /><img class="image" src="../images/mpx1.svg" width="480" alt="Modular Architecture" /><br />
+</div>
+
+
+<p class="p">
+You, the system architect, decide which modules you want.
+Do you need a filesystem in your project?
+If so, then add one.
+If you don't need one, then don't bother including one.
+Do you need a serial port driver?
+Whether the answer is yes or no, this doesn't affect (nor is
+it affected by) your previous decision about the filesystem.
+</p>
+
+
+<p class="p">
+At runtime, you can decide which system components are
+included in the running system.
+You can dynamically remove components from
+a live system and reinstall them, or others, at
+some other time.
+Is there anything special about these <q class="q">drivers</q>?
+Nope, they're just regular, user-level programs that
+happen to perform a specific job with the hardware.
+In fact, we'll see how to write them in the Resource Managers chapter.
+
+</p>
+
+
+<p class="p">
+The key to accomplishing this is message passing.
+Instead of having the OS modules bound directly into
+the kernel, and having some kind of <q class="q">special</q>
+arrangement with the kernel, under <span class="keyword">QNX OS</span> the modules communicate
+via message passing among themselves.
+The kernel is basically
+responsible only for thread-level services (e.g., scheduling).
+In fact, message passing isn't used just for this installation
+and deinstallation trick—it's the fundamental
+building block for almost all other services (for example, memory allocation
+is performed by a message to the process manager).
+Of course, some services are provided by direct kernel calls.
+</p>
+
+
+<p class="p">
+Consider opening a file and writing a block of data to it.
+This is accomplished by a number of messages sent from the
+application to an installable component of <span class="keyword">QNX OS</span> called
+the filesystem.
+The message tells the filesystem to open a file, and then another
+message tells it to write some data (and contains that data).
+Don't worry though—the <span class="keyword">QNX OS</span> operating system performs message
+passing <em class="ph i">very</em> quickly.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_msg.html" title="In this chapter, we'll look at the most distinctive feature of QNX OS, message passing. Message passing lies at the heart of the operating system's microkernel architecture, giving the OS its modularity.">Message Passing</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html">Synchronous message passing (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html">MsgCurrent(), MsgCurrent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html">MsgError(), MsgError_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html">MsgRead(), MsgRead_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html">MsgReadv(), MsgReadv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive(), MsgReceive_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html">MsgReceivePulse(), MsgReceivePulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html">MsgReceivev(), MsgReceivev_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html">MsgReplyv(), MsgReplyv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html">MsgSendnc(), MsgSendnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html">MsgSendsv(), MsgSendsv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html">MsgSendsvnc(), MsgSendsvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html">MsgSendvnc(), MsgSendvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html">MsgSendvs(), MsgSendvs_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html">MsgSendvsnc(), MsgSendvsnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html">MsgVerifyEvent(), MsgVerifyEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html">MsgWrite(), MsgWrite_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html">MsgWritev(), MsgWritev_r()</a></li></ul></div>
+</div></body>
+</html>

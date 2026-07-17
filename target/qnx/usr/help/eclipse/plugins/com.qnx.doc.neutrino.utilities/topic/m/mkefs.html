@@ -1,0 +1,1663 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="mkefs" />
+<meta name="abstract" content="Build an embedded filesystem (QNX)" />
+<meta name="description" content="Build an embedded filesystem (QNX)" />
+<meta name="DC.subject" content=", mkefs, QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content=", mkefs, QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-m.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.building/topic/os_images/images_about.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.sys_arch/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/devf-ram.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/d/dumpefs.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/f/flashctl.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mkxfs.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mkefs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>mkefs</title>
+</head>
+<body id="mkefs">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">mkefs</span></h1>
+
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Build an embedded filesystem (QNX)</em></p>
+
+
+<div class="section">
+  
+  
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Syntax:</h2>
+
+<pre class="pre codeblock">mkefs [<var class="keyword varname">option</var>...]* [<var class="keyword varname">buildfile</var>] [<var class="keyword varname">directory</var>] [<var class="keyword varname">outputfile</var>]
+
+mkxfs -t ffs3 [<var class="keyword varname">option</var>...]* [<var class="keyword varname">buildfile</var>] [<var class="keyword varname">directory</var>] [<var class="keyword varname">outputfile</var>]
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+
+
+<p class="p">Linux, Microsoft
+        Windows</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Options:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword option">-?</span></dt>
+
+<dd class="dd">Display some help information.</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-D</span></dt>
+
+<dd class="dd">Treat undeclared intermediate directories as errors. If there's a target filesystem entry of
+              <span class="ph filepath">/x/y</span>, and <span class="ph filepath">/x</span> has never occurred explicitly
+            in the buildfile,  the input directory,
+            or as a child of a recursively included directory, then <span class="ph filepath">/x</span> is
+            considered an undeclared intermediate directory.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-d</span></dt>
+
+<dd class="dd">Display warnings for undeclared intermediate directories.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-l</span> <var class="keyword varname">inputline</var></dt>
+
+<dd class="dd">(<q class="q">el</q>) Process <var class="keyword varname">inputline</var> before interpretation of the
+              <var class="keyword varname">buildfile</var> begins. Input lines given to <span class="keyword cmdname">mkefs</span>
+            should be quoted to prevent interpretation by the shell (as <span class="keyword cmdname">mkefs</span>
+            input lines often contain spaces). Multiple <span class="keyword option">-l</span> options are processed in
+            the order specified. No default. 
+            </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-n[n...]</span></dt>
+
+<dd class="dd">
+    
+    Don't use timestamps in the files. Using the <span class="keyword option">-n</span> option permits 
+            identical images in binary format. Specifying additional <span class="keyword option">-n</span> options
+            strips all time information from files.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-o</span> <var class="keyword varname">directory</var></dt>
+
+<dd class="dd">(<q class="q">oh</q>) Specify a directory to be used for all permanent build artifacts, other than the
+            output image itself.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-p</span> <var class="keyword varname">patchfile</var></dt>
+
+<dd class="dd">Apply patching instructions from this file (see <q class="q"><a class="xref" href="mkefs.html#mkefs__Patch_files">Patch
+                files</a>,</q> below).</dd>
+
+
+
+
+<dt class="dt dlterm" id="mkefs__rootdir"><span class="keyword option">-r</span> <var class="keyword varname">rootdir</var></dt>
+
+<dd class="dd">
+  <p class="p">This option doesn't immediately affect where <span class="keyword cmdname">mkefs</span> searches for host
+    files; it only adds standard search paths under <var class="keyword varname">rootdir</var> to the 
+    <span class="keyword envar">MKIFS_PATH</span> environment variable. Because this variable isn't used as the default
+    value for the <span class="keyword cmdname">search</span> attribute (unlike with <span class="keyword cmdname">mkifs</span>), 
+    you must do the following to make <span class="keyword cmdname">mkefs</span> behave like 
+    <span class="keyword cmdname">mkifs</span> when searching for files:</p>
+
+  <ol class="ol">
+    <li class="li">Add the line <span class="ph codeph">[search=${MKIFS_PATH}]</span> near the beginning of your buildfile.
+      For more information, see the <a class="xref" href="mkefs.html#mkefs__search"><span class="keyword cmdname">search</span></a> attribute and
+      the <a class="xref" href="mkifs.html#mkifs__MKIFS_PATH"><span class="keyword envar">MKIFS_PATH</span></a> description.</li>
+
+    <li class="li">Set the <a class="xref" href="mkifs.html#mkifs__PROCESSOR"><span class="keyword envar">PROCESSOR</span></a> and 
+      <a class="xref" href="mkifs.html#mkifs__PROCESSOR_BASE"><span class="keyword envar">PROCESSOR_BASE</span></a> environment
+      variables based on the target platform.</li>
+
+  </ol>
+
+  <p class="p">Then, when searching for files, <span class="keyword cmdname">mkefs</span> will search the default paths
+    used for storing binaries within the <var class="keyword varname">rootdir</var> directory before searching the
+    default paths within <span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}</span>.</p>
+
+  <p class="p">You can define multiple <span class="keyword option">-r</span> options; each adds a set of paths to search for
+              files. For an explanation of how multiple <span class="keyword option">-r</span> options are handled, see
+              the <a class="xref" href="mkifs.html#mkifs__rootdir"><span class="keyword cmdname">mkifs</span>
+                <span class="keyword option">-r</span> option</a>.</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-t ffs3</span></dt>
+
+<dd class="dd">Set the type of output filesystem. Currently, the only supported type is a version 3 flash
+            filesystem image. </dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">-v[v..]</span></dt>
+
+<dd class="dd">    
+    
+            Operate verbosely. Specifying additional <span class="keyword option">-v</span> options increases
+            verbosity. Default is quiet operation.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword cmdname">mkefs</span> utility reads a text buildfile describing an
+embedded filesystem and produces a binary image file containing the embedded filesystem. 
+You can copy this file to flash at a later stage, or use 
+<a class="xref" href="mkimage.html" title="Build a socket image from individual files (QNX)"><span class="keyword cmdname">mkimage</span></a>
+to combine it with an OS image before downloading.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Don't confuse this command with 
+<a class="xref" href="mkifs.html" title="Build an OS image filesystem (QNX)"><span class="keyword cmdname">mkifs</span></a>,
+which builds an OS <em class="ph i">image</em> filesystem.
+</div>
+
+
+<p class="p">
+You specify the input and output on the command line:
+</p>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><var class="keyword varname">buildfile</var></dt>
+
+          <dd class="dd">The filename of the buildfile that describes the contents of the embedded filesystem;
+            use <q class="q"><span class="ph filepath">-</span></q> to specify standard input (the default).</dd>
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">directory</var></dt>
+
+          <dd class="dd">The root of a directory hierarchy to be appended to the file list specified in
+              <var class="keyword varname">buildfile</var> (if any). The default is no directory.</dd>
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">outputfile</var></dt>
+
+          <dd class="dd">The filename of the image file containing the embedded filesystem; use
+                <q class="q"><span class="ph filepath">-</span></q> to specify standard output (the default). Note that
+            you can specify the <var class="keyword varname">outputfile</var> only if you specified a
+              <var class="keyword varname">buildfile</var>.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If you don't specify either a buildfile or a directory, a buildfile is expected 
+as input from standard input.
+The output is always an image file; if you don't specify <var class="keyword varname">outputfile</var>,
+image-file data will be produced on standard output.
+</p>
+
+
+<h3 class="title sectiontitle">License checking</h3>
+
+<p class="p">
+The <span class="keyword cmdname">mkefs</span> utility checks for a valid QNX license key before performing any 
+operation. If the license check fails, the utility stops running and displays a diagnostic message. 
+A license check may fail if the license key is expired, missing, or not currently activated, 
+or if the key doesn’t contain the permissions needed to run the utility.   
+</p>
+
+
+
+      <h3 class="title sectiontitle">Buildfiles</h3><p class="p">
+        The buildfile uses the same grammar as the <a class="xref" href="mkifs.html" title="Build an OS image filesystem (QNX)"><span class="keyword cmdname">mkifs</span></a> command, but supports different attributes.</p>
+<p class="p">The
+        buildfile is basically just a list of files that you want to be included in the embedded
+        filesystem image file when it's built by <span class="keyword cmdname">mkefs</span>. As well as the files to
+        be included, you can specify various attributes that are used to set parameters of the
+        filesystem and the files in it. For example, you can specify the maximum size of the
+        filesystem, or the user and group IDs of the individual files.</p>
+<div class="note"><span class="notetitle">Note:</span> 
+<p class="p">You can't use a backslash (<tt class="ph tt">\</tt>) to break long lines into smaller pieces.</p>
+
+        <p class="p">You can use forward slashes (<tt class="ph tt">/</tt>) as directory delimiters in
+            <span class="keyword cmdname">mkefs</span> buildfiles, even on Windows. It is strongly recommended to do
+          so, because backslashes may adversely affect the functionality of your buildfile.</p>
+
+      </div>
+<p class="p">In a buildfile, a pound sign (<span class="ph codeph">#</span>) indicates a comment; anything
+        between it and the end of the line is ignored. There must be a space between a buildfile
+        command and the pound sign.</p>
+<p class="p">Each line is in the form:</p>
+<pre class="pre codeblock">[<var class="keyword varname">attributes</var>] <var class="keyword varname">file_specification</var>
+</pre><p class="p">
+        where the attributes (with the enclosing square brackets) and the file specification are
+        both optional.</p>
+<p class="p">You can use an attribute:</p>
+<ul class="ul">
+        <li class="li">on the same line as a filename, in which case the attribute modifies only that file. In
+          this example, the attribute modifies only file <span class="ph filepath">A</span>:<pre class="pre codeblock">[attribute] A
+B
+C
+</pre></li>
+
+        <li class="li">on a line by itself, in which case the attribute modifies all subsequent files. In this
+          example, the attribute modifies files <span class="ph filepath">A</span>, <span class="ph filepath">B</span>, and
+            <span class="ph filepath">C</span>:<pre class="pre codeblock">[attribute]
+A
+B
+C
+</pre></li>
+
+      </ul>
+<p class="p">Attributes provide information about the file following the attribute. They're
+        enclosed in square brackets; when combining attributes (e.g., to specify both the user ID
+          <em class="ph i">and</em> the group ID), enclose both attribute tokens in the same pair of square
+        brackets. For example:</p>
+<pre class="pre codeblock"># correct way
+[uid=5 gid=5] filename
+
+# incorrect way
+[uid=5] [gid=5] filename
+</pre><p class="p">There are two types of attributes:</p>
+<dl class="dl">
+
+<dt class="dt dlterm">boolean attributes</dt>
+
+<dd class="dd">Those prefixed with a plus (<q class="q">+</q>) or minus (<q class="q">-</q>) sign.</dd>
+
+
+
+<dt class="dt dlterm">value attributes</dt>
+
+          <dd class="dd">Those ending with an equals sign (<q class="q">=</q>) followed by a value. Don't put any spaces
+            around the equals sign.</dd>
+
+
+      </dl>
+<p class="p">A question mark (<span class="ph codeph">?</span>) before an attribute makes the setting
+        conditional. The attribute is set only if it hasn't already been set. For example,
+          <span class="keyword cmdname">?+bigendian</span> sets the <span class="keyword cmdname">+bigendian</span> attribute only if
+          <span class="keyword cmdname">+bigendian</span> or <span class="keyword cmdname">-bigendian</span> hasn't been specified.
+        </p>
+<p class="p">The <var class="keyword varname">file_specification</var> that follows the attributes takes one of
+        these forms:</p>
+<dl class="dl">
+
+<dt class="dt dlterm" id="mkefs__path_syntax"><var class="keyword varname">path</var></dt>
+
+          <dd class="dd">
+            <p class="p">The file is copied from the host to the location in the image defined by the <a class="xref" href="mkefs.html#mkefs__prefix"><span class="keyword cmdname">prefix</span></a> attribute. If
+                <var class="keyword varname">path</var> starts with a slash (<q class="q">/</q>) on a Linux development host,
+              or a disk volume label (i.e., drive letter and a colon) followed by a backslash
+                (<q class="q">\</q>) on a Windows host, the path is absolute and <span class="keyword cmdname">mkefs</span>
+              looks for the file at that exact host location. (On Windows, any path starting with a
+              backslash but no disk label is absolute within the disk volume of the current
+              directory (e.g., the C: drive) but not across all volumes. To make the path completely
+              absolute, the disk label must be given.)</p>
+
+            <p class="p">If <var class="keyword varname">path</var> contains a slash or backslash character that's not at the
+              start, the path is relative and <span class="keyword cmdname">mkefs</span> tries to resolve it relative
+              to the current working directory (CWD). If <var class="keyword varname">path</var> does not contain a
+              directory separator or the file could not be found relative to the CWD,
+                <span class="keyword cmdname">mkefs</span> tries to resolve it relative to all directories given in
+              the <a class="xref" href="mkefs.html#mkefs__search"><span class="keyword cmdname">search</span></a> attribute, in
+              succession.</p>
+
+</dd>
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">target_path</var>=<var class="keyword varname">host_path</var></dt>
+
+<dd class="dd">The specified file or contents of the specified directory are fetched from the host
+            filesystem and placed into the image at the specified target location. The search for
+            the <var class="keyword varname">host_path</var> file or directory contents proceeds in the same way as
+            it does with the first file specification form, meaning it depends on whether the path
+            is absolute or relative (see the previous paragraph for details).</dd>
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">target_path</var>={<var class="keyword varname">contents</var>}</dt>
+
+          <dd class="dd">An <em class="ph i">inline</em> definition. The contents of the file are listed within the buildfile
+            itself, enclosed in braces (<span class="ph codeph">{ }</span>); the file doesn't exist on the host
+            system anywhere. The contents of the inline file can't be on the same line as the
+            opening or closing brace.<div class="note"><span class="notetitle">Note:</span>  The <span class="keyword cmdname">mkefs</span> utility doesn't parse the
+              contents of an inline file for anything but the closing brace. For example,
+                <span class="keyword cmdname">mkefs</span> doesn't interpret a pound sign (<span class="ph codeph">#</span>) in an
+              inline file as the beginning of a comment. The syntax of the inline file depends on
+              what it's used for on the target system.<p class="p">Closing braces (<span class="ph codeph">}</span>) and
+                backslashes (<span class="ph codeph">\</span>) in an inline file must be escaped with a
+                backslash.</p>
+</div>
+</dd>
+
+
+      </dl>
+<p class="p">You can enclose a filename in double quotes (<span class="ph codeph">""</span>) if it includes
+        spaces or unusual characters.</p>
+
+
+      <h3 class="title sectiontitle">Attributes</h3><p class="p">The <span class="keyword cmdname">mkefs</span> command supports the following
+        attributes:</p>
+<ul class="ul">
+<li class="li"><a class="xref" href="mkefs.html#mkefs__bigendian"><span class="keyword cmdname">+|-bigendian</span></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__block_size"><span class="keyword cmdname">block_size=</span><var class="keyword varname">bsize</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__cd"><span class="keyword cmdname">cd=</span><var class="keyword varname">pathname</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__cksum"><span class="keyword cmdname">cksum=</span><var class="keyword varname">number</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__dperms"><span class="keyword cmdname">dperms=</span><var class="keyword varname">dperms_spec</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__drop"><span class="keyword cmdname">drop=</span>[<var class="keyword varname">pattern</var>]</a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__dupignore"><span class="keyword cmdname">+|-dupignore</span></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__ecc_on"><span class="keyword cmdname">ecc_on=</span><var class="keyword varname">value</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__filter"><span class="keyword cmdname">filter=</span><var class="keyword varname">filter_spec</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__followlink"><span class="keyword cmdname">+|-followlink</span></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__gid"><span class="keyword cmdname">gid=</span><var class="keyword varname">id_spec</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__include"><span class="keyword cmdname">+|-include</span></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__max_size"><span class="keyword cmdname">max_size=</span><var class="keyword varname">msize</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__min_size"><span class="keyword cmdname">min_size=</span><var class="keyword varname">tsize</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__mount"><span class="keyword cmdname">mount=</span><var class="keyword varname">mountpoint</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__mountperms"><span class="keyword cmdname">mountperms=</span><var class="keyword varname">perms_spec</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__mtime"><span class="keyword cmdname">mtime=</span><var class="keyword varname">time_spec</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__optional"><span class="keyword cmdname">+|-optional</span></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__perms"><span class="keyword cmdname">perms=</span><var class="keyword varname">perms_spec</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__prefix"><span class="keyword cmdname">prefix=</span><var class="keyword varname">prefix_spec</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__search"><span class="keyword cmdname">search=</span><var class="keyword varname">path</var><span class="keyword cmdname">:</span><var class="keyword varname">path</var>…</a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__sha256"><span class="keyword cmdname">sha256=</span><var class="keyword varname">hex_string</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__sha512"><span class="keyword cmdname">sha512=</span><var class="keyword varname">hex_string</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__spare_blocks"><span class="keyword cmdname">spare_blocks=</span><var class="keyword varname">sblocks</var></a></li>
+
+        <li class="li"><a class="xref" href="mkefs.html#mkefs__type"><span class="keyword cmdname">type=</span><var class="keyword varname">file_type</var></a></li>
+
+<li class="li"><a class="xref" href="mkefs.html#mkefs__uid"><span class="keyword cmdname">uid=</span><var class="keyword varname">id_spec</var></a></li>
+
+      </ul>
+<div class="note"><span class="notetitle">Note:</span>  An OR-bar indicates that either the first element or the second element must be
+        present, but not both (e.g., <span class="keyword cmdname">+</span>|<span class="keyword cmdname">-</span>
+        <span class="keyword cmdname">bigendian</span> means either <span class="keyword cmdname">+bigendian</span> or
+          <span class="keyword cmdname">-bigendian</span>, but not <span class="keyword cmdname">+-bigendian</span>).</div>
+
+
+      <p class="p" id="mkefs__bigendian"><strong class="ph b"><span class="keyword cmdname">bigendian</span> attribute (boolean)</strong></p>
+<pre class="pre codeblock">+|-bigendian
+</pre><p class="p">
+        Set the byte order for the embedded filesystem to either big (via
+          <span class="keyword cmdname">+bigendian</span>) or little (via <span class="keyword cmdname">-bigendian</span>) endian. The
+        default is little endian.</p>
+
+
+      <p class="p" id="mkefs__block_size"><strong class="ph b"><span class="keyword cmdname">block_size</span> attribute</strong></p>
+<pre class="pre codeblock">block_size=<var class="keyword varname">bsize</var>
+</pre><p class="p">
+        Set the block size for the embedded filesystem. The block size depends on what memory
+        devices you have in your target hardware and how they're arranged. For example, two
+        interleaved 64 KB × 8-bit devices configured for a 16-bit interface have a block size
+        of 128 KB. The default block size is 64 KB.</p>
+
+
+      <p class="p" id="mkefs__cd"><strong class="ph b"><span class="keyword cmdname">cd</span> attribute</strong></p>
+<pre class="pre codeblock">cd=<var class="keyword varname">pathname</var>
+</pre><p class="p">
+
+        Set the current working directory to the specified pathname before attempting to open the
+        host file. Default is the directory from which <span class="keyword cmdname">mkefs</span> was
+        invoked.</p>
+<p class="p">You can specify variables in the attribute's value. For information on how
+        they're expanded (i.e., evaluated to a value used in their place), see the
+          <span class="keyword cmdname">mkxfs</span> section on <a class="xref" href="mkxfs.html#mkxfs__variables">processing
+          variables</a>.</p>
+
+      <p class="p"> In the pathname, you can use forward slashes (<tt class="ph tt">/</tt>) as directory delimiters, even on
+        Windows. It is strongly recommended to do so, because backslashes may adversely affect the
+        functionality of your buildfile. </p>
+
+
+      <p class="p" id="mkefs__cksum"><strong class="ph b"><span class="keyword cmdname">cksum</span> attribute</strong></p>
+<pre class="pre codeblock">cksum=<var class="keyword varname">number</var>
+</pre><p class="p">Specify the expected checksum (as calculated by the <a class="xref" href="../c/cksum-host.html" title="Display file checksums and block counts (POSIX)"><span class="keyword cmdname">cksum</span></a> utility) of the file that the attribute applies to. If
+        you specify this attribute, <span class="keyword cmdname">mkefs</span> calculates the checksum of the host
+        file imported into the image and compares it to the expected value; if a mismatch is
+        detected, the program terminates with an error.</p>
+
+
+      <p class="p" id="mkefs__dperms"><strong class="ph b"><span class="keyword cmdname">dperms</span> attribute</strong></p>
+<pre class="pre codeblock">dperms=<var class="keyword varname">dperms_spec</var>
+</pre><div class="p">Set the access permissions of the directory. The <var class="keyword varname">dperms_spec</var>
+        can be one of the following:<ul class="ul">
+          <li class="li">a number (just as with the <a class="xref" href="../c/chmod.html" title="Change file modes (POSIX, toybox)"><span class="keyword cmdname">chmod</span></a>
+  command)</li>
+
+          <li class="li">an asterisk (<tt class="ph tt">*</tt>) to use the host directory's permissions; for an inline
+            directory, the permissions are 0755 (<tt class="ph tt">rwxr-xr-x</tt>)</li>
+
+          <li class="li">a symbolic mode string to delete, add, or set permissions. This string is similar (but
+            not identical) to <span class="keyword cmdname">chmod</span>'s and is as follows (with spaces added for
+                clarity):<p class="p">[<var class="keyword varname">who</var>] <var class="keyword varname">operator</var>
+              <var class="keyword varname">permissions</var>[, ...]</p>
+<div class="p">The components are as follows:<dl class="dl">
+  
+  <dt class="dt dlterm"><var class="keyword varname">who</var></dt>
+
+                  <dd class="dd">A combination of zero or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1131">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1134">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1131 "><tt class="ph tt">u</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1134 ">User</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1131 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1134 ">Group</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1131 "><tt class="ph tt">o</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1134 ">Others</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1131 "><tt class="ph tt">a</tt></td>
+
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1134 ">All (the default if you don't specify
+                              <var class="keyword varname">who</var>)</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">operator</var></dt>
+
+                  <dd class="dd">One of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1206">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1209">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1206 "><tt class="ph tt">-</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1209 ">Delete the specified permissions</td>
+
+    </tr>
+
+    <tr class="row">
+                            <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1206 "><tt class="ph tt">=</tt>
+                            </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1209 ">Explicitly set the permissions</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1206 "><tt class="ph tt">+</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1209 ">Add the specified permissions</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">permissions</var></dt>
+
+                  <dd class="dd">A combination of one or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1269">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1272">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">r</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">Read permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">w</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">Write permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">x</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">Execute permission, or search permission for directories</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">s</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">When executed, set the user ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">When executed, set the group ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1269 "><tt class="ph tt">t</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1272 ">Sticky bit</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+              </dl>
+</div>
+<p class="p">You can include multiple symbolic mode strings, separating them with
+              commas (<tt class="ph tt">,</tt>).</p>
+</li>
+
+        </ul>
+</div>
+<p class="p">The default <var class="keyword varname">dperms_spec</var> is <tt class="ph tt">*</tt>.</p>
+<div class="note"><span class="notetitle">Note:</span>  When running
+        on a Windows host, <span class="keyword cmdname">mkefs</span> might guess at the permissions, so you should
+        use the <span class="keyword cmdname">dperms</span> attribute to specify them explicitly. You might also have
+        to use the <span class="keyword cmdname">uid</span> and <span class="keyword cmdname">gid</span> attributes to set the ownership
+        correctly.</div>
+
+
+      <p class="p" id="mkefs__drop"><strong class="ph b"><span class="keyword cmdname">drop</span> attribute</strong></p>
+<pre class="pre codeblock">drop=[<var class="keyword varname">pattern</var>[|<var class="keyword varname">pattern</var>]...]
+</pre><p class="p">Specify patterns of file names that you want to ignore when recursively
+        importing host directories. Each <var class="keyword varname">pattern</var> is a simple filename wildcard
+        pattern that can include the following meta-characters:</p>
+<dl class="dl">
+
+<dt class="dt dlterm"><tt class="ph tt">?</tt></dt>
+
+<dd class="dd">Match exactly one arbitrary character.</dd>
+
+
+
+<dt class="dt dlterm"><tt class="ph tt">*</tt></dt>
+
+<dd class="dd">Match zero or more arbitrary characters.</dd>
+
+
+
+<dt class="dt dlterm"><tt class="ph tt">\</tt></dt>
+
+<dd class="dd">Treat the next character literally.</dd>
+
+
+      </dl>
+<p class="p">For example:</p>
+<pre class="pre codeblock">[drop=*.sym] bin
+[drop=*.a|*.dll] lib
+</pre>
+      <p class="p">Note the following: </p>
+<ul class="ul">
+        <li class="li">Exclusion applies only during the recursive inclusion of directories; it doesn't apply
+          to any items that you explicitly name in the buildfile. </li>
+
+<li class="li">Exclusion applies only to files and symbolic links, not subdirectories.</li>
+
+<li class="li">The pattern is compared only to the filename portion of the items encountered during
+          directory import, not to any directory components of their pathnames.</li>
+
+<li class="li">The pattern refers to both the host and the target filename (because individual names
+          can't be altered during recursive inclusion).</li>
+
+<li class="li">Pattern-matching is case-sensitive (as it would on the target).</li>
+
+      </ul>
+<p class="p">Specifying the <span class="keyword cmdname">drop</span> attribute without a pattern turns off exclusion
+        in subsequent directories (unless you specify another <span class="keyword cmdname">drop</span>
+        attribute).</p>
+
+
+      <p class="p" id="mkefs__dupignore"><strong class="ph b"><span class="keyword cmdname">dupignore</span> attribute</strong></p>
+<pre class="pre codeblock">+|-dupignore
+</pre><p class="p">Specify whether <span class="keyword cmdname">mkefs</span> should ignore duplicate file entries.
+        When buildfiles are defined from templates by external tools, or when the content is split
+        across multiple files that are then combined with the <span class="keyword cmdname">include</span> attribute,
+        there might be multiple entries defining the same target path. Enabling this attribute
+          (<span class="keyword cmdname">+dupignore</span>) allows you to continue using your buildfile structures
+        when you can't change some parts of the image specification and might have to handle
+        duplicate file entries.</p>
+<p class="p">If this attribute is undefined for a file entry, the default
+        value is disabled (<span class="keyword cmdname">-dupignore</span>).</p>
+<div class="p">If a file entry is found to have
+        the same target path as another, already parsed entry, then:<ul class="ul">
+          <li class="li">if both entries have <span class="keyword cmdname">-dupignore</span> (either because it's explicitly set
+            or the default value is used), <span class="keyword cmdname">mkefs</span> reports an error and exits</li>
+
+          <li class="li">if only one of the entries has <span class="keyword cmdname">+dupignore</span>, <span class="keyword cmdname">mkefs</span>
+            ignores it and includes the other entry in building the image</li>
+
+          <li class="li">if both entries have <span class="keyword cmdname">+dupignore</span>, the entry defined earlier in the
+            buildfile is included and the entry defined later is ignored</li>
+
+        </ul>
+</div>
+<p class="p">When an entry is ignored, <span class="keyword cmdname">mkefs</span> reports it if the verbosity
+        level is greater than one (e.g., if <span class="keyword option">-vv</span> is used).</p>
+<p class="p">For file entries to
+        be considered duplicates, the target path is the only thing that must match. Other
+        attributes that affect files, such as <span class="keyword cmdname">uid</span>, <span class="keyword cmdname">gid</span>, and
+          <span class="keyword cmdname">perms</span> can differ, but the <span class="keyword cmdname">dupignore</span> settings in
+        effect for any entries containing a given target path determine which entry gets included in
+        the image. It's up to the buildfile writer or systems integrator who generates the target
+        image to ensure that what's included at a given target path has all the appropriate
+        attribute settings.</p>
+<div class="p">You can use this attribute to override any default file entry for
+        a particular target path. Suppose you generate a buildfile by using a utility such as
+          <span class="keyword cmdname">mkqnximage</span>, which enables <span class="keyword cmdname">dupignore</span> globally at the
+        beginning of the buildfile. You can manually specify an entry for the target path of
+        interest with this attribute disabled, as follows:<pre class="pre codeblock">[-dupignore] sshd = <var class="keyword varname">path/to/sshd</var>
+</pre>Because it's only this <span class="ph filepath">sshd</span> entry that doesn't allow
+        duplicates, this file will be taken irrespective of where it's listed in the
+        buildfile.</div>
+<div class="p">This attribute is handy also if you're using an existing buildfile that
+        defines <span class="keyword cmdname">dupignore</span> for specific files but not globally, and you want to
+        prepend some entries to its files list (e.g., to keep all the entries you manually added in
+        one place, for readability). Suppose the file enables this attribute, and defines others,
+        for a particular target path:<pre class="pre codeblock">[+dupignore uid=0] xyz = /etc/abc
+</pre>If you want to leave the existing content intact but use a different host file
+        with different ownership settings for the same target path, you can add the following entry
+        early in the buildfile, above the existing files list:<pre class="pre codeblock">[+dupignore uid=1] xyz = /vars/def
+</pre>Because both entries for the target path <span class="ph filepath">xyz</span> have
+          <span class="keyword cmdname">dupignore</span> enabled, the earlier entry is included in the image. In this
+        case, the file will be the one taken from the host location of
+          <span class="ph filepath">/vars/def</span> and its uid will be 1.</div>
+<p class="p">In this last example, the two
+        host files specified for the common target location are not identical, but again, the target
+        path is the only thing that determines whether their entries are duplicates.</p>
+
+
+      <p class="p" id="mkefs__ecc_on"><strong class="ph b"><span class="keyword cmdname">ecc_on</span> attribute</strong></p>
+<pre class="pre codeblock">ecc_on=<var class="keyword varname">value</var>
+</pre><p class="p">Control error-correcting code (ECC) support:</p>
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1595">Specify <var class="keyword varname">value</var> as:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e1601">To:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1595 ">0</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1601 ">Disable ECC (the default)</td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1595 ">1</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1601 ">Enable 64-byte alignment ECC</td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1595 ">2</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e1601 ">Enable 32-byte alignment ECC</td>
+
+</tr>
+
+</tbody>
+</table>
+</div>
+<div class="note"><span class="notetitle">Note:</span>  Don't mix ECC-enabled partitions and ECC-disabled partitions; the
+          <span class="keyword cmdname">devf-*</span> drivers don't support this.</div>
+<p class="p">The
+          <span class="keyword cmdname">mkefs</span> utility automatically handles the formatting alignment, but you
+        have to use the <span class="keyword option">-b</span> option for <a class="xref" href="../f/flashctl.html" title="Manage a flash filesystem"><span class="keyword cmdname">flashctl</span></a> to specify the appropriate alignment.</p>
+
+
+      <p class="p" id="mkefs__filter"><strong class="ph b"><span class="keyword cmdname">filter</span> attribute</strong></p>
+<pre class="pre codeblock">filter=<var class="keyword varname">filter_spec</var>
+</pre><p class="p">
+
+Run the host file through the filter program specified, presenting the host
+file data as standard input to the program and using the standard output from
+the program as the data to be placed into the embedded filesystem.
+Default is no filter.
+</p>
+
+
+<p class="p">
+You can specify a <var class="keyword varname">filter_spec</var> of <span class="ph codeph">none</span>.
+This is useful if you need to override a global filter specification.
+</p>
+
+
+
+      <p class="p" id="mkefs__followlink"><strong class="ph b"><span class="keyword cmdname">followlink</span> attribute (boolean)</strong></p>
+<pre class="pre codeblock">[+|-followlink]
+</pre><p class="p">Whether to resolve any symbolic links and include the target files or
+        directories instead of the links.</p>
+<p class="p">If you specify <span class="keyword cmdname">+followlink</span>
+        (enable the attribute), whenever an item taken from the host filesystem is a symbolic link,
+          <span class="keyword cmdname">mkefs</span> follows the link and includes its target. If you omit the
+        attribute, this is the default behavior.</p>
+<p class="p">If you specify <span class="keyword cmdname">-followlink</span>
+        (disable it):</p>
+<ul class="ul">
+<li class="li">If a symbolic link is named explicitly in the buildfile and is a link to a directory,
+            <span class="keyword cmdname">mkefs</span> follows the link and recurses into the directory. For directory
+          links included indirectly as part of an explicitly named parent directory, they will
+            <em class="ph i">not</em> be followed but included as symbolic links.</li>
+
+        <li class="li">If the symbolic link is a link to a file, <span class="keyword cmdname">mkefs</span> includes the link
+          itself in the image filesystem. It's up to you to include in the image whatever the link
+          points to.</li>
+
+</ul>
+
+
+      <p class="p" id="mkefs__gid"><strong class="ph b"><span class="keyword cmdname">gid</span> attribute</strong></p>
+<pre class="pre codeblock">gid=<var class="keyword varname">id_spec</var>
+</pre><p class="p">
+
+        Set the group ID number for the file. The value of this attribute may be either a number or
+        an asterisk (<span class="ph codeph">*</span>). If it's an asterisk, the group ID is taken from the host
+        file; for an inline file, the group ID is the group of the user running
+          <span class="keyword cmdname">mkefs</span>. The default value for this attribute is <span class="ph codeph">*</span>. </p>
+
+
+      <p class="p" id="mkefs__include"><strong class="ph b"><span class="keyword cmdname">include</span> attribute (boolean)</strong></p>
+<pre class="pre codeblock">+|-include
+</pre><div class="p">Include files as part of the buildfile being processed. You can apply this
+        attribute to a single file:<pre class="pre codeblock">[+include] <var class="keyword varname">buildfile_path</var>
+</pre>or as a global attribute:<pre class="pre codeblock">[+include]
+<var class="keyword varname">buildfile_path_1</var>
+<var class="keyword varname">buildfile_path_2</var>
+...
+<var class="keyword varname">buildfile_path_n</var>
+[-include]
+</pre></div>
+<p class="p">You can specify variables in the attribute's value. For information on how
+        they're expanded (i.e., evaluated to a value used in their place), see the
+          <span class="keyword cmdname">mkxfs</span> section on <a class="xref" href="mkxfs.html#mkxfs__variables">processing
+          variables</a>.</p>
+<p class="p">Each <var class="keyword varname">buildfile_path</var> can be an absolute or a
+        relative path. If <var class="keyword varname">buildfile_path</var> starts with a slash (<q class="q">/</q>) on a
+        Linux development host, or a disk volume label followed by a backslash (<q class="q">\</q>) on a
+        Windows host, it's absolute and <span class="keyword cmdname">mkefs</span> searches for the file in that exact
+        host location. For more details on specifying absolute paths, see the <a class="xref" href="mkefs.html#mkefs__path_syntax">buildfile path description</a> above. If the path starts with
+        another character sequence, it's a relative path, and <span class="keyword cmdname">mkefs</span> searches the
+        following directories (in this order):</p>
+<ul class="ul">
+<li class="li">the current directory</li>
+
+        <li class="li">all paths specified by <a class="xref" href="mkefs.html#mkefs__search"><span class="keyword cmdname">search</span></a>
+          attributes</li>
+
+        <li class="li">the <span class="ph filepath">boot/build</span> directory under the current root (specified with the
+            <span class="keyword option">-r</span> command-line option)</li>
+
+        <li class="li">the <span class="ph filepath">boot/build</span> directory under
+            <span class="ph filepath">${QNX_TARGET}/${PROCESSOR}</span></li>
+
+      </ul>
+<p class="p">Note that you can't use the <var class="keyword varname">target</var>=<var class="keyword varname">host</var> notation
+        for the paths.</p>
+<p class="p">If an include file can't be found, the result depends on the <a class="xref" href="mkefs.html#mkefs__optional"><span class="keyword cmdname">optional</span></a> attribute. If
+          <span class="keyword cmdname">+optional</span> is set, the missing file is skipped; otherwise,
+          <span class="keyword cmdname">mkefs</span> terminates with an error.</p>
+<p class="p">Buildfiles are processed
+        top-down, and buildfile inclusion happens in place: when an <span class="keyword cmdname">include</span>
+        attribute is found, the included buildfile is loaded and processed; when processing is
+        completed, <span class="keyword cmdname">mkefs</span> returns to the including buildfile.</p>
+<p class="p">You can nest
+        buildfile inclusions, but any circular inclusion is treated as an error. For example, the
+        inclusion hierarchy <tt class="ph tt">A(B(D),C(E,F))</tt> is valid, but <tt class="ph tt">A(A)</tt> and
+          <tt class="ph tt">A(B(C(B)))</tt> aren't. If you include a buildfile more than once (which could easily
+        happen with nested include files), the repeated inclusion is ignored, and
+          <span class="keyword cmdname">mkefs</span> issues a diagnostic message.</p>
+<div class="note"><span class="notetitle">Note:</span>  The top buildfile together
+        with its included buildfiles effectively form one large <q class="q">buildfile stream</q> that's
+        processed as a single buildfile would be. This means that all attribute settings in effect
+        before an inclusion remain in effect inside the included files, and everything set in an
+        included file is carried over into the parent buildfile.</div>
+<p class="p">The default is
+          <span class="keyword cmdname">-include</span>, which causes files (if found) to be added to the filesystem,
+        not to the buildfile.</p>
+
+
+      <p class="p" id="mkefs__max_size"><strong class="ph b"><span class="keyword cmdname">max_size</span> attribute</strong></p>
+<pre class="pre codeblock">max_size=<var class="keyword varname">size</var>
+</pre><p class="p">
+
+        Set the maximum size of the embedded filesystem. You can set this attribute if you don't
+        want the filesystem to exceed a maximum size. If this occurs while <span class="keyword cmdname">mkefs</span>
+        is building the filesystem, you'll see a warning message. The default is 4 GB.</p>
+
+
+      <p class="p" id="mkefs__min_size"><strong class="ph b"><span class="keyword cmdname">min_size</span> attribute</strong></p>
+<pre class="pre codeblock">min_size=<var class="keyword varname">size</var>
+</pre><p class="p">
+
+        Set the minimum size of the embedded filesystem. If the size of the filesystem is less than
+        this size after all the specified files have been added, then the filesystem is padded to
+        the required size. If you don't specify this attribute, no padding occurs.</p>
+
+
+      <p class="p" id="mkefs__mount"><strong class="ph b"><span class="keyword cmdname">mount</span> attribute</strong></p>
+<pre class="pre codeblock">mount=<var class="keyword varname">mountpoint</var>
+</pre><p class="p">
+
+        Specify the mountpoint for the embedded filesystem. You can override the mountpoint with the
+          <span class="keyword option">-n</span> option to the <a class="xref" href="../f/flashctl.html" title="Manage a flash filesystem"><span class="keyword cmdname">flashctl</span></a> command.</p>
+<p class="p"> You can specify variables in the
+        attribute's value. For information on how they're expanded (i.e., evaluated to a value used
+        in their place), see the <span class="keyword cmdname">mkxfs</span> section on <a class="xref" href="mkxfs.html#mkxfs__variables">processing variables</a>.</p>
+<p class="p">In the mountpoint, you
+        can use forward slashes (<tt class="ph tt">/</tt>) as directory delimiters, even on Windows. It is
+        strongly recommended to do so, because backslashes may adversely affect the functionality of
+        your buildfile.</p>
+<p class="p">The default mountpoint is <span class="ph codeph">""</span>, which makes the flash
+        filesystem drivers (<a class="xref" href="../utils-d.html"><span class="keyword cmdname">devf-*</span></a>) use the
+        appropriate default, usually <span class="ph filepath">/fs1p1</span>.</p>
+
+
+      <p class="p" id="mkefs__mountperms"><strong class="ph b"><span class="keyword cmdname">mountperms</span> attribute</strong></p>
+<pre class="pre codeblock">mountperms=<var class="keyword varname">perms_spec</var>
+</pre><p class="p">Set the access permissions for mountpoints. The <var class="keyword varname">perms_spec</var>
+        can be one of the following:</p>
+<ul class="ul">
+        <li class="li">a number (just as with the <a class="xref" href="../c/chmod.html" title="Change file modes (POSIX, toybox)"><span class="keyword cmdname">chmod</span></a>
+  command)</li>
+
+        <li class="li">a symbolic mode string to delete, add, or set permissions. This string is similar (but
+          not identical) to <span class="keyword cmdname">chmod</span>'s and is as follows (with spaces added for
+              clarity):<p class="p">[<var class="keyword varname">who</var>] <var class="keyword varname">operator</var>
+            <var class="keyword varname">permissions</var>[, ...]</p>
+<div class="p">The components are as follows:<dl class="dl">
+  
+  <dt class="dt dlterm"><var class="keyword varname">who</var></dt>
+
+                <dd class="dd">A combination of zero or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2040">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2043">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2040 "><tt class="ph tt">u</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2043 ">User</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2040 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2043 ">Group</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2040 "><tt class="ph tt">o</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2043 ">Others</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2040 "><tt class="ph tt">a</tt></td>
+
+                          <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2043 ">All (the default if you don't specify
+                            <var class="keyword varname">who</var>)</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">operator</var></dt>
+
+                <dd class="dd">One of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2115">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2118">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2115 "><tt class="ph tt">-</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2118 ">Delete the specified permissions</td>
+
+    </tr>
+
+    <tr class="row">
+                          <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2115 "><tt class="ph tt">=</tt>
+                          </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2118 ">Explicitly set the permissions</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2115 "><tt class="ph tt">+</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2118 ">Add the specified permissions</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">permissions</var></dt>
+
+                <dd class="dd">A combination of one or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2178">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2181">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">r</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">Read permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">w</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">Write permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">x</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">Execute permission, or search permission for directories</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">s</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">When executed, set the user ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">When executed, set the group ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2178 "><tt class="ph tt">t</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2181 ">Sticky bit</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+            </dl>
+</div>
+<p class="p">You can include multiple symbolic mode strings, separating them with commas
+              (<tt class="ph tt">,</tt>).</p>
+</li>
+
+      </ul>
+<p class="p">The default <var class="keyword varname">perms_spec</var> is <q class="q">0777</q>.</p>
+
+
+      <p class="p" id="mkefs__mtime"><strong class="ph b"><span class="keyword cmdname">mtime</span> attribute </strong></p>
+<pre class="pre codeblock">mtime=<var class="keyword varname">time_spec</var>
+</pre><p class="p">Set the timestamps of the files or directories to the specified time. The
+          <var class="keyword varname">time_spec</var> must be either:</p>
+<ul class="ul">
+        <li class="li">a single asterisk (<tt class="ph tt">*</tt>), meaning that the host file's timestamp should be used
+          (the default behavior)<p class="p"> or:</p>
+</li>
+
+        <li class="li">in a format based on ISO8601:<pre class="pre codeblock">YYYY-MM-DD-HH:MM:SS
+</pre><p class="p">You must provide all six elements. The time is always interpreted as
+          UTC.</p>
+</li>
+
+      </ul>
+<p class="p">Timestamps specified with the <span class="keyword cmdname">mtime</span> attribute aren't affected by
+        the <span class="keyword option">-n</span> option.</p>
+
+
+	<p class="p" id="mkefs__optional"><strong class="ph b"><span class="keyword cmdname">optional</span> attribute (boolean)</strong></p>
+
+	<pre class="pre codeblock">+|-optional</pre>
+	<div class="p">When the host file can't be found, apply the following action:
+		<ul class="ul">
+			<li class="li">If enabled (i.e. <span class="keyword cmdname">+optional</span>), then output
+				a warning and continue building the embedded filesystem.
+			</li>
+
+			<li class="li">If disabled (i.e. <span class="keyword cmdname">-optional</span>),
+				then output an error and exit. This is the default setting.
+			</li>
+
+		</ul>
+
+	</div>
+
+	<p class="p">This attribute applies only to those items
+		explicitly included in the buildfile.
+	</p>
+
+	<div class="note"><span class="notetitle">Note:</span> When both <span class="keyword cmdname">[-optional]</span> and <a class="xref" href="mkefs.html#mkefs__followlink"><span class="keyword cmdname">[+followlink]</span></a> apply,
+		and a broken symbolic link is implicitly included from a directory,
+		<span class="keyword cmdname">mkefs</span> returns an error and exits.
+		This is because when <span class="keyword cmdname">followlink</span> is enabled,
+		symbolic links should never be imported into the image.
+	</div>
+
+
+      <p class="p" id="mkefs__perms"><strong class="ph b"><span class="keyword cmdname">perms</span> attribute</strong></p>
+<pre class="pre codeblock">perms=<var class="keyword varname">perms_spec</var>
+</pre><p class="p">Set the access permissions of the file. The <var class="keyword varname">perms_spec</var> can
+        be one of the following:</p>
+<ul class="ul">
+        <li class="li">a number (just as with the <a class="xref" href="../c/chmod.html" title="Change file modes (POSIX, toybox)"><span class="keyword cmdname">chmod</span></a>
+  command)</li>
+
+        <li class="li">an asterisk (<tt class="ph tt">*</tt>) to use the host file's permissions (or 0666 for inline
+          files)</li>
+
+        <li class="li">a symbolic mode string to delete, add, or set permissions. This string is similar (but
+          not identical) to <span class="keyword cmdname">chmod</span>'s and is as follows (with spaces added for
+              clarity):<p class="p">[<var class="keyword varname">who</var>] <var class="keyword varname">operator</var>
+            <var class="keyword varname">permissions</var>[, ...]</p>
+<div class="p">The components are as follows:<dl class="dl">
+  
+  <dt class="dt dlterm"><var class="keyword varname">who</var></dt>
+
+                <dd class="dd">A combination of zero or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2431">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2434">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2431 "><tt class="ph tt">u</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2434 ">User</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2431 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2434 ">Group</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2431 "><tt class="ph tt">o</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2434 ">Others</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2431 "><tt class="ph tt">a</tt></td>
+
+                          <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2434 ">All (the default if you don't specify
+                            <var class="keyword varname">who</var>)</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">operator</var></dt>
+
+                <dd class="dd">One of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2506">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2509">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2506 "><tt class="ph tt">-</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2509 ">Delete the specified permissions</td>
+
+    </tr>
+
+    <tr class="row">
+                          <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2506 "><tt class="ph tt">=</tt>
+                          </td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2509 ">Explicitly set the permissions</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2506 "><tt class="ph tt">+</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2509 ">Add the specified permissions</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+  
+  <dt class="dt dlterm"><var class="keyword varname">permissions</var></dt>
+
+                <dd class="dd">A combination of one or more of the following:
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+    <tr class="row">
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2569">Character</th>
+
+      <th class="entry cellrowborder" style="vertical-align:top;" id="d413912e2572">Meaning</th>
+
+    </tr>
+
+    </thead>
+<tbody class="tbody">
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">r</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">Read permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">w</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">Write permission</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">x</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">Execute permission, or search permission for directories</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">s</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">When executed, set the user ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">g</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">When executed, set the group ID</td>
+
+    </tr>
+
+    <tr class="row">
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2569 "><tt class="ph tt">t</tt></td>
+
+      <td class="entry cellrowborder" style="vertical-align:top;" headers="d413912e2572 ">Sticky bit</td>
+
+    </tr>
+
+    </tbody>
+</table>
+</div>
+</dd>
+
+  
+            </dl>
+</div>
+<p class="p">You can include multiple symbolic mode strings, separating them with commas
+              (<tt class="ph tt">,</tt>).</p>
+</li>
+
+      </ul>
+<p class="p">The default <var class="keyword varname">perms_spec</var> is <tt class="ph tt">*</tt>.</p>
+<div class="note"><span class="notetitle">Note:</span>  When running on a
+        Windows host, <span class="keyword cmdname">mkefs</span> can't get the setuid (<q class="q">set user ID</q>) or setgid
+          (<q class="q">set group ID</q>) permissions from the file, and it might guess at the read, write,
+        and execute permissions, so you should use the <span class="keyword cmdname">perms</span> attribute to specify
+        the permissions explicitly. You might also have to use the <a class="xref" href="mkefs.html#mkefs__uid"><span class="keyword cmdname">uid</span></a> and <a class="xref" href="mkefs.html#mkefs__gid"><span class="keyword cmdname">gid</span></a>
+        attributes to set the ownership correctly. To determine whether or not a utility needs to
+        have the setuid or setgid permission set, see its entry in the <cite class="cite">Utilities
+          Reference</cite>.</div>
+
+
+      <p class="p" id="mkefs__prefix"><strong class="ph b"><span class="keyword cmdname">prefix</span> attribute</strong></p>
+<pre class="pre codeblock">prefix=<var class="keyword varname">prefix_spec</var>
+</pre><p class="p">
+        Set the prefix on the target file names. The default is the empty string.</p>
+<p class="p">You can
+        specify variables in the attribute's value. For information on how they're expanded (i.e.,
+        evaluated to a value used in their place), see the <span class="keyword cmdname">mkxfs</span> section on <a class="xref" href="mkxfs.html#mkxfs__variables">processing variables</a>.</p>
+<p class="p">In the prefix path,
+        you can use forward slashes (<tt class="ph tt">/</tt>) as directory delimiters, even on Windows. It is
+        strongly recommended to do so, because backslashes may adversely affect the functionality of
+        your buildfile.</p>
+
+
+      <p class="p" id="mkefs__search"><strong class="ph b"><span class="keyword cmdname">search</span> attribute</strong></p>
+<pre class="pre codeblock">search=<var class="keyword varname">path</var>:<var class="keyword varname">path</var>:…
+</pre><p class="p">
+
+
+         This
+        attribute specifies that <span class="keyword cmdname">mkefs</span> should search for the file in the named
+        path locations on the host system. The search directory portion of the host file name isn't
+        included in the name that's stored in the image filesystem. The default setting is empty,
+        meaning only the current working directory will be searched for the host files. To make
+          <span class="keyword cmdname">mkefs</span> include the directories named in the <span class="keyword envar">MKIFS_PATH</span>
+        variable in the host locations that it searches, see the <a class="xref" href="mkefs.html#mkefs__rootdir"><span class="keyword option">-r</span>
+          <var class="keyword varname">rootdir</var> explanation</a> above.</p>
+<p class="p">You can specify variables in
+        the attribute's value. For information on how they're expanded (i.e., evaluated to a value
+        used in their place), see the <span class="keyword cmdname">mkxfs</span> section on <a class="xref" href="mkxfs.html#mkxfs__variables">processing variables</a>.</p>
+<div class="note"><span class="notetitle">Note:</span> 
+        <p class="p">To ensure that your search paths work without modification on all supported host OSs, you
+          can use:</p>
+
+    <ul class="ul">
+          <li class="li">forward slashes (<q class="q">/</q>), which are now recognized by Windows as well as Linux; it
+            is strongly recommended to use forward slashes as directory delimiters, because
+            backslashes may adversely affect the functionality of your buildfile</li>
+
+      <li class="li">the <span class="keyword envar">PFS</span> environment variable instead of <q class="q">;</q> or <q class="q">:</q> to
+        separate multiple paths in path lists (see <a class="xref" href="mkefs.html#mkefs__PFS"><span class="keyword envar">PFS</span></a> under <q class="q">Environment variables:</q> below)</li>
+
+    </ul>
+
+  </div>
+
+
+      <p class="p" id="mkefs__sha256"><strong class="ph b"><span class="keyword cmdname">sha256</span> attribute</strong></p>
+<pre class="pre codeblock">sha256=<var class="keyword varname">hex_string</var>
+</pre><p class="p">Specify the expected SHA256 hash of the file that the attribute applies to. If
+        you specify this attribute, <span class="keyword cmdname">mkefs</span> calculates the SHA256 hash of the host
+        file imported into the image and compares it to the expected value; if a mismatch is
+        detected, the program terminates with an error. You must specify the expected hash as a
+        string of 64 hexadecimal digits, without a prefix or any delimiters. For example, instead of
+        specifying <tt class="ph tt">0xaa,0xbb,0xcc,...</tt>, specify <tt class="ph tt">aabbcc...</tt>.</p>
+
+
+      <p class="p" id="mkefs__sha512"><strong class="ph b"><span class="keyword cmdname">sha512</span> attribute</strong></p>
+<pre class="pre codeblock">sha512=<var class="keyword varname">hex_string</var>
+</pre><p class="p">Specify the expected SHA512 hash of the file that the attribute applies to.
+        This attribute behaves exactly the same as <span class="keyword cmdname">sha256</span> except that it uses a
+        512-bit hash.</p>
+
+
+      <p class="p" id="mkefs__spare_blocks"><strong class="ph b"><span class="keyword cmdname">spare_blocks</span> attribute</strong></p>
+<pre class="pre codeblock">spare_blocks=<var class="keyword varname">sblocks</var>
+</pre><p class="p">
+
+        Set the number of spare blocks to be used by the embedded filesystem. If you want the
+        embedded filesystem to be able to reclaim the space taken up by deleted files, set the
+        number of spare blocks to 1 or more. The default is 1.</p>
+
+
+      <p class="p" id="mkefs__type"><strong class="ph b"><span class="keyword cmdname">type</span> attribute</strong></p>
+<pre class="pre codeblock">type=<var class="keyword varname">file_type</var>
+</pre><p class="p">
+
+        Sets the type of the files being created in the embedded filesystem. Allowable types
+        are:</p>
+<ul class="ul">
+        <li class="li"><span class="keyword cmdname">link</span> — a symbolic link<div class="note"><span class="notetitle">Note:</span> Symbolic links in the target
+            filesystem are not resolved by <span class="keyword cmdname">mkefs</span> and must not be used in the
+            pathnames of other buildfile items. For an example, see the <a class="xref" href="mkifs.html#mkifs__symlinks_unresolved">note in the <span class="keyword cmdname">mkifs type</span>
+              attribute</a>.</div>
+
+  
+          </li>
+
+<li class="li"><span class="keyword cmdname">file</span> — a regular, everyday file (the default)</li>
+
+<li class="li"><span class="keyword cmdname">dir</span> — a directory</li>
+
+      </ul>
+<div class="note"><span class="notetitle">Note:</span>  Specifying <span class="keyword cmdname">[type=dir]</span> tells <span class="keyword cmdname">mkefs</span> to make
+        the named file a directory; you don't need to specify the type when you're copying the
+        contents of a directory. For example, this command:<pre class="pre codeblock">[type=dir]/usr/bin=/usr/nto/x86_64/bin
+</pre><p class="p">creates an <em class="ph i">empty</em> directory named <span class="ph filepath">/usr/bin</span>, with
+          the same owner and permissions as for the host directory. To recursively copy
+            <span class="ph filepath">/usr/nto/x86_64/bin</span> to <span class="ph filepath">/usr/bin</span>, you just need
+          to specify:</p>
+<pre class="pre codeblock">/usr/bin=/usr/nto/x86_64/bin
+</pre></div>
+
+      <p class="p" id="mkefs__uid"><strong class="ph b"><span class="keyword cmdname">uid</span> attribute</strong></p>
+<pre class="pre codeblock">uid=<var class="keyword varname">id_spec</var>
+</pre><p class="p">
+        Set the user ID number for the file. The value of this attribute may be either a number or
+        an asterisk (<span class="ph codeph">*</span>). If it's an asterisk, the user ID is taken from the host
+        file; for an inline file, the user ID is the user running <span class="keyword cmdname">mkefs</span>. The
+        default value for this attribute is <tt class="ph tt">*</tt>.</p>
+
+
+      <h3 class="title sectiontitle">Patch files</h3><p class="p">Patch files let you override the user ID, group ID, and permissions
+        of certain files, depending on their location and filename pattern. Patches are applied
+        after all files have been collected (from the buildfile and/or the specified directory).
+        Consequently, patch files can override settings specified in the buildfile.</p>
+<p class="p">Patch
+        files must contain only lines of the form:</p>
+<pre class="pre codeblock">#<var class="keyword varname">comment</var>
+</pre><p class="p">or:</p>
+<pre class="pre codeblock"><var class="keyword varname">type</var>:<var class="keyword varname">path</var>:<var class="keyword varname">pattern</var>:<var class="keyword varname">uid</var>:<var class="keyword varname">gid</var>:<var class="keyword varname">perms</var>
+</pre><p class="p">In comment lines, <tt class="ph tt">#</tt> must be the very first character. The entire
+        line is regarded as a comment and is ignored.</p>
+<p class="p">The <var class="keyword varname">type</var> is either
+          <tt class="ph tt">d</tt> or <tt class="ph tt">f</tt>, optionally followed by <tt class="ph tt">r</tt>. Type <tt class="ph tt">d</tt> patches are
+        applied only to directories, and type <tt class="ph tt">f</tt> patches are applied only to files. An
+          <tt class="ph tt">r</tt> indicates that the patch should be applied recursively within
+          <var class="keyword varname">path</var>; without <tt class="ph tt">r</tt>, the patch is applied to
+          <var class="keyword varname">path</var> only.</p>
+<p class="p">The <var class="keyword varname">pattern</var> is a filename pattern
+        that specifies which files to apply the patch to. The <var class="keyword varname">uid</var> and
+          <var class="keyword varname">gid</var> must be decimal numbers, while <var class="keyword varname">perms</var> must be an
+        octal number (see <a class="xref" href="../c/chmod.html" title="Change file modes (POSIX, toybox)"><span class="keyword cmdname">chmod</span></a>). Note that it
+        isn't possible to set only the user ID, group ID, or permissions; for each match, all three
+        are affected.</p>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2><p class="p">Here's a sample buildfile,
+      <span class="ph filepath">my_efs.bld</span>:</p>
+<pre class="pre codeblock"># A sample buildfile for mkefs
+
+[block_size=128k spare_blocks=1]
+/home/jwall/nto_flash
+</pre>In this example, we've specified a block size of 128 KB and one spare block. The
+      files and subdirectories from the <span class="ph filepath">/home/jwall/nto_flash</span> directory on the
+      host system are to be recursively copied into the root directory of the embedded
+        filesystem.<p class="p">To create an embedded filesystem image file using the above buildfile, invoke
+          <span class="keyword cmdname">mkefs</span> as follows:</p>
+<pre class="pre codeblock">mkefs my_efs.bld my_image.efs
+</pre><p class="p">This creates the <span class="ph filepath">my_image.efs</span> file containing the
+        embedded filesystem, which can then be copied to the target system.</p>
+</div>
+
+
+  <div class="section" id="mkefs__envars"><h2 class="title sectiontitle">Environment variables:</h2>
+    
+    <dl class="dl">
+      
+        <dt class="dt dlterm" id="mkefs__PFS"><span class="keyword envar">PFS</span></dt>
+
+        <dd class="dd">
+          
+          
+          
+            Specifies the Path Field Separator (PFS). The <span class="keyword cmdname">mkefs</span> utility
+            automatically sets this variable to the character used to separate paths in path lists.
+            That is, <span class="keyword cmdname">mkefs</span> sets the variable to <q class="q">;</q> on a Windows host and to
+              <q class="q">:</q> on a Linux host.</dd>
+
+        <dd class="dd ddexpand"><p class="p">To keep buildfiles host OS-independent, use this environment variable instead of
+          the OS-specific characters; for example, instead of writing:</p>
+
+          <pre class="pre codeblock">[search=/a/b:/x/y/z]</pre>
+          <p class="p">write:</p>
+
+          <pre class="pre codeblock">[search=/a/b${PFS}/x/y/z]</pre>
+          <p class="p">The <span class="keyword cmdname">mkefs</span> utility will set the environment variable to the path separator appropriate for the host
+            platform.</p>
+</dd>
+
+      
+    </dl>
+
+  </div>
+
+<div class="section"><h2 class="title sectiontitle">Exit status:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">Successful completion.</dd>
+
+
+
+
+  <dt class="dt dlterm">&gt;0</dt>
+
+  <dd class="dd">An error occurred.</dd>
+  
+
+  
+  
+    <dt class="dt dlterm">129</dt>
+
+    <dd class="dd">License not found.</dd>
+
+  
+  
+  
+    <dt class="dt dlterm">130</dt>
+
+    <dd class="dd">Product is not covered under your license.</dd>
+
+  
+  
+  
+    <dt class="dt dlterm">131</dt>
+
+    <dd class="dd">License expired.</dd>
+
+  
+  
+  
+    <dt class="dt dlterm">132</dt>
+
+    <dd class="dd">License not activated.</dd>
+
+  
+  
+  
+    <dt class="dt dlterm">133</dt>
+
+    <dd class="dd">Can't connect to the license server.</dd>
+
+  
+
+</dl>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-m.html">M</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.building/topic/os_images/images_about.html">OS Images (Building Embedded Systems)</a></li>
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.sys_arch/topic/about.html">System Architecture</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/d/devf-ram.html" title="Simulate flash filesystem using RAM memory">devf-ram</a></li>
+<li class="linklist"><a class="link" href="../../topic/d/dumpefs.html" title="Dump an embedded filesystem">dumpefs</a></li>
+<li class="linklist"><a class="link" href="../../topic/f/flashctl.html" title="Manage a flash filesystem">flashctl</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/mkxfs.html" title="Make a filesystem image (QNX)">mkxfs</a></li></ul></div>
+</div></body>
+</html>

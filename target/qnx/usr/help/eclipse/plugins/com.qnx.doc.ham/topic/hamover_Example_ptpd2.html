@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example to monitor ptpd2" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_ACTIONFAILFNS.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Example_ptpd2" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Example to monitor ptpd2</title>
+</head>
+<body id="Example_ptpd2">
+
+<h1 class="title topictitle1" id="ariaid-title1">Example to monitor <span class="keyword cmdname">ptpd2</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">The following code snippet shows how to begin monitoring the
+<span class="keyword cmdname">ptpd2</span> process:
+
+</p>
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;sys/netmgr.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;ha/ham.h&gt;
+
+int main(int argc, char *argv[])
+{
+    ham_entity_t *ehdl;
+    ham_condition_t *chdl;
+    ham_action_t *ahdl;
+
+    char *ptpd2_path = "/usr/sbin/ptpd2 -K";
+
+    ham_connect(0);
+    ehdl = ham_attach("ptpd2", 0, -1, ptpd2_path, 0);
+    if (ehdl != NULL) {
+        chdl = ham_condition(ehdl,CONDDEATH, "death", HREARMAFTERRESTART);
+        if (chdl != NULL) {
+            ahdl = ham_action_restart(chdl, "restart", ptpd2_path,
+                    HREARMAFTERRESTART);
+            if (ahdl == NULL) {
+                printf("add action failed\n");
+            }
+        } else {
+            printf("add condition failed\n");
+        }
+    } else {
+        printf("add entity failed\n");
+    }
+    ham_disconnect(0);
+    exit(0);
+}
+</pre>
+
+<p class="p"></p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_ACTIONFAILFNS.html">Action fail functions</a></div>
+</div>
+</div></body>
+</html>

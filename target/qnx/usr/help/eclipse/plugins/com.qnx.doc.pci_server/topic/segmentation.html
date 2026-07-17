@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Segmentation" />
+<meta name="abstract" content="Hierarchy segmentation allows the segments of a hierarchy to be managed by one or more pci-server instance. Even though there is always at least one partition as described in the previous section, segmentation is independent of partitioning." />
+<meta name="description" content="Hierarchy segmentation allows the segments of a hierarchy to be managed by one or more pci-server instance. Even though there is always at least one partition as described in the previous section, segmentation is independent of partitioning." />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/hierarchy.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="backward_compat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Segmentation</title>
+</head>
+<body id="backward_compat">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Segmentation</h1>
+
+    
+    
+    
+    <div class="body conbody"><p class="shortdesc">Hierarchy segmentation allows the segments of a hierarchy to be managed by one or more
+        <span class="keyword cmdname">pci-server</span> instance. Even though there is always at least one
+        partition as described in the previous section, segmentation is independent of
+        partitioning.</p>
+
+        <p class="p">This will be illustrated by referring to the representative four segment example
+            platform. </p>
+
+        <p class="p">Considering the same case as shown in Figure 4 where PCIe0 is separated through PCIe2
+            from PCIe3, this is illustrated using a single default partition as shown below in
+            Figure 5.</p>
+
+        <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Single default partition illustrating segmentation</span>
+            
+            <br /><img class="image" src="../images/PCI_fig_5.svg" /><br />
+        </div>
+
+        
+        <p class="p">Two <span class="keyword cmdname">pci-server</span> instances are used to manage the four segments but all four
+            segments are part of the same, default partition and, as such share the same global BDF
+            space: <span class="ph codeph">B[255..0]:D[31..0]:F[7..0]</span>.</p>
+
+        <p class="p">In this single partition configuration, clients (i.e., drivers and utilities) have access
+            to any of the devices within any of the segments. The fact that there are multiple
+            <span class="keyword cmdname">pci-server</span> instances managing the segments is transparent to the
+            clients. You can easily extend this single partition example to have three or, at most,
+            four <span class="keyword cmdname">pci-server</span> instances. </p>
+
+        <div class="p">Figure 6 below shows how multiple <span class="keyword cmdname">pci-server</span> instances are associated
+            with two partitions. In <span class="keyword envar">PCI_PARTITION_NAME</span>= "pci_1" a single
+            <span class="keyword cmdname">pci-server</span> instance is used to manage both segments and in
+            <span class="keyword envar">PCI_PARTITION_NAME</span>= "pci_2" two <span class="keyword cmdname">pci-server</span>
+            instances are used to manage each of the two segments. <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>Two partitions illustrating segmentation</span>
+                
+                <br /><img class="image" src="../images/PCI_fig_6.svg" /><br />
+            </div>
+</div>
+
+        <p class="p">You can notice in all of the previous figures that the server namespace node is
+            <u class="ph u"><span class="ph filepath">/dev/partitionname&gt;/server_id_n&gt;</span></u>.</p>
+
+        <p class="p">As mentioned above, the <span class="keyword envar">PCI_PARTITION_NAME</span> environment variable is used to
+            create and associate with a specific partition. </p>
+
+        <p class="p">When more than one <span class="keyword cmdname">pci-server</span> instance is used to manage one or more PCI segments, 
+            independent of whether partitioning is used, you will be required to provide the <span class="keyword cmdname">pci-server</span> with a 
+            unique server ID using the <span class="keyword cmdname">–server-id=</span> command line option or <span class="keyword parmname">SERVER_ID</span> parameter within a 
+            server configuration file.</p>
+
+        <p class="p">It is this server ID that will then be used in conjunction with hardware module specific
+            parameters within a hardware configuration file to control what segments a given
+            <span class="keyword cmdname">pci-server</span> instance will manage. </p>
+
+        <p class="p">The details of this mechanism are documented in both the server configuration file
+            (<span class="ph filepath">/etc/system/config/pci/pci_server-template.cfg</span>) and the
+            hardware configuration file
+            (<span class="ph filepath">/etc/system/config/pci/pci_hw-template.cfg</span>). These files
+            should be taken as the definitive source for parameter names, the sections in which
+            these parameters must be included and the parameter syntax. An example is shown below. </p>
+
+        <p class="p">[segments]</p>
+
+        <div class="p">This section contains the hardware module specific records for supporting partitioning
+            and segmentation. The syntax for these records are as
+            follows:<pre class="pre codeblock" id="backward_compat__codeblock_chf_dsw_xyb">&lt;HW module specific identifier&gt;=&lt;server ID&gt;
+                               =&lt;segment first bus&gt;=&lt;segment last bus&gt;</pre>All
+            four fields listed above are required. The <span class="ph codeph">HW module specific
+                identifier</span> field is defined by the hardware module and is a descriptive,
+            although arbitrary string. It will usually be something which can be uniquely associated
+            with a particular hardware resource such as PCIe0, PCIe1, PCIe2, etc. The <span class="ph codeph">server
+                ID</span> field corresponds to the value assigned to a given
+                <span class="keyword cmdname">pci-server</span> instance either provided with the
+                <span class="ph codeph">–server-id=</span> argument to the <span class="keyword cmdname">pci-server</span> or using
+            the <span class="keyword parmname">SERVER_ID</span> parameter within a server configuration file. The
+                <span class="ph codeph">server ID</span> is what links a <span class="keyword cmdname">pci-server</span> instance to
+            one or more hardware resources identified by the <span class="ph codeph">HW module specific
+                identifier</span> and an asterisk <span class="ph codeph">(*)</span> can be used as a wild card. </div>
+
+        <p class="p">The <span class="ph codeph">segment first bus</span> and <span class="ph codeph">segment last bus</span> fields define the BDF space for the segment inclusive and
+            they must be unique for each defined record. That is, these fields must not overlap with
+            other records and <span class="ph codeph">segment last bus</span> must be greater than or equal to <span class="ph codeph">segment first bus</span>. 
+        </p>
+<div class="p">The following would be
+            an example of the records for the configuration shown in Figure 6:
+            <ul class="ul">
+                <li class="li">PCIe0=1;0;7</li>
+
+                <li class="li">PCIe1=1;8;15</li>
+
+                <li class="li">PCIe2=2;16;23</li>
+
+                <li class="li">PCIe3=3;24;31</li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hierarchy.html" title="Partitioning and segmentation provide flexibility in using the PCI subsystem, and specifically the pci-server. It provides the ability to achieve:">PCI Hierarchy: Partitioning and Segmentation</a></div>
+</div>
+</div></body>
+</html>

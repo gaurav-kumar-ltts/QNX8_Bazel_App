@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Reloadable Image Filesystems" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Technotes, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs_Options.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs_Examples.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs_Performance.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs_Manually_mounting.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/reloadable_ifs_Combine.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="reloadable_ifs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Reloadable Image Filesystems</title>
+</head>
+<body id="reloadable_ifs">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Reloadable Image Filesystems</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The IFS Restoration feature applies to systems that require an ultra-low power
+mode in which the main CPU is completely turned off while the SDRAM is
+left in a self-refresh state.
+This provides the ability to create a low-power mode with power consumption
+ranging from 1-3 mA (depending on the power draw of the SDRAM in
+self-refresh) with an accelerated wake-up/reboot.
+</p>
+
+
+<p class="p">
+IFS Restoration makes use of the fact that the image filesystem (IFS) is already
+in RAM on wake-up from this state and avoids the slow process of copying
+the image from FLASH to RAM.
+Note that when booting for the first time (SDRAM turned off), there are
+no time savings—savings are only on subsequent boots:
+</p>
+
+
+<ul class="ul">
+<li class="li">On initial power-up, the system performs a full boot.</li>
+
+
+<li class="li">On subsequent boots in which the SDRAM was left in self-refresh,
+  the system performs an accelerated boot via IFS restoration.
+  A full boot is still performed; only the copying of the image from
+  flash to RAM is avoided.
+</li>
+
+
+<li class="li">The boot time saved depends on the size of the image in flash;
+  the larger the image, the more time is saved.
+</li>
+
+
+<li class="li">The CPU and OS context aren't saved or restored.
+  Although this would be faster, it requires device-driver-, CPU-, and
+  board-specific support.
+  The IFS Restoration feature is generic and doesn't require platform-specific
+  development (other than the code to put the SDRAM to self-refresh).
+</li>
+
+
+</ul>
+
+
+<p class="p">
+The following diagram shows the difference between a normal boot and an
+accelerated boot using IFS Restoration:
+</p>
+
+
+<p class="p">
+<img class="image" src="../images/reload_ifs.svg" alt="Normal and accelerated booting" />
+</p>
+
+
+<p class="p">
+There are two mechanisms to achieve the IFS restoration:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Kernel restoration</dt>
+
+<dd class="dd">The OS is booted using a single image including <span class="keyword">QNX OS</span> startup,
+  kernel, and the IFS (containing libraries, drivers, and applications).
+  On wake-up, all of the startup and only part of the kernel (the data section
+  of the <span class="keyword cmdname">procnto</span> binary) are copied to RAM.
+  The remainder of the IFS is reused without having to copy.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Secondary IFS restoration</dt>
+
+<dd class="dd">The OS is booted using two images: a primary IFS containing only the
+  <span class="keyword">QNX OS</span> startup and kernel, and a secondary IFS containing all other
+  libraries, drivers, and applications.
+  The secondary IFS is automatically mounted.
+
+  <p class="p">
+  On wake-up, the entire primary IFS is copied, while the secondary IFS
+  can be reused without having to copy.
+  Note that additional binaries can be added to the primary IFS, but
+  these will be copied along with the rest of the primary IFS.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The advantage of kernel restoration is that it can be enabled and used with
+very little intervention by the user.
+Secondary IFS restoration may be desired for projects that wish to use
+multiple image filesystems, but requires more management by the user,
+such as maintaining multiple buildfiles and specifying the secondary IFS
+size and location.
+</p>
+
+
+<p class="p">
+It's possible to enable both kernel and secondary IFS restoration at the
+same time (i.e., the startup and kernel from the primary IFS are restored,
+and the secondary IFS is reused and automatically mounted).
+</p>
+
+
+<p class="p">
+IFS Restoration was designed to support the following features:
+</p>
+
+
+<ul class="ul">
+<li class="li">compressed and uncompressed images 
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  Compressed secondary image filesystems aren't currently supported.
+  </div>
+
+</li>
+
+
+<li class="li">IFS checksum — both primary and secondary IFSs can be verified
+  using an optimized checksum algorithm (checksum can be enabled or disabled)</li>
+
+
+<li class="li">automatic secondary IFS source and destination address selection</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/reloadable_ifs_Options.html">Command-line options</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/reloadable_ifs_Examples.html">Examples</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/reloadable_ifs_Performance.html">Performance measurements</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/reloadable_ifs_Manually_mounting.html">Manually mounting an in-memory IFS</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/reloadable_ifs_Combine.html">Sample script to combine IPL with boot image for the EDOSK7780</a></strong><br />
+</li>
+</ul>
+</div></body>
+</html>

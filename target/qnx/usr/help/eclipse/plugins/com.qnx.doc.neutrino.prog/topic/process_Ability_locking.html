@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Locking an ability" />
+<meta name="abstract" content="An important aspect of procmgr abilities is ability locking, which allows you to force a specific ability to be immutable until the next time the process starts." />
+<meta name="description" content="An important aspect of procmgr abilities is ability locking, which allows you to force a specific ability to be immutable until the next time the process starts." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Procmgr_abilities.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Ability_locking" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Locking an ability</title>
+</head>
+<body id="process_Ability_locking">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Locking an ability</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+An important aspect of procmgr abilities is ability locking, which allows
+you to force a specific ability to be immutable until the next time the process starts.
+</p>
+
+
+<p class="p">
+This aspect is useful if an ability never needs to be reobtained, especially by
+a process that is <span class="ph filepath">root</span>.
+This also allows non-inheritable abilities to not be subsequently marked
+as inheritable, and so on.
+Keep in mind that if you lock an ability and don't mark it as inheritable, then if
+and when you spawn a new process, that process will not have the ability locked.
+</p>
+
+
+<div class="p">
+
+
+
+The following example demonstrates how to lock a capability by using the
+<span class="keyword const">PROCMGR_AOP_LOCK</span> flag, effectively
+preventing it from being changed during the lifetime of the process.
+The following example specifically adds additional security to the
+<span class="keyword const">PROCMGR_AOP_SUBRANGE</span> example:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT           // Non-root domain
+                  | PROCMGR_AOP_ALLOW         // Allow the ability
+                  | PROCMGR_AOP_LOCK          // Prevent further changes
+                  | PROCMGR_AOP_SUBRANGE      // Limit ability to a subrange
+                  | PROCMGR_AID_SPAWN_SETUID, // Requested ability
+                (uint64_t)800, (uint64_t)899, // Subrange for ability
+                PROCMGR_AID_EOL               // End of ability list
+);
+</pre>
+</div>
+
+
+<p class="p">
+
+Once this call is made, the <span class="keyword const">PROCMGR_AID_SPAWN_SETUID</span> ability
+can't be modified by anyone.
+We recommend that you immediately lock all abilities expected to be static after set.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Take care when locking an allowed and inheritable ability.
+A vulnerability can be introduced if an allowed ability is locked and
+inheritable and the process then forks or spawns a child that doesn't
+require the ability or wishes to drop it.
+Locking should generally be reserved for situations where you are denying an ability.
+Always check the return code of <span class="keyword apiname">procmgr_ability()</span> and test
+for an error value of -1 to identify—early in development—these types of problems
+you may have with dropping abilities.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Procmgr_abilities.html" title="The QNX OS supports procmgr abilities, process-manager settings that govern which operations a particular process is permitted to do.">Procmgr abilities</a></div>
+</div>
+</div></body>
+</html>

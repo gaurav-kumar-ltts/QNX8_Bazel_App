@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Performance" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsys_QNX6_filesystem.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="QNX6_performance" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Performance</title>
+</head>
+<body id="QNX6_performance">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Performance</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="p">
+The Copy on Write (COW) method has some drawbacks:
+
+<ul class="ul">
+<li class="li">Each change to user data can cause up to a dozen blocks to be copied and
+  modified, because the filesystem never modifies the inode and indirect
+  block pointers in place; it has to copy the blocks to a new location
+  and modify the copies.
+  Thus, write operations are longer.
+</li>
+
+
+<li class="li">When taking a snapshot, the filesystem must force all blocks fully to disk
+before it commits the superblock.
+</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+However:
+
+<ul class="ul">
+<li class="li">There's no constraint on the order in which the blocks (aside from the
+  superblock) can be written.
+</li>
+
+
+<li class="li">The new blocks can be allocated from any free, contiguous space.</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The performance of the filesystem depends on how much buffer cache is
+available, and on the frequency of the snapshots.
+Snapshots occur periodically (every 10 seconds, or as specified by the
+<span class="keyword option">snapshot</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="ph filepath">fs-qnx6.so</span></a>),
+and when you call <span class="keyword apiname">sync()</span> for the entire filesystem, or
+<span class="keyword apiname">fsync()</span> for a single file.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+Synchronization is at the filesystem level, not at that of individual files,
+so <span class="keyword apiname">fsync()</span> is potentially an expensive operation;
+the Power-Safe filesystem ignores the <span class="keyword const">O_SYNC</span> flag.
+</div>
+
+
+<div class="p">
+You can also turn snapshots off if you're doing some long operation,
+and the intermediate states aren't useful to you.
+For example, suppose you're copying a very large file into a
+Power-Safe filesystem.
+The <span class="keyword cmdname">cp</span> utility is really just a sequence of basic operations:
+
+<ul class="ul">
+<li class="li">an <span class="ph codeph">open(O_CREAT|O_TRUNC)</span> to make the file</li>
+
+<li class="li">a bunch of <span class="keyword apiname">write()</span> operations to copy the data</li>
+
+<li class="li">a <span class="keyword apiname">close()</span>, <span class="keyword apiname">chmod()</span>, and <span class="keyword apiname">chown()</span>
+  to copy the metadata
+</li>
+
+</ul>
+
+</div>
+
+
+<div class="p">
+If the file is big enough so that copying it spans snapshots, you have
+on-disk views that include the file not existing, the file existing at
+a variety of sizes, and finally the complete file copied and its IDs and
+permissions set:
+
+<div class="fig fignone">
+  <br /><img class="image" src="../images/cp_timeline.svg" width="528" alt="Timeline of cp operations and snapshots" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Each snapshot is a valid point-in-time view of the filesystem
+(i.e., if you've copied 50 MB, the
+size is 50 MB, and all data up to 50 MB is also correctly copied and available).
+If there's a power failure, the filesystem is restored to the most recent snapshot.
+But the filesystem has no concept that the sequence of
+<span class="keyword apiname">open()</span>, <span class="keyword apiname">write()</span>, and <span class="keyword apiname">close()</span> operations
+is really one higher-level operation, <span class="keyword cmdname">cp</span>.
+If you want the higher-level semantics, disable the snapshots around the
+<span class="keyword cmdname">cp</span>,
+and then the middle snapshots won't happen, and if a power failure occurs,
+the file will be either complete or not there at all.
+</p>
+
+
+<p class="p">
+For information about using this filesystem, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems_QNX6_filesystem.html">Power-Safe filesystem</a></q>
+in the Working with Filesystems chapter of the
+<span class="keyword">QNX OS</span> <cite class="cite">User's Guide</cite>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsys_QNX6_filesystem.html" title="The Power-Safe filesystem is a reliable disk filesystem that can withstand power failures without corruption.">Power-Safe filesystem</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/fsystems.html">Working with Filesystems (QNX OS User's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/limits_Filesystems.html">Filesystem limits (QNX OS User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-dos.so.html">fs-dos.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-ext2.so.html">fs-ext2.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html">fs-nfs3</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-squash.so.html">fs-squash.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html">fs-qnx6.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qcfs.so.html">fs-qcfs.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qtd.so.html">fs-qtd.so</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-udf.so.html">fs-udf.so</a></li></ul></div>
+</div></body>
+</html>

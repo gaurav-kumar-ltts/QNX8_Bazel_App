@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Setting resource manager attributes" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Attributes" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Setting resource manager attributes</title>
+</head>
+<body id="Attributes">
+
+<h1 class="title topictitle1" id="ariaid-title1">Setting resource manager attributes</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+In addition to the structures that define the connect and I/O functions,
+you pass a <span class="keyword dtype">resmgr_attr_t</span> structure to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+to specify the attributes of the resource manager.
+</p>
+
+
+<div class="p">
+
+The <span class="keyword dtype">resmgr_attr_t</span> structure is defined as follows:
+
+<pre class="pre codeblock">typedef struct _resmgr_attr {
+    unsigned            flags;
+    unsigned            nparts_max;
+    size_t              msg_max_size;
+    int                 (*other_func)(resmgr_context_t *, void *msg);
+    unsigned            reserved[4];    
+} resmgr_attr_t;
+</pre>
+</div>
+
+
+<p class="p">
+The members include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Lets you change the behavior of the resource manager interface.
+  Set this to 0, or a combination of the following bits (defined in
+  <span class="ph filepath">&lt;sys/dispatch.h&gt;</span>):
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">RESMGR_FLAG_ATTACH_LOCAL</span> — set up the
+    resource manager, but don't register its path with <span class="keyword cmdname">procnto</span>.
+    You can send messages to the resource manager's channel (if you know where to find it).
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">RESMGR_FLAG_NO_DEFAULT_FUNC</span> — not implemented.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">RESMGR_FLAG_RCM</span>
+    — automatically adopt the client's resource constraint mode when handling a request.
+    
+    
+  </li>
+
+
+  </ul>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  There are also some <span class="keyword const">_RESMGR_FLAG_*</span> bits (with a leading
+  underscore), but you use them in the <var class="keyword varname">flags</var>
+  argument to <span class="keyword apiname">resmgr_attach()</span>.
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nparts_max</var></dt>
+
+<dd class="dd">The number of components that should be allocated to the IOV array.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">msg_max_size</var></dt>
+
+<dd class="dd">The size of the message buffer.
+
+  <p class="p">
+  These members will be important when you start writing your own handler functions.
+  
+  </p>
+
+
+  <p class="p">
+  If you specify a value of zero for <var class="keyword varname">nparts_max</var>,
+  the resource manager library will bump the value to the minimum usable by the library itself.
+  Why would you want to set the size of the IOV array?
+  As we'll see in the
+  <q class="q"><a class="xref" href="read_write_RETURNandREPLY.html">Getting the resource manager library to do the reply</a></q>
+  section of the Handling Read and Write Messages chapter,
+  you can tell the resource manager library to do our replying for us.
+  We may want to give it an IOV array that points to
+  <var class="keyword varname">N</var> buffers containing the reply data. But, since
+  we'll ask the library to do the reply for us, we need to use
+  its IOV array, which of course would need to be big enough
+  to point to our <var class="keyword varname">N</var> buffers.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">other_func</var></dt>
+
+<dd class="dd">Lets you specify a routine to call in cases where the resource manager
+  gets an I/O message that it doesn't understand.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  In general, we don't recommend that you use this member.
+  For private or custom messages, you should use
+  <span class="keyword const">_IO_DEVCTL</span> or <span class="keyword const">_IO_MSG</span> handlers, as described in the
+  <a class="xref" href="messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a>
+  chapter.
+  If you want to receive pulses, use
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pulse_attach.html"><span class="keyword apiname">pulse_attach()</span></a>.
+  </div>
+
+
+  <p class="p">
+  If the resource manager library gets an I/O message that it
+  doesn't know how to handle, it'll call the routine
+  specified by the <var class="keyword varname">other_func</var> member, if
+  non-<span class="keyword const">NULL</span>. (If it's <span class="keyword const">NULL</span>, the
+  resource manager library will return an
+  <span class="keyword const">ENOSYS</span> to the client, effectively stating
+  that it doesn't know what this message means.)
+  
+  
+  </p>
+
+
+  <p class="p">
+  You might specify a non-<span class="keyword const">NULL</span> value for
+  <var class="keyword varname">other_func</var> in the case where you've specified
+  some form of custom messaging between clients and your
+  resource manager, although the recommended approach for this is the
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+  function call (client) and the
+  <span class="keyword const">_IO_DEVCTL</span> message handler (server) or a
+  <span class="keyword apiname">MsgSend*()</span> function call (client) and the
+  <span class="keyword const">_IO_MSG</span> message handler (server).
+  
+  
+  
+  </p>
+
+
+  <p class="p">
+  For non-I/O message types, you should use the
+  <span class="keyword apiname">message_attach()</span> function, which attaches a
+  message range for the dispatch handle. When a message with a
+  type in that range is received, the
+  <span class="keyword apiname">dispatch_block()</span> function calls a user-supplied
+  function that's responsible for doing any specific work, such as replying to the client.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out.html" title="It's time now to start adding some flesh to the basic bones of the resource manager. We'll look at the types of messages you might have to handle, how to set the resource manager's attributes, how to add functionality, and some security issues you should consider.">Fleshing Out the Skeleton</a></div>
+</div>
+</div></body>
+</html>

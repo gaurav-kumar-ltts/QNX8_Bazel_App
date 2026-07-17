@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Synchronization problem" />
+<meta name="abstract" content="Even if you use the _NTO_CHF_UNBLOCK flag, there's still one more synchronization problem to deal with." />
+<meta name="description" content="Even if you use the _NTO_CHF_UNBLOCK flag, there's still one more synchronization problem to deal with." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_msg_ntochfunblock.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Synchronization_problem" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Synchronization problem</title>
+</head>
+<body id="Synchronization_problem">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Synchronization problem</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Even if you use the <span class="keyword const">_NTO_CHF_UNBLOCK</span> flag, there's
+still one more synchronization problem to deal with.
+</p>
+
+
+<div class="p">
+
+
+
+Suppose that you have multiple server threads blocked on the
+<span class="keyword apiname">MsgReceive()</span>
+function, waiting for messages or pulses, and the client sends you a message.
+One thread goes off and begins the client's work.
+While that's happening, the client wishes to unblock, so the kernel generates the unblock pulse.
+Another thread in the server receives this pulse.
+At this point, there's a race condition—the first thread could be
+<em class="ph i">just about</em> ready to reply to the client.
+If the second thread (that got the pulse) does the reply, then there's a chance that the client
+would unblock and send another message to the server, with the server's first thread
+now getting a chance to run and replying to the client's second request with the first
+request's data:
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Confusion in a multithreaded server.</span>
+
+<br /><img class="image" src="../images/mpx8.svg" width="480" alt="Confusion in a multithreaded server." /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+Or, if the thread that got the pulse is <em class="ph i">just about</em> to reply to the client, and
+the first thread does the reply, then you have the same situation—the first thread
+unblocks the client, who sends another request, and the second thread (that got the pulse)
+now unblocks the client's second request.
+</p>
+
+
+<p class="p">
+The situation is that you have two parallel
+flows of execution (one caused by the message, and one caused by the pulse).
+Ordinarily, we'd immediately recognize this as a situation that requires a mutex.
+Unfortunately, this causes a problem—the mutex would have to be acquired
+immediately after the <span class="keyword apiname">MsgReceive()</span> and released before the <span class="keyword apiname">MsgReply()</span>.
+While this will indeed work, it defeats the whole purpose of the unblock pulse!
+(The server would either get the message and ignore the unblock pulse until after
+it had replied to the client, or the server would get the unblock pulse and cancel
+the client's second operation.)
+</p>
+
+
+<p class="p">
+A solution that looks promising (but is ultimately doomed to failure) would
+be to have a fine-grained mutex.
+What I mean by that is a mutex that gets locked and unlocked only around small
+portions of the control flow (the way that you're supposed to use a mutex, instead
+of blocking the entire processing section, as proposed above).
+You'd set up a <q class="q">Have we replied yet?</q> flag in the server, and
+this flag would be cleared when you received a message and set when
+you replied to a message.
+Just before you replied to the message, you'd check the flag.
+If the flag indicates that the message has already been replied to, you'd skip
+the reply.
+The mutex would be locked and unlocked around the checking and setting of the flag.
+</p>
+
+
+<p class="p">
+Unfortunately, this won't work because we're not <em class="ph i">always</em>
+dealing with two parallel flows of execution—the client won't always
+get hit with a signal during processing (causing an unblock pulse).
+Here's the scenario where it breaks:
+</p>
+
+
+<ul class="ul">
+<li class="li">The client sends a message to the server; the client is now blocked, the server
+  is now running.
+</li>
+
+
+<li class="li">Since the server received a request from the client, the flag is reset to 0, indicating
+  that we still need to reply to the client.
+</li>
+
+
+<li class="li">The server replies normally to the client (because the flag was set to 0) and
+  sets the flag to 1 indicating that, if an unblock-pulse arrives, it should
+  be ignored.
+</li>
+
+
+<li class="li"><em class="ph i">(Problems begin here.)</em>  The client sends a second message to the server, and
+  almost immediately after sending it gets hit with a signal; the
+  kernel sends an unblock-pulse to the server.
+</li>
+
+
+<li class="li">The server thread that receives the message was about to acquire the mutex in order
+  to check the flag, but didn't quite get there (it got preempted).
+</li>
+
+
+<li class="li">Another server thread now gets the pulse and, because the flag is still set to a 1
+  from the last time, ignores the pulse.
+</li>
+
+
+<li class="li">Now the server's first thread gets the mutex and clears the flag.</li>
+
+
+<li class="li">At this point, the unblock event has been lost.</li>
+
+
+</ul>
+
+
+<p class="p">
+If you refine the flag to indicate more states (such as pulse received, pulse replied to,
+message received, message replied to), you'll still run into a synchronization race condition
+because there's no way for you to create an atomic binding between the flag and the receive
+and reply function calls.
+(Fundamentally, that's where the problem lies—the small timing windows after a <span class="keyword apiname">MsgReceive()</span>
+and before the flag is adjusted, and after the flag is adjusted just before the <span class="keyword apiname">MsgReply()</span>.)
+The only way to get around this is to have the kernel keep track of the flag for you.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_msg_ntochfunblock.html" title="Let's look at the _NTO_CHF_UNBLOCK flag; it has a few interesting wrinkles for both the client and the server.">_NTO_CHF_UNBLOCK</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/ipc_Sync_messaging.html">Synchronous message passing (System Architecture)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgcurrent.html">MsgCurrent(), MsgCurrent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html">MsgError(), MsgError_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msginfo.html">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgread.html">MsgRead(), MsgRead_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreadv.html">MsgReadv(), MsgReadv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html">MsgReceive(), MsgReceive_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivepulse.html">MsgReceivePulse(), MsgReceivePulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceivev.html">MsgReceivev(), MsgReceivev_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreplyv.html">MsgReplyv(), MsgReplyv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendnc.html">MsgSendnc(), MsgSendnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendpulse.html">MsgSendPulse(), MsgSendPulse_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsv.html">MsgSendsv(), MsgSendsv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendsvnc.html">MsgSendsvnc(), MsgSendsvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendv.html">MsgSendv(), MsgSendv_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvnc.html">MsgSendvnc(), MsgSendvnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvs.html">MsgSendvs(), MsgSendvs_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsendvsnc.html">MsgSendvsnc(), MsgSendvsnc_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgverifyevent.html">MsgVerifyEvent(), MsgVerifyEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwrite.html">MsgWrite(), MsgWrite_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgwritev.html">MsgWritev(), MsgWritev_r()</a></li></ul></div>
+</div></body>
+</html>

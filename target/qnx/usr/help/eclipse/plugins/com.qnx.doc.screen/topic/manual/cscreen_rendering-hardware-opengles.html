@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="OpenGL ES rendering APIs" />
+<meta name="abstract" content="Screen supports the following Khronos rendering APIs: OpenGL ES and OpenVG. They provide common interfaces to graphics hardware that allow users to generate and manipulate high quality two-dimensional vector and three-dimensional graphical images." />
+<meta name="description" content="Screen supports the following Khronos rendering APIs: OpenGL ES and OpenVG. They provide common interfaces to graphics hardware that allow users to generate and manipulate high quality two-dimensional vector and three-dimensional graphical images." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering-hardware.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_rendering-hardware-opengles" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>OpenGL ES rendering APIs</title>
+</head>
+<body id="cscreen_rendering-hardware-opengles">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        OpenGL ES rendering APIs
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+		<span class="keyword">Screen</span> supports the following Khronos rendering APIs: OpenGL
+		ES and OpenVG. They provide common interfaces to graphics hardware that allow users to
+		generate and manipulate high quality two-dimensional vector and three-dimensional graphical images.
+    </p>
+
+        <p class="p">
+            
+            Khronos rendering APIs can provide user applications with the following key functions:
+        </p>
+
+        <ul class="ul">
+            <li class="li">creating, deleting, and querying of buffer objects</li>
+
+            <li class="li">2D texturing</li>
+
+            <li class="li">shading (including user shaders described in the OpenGL Shading language)</li>
+
+            <li class="li">blending (i.e., transparency)</li>
+
+            <li class="li">image resizing</li>
+
+            <li class="li">image rotating</li>
+
+            <li class="li">rasterizing the final image</li>
+ 
+        </ul>
+
+        <p class="p">
+            
+            
+            OpenGL ES and OpenVG standards are published by Khronos Group.
+        </p>
+
+        <p class="p">
+            Typically, hardware vendors have their own implementation of the Khronos standards that takes advantage
+            of hardware acceleration and, in particular, the GPU hardware. In order to provide a common interface to
+            <span class="keyword">Screen</span> applications, the Khronos rendering API calls are redirected onto
+            appropriate vendor-specific rendering API functionality through the QNX libraries provided by
+            <span class="keyword">Screen</span>.
+        </p>
+
+        <p class="p">
+            Khronos standards are implemented specifically for the hardware vendor, and so, performance varies between
+            different implementations.
+        </p>
+
+        <p class="p">
+            <span class="keyword">Screen</span>'s EGL library (libEGL) provides
+            access to the vendor-specific implementation of the Khronos EGL. Khronos
+            EGL is the interface between rendering APIs and the underlying windowing environment, in this
+            case, <span class="keyword">Screen</span>. It provides functions to enable graphics
+            context management, surface building and binding, as well as providing
+            synchronization between different rendering tasks. In summary, the Khronos rendering APIs provide the
+            content, and EGL provides access to wrap <span class="keyword">Screen</span>'s render target.
+        </p>
+
+        <p class="p">Key functions provided by Khronos EGL include:</p>
+
+        <ul class="ul">
+            <li class="li">creating, destroying, and managing contexts used by Khronos rendering APIs to perform their work</li>
+ 
+            <li class="li">managing synchronization of rendering tasks on objects that affect the same surface</li>
+
+            <li class="li">managing the attributes that can be used to decide the composition strategy undertaken by <span class="keyword">Screen</span></li>
+
+        </ul>
+
+        <p class="p">
+            
+            Generally, the main steps you'll need to do in your application to render using hardware are: </p>
+
+        <ol class="ol">
+            <li class="li">
+                Create your render target.
+            </li>
+
+            <li class="li">
+                Create a rendering context.
+            </li>
+
+            <li class="li">
+                Render.
+            </li>
+
+            <li class="li">
+                Post your image.
+            </li>
+
+        </ol>
+
+        <p class="p">
+            The following examples use OpenGL ES as the rendering API, but you can apply OpenVG similarly where
+            applicable.
+        </p>
+
+        <div class="section"><h2 class="title sectiontitle">Create your render target</h2>
+            
+            <p class="p">
+                
+                This contains the buffer or buffers that your application will render to.
+            </p>
+
+            <p class="p">
+                
+                The steps to create your render target for hardware rendering are very similar to those that you'd
+                do for software rendering. The key difference is setting the usage bit of your render target's
+                <span class="keyword const">SCREEN_PROPERTY_USAGE</span> flag.
+            </p>
+
+            <p class="p">
+                
+                First, you need to create a target to which to render. For example:
+            </p>
+
+            <pre class="pre codeblock">...
+screen_context_t screen_ctx;
+screen_window_t screen_win;
+...
+screen_create_window(&amp;screen_win, screen_ctx);
+...
+            </pre>
+            <p class="p">
+                Now that you've created your target, you must set the appropriate properties on this target. At a
+                minimum, you should set the usage. For example, here's what the code might look like for creating a window:
+            </p>
+
+            <pre class="pre codeblock">...
+int usage, format;
+int interval = 1;
+int size[2] = { 200, 200 }; /* Size of window */
+int pos[2] = { 0, 0 };      /* Position of window */
+...
+/* Indicate that OpenGL ES 2.x or 3.x will render to the buffer associated with this render target. */
+usage = SCREEN_USAGE_OPENGL_ES2 | SCREEN_USAGE_OPENGL_ES3;
+format = SCREEN_FORMAT_RGBA8888;    /* Indicate the pixel format to be used. */
+
+...
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_USAGE, &amp;usage);
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_FORMAT, &amp;format);
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_SWAP_INTERVAL, &amp;interval);
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_SIZE, size);
+screen_set_window_property_iv(screen_win, SCREEN_PROPERTY_POSITION, pos);
+...
+            </pre>
+            <p class="p">And finally, you'll need to create some buffers for your render target. For example:</p>
+
+            <pre class="pre codeblock">...
+int nbuffers = 2;           /* Number of window buffers */
+...
+screen_create_window_buffers(screen_win, nbuffers);            
+            </pre>
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle">Create a rendering context</h2>
+            
+            <p class="p">
+                
+                Among other things, this context keeps track of the EGL state. Creating a rendering context
+                includes:
+            </p>
+
+            <ul class="ul">
+                <li class="li">establishing a connection to the EGL display</li>
+
+                <li class="li">initializing the EGL display</li>
+
+                <li class="li">choosing an EGL configuration</li>
+
+                <li class="li">creating a context</li>
+
+                <li class="li">redirecting EGL to the render target that you created</li>
+
+            </ul>
+
+            <p class="p">
+                
+                
+                
+                
+                Creating a rendering context requires that you use the EGL library. Therefore, you must include the
+                appropriate header file (<span class="ph codeph">#include &lt;EGL/egl.h&gt;</span>) in your application.
+            </p>
+
+            <p class="p"><strong class="ph b">Connect to and initialize your EGL display</strong></p>
+
+            <p class="p">
+                
+                
+                One of the first things you'll need to do when creating a rendering context is to establish a connection
+                to an EGL display, and then initialize it:
+            </p>
+
+            <pre class="pre codeblock">...                
+EGLDisplay egl_disp;
+...
+egl_disp = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+eglInitialize(egl_disp, NULL, NULL);
+...
+            </pre>
+            <p class="p"><strong class="ph b">Choose your EGL configuration</strong></p>
+
+            <p class="p">
+                
+                
+                Choosing an appropriate EGL configuration is an important part of creating your rendering context. What
+                you're actually choosing is the pixel format configuration (<span class="keyword const">SCREEN_PROPERTY_FORMAT)</span> of
+                your render target. The EGL configuration must match, in the least, the following attributes of your
+                render target:
+            </p>
+
+            <ul class="ul">
+                <li class="li">the surface type (e.g., displayable)</li>
+
+                <li class="li">the minimum number of red, green, blue, and alpha bits per pixel</li>
+
+            </ul>
+
+            <p class="p">
+                In embedded systems, the difference in performance between pixel formats can make or break an
+                application. For example, on desktop systems, a pixel format of RGB111 or better is usually sufficient
+                because this pixel format returns the best configuration supported by the hardware. However, on embedded
+                systems, RGBA8888 may not be an option. Even if RGBA8888 is supported by your rendering hardware, the
+                system may not be able to handle the memory bandwidth required by the display controller to paint the
+                display at 60 frames per second.
+            </p>
+
+            <p class="p">
+                The format chosen may impact performance and memory usage. The impact may vary depending on things,
+                such as your display controller and blitter.
+            </p>
+
+            <p class="p">
+                
+                You have several options for choosing your EGL configuration, some of which are:
+            </p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Use <span class="keyword apiname">eglChooseConfig()</span> and specify an <span class="keyword const">EGL_CONFIG_ID</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            Specifying an EGL configuration by its ID (<span class="keyword const">EGL_CONFIG_ID</span>) gives you the ability
+                            to get exactly what you want. However, this approach is far from being user-friendly when there
+                            are multiple platforms and windowing systems to consider.
+                        </p>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Use <span class="keyword apiname">eglChooseConfig()</span> and specify an attribute list</dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            EGL's <span class="keyword apiname">eglChooseConfig()</span> function is probably the most complicated of all
+                            its functions. If multiple EGL framebuffer configurations that match all attributes
+                            you provided are found, then a list of these configurations is returned. This list is sorted
+                            according to the best match criteria as described by the <span class="keyword apiname">eglChooseConfig()</span>
+                            specification from Khronos.
+                        </p>
+
+                        <p class="p">
+                            There are many attributes that you can specify, each with its own matching rules,
+                            default value, and sorting order. It's easy to get confused with all the special rules,
+                            ending up with the wrong configuration, or no configuration, without understanding why.
+                        </p>
+
+                    </dd>
+
+                
+                
+                    <dt class="dt dlterm">Use <span class="keyword apiname">eglGetConfigs()</span></dt>
+
+                    <dd class="dd">
+                        <p class="p">
+                            EGL's <span class="keyword apiname">eglGetConfigs()</span> function can be used to get all the EGL configurations.
+                            Once you have all the EGL configurations, search for one that matches your render target's
+                            specified attributes.
+                        </p>
+
+                        <p class="p">
+                            You'll need to call <span class="keyword apiname">eglGetConfigs()</span> twice. The first time you call it,
+                            you'll get the total number of configurations returned. With this number, you'll know how
+                            much memory to allocate in order to store the configurations so that you can search through
+                            them to match for your render target's attributes. For example:
+                        </p>
+
+                        <pre class="pre codeblock">...
+EGLConfig *egl_configs;
+EGLint egl_num_configs;
+...
+eglGetConfigs(egl_disp, NULL, 0, &amp;egl_num_configs);
+egl_configs = malloc(egl_num_configs * sizeof(*egl_configs));
+eglGetConfigs(egl_disp, egl_configs, egl_num_configs, &amp;egl_num_configs);
+...
+                        </pre>
+                        <p class="p">
+                            Then, loop through each configuration returned from <span class="keyword apiname">eglGetConfigs()</span> and
+                            check for matching attributes. For example:
+                        </p>
+
+                        <pre class="pre codeblock">...
+struct {
+	EGLint surface_type;
+	EGLint red_size;
+	EGLint green_size;
+	EGLint blue_size;
+	EGLint alpha_size;
+	EGLint samples;
+	EGLint config_id;
+} egl_conf_attr;
+...
+EGLint val;
+EGLConfig egl_conf = (EGLConfig)0; /* Resulting EGL config */
+...
+/* Make sure the surface type matches that of your render target */
+eglGetConfigAttrib(egl_disp, egl_configs[i], EGL_SURFACE_TYPE, &amp;val);
+if ((val &amp; egl_conf_attr.surface_type) != egl_conf_attr.surface_type) {
+		continue;
+}
+
+/*  Make sure the renderable type has the OpenGL ES bit. */
+eglGetConfigAttrib(egl_disp, egl_configs[i], EGL_RENDERABLE_TYPE, &amp;val);
+if (!(val &amp; EGL_OPENGL_ES_BIT)) {
+		continue;
+}
+
+/*  Check each attribute you want for your render target. */
+...
+                        </pre>
+                        <p class="p">
+                            Once you've found an acceptable configuration for your render target, store it
+                            (<span class="ph codeph">egl_conf = egl_configs[i];</span>) and stop looking. Clean up any resources you
+                            created to support your search.
+                        </p>
+
+                    </dd>
+
+                
+            </dl>
+
+            <p class="p"><strong class="ph b">Create a rendering context</strong></p>
+
+            <div class="p">
+                
+                Now that you've established your EGL display and your configuration, you can call
+                <span class="keyword apiname">eglCreateContext()</span> to actually create the context. For example:
+                <pre class="pre codeblock">...
+EGLContext egl_ctx;
+...
+egl_ctx = eglCreateContext(egl_disp, egl_conf, EGL_NO_CONTEXT, NULL);
+...
+                </pre>
+            </div>
+
+            <p class="p"><strong class="ph b">Create EGL Surface</strong></p>
+
+            <p class="p">
+                
+                Use the render target that you've created (e.g., a native <span class="keyword">Screen</span> window)
+                to create an EGL surface. The EGL surface extends your native window with additional auxiliary
+                buffers if necessary. These auxiliary buffers may refer to color, depth,
+                or stencil. Use the same display and configuration for the EGL surface as you used to create your render
+                target.
+            </p>
+
+            <pre class="pre codeblock">...
+EGLSurface egl_surf;
+	struct {
+		EGLint render_buffer[2];
+		EGLint none;
+	}
+	
+	egl_surf_attr = {
+		.render_buffer = { EGL_RENDER_BUFFER, EGL_BACK_BUFFER }, /* Ask for double-buffering */
+		.none = EGL_NONE                                         /* End of list */
+	};
+...
+egl_surf = eglCreateWindowSurface(egl_disp, egl_conf, screen_win, (EGLint*)&amp;egl_surf_attr);
+            </pre>
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Make your rendering API calls</h2>
+            
+            <p class="p"><strong class="ph b">Bind your render target</strong></p>
+
+            <p class="p">
+                
+                Use <span class="keyword apiname">eglMakeCurrent()</span> to bind your render target and your read/draw surfaces to
+                the current thread.
+            </p>
+
+            <pre class="pre codeblock">eglMakeCurrent(egl_disp, egl_surf, egl_surf, egl_ctx);
+            </pre>
+            <p class="p">
+                The display and context are just those that you've established in your previous steps. The draw surface is
+                your EGL surface you've created by specifying your render target. It's used for all GL operations except
+                for any pixel data readbacks. GL operations that read pixels are taken from the framebuffer of your read
+                surface. The read and draw surfaces are typically one and the same.
+            </p>
+
+            <p class="p"><strong class="ph b">Render</strong></p>
+
+            <p class="p">
+                At this point, you can start rendering as part of your main application loop. 
+            </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Post your image</h2>
+            
+            <p class="p">
+                
+                Unlike software rendering, you use <span class="keyword apiname">eglSwapBuffers()</span> to post your new frame -- even if
+                you're not using multiple buffers. 
+            </p>
+
+            <pre class="pre codeblock">eglSwapBuffers(egl_disp, egl_surf);
+            </pre>
+            <p class="p">
+                Notice that unlike with software rendering, you don't have the option to specify dirty rectangles with
+                <span class="keyword apiname">eglSwapBuffers()</span> as you did with
+                <a class="xref" href="../screen_post_window.html" title="Make window content updates visible on the display"><span class="keyword apiname">screen_post_window()</span></a>,
+                or <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a>.
+                If your application needs to specify a region of dirty rectangles in its request for a buffer swap, there
+                is an EGL extension (<span class="keyword const">EXT_swap_buffers_with_damage</span>) that <span class="keyword">Screen</span>
+                supports. You'd use this extension to allow <span class="keyword">Screen</span> to optimize the
+                amount of compositing it needs to do when your application is animating only a small region of the
+                rendering surface.
+            </p>
+
+            <p class="p">
+                With hardware rendering, the time it takes to return from a swap buffer request depends on the GPU
+                architecture of your hardware. When the rendering starts and stops, and when the actual post occurs
+                all depend on the architecture of the GPU.
+            </p>
+
+        </div>
+
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering-hardware.html" title="Applications use the target hardware's GPU to perform rendering operations with Khronos rendering API calls, or use blitting with the native Screen API function calls.">Hardware Rendering</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Open control blocks" />
+<meta name="abstract" content="The open control block (OCB) contains active information about the open resource." />
+<meta name="description" content="The open control block (OCB) contains active information about the open resource." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_File_descriptor.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="OCBs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Open control blocks</title>
+</head>
+<body id="OCBs">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Open control blocks</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The open control block (OCB) contains active information about the open resource.
+</p>
+
+
+<p class="p">
+
+
+
+
+
+
+
+For example, the filesystem keeps the current seek point within the file here.
+Each <span class="keyword apiname">open()</span> creates a new OCB. Therefore, if a process
+opens the same file twice, any calls to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lseek.html"><span class="keyword apiname">lseek()</span></a>
+using one FD will not affect the seek point of the other FD.
+The same is true for different processes opening the same file.
+</p>
+
+
+<div class="p">
+The following diagram shows two processes, in which one
+opens the same file twice and the other opens it once
+(there are no shared FDs):
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Two processes open the same file.</span>
+  
+  <br /><img class="image" src="../images/tmpfile.svg" width="480" alt="Figure showing processes opening the same file" /><br />
+</div>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+FDs are a <em class="ph i">process</em> resource, not a thread resource.
+</div>
+
+
+<p class="p">
+Several file descriptors in one or more processes can refer
+to the same OCB. This is accomplished by two means:
+
+</p>
+
+
+<ul class="ul">
+<li class="li">A process may use the
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup2.html"><span class="keyword apiname">dup2()</span></a>,
+  or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>
+  functions to create a duplicate file descriptor that refers to the same OCB.
+  
+  
+  
+  
+</li>
+
+
+<li class="li"> When a new process is created via
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html"><span class="keyword apiname">posix_spawn()</span></a>, or
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn()</span></a>,
+  all open file descriptors are by default inherited by the new process;
+  these inherited descriptors refer to the same OCBs as the
+  corresponding file descriptors in the parent process.
+  
+</li>
+
+
+</ul>
+
+
+<p class="p">
+When several FDs refer to the same OCB, then any change in
+the state of the OCB is immediately seen by all processes
+that have file descriptors linked to the same OCB.
+</p>
+
+
+<p class="p">
+For example, if one process uses the <span class="keyword apiname">lseek()</span>
+function to change the position of the seek point, then
+reading or writing takes place from the new position no
+matter which linked file descriptor is used.
+
+</p>
+
+
+<div class="p">
+The following diagram shows two processes in which one opens
+a file twice, then does a <span class="keyword apiname">dup()</span> to get a third FD.
+The process then creates a child that inherits all open files:
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>A process opens a file twice.</span>
+  
+  <br /><img class="image" src="../images/dupfd.svg" width="480" alt="Figure showing a process using the dup() function" /><br />
+</div>
+
+</div>
+
+
+<p class="p">
+You can prevent a file descriptor from being inherited when
+you <span class="keyword apiname">posix_spawn()</span>, <span class="keyword apiname">spawn()</span>, or <span class="keyword apiname">exec*()</span>
+by calling the
+<span class="keyword apiname">fcntl()</span> function and setting the <span class="keyword const">FD_CLOEXEC</span> flag.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/proc_File_descriptor.html" title="Once an I/O resource has been opened, a different namespace comes into play. The open() returns an integer referred to as a file descriptor (FD), which is used to direct all further I/O requests to that resource manager.">File descriptor namespace</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html">The client view (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html">Inheriting file descriptors (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html">Pathname space mapping (QNX OS User's Guide)</a></li></ul></div>
+</div></body>
+</html>

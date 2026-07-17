@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Entities" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_HAMHIER.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ENTITIES" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Entities</title>
+</head>
+<body id="ENTITIES">
+
+<h1 class="title topictitle1" id="ariaid-title1">Entities</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+<em class="ph i">Entities</em> are the fundamental units of observation/monitoring in the system.
+Essentially, an entity is a process (<var class="keyword varname">pid</var>).
+As processes, all entities are uniquely identifiable by their <var class="keyword varname">pid</var>s.
+Associated with each entity is a symbolic name that can be used to refer to that specific entity.
+Again, the names associated with entities are unique across the system.
+Managers are currently associated with a node, so uniqueness rules apply to a node.
+As we'll see later, this uniqueness requirement is very similar to the naming scheme used in a hierarchical filesystem.
+
+
+</p>
+
+
+<p class="p">The basic entity types are:</p>
+
+<dl class="dl">
+
+<dt class="dt dlterm"><em class="ph i">Self-attached</em> entities</dt>
+
+
+<dd class="dd">
+These are processes that explicitly choose to be HA-aware.
+These processes use the
+<a class="xref" href="hamapi/ham_attach_self.html" title="Attach an application as a self-attached entity"><span class="keyword apiname">ham_attach_self()</span></a>
+and <a class="xref" href="hamapi/ham_detach_self.html" title="Detach a self-attached entity from the HAM"><span class="keyword apiname">ham_detach_self()</span></a>
+functions to connect to and disconnect from a HAM.
+Self-attached processes are compiled against the HAM API library,
+and the lifetime of the monitoring is from the time of the
+<span class="keyword apiname">ham_attach_self()</span> call
+to the time of the <span class="keyword apiname">ham_detach_self()</span> call.
+
+<p class="p">
+Self-attached entities can also choose to send heartbeats to a HAM,
+which will then monitor them for failure.
+Since arbitrary processes on the system aren't necessarily <q class="q">trackable</q>
+for failure (i.e., they're not in session 1, not child processes, etc.),
+you can use this heartbeat mechanism to monitor such processes.
+</p>
+
+
+<p class="p">
+Self-attached entities can, on their own, decide at exactly what point in their lifespan they want to be monitored,
+what conditions they want acted upon, and when they want to stop the monitoring.
+In other words, this is a situation where a process says,
+<q class="q">Do the following if I die.</q>
+
+
+
+</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">Externally attached</em> entities</dt>
+
+<dd class="dd">
+These are generic processes in the system that are being monitored.
+These could be arbitrary daemons or service providers whose health is deemed important.
+This method is useful for the case where Process A says,
+<q class="q">Tell me when Process B dies</q> but Process B needn't know about this at all.
+
+
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><em class="ph i">Global</em> entity</dt>
+
+<dd class="dd">
+A global entity is really just a placeholder for matching any entity.
+It can be used to associate actions that will be triggered when an
+interesting event is detected with respect to any entity on the system.
+The term global refers to the set of entities being monitored in the system.
+This permits one to say things like
+<q class="q">when any process dies or when any process misses a heartbeat, do the following</q>.
+The global entity is never added or removed, but is only referred to.
+Conditions can be added/removed to the global entity as usual,
+and actions added/removed from any of the conditions.
+
+
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+To get a handle for a global entity, call
+<a class="xref" href="hamapi/ham_entity_handle.html" title="Get a handle to an entity"><span class="keyword apiname">ham_entity_handle()</span></a>,
+passing <span class="keyword const">NULL</span> for the <var class="keyword varname">ename</var> argument.
+</div>
+
+</dd>
+
+
+</dl>
+
+
+<p class="p">
+
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/dumper.html"><span class="keyword cmdname">dumper</span></a>
+process is normally used to obtain core images of processes that terminate abnormally as a result of performing any illegal operations.
+A HAM receives notification of such terminations from <span class="keyword cmdname">dumper</span>.
+In addition, the HAM also receives notification, from the system, of the termination of any process.
+
+</p>
+
+
+<p class="p">
+
+If a process calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/daemon.html"><span class="keyword apiname">daemon()</span></a>,
+a new process is created and replaces the original one, becoming the session leader.
+If the HAM was monitoring the original process, it automatically switches to monitoring the new process instead.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_HAMHIER.html">HAM hierarchy</a></div>
+</div>
+</div></body>
+</html>

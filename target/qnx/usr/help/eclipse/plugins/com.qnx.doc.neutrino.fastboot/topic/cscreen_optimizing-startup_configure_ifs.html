@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Configure a primary and a secondary IFS on the System" />
+<meta name="abstract" content="To start up as soon as possible, we recommend that you include only the necessary files (libraries, configuration files, device drivers, binaries, etc.) in the primary IFS." />
+<meta name="description" content="To start up as soon as possible, we recommend that you include only the necessary files (libraries, configuration files, device drivers, binaries, etc.) in the primary IFS." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/example_primary_secondary_ifs.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_optimizing-startup_configure_ifs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Configure a primary and a secondary IFS on the System</title>
+</head>
+<body id="cscreen_optimizing-startup_configure_ifs">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Configure a primary and a secondary IFS on the System</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> To start up as soon as possible, we recommend that you include only the necessary
+        files (libraries, configuration files, device drivers, binaries, etc.) in the primary IFS. </p>
+
+        <div class="section">
+            
+            
+            <p class="p">In general, the fewer components that you have in your IFS, the faster your system
+                can boot. Hence, if there are files that aren't required in an IFS, consider putting
+                them in a filesystem that's mounted by the primary IFS. For example, if you have
+                files that aren't required for a splash screen application to run, but must be
+                loaded into RAM, you should put them into the secondary IFS. For more information
+                about creating an IFS, see the <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/os_images/images_about.html"><q class="q">OS Images</q></a> chapter in <cite class="cite">Building Embedded
+                    Systems</cite> and the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><q class="q">mkifs</q></a> entry in the <span class="keyword">QNX OS</span> 
+                <cite class="cite">Utilities Reference</cite> guide.</p>
+
+            <div class="p">Since the kernel, <span class="keyword">Screen</span>, and splash screen
+                application (if applicable) won't run until the IPL copies the primary IFS from
+                flash memory into RAM, the smaller you make the IFS, the faster the copy operation
+                is, and the sooner those components can begin to run. For information about the
+                IPL, see <a class="xref" href="fb_system_startup_architecture.html" title="The boot process consists of several tasks, each handled by a specialized component.">About the System Startup Sequence</a>.
+                <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Configure a primary and a secondary IFS on the system.</span>
+                    
+                    <br /><img class="image" src="../images/bootup_timeline_screen_areaone.svg" width="624" /><br />
+                </div>
+
+            </div>
+
+            <p class="p">Here's a general guideline of what to put into the primary and secondary IFSs to
+                optimize the boot time:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Primary IFS</dt>
+
+                    <dd class="dd">Include the kernel,
+                            <span class="keyword">Screen</span> service, and the splash screen
+                        application (if applicable), configuration files, and any other components
+                        that must be available (e.g. display drivers). For example, if your system
+                        requires networking or video from a camera, you'll need to include those
+                        binary files in your primary IFS. For general guidelines of what to include
+                        in the primary IFS, see <q class="q"><a class="xref" href="#cscreen_optimizing-startup_configure_ifs__guideline_minfiles_screen">Minimum files to load to run <span class="keyword">Screen</span></a></q> later in this chapter.</dd>
+
+                    <dd class="dd ddexpand">Keep the size of the primary IFS small. If you have a splash screen
+                        application, optimize it to use as few libraries, resources, and device
+                        drivers as possible. Since the required libraries are specific to how
+                        optimized your application is, see the <q class="q"><a class="xref" href="cscreen_optimizing-startup_optimize_screen_app.html" title="To display your content as quickly as possible, you can optimize your splash screen application, which is the program that shows the content on the display.">Optimize the splash screen application</a></q> chapter
+                        for more optimization techniques.</dd>
+
+                    <dd class="dd ddexpand"><div class="note"><span class="notetitle">Note:</span>  The binaries required for <span class="keyword">Screen</span> are
+                            listed in the sample buildfile of the Board Support Package (BSP).
+                            To find the BSP for your board, see <a class="xref" href="https://www.qnx.com/bsp_sectionnav.html" target="_blank">BSPs</a> from our <a class="xref" href="https://www.qnx.com/download/" target="_blank">download
+                                site</a>. </div>
+</dd>
+
+                
+                
+                    <dt class="dt dlterm">Secondary IFS</dt>
+
+                    <dd class="dd">Include the files
+                        (libraries, configuration files, other applications) for the components that
+                        run after <span class="keyword">Screen</span> and any applications you
+                        start in the primary IFS. For information about <span class="keyword">Screen</span>-related libraries that can be candidates to
+                        load in the secondary IFS, see the <q class="q"><a class="xref" href="example_primary_secondary_ifs.html#example_primary_secondary_ifs__screen_libraries_for_secondary_ifs">Board-specific Screen libraries that can be loaded later</a></q>
+                        section later in this chapter. </dd>
+
+                
+            </dl>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_ifs__guideline_minfiles_screen"><h2 class="title sectiontitle">Minimum files to load and to run <span class="keyword">Screen</span></h2>
+            
+            Though the time saved varies between hardware platforms and system requirements, we have
+            provided a guideline for the minimum set of files to include in your primary IFS. <div class="note"><span class="notetitle">Note:</span> 
+                It's not possible to indicate the exact names of the required files because the file
+                names vary between hardware platforms. For example, the memory allocator file is
+                based on a value in the <span class="ph filepath">graphics.conf</span> file. </div>
+
+        </div>
+
+        <div class="section">Below is the suggested minimum set of files (excluding any dependencies)
+            to include in the primary IFS to run <span class="keyword">Screen</span>: <ul class="ul">
+                <li class="li">the <span class="keyword">Screen</span> resource manager binary
+                        (<span class="ph filepath">screen</span>)</li>
+
+                <li class="li">the <span class="keyword">Screen API</span> (<span class="ph filepath">libscreen.so</span>)</li>
+
+                <li class="li">the memory manager used by <span class="keyword">Screen</span>
+                        (<span class="ph filepath">libscrmem.so</span> and <span class="ph filepath">libmemobj.so</span>)</li>
+
+                <li class="li">the <span class="keyword">Screen</span> configuration file
+                        (<span class="ph filepath">graphics.conf</span>)</li>
+
+                <li class="li">the memory buffer allocator for the hardware board
+                            (<span class="ph filepath">screen-<var class="keyword varname">&lt;name&gt;</var>.so</span> shared
+                    object, where <var class="keyword varname">name</var> is the name specified in the
+                        <span class="keyword option">alloc-config</span> property in the
+                        <span class="ph filepath">graphics.conf</span> file. Typically, <var class="keyword varname">name</var>
+                    includes the name of your hardware platform (e.g., imx6xbuf). For information
+                    about the file name, see the <q class="q"><a class="xref" href="#cscreen_optimizing-startup_configure_ifs__determine_screen_board_filename">Determine the name of the board-specific memory buffer file</a></q>
+                    section later in this chapter. </li>
+
+            </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Files for splash screen application</h2>
+            <p class="p">If you're running a splash screen application, then in addition to the files listed
+                above, include the following files (dependencies excluded) in the primary IFS:</p>
+
+            <ul class="ul">
+                <li class="li">the display driver library (<span class="ph filepath">libWFD.so</span>)</li>
+
+                <li class="li">the minimum board-specific libraries and display drivers. To understand how to
+                    determine the files to include, see the <q class="q"><a class="xref" href="#cscreen_optimizing-startup_configure_ifs__determine_minimum_libraries_board">Determine the board-specific libraries to include</a></q> section
+                    later in this chapter. If you have any custom drivers for your board, you should
+                    also include them in the primary IFS. </li>
+
+                <li class="li">the splash screen application binaries and any files and libraries that
+                    the application uses. For example, if you want to show content from a PNG image
+                    file, in addition to the application binaries, you should include:
+                    <ul class="ul">
+                        <li class="li">the codecs files for the image file (e.g.,
+                                <span class="ph filepath">img_codec_png.so</span>,
+                                <span class="ph filepath">libimg.so</span>) </li>
+
+                        <li class="li">the image file (e.g., <span class="ph filepath">splash_screen_application.png</span>
+                            file)</li>
+
+                        <li class="li"> any other configuration files required for your splash screen
+                            application (e.g., <span class="ph filepath">splash_screen_application.conf</span>)
+                                <div class="note"><span class="notetitle">Note:</span>  You could statically link the libraries required for your
+                                splash screen application to reduce the number of libraries to load
+                                into the IFS. </div>
+
+                        </li>
+
+                    </ul>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Determining dependencies</h2>
+            
+            <div class="p">You can run the <span class="keyword cmdname">objdump_variant</span> (e.g.,
+                <span class="keyword cmdname">ntoaarch64-objdump</span> or <span class="keyword cmdname">ntox86_64-objdump</span>)
+                utility on your host to determine any dependencies that the above list of files has.
+                For more information, see <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/o/objdump.html"><span class="keyword cmdname">objdump</span></a></q> in the <span class="keyword">QNX OS</span>
+                <cite class="cite">Utilities Reference</cite> guide. For example, you can use this command to
+                determine the list of dependencies:<pre class="pre codeblock">objdump -x | grep NEEDED</pre></div>
+
+                <p class="p">Alternatively, you can set the environment variable
+                    <span class="keyword envar">LD_DEBUG</span><span class="keyword option">=lib</span> to show the
+                    <span class="keyword">Screen</span> dependencies.</p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Statically linking libraries</h2>
+            
+            <p class="p"> For some libraries, you can choose to statically link them with your splash screen
+                application. For example, you could statically link the PNG library required to
+                decode your splash screen image. For more information on this technique, see <a class="xref" href="optimize_app_statically_linked_libraries.html" title="Shared libraries take time to load. When an application is linked to a shared object, the process loader first checks whether that shared object is already loaded.">Use statically linked libraries</a> section in the <a class="xref" href="cscreen_optimizing-startup_optimize_screen_app.html" title="To display your content as quickly as possible, you can optimize your splash screen application, which is the program that shows the content on the display.">Optimize the splash screen application</a> chapter. </p>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_ifs__determine_minimum_libraries_board"><h2 class="title sectiontitle">Determining the board-specific libraries to include</h2>
+            
+            <p class="p">To determine the libraries that are required for each hardware board, refer to your
+                default <span class="ph filepath">graphics.conf</span> file:</p>
+
+            <ul class="ul">
+                <li class="li"><strong class="ph b">EGL</strong> — The GPU-related files that are candidates to be loaded later
+                    (i.e., not necessarily required in the primary IFS, depending on your system
+                    requirements). </li>
+
+                <li class="li"><strong class="ph b">WFD</strong> — The display device drivers that
+                    <span class="keyword">Screen</span> requires.</li>
+
+            </ul>
+
+            <div class="note"><span class="notetitle">Note:</span>  These libraries are not required for systems that don't have a GPU, or don't
+                support displays. </div>
+
+        </div>
+
+        <div class="section" id="cscreen_optimizing-startup_configure_ifs__determine_screen_board_filename"><h2 class="title sectiontitle">Determining the name of the board-specific memory buffer file</h2>
+            
+            <div class="p">To determine the name of this file, find the <span class="keyword option">alloc-config</span> property
+                in <tt class="ph tt">winmgr</tt> section of the <span class="ph filepath">graphics.conf</span> file
+                and use this nomenclature:
+                <pre class="pre codeblock">"screen-" + &lt;<var class="keyword varname">value of alloc-config</var>&gt; + ".so"</pre></div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/example_primary_secondary_ifs.html">Example for the NXP i.MX6 SABRE for Smart Devices Platform board</a></strong><br />
+Say that you have a splash screen application that runs on a NXP i.MX6 SABRE for Smart Devices Platform (SABRE Smart)         board and the splash screen application is called <span class="ph uicontrol">splash screen_application</span>.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

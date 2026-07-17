@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Windows" />
+<meta name="abstract" content="Windows are, by default, recipients of multiple types of input events." />
+<meta name="description" content="Windows are, by default, recipients of multiple types of input events." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_input.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_input-windows" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Windows</title>
+</head>
+<body id="cscreen_input-windows">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Windows
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Windows are, by default, recipients of multiple types of input events.
+    </p>
+
+        <p class="p">
+            
+            In most cases, the size and position (and source size and source position) of pointer and touch events
+            determine where the focus of the input goes. That is, the window that surrounds the size and position
+            of the pointer or touch event is usually the one that receives the input event.
+            However, there are several things that can impact whether a window is the focus for input events:
+        </p>
+
+        <dl class="dl">
+            
+                <dt class="dt dlterm">a window's life cycle</dt>
+
+                <dd class="dd"> The window's life cycle affects focus. When windows are created and destroyed, they gain and lose sensitivity to input events. </dd>
+
+            
+            
+                <dt class="dt dlterm">a window's visibility</dt>
+
+                <dd class="dd">
+                    When something changes that affects the visibility of a window, it also impacts input focus. If a
+                    window goes from being visible to being invisible, it loses input focus.
+                </dd>
+
+            
+            
+                <dt class="dt dlterm">a window's z-order</dt>
+
+                <dd class="dd">
+                    A window's z-order determines whether the window gets input focus. Generally speaking, when there
+                    are two windows overlapping, the one that has the higher z-order (the one on top) gets
+                    input focus over the other window.
+                </dd>
+
+            
+        </dl>
+
+        <p class="p">
+            Setting a window's <span class="keyword const">SCREEN_PROPERTY_SENSITIVITY</span> property is a simple way to change the
+            behavior of how a window accepts input events. The window's <span class="keyword const">SCREEN_PROPERTY_SENSITIVITY</span>
+            can be set to a combination of
+            <a class="xref" href="../screen_8h_1Screen_Sensitivity_Masks.html" title="Types of sensitivity masks">Screen sensitivity masks</a>. If you're looking
+            for a more advanced way of directing input events within a window, you can use
+            <a class="xref" href="cscreen_input-sessions.html" title="Sessions are recipients of one specific type of input events.">sessions</a>.
+        </p>
+
+        <p class="p"> The input focus is tracked within each window group, not just on the display. The property
+            <span class="keyword const">SCREEN_PROPERTY_FOCUS</span> is used for this purpose. The display tracks the top-level
+            application window that's visible on the display that has input focus.
+            The group tracks the window within the group that has input focus.
+            For the window, <span class="keyword const">SCREEN_PROPERTY_FOCUS</span> is just an indicator to
+            state whether the window currently has input focus.  Window focus can be set manually using
+            <span class="keyword const">SCREEN_PROPERTY_FOCUS</span> on the display object itself. You must be operating in a
+            <span class="keyword const">SCREEN_DISPLAY_MANAGER_CONTEXT</span> to set/retrieve this property on the display.</p>
+
+
+        <div class="section"><h2 class="title sectiontitle">Idle state</h2>
+            
+            
+            <p class="p">
+                If there are no input events received by a group or a display within the period of time set by
+                <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span>, then the group or display may go into an idle state
+                (<span class="keyword const">SCREEN_PROPERTY_IDLE_STATE</span>). When in idle state, a display manager may choose to power
+                down the display to, say, conserve energy. 
+            </p>
+
+            <p class="p">
+                Your application can influence what the window wants to happen when the display goes idle by setting
+                its <span class="keyword const">SCREEN_PROPERTY_IDLE_MODE</span> property. The window can choose to either allow the
+                display to go idle, and potentially turn off, or request that the display continue to be
+                powered on even after the <span class="keyword const">SCREEN_PROPERTY_IDLE_TIMEOUT</span> has expired. A window may set
+                its idle mode to <span class="keyword const">SCREEN_IDLE_MODE_KEEP_AWAKE</span> if, for instance, it's performing
+                video playback. In this case, even though there's no input, the display needs to remain powered up to show
+                the video. Refer to <a class="xref" href="../screen_8h_1Screen_Idle_Mode_Types.html" title="Types of idle modes">Screen idle mode types</a>
+                for valid idle modes. The windows whose <span class="keyword const">SCREEN_PROPERTY_IDLE_MODE</span> are set to
+                <span class="keyword const">SCREEN_IDLE_MODE_KEEP_AWAKE</span> are tallied into the display's
+                <span class="keyword const">SCREEN_PROPERTY_KEEP_AWAKES</span> property.
+            </p>
+
+            <p class="p">
+                When a display manager is evaluating whether to power down the display, it takes into account the
+                display's <span class="keyword const">SCREEN_PROPERTY_KEEP_AWAKES</span> property. This property lets the display manager
+                know the number of windows (on that display) that requested that the display remain powered up. Although
+                windows can suggest what the display should do, it's ultimately the display manager that makes the
+                call on whether the display is powered up or down.
+            </p>
+
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_input.html" title="One key aspect of Screen that enables the development of fully interactive user experiences is the functionality to support input events and to deliver input and notifications back to applications.">Input</a></div>
+</div>
+</div></body>
+</html>

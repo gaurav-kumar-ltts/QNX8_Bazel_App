@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling devctl() messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_Sample_IO_DEVCTL.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_devctl" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling devctl() messages</title>
+</head>
+<body id="HANDLING_devctl">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">devctl()</span> messages</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+The <span class="keyword apiname">devctl()</span> function is a general-purpose mechanism for
+communicating with a resource manager. 
+Clients can send data to, receive data from, or both send and receive data from a resource manager.
+The prototype of the client <span class="keyword apiname">devctl()</span> call is:
+
+<pre class="pre codeblock">int devctl( int <var class="keyword varname">fd</var>,
+            int <var class="keyword varname">dcmd</var>, 
+            void * <var class="keyword varname">data</var>, 
+            size_t <var class="keyword varname">nbytes</var>, 
+            int * <var class="keyword varname">return_info</var> );
+</pre>
+</div>
+
+
+<div class="p">
+The following values (described in detail in the 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+documentation in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>)
+map directly to the <span class="keyword const">_IO_DEVCTL</span> message itself:
+
+
+<pre class="pre codeblock">struct _io_devctl {
+        uint16_t                  type;
+        uint16_t                  combine_len;
+        int32_t                   dcmd;
+        uint32_t                  nbytes;
+        int32_t                   zero;
+/*      char                      data[nbytes]; */
+};
+
+struct _io_devctl_reply {
+        uint32_t                  zero;
+        int32_t                   ret_val;
+        uint32_t                  nbytes;
+        int32_t                   zero2;
+/*      char                      data[nbytes]; */
+    } ;
+
+typedef union {
+        struct _io_devctl         i;
+        struct _io_devctl_reply   o;
+} io_devctl_t;
+</pre>
+</div>
+
+
+<div class="p">
+As with most resource manager messages, 
+we've defined a <span class="keyword dtype">union</span> that contains the input structure (coming into the resource manager),
+and a reply or output structure (going back to the client).  
+The <var class="keyword varname">io_devctl</var> resource manager handler is prototyped with the argument:
+
+<pre class="pre codeblock">io_devctl_t *<var class="keyword varname">msg</var>
+</pre>
+
+which is the pointer to the union containing the message.
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">type</var> member has the value <span class="keyword const">_IO_DEVCTL</span>. 
+
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">combine_len</var> field has meaning for a combine message; see the 
+<a class="xref" href="combine.html" title="To conserve bandwidth and to support atomic operations, combine messages are supported. A combine message is constructed by the client's C library and consists of multiple I/O and/or connect messages packaged together into one.">Combine Messages</a>
+chapter.
+</p>
+
+
+<p class="p">
+The <var class="keyword varname">nbytes</var> value should not be used to determine the length of the message 
+because the value is unreliable. 
+Use the methods described in the 
+<a class="xref" href="../../com.qnx.doc.security.system/topic/manual/message_checking.html">
+Message Checking</a> section instead.
+</p>
+
+
+<div class="p">
+The most interesting item of the input structure is the <var class="keyword varname">dcmd</var> argument
+that's passed to the <span class="keyword apiname">devctl()</span> function. 
+This command is formed using the macros defined in <span class="ph filepath">&lt;devctl.h&gt;</span>:
+
+<pre class="pre codeblock">#define _POSIX_DEVDIR_NONE        0
+#define _POSIX_DEVDIR_TO          0x80000000
+#define _POSIX_DEVDIR_FROM        0x40000000
+#define __DIOF(class, cmd, data)  ((sizeof(data)&lt;&lt;16) + ((class)&lt;&lt;8) + (cmd) + _POSIX_DEVDIR_FROM)
+#define __DIOT(class, cmd, data)  ((sizeof(data)&lt;&lt;16) + ((class)&lt;&lt;8) + (cmd) + _POSIX_DEVDIR_TO)
+#define __DIOTF(class, cmd, data) ((sizeof(data)&lt;&lt;16) + ((class)&lt;&lt;8) + (cmd) + _POSIX_DEVDIR_TOFROM)
+#define __DION(class, cmd)        (((class)&lt;&lt;8) + (cmd) + _POSIX_DEVDIR_NONE)
+</pre>
+</div>
+
+
+<p class="p">
+It's important to understand how these macros pack data to create a command.  
+An 8-bit class (defined in <span class="ph filepath">&lt;devctl.h&gt;</span>) 
+is combined with an 8-bit subtype that's manager-specific, 
+and put together in the lower 16 bits of the integer.
+</p>
+
+
+<p class="p">
+The upper 16 bits contain the direction (TO, FROM) as well as a hint about the size of the data structure being passed. 
+This size is only a hint put in to uniquely identify messages that may use the same class and code but
+pass different data structures. 
+</p>
+
+
+<div class="p">
+In the following example, 
+a command is generated to indicate that the client is sending data to the server (TO),
+but not receiving anything in return.  
+The only bits that the library or the resource manager layer look at are the
+TO and FROM bits to determine which arguments are to be passed to <span class="keyword apiname">MsgSend()</span>.
+
+<pre class="pre codeblock">struct _my_devctl_msg {
+    ...
+}
+
+#define MYDCMD  __DIOT(_DCMD_MISC, 0x54, struct _my_devctl_msg) 
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The size of the structure that's passed as the last
+field to the <span class="keyword apiname">__DIO*</span> macros <strong class="ph b">must</strong> be less than
+2<sup class="ph sup">14</sup> == 16 KB.
+Anything larger than this interferes with the upper two directional bits.
+</div>
+
+
+<p class="p">
+The data directly follows this message structure, 
+as indicated by the <span class="ph codeph">/* char data[nbytes] */</span> comment in the <span class="keyword dtype">_io_devctl</span> structure.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/messages_Sample_IO_DEVCTL.html">Sample code for handling _IO_DEVCTL messages</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

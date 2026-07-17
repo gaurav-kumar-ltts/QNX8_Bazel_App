@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Security Features Overview" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="security_features" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Security Features Overview</title>
+</head>
+<body id="security_features">
+
+
+	<h1 class="title topictitle1" id="ariaid-title1">Security Features Overview</h1>
+
+	
+	<div class="body conbody">	
+			<p class="p">In today's computing environment, security plays a critical role in keeping systems protected against rogue actors. Security needs to be considered at all stages of system design instead of being bolted on at later stages. <span class="keyword">QNX OS</span>'s design and dedicated security features allow it to defend and protect itself against a wide variety of attacks. This guide provides an overview of the security features and where they are applicable to security problems faced by systems. This information will allow system designers and software developers to factor in the security elements of their designs at the appropriate stage.</p>
+
+			<div class="section"><h2 class="title sectiontitle">Process protection</h2>
+			
+			
+			
+			<h3 class="title sectiontitle">Stack protection</h3>
+			
+			
+			<p class="p"><span class="keyword">QNX OS</span> supports stack cookies and all stacks are
+				non-executable by default. Stack canaries are enabled in prebuilt <span class="keyword">QNX OS</span> applications and shared libraries. Stack canaries are
+				checked before function return to make sure they have not been modified (e.g., as a
+				result of a buffer overflow on stack allocated variables). Any modification to the
+				stack canary on the stack will result in process abort.</p>
+
+			<p class="p">For the compiler options that enable stack cookies, see <q class="q"><a class="xref" href="stack_protection.html" title="Stack cookies provide protection against stack buffer overflow on stack-allocated variables, which prevents program misbehaviours.">Stack protection</a></q> in <q class="q">Security
+					features for developers</q>.</p>
+
+			<h3 class="title sectiontitle">Heap protection</h3>
+			
+			
+			<p class="p">By default, allocations on the heap are marked non-executable.</p>
+
+			<p class="p">The default heap allocation algorithm uses cookies for inline heap allocation data to
+				detect heap corruption. </p>
+
+			<h3 class="title sectiontitle">Process manager abilities</h3>
+			
+			
+			<p class="p">Process manager abilities avoid the danger of having all-powerful
+					<span class="ph filepath">root</span> processes. Instead of granting permissions based
+				whether a process has a user ID of 0 or not, the process manager grants permissions
+				based on the abilities assigned to a process. Each ability can be independently
+				granted or denied.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="process_manager_abilities.html" title="Within the kernel and process manager, control over a process's ability to perform many actions is governed not by the user ID (UID) of the process, but by a set of approximately 70 permissions called process manager (procmgr) abilities.">Process manager abilities</a></q> in
+					<q class="q">Security features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Fortified system functions</h3>
+			
+			
+			
+			<p class="p">The C library for <span class="keyword">QNX OS</span> provides fortified versions of
+				various system functions that check their arguments at compile time, runtime, or
+				both for conditions such as:</p>
+
+			<div class="p">
+				<ul class="ul" id="security_features__ul_tbx_pvr_xkb">
+					<li class="li">potential overflow of a destination buffer (if the compiler is able to
+						determine the size of the destination buffer)</li>
+
+					<li class="li">missing or extra arguments to functions that accept a variable number of
+						arguments</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">If one of these conditions is detected at compile time, the compiler reports an
+				error. If the condition is detected at runtime, the affected process outputs
+				diagnostic information and then aborts to mitigate potential harm. The runtime
+				checks are designed to have a negligible impact on performance so that fortified
+				system functions can be used in both development and production environments.</p>
+
+			<p class="p">The use of fortified system functions is enabled via the
+					<span class="keyword const">_FORTIFY_SOURCE</span> feature test macro you set using the
+					<tt class="ph tt">-D_FORTIFY_SOURCE=[1|2]</tt> compiler option. For instructions on building
+				components to use fortified system functions, see <q class="q"><a class="xref" href="dev_fortified_functions.html" title="QNX OS fortified system functions are designed to detect out-of-bounds memory accesses by performing lightweight parameter validation at compile-time, runtime, or both.">Fortified system functions</a></q> in <q class="q">Security features for
+					developers</q>. For instructions for determining whether or not a component has
+				been built to use fortified system functions, see <q class="q"><a class="xref" href="integrator_fortified_functions.html" title="QNX OS fortified system functions are designed to detect out-of-bounds memory accesses by performing lightweight parameter validation at compile-time, runtime, or both.">Fortified system functions</a></q> in <q class="q">Security features for
+					system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Executable or writable and executable mappings</h3>
+			
+			
+			
+			<p class="p">A process can deny itself the ability to create further executable, or writable and
+				executable, mappings by dropping abilities after startup. This behavior can limit
+				the potential for an attacker to exploit a process by injecting executable code into
+				it.</p>
+
+			<p class="p">For more information, see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a> in the
+					<cite class="cite">C Library Reference</cite>.</p>
+
+			<h3 class="title sectiontitle">Process resource limits (POSIX rlimits)</h3>
+			
+			
+			
+			
+			<p class="p">One approach to reduce the impact of system-wide Denial of Service (DoS) attacks is
+				by using resource limits. <span class="keyword">QNX OS</span> supports setting limits
+				on CPU use, memory use, open connections, and other system resources.</p>
+
+			<p class="p">For more information, see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/prlimit.html"><span class="keyword apiname">prlimit()</span></a> in the <cite class="cite">C Library
+					Reference</cite>.</p>
+
+			<h3 class="title sectiontitle">RELRO (Relocation Read-Only)</h3>
+			
+			
+			
+			<p class="p">If you enable Relocation Read-Only (RELRO) when you compile a program, the compiler
+				can mark the relocation sections of an executable as read-only after the dynamic
+				loader has finished loading and linking an executable.</p>
+
+			<p class="p">For information on the compiler options that enable full or partial RELRO, see
+						<q class="q"><a class="xref" href="developer_relro.html">RELRO</a></q> in <q class="q">Security features for
+					developers</q>.</p>
+
+			<h3 class="title sectiontitle">Pathtrust</h3>
+			
+			
+			
+			<p class="p"><span class="keyword">QNX OS</span> can restrict the code executed by a privileged
+				process using a mechanism called pathtrust. In the event that a privileged process
+				is compromised, an attacker cannot further compromise the system by redirecting
+				execution to the attacker’s code that is persisted somewhere on the system.
+				Pathtrust uses QNX Trusted Disk and abilities for enforcement.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="pathtrust.html" title="The pathtrust feature prevents processes from executing untrusted code. If a process is compromised, pathtrust mitigates the threat of the system being further compromised by an attacker using chained-together exploits.">Pathtrust</a></q>.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">System protection</h2>
+			
+			
+			
+			<h3 class="title sectiontitle">Secure boot</h3>
+			
+			
+			<p class="p">Secure boot from a root of trust is supported. Secure boot relies on support by the
+				SoC being used.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="secure_boot.html" title="Secure boot is a mechanism that ensures the integrity of the running system, by cryptographically verifying each stage of the boot process.">Secure boot</a></q> in <q class="q">Security
+					features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Address space layout randomization</h3>
+			
+			
+			
+			<p class="p">Address space layout randomization varies the location of data and instructions each
+				time an executable is loaded. This decreases the likelihood that attackers will be
+				able to develop working exploits to any vulnerabilities found.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="developer_aslr.html" title="Address space layout randomization varies the location of data and instructions each time an executable is loaded.">Address space layout randomization (ASLR)</a></q> in <q class="q">Security
+					features for developers</q> and <q class="q"><a class="xref" href="aslr.html" title="Address space layout randomization varies the location of data and instructions each time an executable is loaded as long as it was compiled with Position-Independent Executable (PIE) support.">Address space layout randomization (ASLR)</a></q> in <q class="q">Security
+					features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Access control</h3>
+			
+			
+			
+			
+			<p class="p">The POSIX permissions model as well as access control lists (ACLs) are supported.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="access_control.html" title="Access control is the selective restriction of access to a resource. Access controls take many different forms and the sections below describe which ones can be used in QNX OS systems.">Access control</a></q> in <q class="q">Security
+					features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Security policies</h3>
+			
+			
+			
+			<p class="p">Security policies allow centralized control of process privileges and avoid the need
+				to make difficult security decisions in the processes themselves.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="integrator_security_policies.html" title="Security policies provide a central way to control the privileges that processes have, which simplifies an audit of a system’s security.">Security policies</a></q> in
+					<q class="q">Security features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">QNX Trusted Disk (QTD)</h3>
+			
+			
+			
+			
+			<p class="p">The QNX Trusted Disk (QTD) device provides integrity protection of read-only
+				filesystems and can extend secure boot to system-level filesystems. It can also
+				serve as an integrity-protected container.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="filesystem_security.html">Filesystem security</a></q> in
+					<q class="q">Security features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">File-based encryption</h3>
+			<p class="p">The Power-Safe filesystem (<span class="ph filepath">fs-qnx6.so</span>) provides file-based
+				encryption support.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="filesystem_security.html">Filesystem security</a></q> in
+					<q class="q">Security features for system integrators</q>.</p>
+
+			<h3 class="title sectiontitle">Cryptography support</h3>
+			
+			
+			<p class="p"><span class="keyword">QNX OS</span> supports multiple ways to access cryptography
+				services. It provides its own flexible cryptography framework that allows customers
+				to choose which cryptography provider responds to requests on a per-process basis.
+				In also ships with the popular OpenSSL library and a driver that interacts with the
+				legacy <span class="ph filepath">/dev/crypto</span> system device.</p>
+
+			<p class="p">For information on choosing the cryptography resource for a process, see <q class="q"><a class="xref" href="crypto_developers.html" title="QNX OS offers developers many alternatives for cryptography functions.">Cryptography for developers</a></q>. For information on system cryptography
+				resources, see <q class="q"><a class="xref" href="crypto_integrators.html" title="QNX OS supports multiple ways to access cryptography services.">Cryptography for system integrators</a></q>. </p>
+
+			<h3 class="title sectiontitle">Random number generator</h3>
+			
+			
+			<p class="p">The configurable <span class="keyword cmdname">random</span> driver services the
+					<span class="ph filepath">/dev/random</span> and <span class="ph filepath">/dev/urandom</span> system
+				interfaces.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="random.html">Random number generation</a></q> in <q class="q">Security features
+					for system integrators</q>. </p>
+
+			<h3 class="title sectiontitle">Authentication</h3>
+			
+			
+			<p class="p">Pluggable Authentication Module (OpenPAM) is available for authentication-related
+				system functions.</p>
+
+			<p class="p">For more information, see <q class="q"><a class="xref" href="authctrl.html">Systems without passwords</a></q> in <q class="q">Security features
+					for system integrators</q> and <q class="q"><a class="xref" href="pam.html" title="Systems that need authentication can use pluggable authentication module (PAM), a configurable standard library.">PAM</a></q>. </p>
+
+			<h3 class="title sectiontitle">Driver isolation</h3>
+			
+			
+			<p class="p"><span class="keyword">QNX OS</span> runs filesystems, networking, and other system
+				services as userspace processes. All protections listed above in <q class="q">Process
+					Protections</q> can be applied to system services running as userspace processes
+				to limit the impact of a vulnerability in the system service.</p>
+
+			<h3 class="title sectiontitle">Hardware memory isolation</h3>
+			
+			
+			
+			
+			
+			<p class="p">IOMMUs that restrict hardware access to system memory are supported. Configuration of
+				the memory management hardware is controlled by SMMUMAN. </p>
+
+			<h3 class="title sectiontitle">Additional features and more information</h3>
+			<p class="p">Some features, or specific aspects of the available features, are of particular
+				interest to software developers working on <span class="keyword">QNX OS</span>
+				projects, or to system integrators and system security specialists.</p>
+
+			<p class="p">See <q class="q"><a class="xref" href="security_developers.html">Security for developers</a></q> and
+						<q class="q"><a class="xref" href="security_integrators.html">Security for system
+						integrators</a></q>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

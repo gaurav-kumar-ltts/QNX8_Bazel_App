@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ham_condition()" />
+<meta name="abstract" content="Set up a condition that triggers when a certain event occurs" />
+<meta name="description" content="Set up a condition that triggers when a certain event occurs" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/hamapi_funcs.html" />
+<meta name="DC.relation" scheme="URI" content="ham_attach.html" />
+<meta name="DC.relation" scheme="URI" content="ham_attach_self.html" />
+<meta name="DC.relation" scheme="URI" content="ham_condition_remove.html" />
+<meta name="DC.relation" scheme="URI" content="ham_connect.html" />
+<meta name="DC.relation" scheme="URI" content="ham_entity_handle.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ham_condition" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ham_condition()</title>
+</head>
+<body id="ham_condition">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ham_condition()</span></h1>
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Set up a condition that triggers when a certain event occurs</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre">
+#include &lt;ha/ham.h&gt;
+
+ham_condition_t *ham_condition(
+                ham_entity_t *<var class="keyword varname">ehdl</var>,
+                int <var class="keyword varname">type</var>,
+                const char *<var class="keyword varname">cname</var>,
+                unsigned <var class="keyword varname">flags</var>);
+</pre>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+    
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><var class="keyword varname">ehdl</var></dt>
+
+            <dd class="dd">The HAM entity handle.</dd>
+
+        
+        
+            <dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+            <dd class="dd">
+                The <var class="keyword varname">type</var> parameter indicates the
+                situations of the condition and entity. See below.
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><var class="keyword varname">cname</var></dt>
+
+            <dd class="dd">The name of the condition.</dd>
+
+        
+        
+            <dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+            <dd class="dd">The flags indicating how the condition should be performed. See below.</dd>
+
+        
+    </dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+    
+    <p class="p"><span class="ph filepath">libham</span></p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+    
+    <p class="p">
+        You call this function to set up a condition that will be
+        triggered when a significant event occurs.
+        
+        
+    </p>
+
+    <div class="note"><span class="notetitle">Note:</span> 
+        You must call the <span class="keyword apiname">ham_connect()</span> function <em class="ph i">before</em> the first call to
+        <a class="xref" href="ham_condition.html" title="Set up a condition that triggers when a certain event occurs"><span class="keyword apiname">ham_condition()</span></a> in a process.
+    </div>
+
+    <p class="p">
+        Each entity can be associated with several different conditions,
+        and associated with each of these conditions is a set of actions
+        that will be performed in FIFO sequence when the condition is true.
+        If an entity has multiple conditions that are true simultaneously,
+        with different sets of actions associated with each condition,
+        then all the actions associated with each condition are performed, in sequence.
+    </p>
+
+    <p class="p">
+        This mechanism lets you combine actions together into sets and choose to
+        remove or control them as a single <q class="q">group</q> instead of as individual items.
+        
+    </p>
+
+    <p class="p">The <var class="keyword varname">ehdl</var> argument is an entity handle obtained either:</p>
+
+    <ul class="ul">
+        <li class="li">
+            from a <span class="keyword apiname">ham_attach*()</span> call or a <span class="keyword apiname">ham_entity*()</span> call
+            <p class="p">or:</p>
+
+        </li>
+
+        <li class="li">
+            by calling <span class="keyword apiname">ham_entity_handle*()</span> with an existing entity name.
+            Since conditions are associated with entities, the entity handle
+            (<var class="keyword varname">ehdl</var>) must be available before you can add conditions.
+        </li>
+
+    </ul>
+
+    <p class="p">
+        Since conditions are associated with entities, the entity handle
+        (<var class="keyword varname">ehdl</var>) must be available before you can add conditions.
+    </p>
+
+    <p class="p">
+        You can specify any of the following for <var class="keyword varname">type</var>:
+        
+    </p>
+
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDABNORMALDEATH</span></dt>
+
+            <dd class="dd">
+                The entity has died an abnormal death.
+                This condition is triggered whenever an entity dies by a
+                mechanism that results in the generation of a core file (see
+                <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/dumper.html"><span class="keyword cmdname">dumper</span></a>
+                in the <cite class="cite">Utilities Reference</cite> for details).
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDANY</span></dt>
+
+            <dd class="dd">
+                This condition type matches any condition type.
+                It can be used to associate the same actions with one of many conditions.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDATTACH</span></dt>
+
+            <dd class="dd">
+                An entity for which a placeholder was previously created (someone has
+                subscribed to events relating to this entity), has joined the system.
+                This is also the start of the monitoring of the entity by a HAM.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDDEATH</span></dt>
+
+            <dd class="dd">
+                The entity died.
+                <p class="p">
+                    An entity's death is detected for all processes in session 1,
+                    for processes that terminate abnormally (typically due to the delivery of a signal),
+                    and for processes that are attached as self-attached entities.
+                </p>
+
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDDETACH</span></dt>
+
+            <dd class="dd">
+                The entity detached from the HAM.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDHBEATMISSEDLOW</span></dt>
+
+            <dd class="dd">
+                The entity missed a heartbeat specified as <q class="q">low</q> severity.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDHBEATMISSEDHIGH</span></dt>
+
+            <dd class="dd">
+                The entity missed a heartbeat specified as <q class="q">high</q> severity.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">CONDRESTART</span></dt>
+
+            <dd class="dd">
+                The entity was restarted.
+                
+            </dd>
+
+        
+    </dl>
+
+    <p class="p">
+        The <var class="keyword varname">cname</var> argument is the condition name.
+        It must be unique across all conditions in the given entity.
+    </p>
+
+    <p class="p">
+        When a condition is triggered, all actions defined
+        in all conditions of the given type are executed.
+        When an entity dies, a condition of type <span class="keyword const">CONDDEATH</span> is triggered,
+        and all actions in all conditions that match this type are executed.
+    </p>
+
+    <p class="p">Currently the following flags are defined:</p>
+
+    <dl class="dl">
+        
+            <dt class="dt dlterm"><span class="keyword const">HCONDINDEPENDENT</span></dt>
+
+            <dd class="dd">
+                Indicates that the actions associated with this
+                condition are to be performed in a separate thread.
+                When a condition is triggered, the actions within it are performed in FIFO order.
+                For multiple conditions that are simultaneously triggered,
+                the conditions are serviced in an arbitrary order.
+                By setting this flag, you're marking the condition as
+                <em class="ph i">independent</em> — all actions associated with it are executed in a separate thread,
+                independent of actions in other conditions.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">HCONDNOWAIT</span></dt>
+
+            <dd class="dd">
+                Indicates that the condition can't contain any <q class="q">waitfor</q> actions.
+                Waitfor actions are normally slow and may contain significant delays.
+                This will delay the execution of subsequent actions in the list.
+                Specifying <span class="keyword const">HCONDNOWAIT</span> guarantees there
+                will be no delays once the condition is triggered.
+                
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">HREARMAFTERRESTART</span></dt>
+
+            <dd class="dd">Indicates that the condition is to be automatically
+                re-armed after the entity that it belongs to is restarted.
+            </dd>
+
+            <dd class="dd ddexpand">By default, this flag is <em class="ph i">disabled</em> for death conditions
+                (i.e., <span class="keyword const">CONDDEATH</span> and
+                <span class="keyword const">CONDABNORMALDEATH</span>) and such conditions
+                automatically get removed across restarts of the entity;
+                but this flag is <em class="ph i">enabled</em> for all other conditions.
+                <div class="note"><span class="notetitle">Note:</span> 
+                    If the entity that the condition belongs to gets removed,
+                    then this condition will also be removed,
+                    regardless of the state of this flag.
+                </div>
+
+                
+            </dd>
+
+        
+    </dl>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+    
+    <p class="p">
+        A valid handle to a condition in the given entity; otherwise,
+        <span class="keyword const">NULL</span> (<var class="keyword varname">errno</var> is set).
+    </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+    
+    <dl class="dl compact">
+        
+            <dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+            <dd class="dd">Couldn't connect to the HAM.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">EEXIST</span></dt>
+
+            <dd class="dd">The name provided for the condition already exists.</dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+            <dd class="dd">
+                The handle, type, or name given is invalid (e.g., it 
+                contains the <q class="q"><span class="ph codeph">/</span></q> character) or is NULL.
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">ENAMETOOLONG</span></dt>
+
+            <dd class="dd">
+                The name given (in <var class="keyword varname">aname</var>) is too long, (i.e., it exceeds
+                <span class="keyword const">_POSIX_PATH_MAX</span>, defined in <span class="ph filepath">&lt;limits.h&gt;</span>).
+                <div class="note"><span class="notetitle">Note:</span> 
+                    The <em class="ph i">combined name length</em> of an entity, condition,
+                    or action is also limited by <span class="keyword const">_POSIX_PATH_MAX</span>.
+                </div>
+
+            </dd>
+
+        
+        
+            <dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+            <dd class="dd">Not enough memory to create a new handle.</dd>
+
+        
+    </dl>
+
+    <p class="p">
+        In addition to the above errors, the HAM returns any
+        error it encounters while servicing this request.
+    </p>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+    
+    <p class="p"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+    
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+                <tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d15313e564">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d15313e566"> </th>
+</tr>
+
+            </thead>
+<tbody class="tbody">
+                <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e564 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e566 ">No</td>
+</tr>
+
+                <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e564 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e566 ">No</td>
+</tr>
+
+                <tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e564 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d15313e566 ">Yes</td>
+</tr>
+
+            </tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/hamapi_funcs.html">HAM API Reference</a></div>
+</div>
+
+<div class="linklist"><ul class="linklist">
+<li class="linklist"><a class="link" href="ham_attach.html" title="Attach an entity"><span class="keyword apiname">ham_attach()</span></a></li>
+<li class="linklist"><a class="link" href="ham_attach_self.html" title="Attach an application as a self-attached entity"><span class="keyword apiname">ham_attach_self()</span></a></li>
+<li class="linklist"><a class="link" href="ham_condition_remove.html" title="Remove a condition from an entity"><span class="keyword apiname">ham_condition_remove()</span></a></li>
+<li class="linklist"><a class="link" href="ham_connect.html" title="Connect to the HAM"><span class="keyword apiname">ham_connect()</span></a></li>
+<li class="linklist"><a class="link" href="ham_entity_handle.html" title="Get a handle to an entity"><span class="keyword apiname">ham_entity_handle()</span></a></li></ul></div>
+</div>
+
+</body>
+</html>

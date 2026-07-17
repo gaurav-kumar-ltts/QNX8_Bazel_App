@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="secpollaunch" />
+<meta name="abstract" content="Launch a process with different privileges" />
+<meta name="description" content="Launch a process with different privileges" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, Utilities Reference, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/utils-s.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="secpollaunch" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>secpollaunch</title>
+</head>
+<body id="secpollaunch">
+
+    <h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">secpollaunch</span></h1>
+
+    
+    
+    <div class="body refbody"><p class="shortdesc"><em class="ph i"> Launch a process with different privileges</em></p>
+
+        <div class="section"><h2 class="title sectiontitle">Runs on:</h2>
+            
+            <p class="p"><span class="keyword">QNX OS</span></p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Description:</h2>
+            
+            
+            
+            <p class="p">The <span class="keyword cmdname">secpollaunch</span> utility provides a secure way to allow a process
+                to launch processes with privileges that are different than its own. Like setting
+                the setuid or setgid permission bits for an executable,
+                    <span class="keyword cmdname">secpollaunch</span> allows a process to spawn a process with
+                additional privileges but can control more than just the user ID (UID) or group ID
+                (GID) of the spawned process.</p>
+<p class="p">Without <span class="keyword cmdname">secpollaunch</span>, if a
+                process needs to spawn another process with different security requirements, it
+                needs both its own privileges and those of the process it spawns. But if the new
+                process is spawned via <span class="keyword cmdname">secpollaunch</span> (either directly or
+                indirectly using a symbolic link), <span class="keyword cmdname">secpollaunch</span> determines which
+                process is spawned as well as its arguments, environment variables, and other
+                properties.</p>
+<p class="p">The <span class="keyword cmdname">secpollaunch</span> utility relies on a process
+                having one set of abilities when it runs as <span class="ph filepath">root</span> and a
+                different set when it runs as non-root. Having extra abilities in the
+                    <span class="ph filepath">root</span> set is not an issue because the process can't take
+                advantage of them when it runs as non-root (unless it has the abilities
+                    <span class="keyword const">PROCMGR_AID_SETUID</span> or <span class="keyword const">PROCMGR_AID_SPAWN_SETUID</span>
+                that include the range 0). When a process launches a process via
+                    <span class="keyword cmdname">secpollaunch</span>, <span class="keyword cmdname">secpollaunch</span> can access
+                these extra abilities and run them in a way that the calling process can't because
+                it is setuid <span class="ph filepath">root</span>. Because <span class="keyword cmdname">secpollaunch</span> only
+                runs what it is configured to run, it provides a safe way of allowing a process to
+                run things that require different privileges without allowing the process to make
+                use of those privileges in any other way. It is similar to just using setuid
+                    <span class="ph filepath">root</span> programs but is more flexible and more secure.
+                </p>
+<p class="p">To use <span class="keyword cmdname">secpollaunch</span>:</p>
+<div class="p">
+                <ul class="ul" id="secpollaunch__ul_jql_mwh_gmb">
+                    <li class="li"> The system must use security policies.</li>
+
+                    <li class="li">Any process that invokes <span class="keyword cmdname">secpollaunch</span> must be running
+                        with a non-root user ID and not have the ability to switch to
+                            <span class="ph filepath">root</span>.</li>
+
+                    <li class="li">The <span class="keyword cmdname">secpollaunch</span> binary must be setuid
+                            <span class="ph filepath">root</span>. </li>
+
+                </ul>
+
+            </div>
+
+            <h3 class="title sectiontitle">Setting up a system to use <span class="keyword cmdname">secpollaunch</span></h3><p class="p">For a
+                process to invoke <span class="keyword cmdname">secpollaunch</span>, a <span class="keyword cmdname">secpollaunch</span>
+                configuration file that corresponds to its security type is required. For security
+                reasons, the invoking process cannot provide <span class="keyword cmdname">secpollaunch</span> with
+                the configuration file's location. Instead, <span class="keyword cmdname">secpollaunch</span>
+                determines the path based on the security type of the process. The path is always in
+                the following
+                format:</p>
+<pre class="pre codeblock">/proc/boot/secpollaunch-<var class="keyword varname">type_name</var>.cfg</pre><p class="p">For
+                example, the following configuration file applies to a process with a security type
+                    <tt class="ph tt">proctype_t</tt>:</p>
+<div class="p">
+                <pre class="pre codeblock">/proc/boot/secpollaunch-proctype_t.cfg</pre>
+            </div>
+<p class="p">To make sure this file is protected appropriately, keep it in the IFS (which
+                ideally is protected by secure boot). However, if it cannot be in the IFS, the path
+                can be a symbolic link (including a process manager symlink) that points
+                elsewhere.</p>
+<p class="p">To keep <span class="keyword cmdname">secpollaunch</span> secure, processes cannot be
+                able to affect the configuration files. For example, they are not secure if you
+                mount a writable file system at <span class="ph filepath">/</span> or allow processes to attach
+                their channels to anything that includes
+                <span class="ph filepath">/proc/boot</span>.</p>
+<h3 class="title sectiontitle">Invoking secpollaunch</h3><p class="p">When you
+                invoke <span class="keyword cmdname">secpollaunch</span>, you specify the name of the command to run
+                and any arguments that are needed. The command name determines which section in the
+                configuration file contains any alternative arguments and any other configuration
+                such as environment variables.</p>
+<p class="p">Use one of the following methods to invoke a
+                program via <span class="keyword cmdname">secpollaunch</span>: </p>
+<ul class="ul" id="secpollaunch__ul_m5g_jp3_gmb">
+                <li class="li">Invoke <span class="keyword cmdname">secpollaunch</span> directly with the name of the command to
+                    execute as the first argument. For
+                    example:<pre class="pre codeblock">secpollaunch ping</pre></li>
+
+                <li class="li">Invoke <span class="keyword cmdname">secpollaunch</span> through a symbolic or hard link that ends
+                    with the name of the command to execute.<p class="p">For example, if the file
+                            <span class="ph filepath">/system/other_bin/ping</span> is a symbolic link to
+                            <span class="keyword cmdname">secpollaunch</span>:
+                    </p>
+<pre class="pre codeblock">/system/other_bin/ping www.qnx.com</pre></li>
+
+            </ul>
+In either case, <span class="keyword cmdname">secpollaunch</span> determines the name of the
+            configuration file based on the type of the invoker and then searches the configuration
+            file using <tt class="ph tt">ping</tt>. <h3 class="title sectiontitle">Configuration file format</h3> A
+                <span class="keyword cmdname">secpollaunch</span> configuration file uses a simple, line-based format.
+            Lines that contain only whitespace or whose first non-whitespace character is a pound
+            sign (#) are ignored.<p class="p">The following lines are an example of a configuration file: </p>
+
+            <pre class="pre codeblock"># Settings that are used for all commands
+[global]
+    keep_env = TERM HOME    
+[ping]
+    cmd = /system/other_bin/ping -c 1 %1
+    type  = ping_t
+[make_logs]
+    cmd = /system/other_bin/generate_logs -c %1 -w %2
+    creds = 10:20:keep
+    type  = log_gen_t
+    set_env = PATH=/proc/boot:/system/other_bin:/system/xbin
+    keep_env = LOGNAME
+    umask = 0
+    launch_if = path /dev/socket
+</pre>
+            <p class="p">Section headings are in square brackets. Settings in a <tt class="ph tt">[global]</tt> section
+                apply to any command, but can be overridden by values later in the file. All other
+                sections apply when <span class="keyword cmdname">secpollaunch</span> invokes the corresponding
+                command (i.e., the section name was the first command line argument when
+                    <span class="keyword cmdname">secpollaunch</span> was invoked or the name in the link that invoked
+                    <span class="keyword cmdname">secpollaunch</span> indirectly).</p>
+<p class="p">Sections can specify the
+                following options: </p>
+<dl class="dl">
+                
+                    <dt class="dt dlterm"><tt class="ph tt">cmd</tt></dt>
+
+                    <dd class="dd">A string that contains the command to execute. The first element of the
+                        string must be the absolute path of the program to execute. The remainder of
+                        the line is a space-separated list of arguments to pass to the program.
+                        These arguments can be wrapped in single or double quotes to allow for
+                        whitespace. </dd>
+
+                    <dd class="dd ddexpand">You can also use arguments specified by the invoking program instead of some
+                        or all of the arguments specified by <tt class="ph tt">cmd</tt>. Use the following
+                        arguments (all begin with a percentage sign (%)) to perform this
+                        substitution: <ul class="ul" id="secpollaunch__ul_wwf_dtj_gmb">
+                            <li class="li"><tt class="ph tt">%<var class="keyword varname">n</var></tt> — substitute the argument at the
+                                specified position (e.g., <tt class="ph tt">%4</tt> to substitute the fourth
+                                argument).</li>
+
+                            <li class="li"><tt class="ph tt">%<var class="keyword varname">n1</var>-<var class="keyword varname">n2</var></tt> — substitute
+                                arguments <var class="keyword varname">n1</var> through <var class="keyword varname">n2</var> (e.g.,
+                                    <tt class="ph tt">%1-3</tt> to substitute arguments one through three).</li>
+
+                            <li class="li"><tt class="ph tt">%<var class="keyword varname">n</var>-</tt> — substitute all arguments starting
+                                at <var class="keyword varname">n</var>.</li>
+
+                            <li class="li"><tt class="ph tt">%*</tt> — substitute all arguments.</li>
+
+                        </ul>
+ There is no default for this parameter.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">dir</tt></dt>
+
+                    <dd class="dd">The directory to launch the process in.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">type</tt></dt>
+
+                    <dd class="dd">The security type for the new process. By default, the type is
+                        unchanged.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">creds</tt></dt>
+
+                    <dd class="dd">A string that sets the UID, GID, and supplementary GIDs. The string uses one
+                        of the following formats:<ul class="ul" id="secpollaunch__ul_qzc_s5c_hmb">
+                            <li class="li"><tt class="ph tt"><var class="keyword varname">uid</var>:<var class="keyword varname">gid</var></tt></li>
+
+                            <li class="li"><tt class="ph tt"><var class="keyword varname">uid</var>:<var class="keyword varname">gid</var>:<var class="keyword varname">gid1</var>[,<var class="keyword varname">gid2</var>...]</tt></li>
+
+                        </ul>
+<p class="p">where <var class="keyword varname">uid</var> and <var class="keyword varname">gid</var>* are user
+                            and group IDs, names from <span class="ph filepath">/etc/passwd</span> and
+                                <span class="ph filepath">/etc/group</span>, or the string
+                            <tt class="ph tt">keep</tt>.</p>
+<p class="p">When <var class="keyword varname">uid</var> or
+                                <var class="keyword varname">gid</var> are <tt class="ph tt">keep</tt>, the UID or GID is
+                            unchanged from the parent. However, if <var class="keyword varname">gid</var> is
+                                <tt class="ph tt">keep</tt> and <var class="keyword varname">uid</var> is a name, the GID of the
+                            entry in <span class="ph filepath">/etc/passwd</span> is used. If
+                                <var class="keyword varname">gid1</var> is <tt class="ph tt">keep</tt>, the supplementary groups
+                            of the parent are used and can be added to.</p>
+<p class="p">Omitting
+                                <tt class="ph tt">creds</tt> is the same as specifying
+                            <tt class="ph tt">keep:keep:keep</tt>.</p>
+</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">keep_env</tt></dt>
+
+                    <dd class="dd">A space-delimited list of environment variables to preserve. By default, all
+                        environment variables are discarded. If you use this option multiple times,
+                        each instance adds to the set of environment variables.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">set_env</tt></dt>
+
+                    <dd class="dd">A space-delimited list of name-value pairs (format is
+                                <tt class="ph tt"><var class="keyword varname">name</var>=<var class="keyword varname">value</var></tt>) that
+                        define environment variables to set. Overrides any existing environment
+                        variable setting, including any set by a previous instance of
+                            <tt class="ph tt">set_env</tt>.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">umask</tt></dt>
+
+                    <dd class="dd">An octal string that defines the file mode creation mask to use. Default is
+                            <tt class="ph tt">022</tt>.</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">options</tt></dt>
+
+                    <dd class="dd">A space-separated list of one or more of the following options: <ul class="ul">
+                            <li class="li"><tt class="ph tt">noaslr</tt> — Disable address space layout randomization (ASLR)
+                                for the spawned process. By default, it is always enabled.</li>
+
+                            <li class="li"><tt class="ph tt">preswitch</tt> — Indicates that <span class="keyword cmdname">secpollaunch</span>
+                                should switch its own type, UID, and GID prior to spawning instead
+                                of having <span class="keyword apiname">posix_spawn()</span> perform the changes. This
+                                option is only needed to honor the setuid/setgid behavior when you
+                                invoke a setuid or setgid program.</li>
+
+                            <li class="li"><tt class="ph tt">debug</tt> — Output information that can be helpful for
+                                diagnosing problems.</li>
+
+                        </ul>
+</dd>
+
+                
+                
+                    <dt class="dt dlterm"><tt class="ph tt">launch_if</tt></dt>
+
+                    <dd class="dd">
+                        <p class="p"> When you specify this option, the main command is executed only when one
+                            or more criteria are satisfied. If you have more than one condition,
+                            they must all be met for the main command to be executed. There are two
+                            variants for this option: <tt class="ph tt">path</tt>, and <tt class="ph tt">cmd</tt> or
+                                <tt class="ph tt">qcmd</tt>. </p>
+
+                        <p class="p">Below is the syntax for each option:</p>
+
+                        <div class="p">
+                            <tt class="ph tt">path</tt> option: <pre class="pre codeblock">launch_if = [!] path <var class="keyword varname">pathname</var></pre>
+                            <tt class="ph tt">cmd</tt> or <tt class="ph tt">qcmd</tt> option:
+                            <pre class="pre codeblock">launch_if = [!] cmd|qcmd <var class="keyword varname">command</var> (<var class="keyword varname">args</var>)</pre></div>
+
+                        <p class="p"> The difference between using <tt class="ph tt">cmd</tt> and <tt class="ph tt">qcmd</tt>:
+                                <var class="keyword varname">qcmd</var> will redirect <var class="keyword varname">stdout</var> and
+                                <var class="keyword varname">stderr</var> to <span class="ph filepath">/dev/null</span>. </p>
+
+                        <div class="p"> Details for each of the options: <ul class="ul">
+                                <li class="li">
+                                    <tt class="ph tt">path</tt> — Checks the existence of
+                                        <var class="keyword varname">pathname</var>. If <var class="keyword varname">pathname</var>
+                                    doesn't exist, the main command is not executed. </li>
+
+                                <li class="li">
+                                    <tt class="ph tt">cmd</tt> or <tt class="ph tt">qcmd</tt> — Checks the return value of
+                                    executing <var class="keyword varname">command</var> with the given
+                                        <var class="keyword varname">args</var>. The rules for this command and its
+                                    arguments are the same as the rules for the main command. The
+                                    specified command is run as <span class="ph filepath">root</span>. If the
+                                    return status is non-zero, the main command is not executed. To
+                                    reduce potential security issues, <span class="keyword const">PATH</span> and
+                                        <span class="keyword const">LD_LIBRARY_PATH</span> variables are set to the
+                                    configuration values of <span class="keyword const">_CS_PATH</span> and
+                                        <span class="keyword const">_CS_LIBPATH</span>. <div class="note notice"><span class="noticetitle">Notice:</span>  Since the
+                                            <tt class="ph tt">cmd</tt> and <tt class="ph tt">qcmd</tt> commands are executed as
+                                            <span class="ph filepath">root</span>, arguments passed to
+                                            <span class="keyword cmdname">secpollaunch</span> for a <tt class="ph tt">launch_if</tt>
+                                        command must be used carefully to avoid potential security
+                                        issues.</div>
+</li>
+
+                            </ul>
+</div>
+
+                        <div class="p"> To invert the condition the main function depends on, add
+                                <span class="ph codeph">!</span> before the chosen test type. For example, if you
+                            wanted to ensure the main command didn't execute when
+                                <span class="ph filepath">/dev/socket</span> exists: <pre class="pre codeblock"> launch_if = ! path /dev/socket</pre>
+                            
+                            An example of inverting a <span class="keyword cmdname">qcmd</span> command to have the
+                            main command run if <span class="keyword cmdname">io-sock</span> is running:
+                            <pre class="pre codeblock"> launch_if = ! qcmd slay -p io-sock</pre></div>
+
+                    </dd>
+
+                
+            </dl>
+
+            <div class="note"><span class="notetitle">Note:</span> When you allow arguments to be substituted (especially when you use <tt class="ph tt">%*</tt>),
+                the caller is free to specify any argument, not just the ones that you want to
+                allow. To prevent the caller from performing unintended, potentially harmful
+                operations, you can configure <span class="keyword cmdname">secpollaunch</span> to use a shell script
+                (from a trusted partition) that performs additional argument validation when it
+                executes the command, instead of executing the command directly.</div>
+
+        </div>
+
+            <div class="section" id="secpollaunch__examples"><h2 class="title sectiontitle">Examples:</h2>
+      
+      <p class="p">The following configuration file section specifies the configuration for
+                    <span class="keyword cmdname">pidin</span> when it is invoked via <span class="keyword cmdname">secpollaunch</span>: </p>
+
+      <pre class="pre codeblock">[pidin]  
+        cmd = /system/other_bin/pidin %*
+        type = pidin_t
+</pre>
+                <p class="p">It allows any arguments that the invoking process specifies, without the invoking
+                process needing the privileges required to execute the commands. The privileges are
+                given to the spawned process by <span class="keyword cmdname">secpollaunch</span>. For example, to
+                show the environment of <span class="keyword cmdname">random</span>:</p>
+
+            <pre class="pre codeblock">secpollaunch pidin -p random env</pre>
+                <p class="p">However, using <tt class="ph tt">%*</tt> allows unrestricted access to <span class="keyword cmdname">pidin</span>
+                (other than restrictions applied by using the <tt class="ph tt">pidin_t</tt> type). The following
+                example sections also configure <span class="keyword cmdname">pidin</span>, but restrict the permitted
+                arguments:</p>
+
+            <pre class="pre codeblock">[pidin_state]
+   cmd = /system/other_bin/pidin -p %1
+   type = pidin_t
+[pidin_type]
+   cmd = /system/other_bin/pidin -p %1 -f _
+   type = pidin_t
+</pre>
+            <p class="p">With this configuration, when a process uses the following command to run
+                    <span class="keyword cmdname">pidin_state</span>, only the single argument—which has to be a
+                process ID or process name that <span class="keyword option">-p</span> takes—is substituted:</p>
+
+            <pre class="pre codeblock">secpollaunch pidin_state random</pre>
+            <p class="p">Similarly, when a process uses the following command to run
+                    <span class="keyword cmdname">pidin_type</span>, <span class="keyword cmdname">secpollaunch</span> gets the process
+                name from the invoking process and the value that <tt class="ph tt">-f</tt> takes from the
+                configuration file.</p>
+
+            <pre class="pre codeblock">secpollaunch pidin_type random</pre>
+            </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/utils-s.html">S</a></div>
+</div>
+</div></body>
+</html>

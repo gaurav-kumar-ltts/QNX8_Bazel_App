@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="mount utility" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_HANDLING_mount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mount_utility" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>mount utility</title>
+</head>
+<body id="mount_utility">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword cmdname">mount</span> utility</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+By covering the <span class="keyword apiname">mount()</span> library function and the operation in
+the resource manager, we've pretty well covered the <span class="keyword cmdname">mount</span> utility.
+</p>
+
+
+<p class="p">
+However, if you're writing a mount handler, there may be occasions when
+you want to do custom parsing of arguments and provide your own data structure to your server.
+This is why the <span class="keyword cmdname">mount</span> command will always first try to call out to a
+separate program named <span class="ph filepath">mount_</span><var class="keyword varname">XXX</var>, where
+<var class="keyword varname">XXX</var> is the type that you specified with the <span class="keyword option">-t</span> option 
+of <span class="keyword cmdname">mount</span>.
+To see just what would be called (in terms of options, etc.),
+you can use the <span class="keyword option">-v</span> option, which should provide you with the
+command line that would be <span class="keyword apiname">exec()</span>'ed.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+For the full list of <span class="keyword cmdname">mount</span> options, see the 
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a> entry 
+in the <span class="keyword">QNX OS</span> <cite class="cite">Utilities Reference</cite>.
+</div>
+
+
+<div class="p">
+
+In order to help with the argument parsing, there's a utility function,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mount_parse_generic_args.html"><span class="keyword apiname">mount_parse_generic_args()</span></a>,
+that you can call to process the common options.
+The function is defined in <span class="ph filepath">&lt;sys/mount.h&gt;</span> as:
+
+<pre class="pre codeblock">char *mount_parse_generic_args(char *options, int *flags);
+</pre>
+</div>
+
+
+<div class="p">
+This function parses the given <var class="keyword varname">options</var>, removes any options that it
+recognizes, and sets or clears the appropriate bits in <var class="keyword varname">flags</var>.
+It either returns a pointer to the modified version of <var class="keyword varname">options</var>
+containing any options that it didn't recognize, or returns <span class="keyword const">NULL</span>
+if it recognized all the options.
+You use <span class="keyword apiname">mount_parse_generic_args()</span> like this:
+
+<pre class="pre codeblock">while ((c = getopt(argv, argc, "o:"))) {
+   switch (c) {
+
+      case 'o':
+
+        if ((mysteryop = mount_parse_generic_args(optarg, &amp;flags))) {
+
+           /* You can do your own getsubopt-type processing here.
+              The common options are removed from mysteryop. */
+        }
+        break;
+    }
+}
+</pre>
+</div>
+
+
+<p class="p">
+For more information about the stripped options and the corresponding flags, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mount_parse_generic_args.html"><span class="keyword apiname">mount_parse_generic_args()</span></a>,
+in the <span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages_HANDLING_mount.html">Handling mount()</a></div>
+</div>
+</div></body>
+</html>

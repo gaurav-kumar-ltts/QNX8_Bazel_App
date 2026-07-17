@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Ability inheritance" />
+<meta name="abstract" content="By default, procmgr abilities aren't inherited when you create a new process by using exec*(), posix_spawn*(), or spawn*()." />
+<meta name="description" content="By default, procmgr abilities aren't inherited when you create a new process by using exec*(), posix_spawn*(), or spawn*()." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/process_Procmgr_abilities.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="process_Ability_inheritance" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Ability inheritance</title>
+</head>
+<body id="process_Ability_inheritance">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Ability inheritance</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+By default, procmgr abilities aren't inherited when you create a new process by using
+<span class="keyword apiname">exec*()</span>, <span class="keyword apiname">posix_spawn*()</span>, or <span class="keyword apiname">spawn*()</span>.
+</p>
+
+
+<div class="p">
+
+
+
+You can modify this setting by specifying the
+<span class="keyword const">PROCMGR_AOP_INHERIT_YES</span> flag for abilities that a child needs,
+or <span class="keyword const">PROCMGR_AOP_INHERIT_NO</span> for abilities that a child doesn't need.
+When children inherit abilities from their parent,
+make sure they change the inheritability of any abilities that <em class="ph i">their</em> children
+shouldn't receive.
+For example:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT // Non-root domain
+                  | PROCMGR_AOP_ALLOW // Allow the ability
+                  | PROCMGR_AOP_INHERIT_NO // Prevent inheritance
+                  | PROCMGR_AID_SPAWN_SETUID, // Specified ability
+                PROCMGR_AID_EOL // End of ability list.
+);
+</pre>
+</div>
+
+
+<p class="p">
+We recommend against making allowed abilities inheritable unless absolutely necessary.
+Not marking an allowed ability as inheritable allows the system to set it back
+to a safe default when executing a new process.
+Any abilities that have been explicitly locked, denied, or both that
+shouldn't be accessible to child processes should be marked as
+inheritable, to make sure that the locks and deny states persist.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Forking and spawning handle ability inheritance in different ways:
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">fork()</span> creates a nearly exact copy of the parent
+  process, including the current abilities,
+  even if an ability is marked using <span class="keyword const">PROCMGR_AOP_INHERIT_NO</span>.
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">exec*()</span>, <span class="keyword apiname">posix_spawn*()</span>, and
+  <span class="keyword apiname">spawn*()</span> honor the inheritance flags.
+  The child process inherits only those abilities that have been explicitly marked
+  using <span class="keyword const">PROCMGR_AOP_INHERIT_YES</span>.
+  
+  
+  
+</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+
+Here's a simple example of potentially insecure inheritance, due
+to the combination of <span class="keyword const">PROCMGR_AOP_ALLOW</span> and
+<span class="keyword const">PROCMGR_AOP_INHERIT_YES</span>.
+If you're required to do this in your program, make sure the child doesn't inherit
+any abilities that it doesn't really need:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT // Non-root domain
+                  | PROCMGR_AOP_ALLOW // Allow the ability
+                  | PROCMGR_AOP_INHERIT_YES // Inheritance
+                  | PROCMGR_AID_SPAWN_SETUID, // Specified ability
+                PROCMGR_AID_EOL // End of ability list.
+);
+</pre>
+</div>
+
+
+<div class="p">
+
+The following code is more secure because the child will inherit the
+denied setting for the ability, due to the combination of <span class="keyword const">PROCMGR_AOP_DENY</span> and
+<span class="keyword const">PROCMGR_AOP_INHERIT_YES</span>:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT // Non-root domain
+                  | PROCMGR_AOP_DENY // Deny the ability
+                  | PROCMGR_AOP_INHERIT_YES // Inheritance
+                  | PROCMGR_AID_SPAWN_SETUID, // Specified ability
+                PROCMGR_AID_EOL // End of ability list.
+);
+</pre>
+</div>
+
+
+<div class="p">
+
+Inheritance of a locked and allowed procmgr ability is almost always a
+vulnerability, unless that ability has been allowed in a more restricted
+fashion than it would normally be allowed on the system.
+The following code is an insecure example of locking and inheriting an
+allowed procmgr ability, due to the combination of
+<span class="keyword const">PROCMGR_AOP_ALLOW</span>, <span class="keyword const">PROCMGR_AOP_LOCK</span>, and
+<span class="keyword const">PROCMGR_AOP_INHERIT_YES</span>:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT // Non-root domain
+                  | PROCMGR_AOP_ALLOW // Allow the ability
+                  | PROCMGR_AOP_LOCK // Lock the ability
+                  | PROCMGR_AOP_INHERIT_YES // Inheritance
+                  | PROCMGR_AID_SPAWN_SETUID, // Specified ability
+                PROCMGR_AID_EOL // End of ability list.
+);
+</pre>
+</div>
+
+
+<div class="p">
+The following code is secure and encouraged because the child will
+inherit the denied setting for the ability and never be able to unlock it, due to the
+combination of <span class="keyword const">PROCMGR_AOP_DENY</span>, <span class="keyword const">PROCMGR_AOP_LOCK</span>,
+and <span class="keyword const">PROCMGR_AOP_INHERIT_YES</span>:
+
+<pre class="pre codeblock">procmgr_ability(0,
+                PROCMGR_ADN_NONROOT // Non-root domain
+                  | PROCMGR_AOP_DENY // Deny the ability
+                  | PROCMGR_AOP_LOCK // Lock the ability
+                  | PROCMGR_AOP_INHERIT_YES // Inheritance
+                  | PROCMGR_AID_SPAWN_SETUID, // Specified ability
+                PROCMGR_AID_EOL // End of ability list.
+);
+</pre>
+</div>
+
+
+<p class="p">
+You can use code like this to limit procmgr abilities that are normally
+allowed in the <span class="keyword const">PROCMGR_ADN_NONROOT</span> domain.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/process_Procmgr_abilities.html" title="The QNX OS supports procmgr abilities, process-manager settings that govern which operations a particular process is permitted to do.">Procmgr abilities</a></div>
+</div>
+</div></body>
+</html>

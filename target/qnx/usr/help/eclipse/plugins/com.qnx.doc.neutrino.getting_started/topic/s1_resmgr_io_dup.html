@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Duplicate a file descriptor I/O function handler" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_alphalist.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="io_dup" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Duplicate a file descriptor I/O function handler</title>
+</head>
+<body id="io_dup">
+
+   
+<h1 class="title topictitle1" id="ariaid-title1">Duplicate a file descriptor I/O function handler</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<div class="section"><h2 class="title sectiontitle">Prototype</h2>
+
+<pre class="pre codeblock">int (*<var class="keyword varname">dup</var>) ( resmgr_context_t *<var class="keyword varname">ctp</var>,
+             io_dup_t *<var class="keyword varname">msg</var>,
+             RESMGR_OCB_T *<var class="keyword varname">ocb</var> ) 
+</pre></div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+
+  I/O
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Default handler:</h2>
+  <span class="keyword const">NULL</span>—handled by base layer
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Helper functions:</h2>
+  none
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Client functions:</h2>
+
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup2.html"><span class="keyword apiname">dup2()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn*()</span></a>
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Messages:</h2>
+  <span class="keyword const">_IO_DUP</span>
+
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Data structure:</h2>
+
+
+
+
+
+
+
+<pre class="pre codeblock">struct _io_dup {
+  uint16_t             <var class="keyword varname">type</var>;
+  uint16_t             <var class="keyword varname">combine_len</var>;
+  struct _msg_info_hdr <var class="keyword varname">info</var>;
+  dupfd_handle_t       <var class="keyword varname">handle</var>;
+};
+
+typedef union {
+  struct _io_dup   <var class="keyword varname">i</var>;
+} io_dup_t;
+</pre></div>
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+ This is the <span class="keyword apiname">dup()</span> message handler. As with the close
+duplicate OCB I/O function handler, you won't likely handle this message yourself. Instead, the
+base-layer library handles it. 
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+The status via the helper macro <span class="keyword apiname">_RESMGR_STATUS()</span>.
+
+
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Referenced by:</h2>
+ <a class="xref" href="s1_resmgr_resmgr_io.html" title="The I/O table is very similar in spirit to the connect functions table shown above.">resmgr_io_funcs_t I/O table</a>
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Permission checking:</h2>
+<div class="p">The default functionality and permission checking is handled by the base layer (regardless of
+whether you use the default implementation). The base layer verifies one of the following conditions:<ul class="ul">
+<li class="li">the process requesting a <span class="keyword apiname">dup()</span> is the same as the process that opened the
+original file descriptor</li>
+
+<li class="li">The message has a valid <span class="keyword parmname">dupfd</span> handle (see <span class="keyword apiname">dupfd_register()</span>)</li>
+
+<li class="li">the client has the custom ability <tt class="ph tt">iofunc/dup</tt> (<span class="keyword const">IOFUNC_ABILITY_DUP</span>)
+(using <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_ability_check.html">
+<span class="keyword apiname">iofunc_ability_check()</span></a>)</li>
+
+</ul>
+There are no additional permission checks that need to be performed in a resource manager that
+implements this function.</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_alphalist.html" title="This section gives an alphabetical listing of the connect and I/O function entry points that you can fill in (the two tables passed to resmgr_attach()). Remember that if you simply call iofunc_func_init(), all these entries will be filled in with the appropriate defaults; you'd want to modify a particular entry only if you wish to handle that particular message. In the “Examples” section, below, you'll see some examples of the common functions.">Alphabetical listing of connect and I/O functions</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

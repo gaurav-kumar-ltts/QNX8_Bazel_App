@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Communication via native IPC" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Native_IPC" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Communication via native IPC</title>
+</head>
+<body id="Native_IPC">
+
+<h1 class="title topictitle1" id="ariaid-title1">Communication via native IPC</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+Once a resource manager has established its pathname
+prefix, it will receive messages whenever any client program
+tries to do an <span class="keyword apiname">open()</span>, <span class="keyword apiname">read()</span>,
+<span class="keyword apiname">write()</span>, etc. on that pathname. For example,
+after <span class="keyword cmdname">devc-ser*</span> has taken over the pathname
+<span class="ph filepath">/dev/ser1</span>, and a client program executes:
+
+<pre class="pre codeblock">fd = open ("/dev/ser1", O_RDONLY);
+</pre>
+
+the client's C library will construct an
+<span class="keyword const">_IO_CONNECT</span> message, which it then sends to the
+<span class="keyword cmdname">devc-ser*</span> resource manager via IPC.
+</div>
+
+
+<div class="p">
+Some time later, when the client program executes:
+
+<pre class="pre codeblock">read (fd, buf, BUFSIZ);
+</pre>
+
+the client's C library constructs an <span class="keyword const">_IO_READ</span>
+message, which is then sent to the resource manager.
+</div>
+
+
+<p class="p">
+A key point is that <em class="ph i">all</em> communications
+between the client program and the resource manager are
+done through <em class="ph i">native IPC messaging</em>.
+This allows for a number of unique features:
+
+
+</p>
+
+
+<ul class="ul">
+<li class="li">A well-defined interface to application programs.
+  In a development environment, this allows a very clean division
+  of labor for the implementation of the client side and the resource manager side.
+</li>
+
+
+<li class="li">A simple interface to the resource manager.
+  Since all interactions with the resource manager go through native IPC, and there are no special
+  <q class="q">back door</q> hooks or arrangements with the OS, the writer
+  of a resource manager can focus on the task at hand, rather
+  than worry about all the special considerations needed in other operating systems.
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+All <span class="keyword">QNX OS</span> device drivers and filesystems are
+implemented as resource managers. This means that everything
+that a <q class="q">native</q> <span class="keyword">QNX OS</span> device driver or
+filesystem can do, a user-written resource manager can do as well.
+</div>
+
+
+<p class="p">
+Consider FTP filesystems, for instance.
+Here a resource manager would take over a portion of the pathname space
+(e.g., <span class="ph filepath">/ftp</span>) and allow users to <span class="keyword cmdname">cd</span> into FTP sites to get files.
+For example, <span class="keyword cmdname">cd /ftp/rtfm.mit.edu/pub</span> would connect to the FTP site
+<span class="ph filepath">rtfm.mit.edu</span> and change directory to
+<span class="ph filepath">/pub</span>. After that point, the user could open, edit, or copy files.
+</p>
+
+
+<p class="p">
+Application-specific filesystems would be another example of
+a user-written resource manager. Given an application that
+makes extensive use of disk-based files, a custom tailored
+filesystem can be written that works with that application
+and delivers superior performance.
+</p>
+
+
+<p class="p">
+The possibilities for custom resource managers are limited
+only by the application developer's imagination.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview.html" title="In general terms, a resource manager is a process that registers a pathname in the filesystem namespace. Other processes use that pathname to communicate with the resource manager.">What Is a Resource Manager?</a></div>
+</div>
+</div></body>
+</html>

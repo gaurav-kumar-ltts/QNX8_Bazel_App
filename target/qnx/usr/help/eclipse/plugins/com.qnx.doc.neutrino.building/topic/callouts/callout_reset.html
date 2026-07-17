@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="System reboot" />
+<meta name="abstract" content="The kernel invokes the reboot() callout to reboot the system." />
+<meta name="description" content="The kernel invokes the reboot() callout to reboot the system." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_reboot" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>System reboot</title>
+</head>
+<body id="callout_reboot">
+
+	<h1 class="title topictitle1" id="ariaid-title1">System reboot</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The kernel invokes the <span class="keyword apiname">reboot()</span> callout to reboot the system.
+	</p>
+
+		<div class="section" id="callout_reboot__reboot">
+			<p class="p">
+				
+				This callout must do whatever work is needed to reset the system to a known good
+				state.</p>
+
+			<p class="p">If the C Library function of <span class="keyword apiname">sysmgr_reboot()</span> is called,
+				the kernel invokes the <span class="keyword apiname">reboot()</span> callout (see <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/s/sysmgr_reboot.html"><span class="keyword apiname">sysmgr_reboot()</span></a> in the
+				<span class="keyword">QNX OS</span> <cite class="cite">C Library Reference</cite>)
+				with an <span class="keyword parmname">abnormal</span> parameter setting of zero.
+				This indicates a normal (i.e., user-requested) termination.</p>
+
+			<p class="p">If the kernel detects a situation that prevents it from continuing to behave correctly,
+				it invokes the same callout but with the <span class="keyword parmname">abnormal</span> parameter set to
+				a non-zero value. This is an abnormal termination.</p>
+
+			<div class="cautiontitle">CAUTION:</div><div class="note caution">
+				For a deployed (production) system, the reboot callout must contain whatever
+				platform-specific code is needed to reboot the system. In some cases, the reboot
+				can be started by programming a watchdog timer to go off immediately; in other words,
+				by forcing the watchdog to trigger the reboot.
+				<p class="p">For a development system, the callout can decide whether to reboot the system or
+					instead halt execution to allow you to attach a debugger and investigate the
+					processor state.</p>
+
+				<p class="p">If you're using the default reboot callout, for which sample code is shown below,
+					you must set the startup program's <span class="keyword option">-A</span> option
+					to ensure the kernel actually reboots the system following an abnormal termination.
+					(For a normal termination, this option doesn't apply, and the kernel always reboots
+					the system.)
+					This callout examines the <span class="keyword const">SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT</span> bit,
+					whose setting is based on that startup option, and if the bit isn't set, the callout
+					just spins in a loop (see the final instuction in the example below).
+					For more information, see the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/s/startup_options.html"><span class="keyword cmdname">startup-*</span> options</a>
+					entry in the <cite class="cite">Utilities Reference</cite>.</p>
+
+				<p class="p">When you've finished debugging, there's no reason to leave this bit unset.
+					The reboot callout <em class="ph i">must</em> reboot the system, whether it's a normal or abnormal
+					termination. So you always want to set the startup <span class="keyword option">-A</span> option
+					once you've got working code for rebooting the system.</p>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Examples</h2>
+			
+			<div class="p">Here is a code sample for patching the kernel callout (for more context,
+				see <q class="q"><a class="xref" href="callout_patch.html" title="If a device for which you are writing a kernel callout can appear in different locations on different boards, a patch routine is required to add the addresses of the registers to the kernel callout code.">Patching the kernel callout code</a></q>):
+<pre class="pre codeblock">#include "callout.ah"
+#include &lt;arm/elsinore1599.h&gt;
+/*
+ * Routine to patch callout code
+ *  r0 - physical address of syspage
+ *  r1 - virtual  address of syspage
+ *  r2 - offset from start of syspage to start of the callout routine
+ *  r3 - offset from start of syspage to read/write data used by callout
+ */
+patch_reboot:
+    stmdb    sp!, {r4, lr}
+    add      r4, r0, r2
+
+    /* Map PRM registers */
+    mov      r0, #CM_PRCM_SIZE
+    ldr      r1, Lpaddr
+    bl       callout_io_map
+
+    /* Patch the callout routine */
+    CALLOUT_PATCH  r4, r0, r1, r2, ip
+    ldmia    sp!, {r4, pc}
+
+Lpaddr:     .word PRM_DEVICE_BASE + PRM_RSTCTRL
+
+#define ARM_CPSR_T        (1 &lt;&lt; 5)
+#define ARM_CPSR_F        (1 &lt;&lt; 6)
+#define ARM_CPSR_I        (1 &lt;&lt; 7)
+</pre></div>
+
+			<div class="p">Below is code for restarting a fictional ARM board:
+<pre class="pre codeblock">CALLOUT_START(reboot_elsinore1599, 0, patch_reboot)
+    /*
+     * Get the base address of CLK &amp; Reset registers (patched)
+     * r0 = _syspage_ptr
+     * r1 = abnormal termination parameter passed to callout
+     * r2 assumed to be available as scratch register
+     */
+    mov     ip,     #0x000000FF
+    orr     ip, ip, #0x0000FF00
+    orr     ip, ip, #0x00FF0000
+    orr     ip, ip, #0xFF000000
+
+    teq        r1, #0      // r1 = abnormal termination parameter
+    beq        _do_reboot
+
+    ldrh       r2, [r0, #SYSPAGE_SYSTEM_PRIVATE] // offset to system_private
+    add        r0, r0, r2  // system_private address
+    ldr        r2, [r0, #SP_PRIVATE_FLAGS]
+    /* r2 = ABNORMAL_REBOOT flag based on startup -A option */
+    tst        r2, #SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT
+    beq        0f          // spin if ABNORMAL_REBOOT is NOT set
+
+_do_reboot:
+    mov        r1, #RST_GLOBAL_COLD_SW    //#RST_GLOBAL_WARM_SW
+    str        r1, [ip]
+/* if we get here there is nothing else we can do about it, so loop */
+0:  b       0b
+CALLOUT_END(reboot_elsinore1599)
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

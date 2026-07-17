@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="An example of synchronization" />
+<meta name="abstract" content="Let's look at an example of synchronization in a multithreaded program." />
+<meta name="description" content="Let's look at an example of synchronization in a multithreaded program." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_More_synchronization.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="s1_procs_Sync_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>An example of synchronization</title>
+</head>
+<body id="s1_procs_Sync_example">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">An example of synchronization</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">Let's look at an example of synchronization in a multithreaded program.</p>
+
+
+<p class="p">
+
+
+If the data is the most important part of your application, and that data gets corrupted, then
+your application might be of little use.
+It's pretty straightforward to make sure a single-threaded application doesn't accidentally corrupt
+its data. Multithreaded applications are quite another story.
+</p>
+
+
+<div class="section"><h2 class="title sectiontitle">Without synchronizing</h2>
+
+
+<p class="p">
+The problem with multithreaded applications is that you could have one section of code modifying
+your data, while another section is reading and using that same data.
+If the write and read overlap, you could have some serious complications!
+</p>
+
+
+<div class="p">
+Let's illustrate this with a short application:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;unistd.h&gt;
+
+typedef struct {
+   int a;
+   int b;
+   int result;
+   int result2;
+   int use_count;
+   int use_count2;
+   int max_use;
+   int max_use2;
+} app_data;
+
+void *user_thread(void *data)
+{ 
+   int uses = 0;
+   app_data *td = (app_data*)data;
+
+   while(uses &lt; td-&gt;max_use) {
+      if (td-&gt;a == 5) {
+         td-&gt;result += (td-&gt;a + td-&gt;b);
+         td-&gt;use_count++;
+         uses++;
+      }
+      usleep(1);
+   }
+   return 0;
+}
+
+void *changer_thread(void *data)
+{
+   app_data *td = (app_data*)data;
+
+   while ((td-&gt;use_count + td-&gt;use_count2) &lt; (td-&gt;max_use + td-&gt;max_use2)) {
+      if (td-&gt;a == 5) {
+         td-&gt;a = 50;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      } else {
+         td-&gt;a = 5;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      }
+      usleep(1);
+   }
+   return 0;
+}
+
+int main(int argc, char **argv)
+{
+   pthread_t ct, ut;
+   app_data td = {5,5,0,0,0,0,100,0};
+   void *retval;
+
+   pthread_create(&amp;ut, NULL, user_thread, &amp;td);
+   pthread_create(&amp;ct, NULL, changer_thread, &amp;td);
+   pthread_join(ct, &amp;retval);
+   pthread_join(ut, &amp;retval);
+   printf("result should be %d; it's %d\n", td.max_use * (5 + 5), td.result);
+
+   return EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+
+<p class="p">
+The <span class="keyword apiname">user_thread()</span> function
+reads the data in the passed <span class="keyword dtype">app_data</span> structure and uses the <var class="keyword varname">a</var> and
+<var class="keyword varname">b</var> variables <var class="keyword varname">max_use</var> times whenever <var class="keyword varname">a</var> is set
+to five. Its local <var class="keyword varname">uses</var> variable counts the number of times the function has used
+the data. The function also increments the application's <var class="keyword varname">use_count</var>, in case
+someone else wants to keep track of how many times the data has been used.
+This function adds a small <span class="keyword apiname">usleep()</span> to make sure the scheduler gives other
+threads a chance to run.
+</p>
+
+ 
+<p class="p">
+The <span class="keyword apiname">changer_thread()</span> function modifies the data, changing
+<var class="keyword varname">a</var> and <var class="keyword varname">b</var> until they've been used elsewhere—in
+<span class="keyword apiname">user_thread()</span>, in this case—the number of times specified by
+<var class="keyword varname">max_use</var> plus <var class="keyword varname">max_use2</var>.
+The change is simple: <span class="keyword apiname">changer_thread()</span> simply toggles the value of
+<var class="keyword varname">a</var> between 5 and 50 and fakes a CPU-intensive calculation for <var class="keyword varname">b</var>
+by calling <span class="ph codeph">usleep(1000)</span>, which returns 0 unless an error occurs.
+This means that <var class="keyword varname">a</var> will be changed, and 1 ms later <var class="keyword varname">b</var> will be
+changed. Therefore there's a 1 ms gap where <var class="keyword varname">a</var> and <var class="keyword varname">b</var> shouldn't
+be used elsewhere in the application since their values are still in flux.
+</p>
+
+
+<div class="p">
+The <span class="keyword apiname">main()</span> routine creates an instance of the <span class="keyword dtype">app_data</span> structure,
+spawns the two threads, waits for them to finish, and then prints the results.
+If you build the program and run it, the results are something like this:
+
+<pre class="pre codeblock">result should be 1000; it's 3205
+</pre>
+</div>
+
+
+<p class="p">
+Your actual result might be different, depending on your CPU speed.
+Why isn't it what we expected?
+</p>
+
+
+<p class="p">
+The problem is that <span class="keyword apiname">user_thread()</span> is waiting until <var class="keyword varname">a</var> is set
+to 5, and when it is, it adds the <var class="keyword varname">a</var> and <var class="keyword varname">b</var> values (which should
+both be 5) to the <var class="keyword varname">result</var> variable.
+However, since the <var class="keyword varname">b</var> variable is taking so long to get calculated,
+<span class="keyword apiname">user_thread()</span> sometimes uses the old <var class="keyword varname">b</var> value (50) instead of
+the new one (5). You need to protect your data somehow so that the <var class="keyword varname">user_thread()</var>
+can't use the data until you've set it!
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Using a mutex</h2>
+
+
+<p class="p">
+
+
+Let's use a mutex to make sure that the data is accessed by only one thread at a time.
+</p>
+
+
+<p class="p">
+
+
+
+
+Mutexes are very easy to use.
+Once you've created a mutex, you simply put a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_lock.html"><span class="keyword apiname">pthread_mutex_lock()</span></a>
+in front of the code you want to protect, and
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_unlock.html"><span class="keyword apiname">pthread_mutex_unlock()</span></a>
+right after that code.
+In this case, you want to protect both the modification and use of the <var class="keyword varname">a</var> and
+<var class="keyword varname">b</var> variables.
+</p>
+
+
+<p class="p">
+Here's a summary of the changes to make to the program:
+</p>
+
+
+<ul class="ul">
+<li class="li">Add the mutex to the <span class="keyword dtype">app_data</span> structure.</li>
+
+
+<li class="li">Put the lock/unlock functions around the code you want to protect (i.e., where you're reading or
+  writing the <var class="keyword varname">a</var> and <var class="keyword varname">b</var> variables) in both
+  <span class="keyword apiname">user_thread()</span> and <span class="keyword apiname">changer_thread()</span>.
+</li>
+
+
+<li class="li">Create and destroy the mutex in the <span class="keyword apiname">main()</span> function.
+  In this example, we'll pass <span class="keyword const">NULL</span> as the <var class="keyword varname">attr</var> argument to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_mutex_init.html"><span class="keyword apiname">pthread_mutex_init()</span></a>
+  because we want to use the default attributes for the mutex.
+  
+  
+</li>
+
+
+</ul>
+
+ 
+<div class="p">
+
+
+Here's the program, with the updates shown in bold:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;unistd.h&gt;
+
+typedef struct {
+   int a;
+   int b;
+   int result;
+   int result2;
+   int use_count;
+   int use_count2;
+   int max_use;
+   int max_use2;
+   <strong class="ph b">pthread_mutex_t mutex;</strong>
+} app_data;
+
+void *user_thread(void *data)
+{
+   int uses = 0;
+   app_data *td = (app_data*)data;
+
+   while(uses &lt; td-&gt;max_use) {
+      <strong class="ph b">pthread_mutex_lock(&amp;td-&gt;mutex);</strong>
+      if (td-&gt;a == 5) {
+         td-&gt;result += (td-&gt;a + td-&gt;b);
+         td-&gt;use_count++;
+         uses++;
+      }
+      <strong class="ph b">pthread_mutex_unlock(&amp;td-&gt;mutex);</strong>
+      usleep(1);
+   }
+   return 0;
+}
+
+void *changer_thread(void *data)
+{
+   app_data *td = (app_data*)data;
+
+   while ((td-&gt;use_count + td-&gt;use_count2) &lt; (td-&gt;max_use + td-&gt;max_use2)) {
+      <strong class="ph b">pthread_mutex_lock(&amp;td-&gt;mutex);</strong>
+      if (td-&gt;a == 5) {
+         td-&gt;a = 50;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      } else {
+         td-&gt;a = 5;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      }
+      <strong class="ph b">pthread_mutex_unlock(&amp;td-&gt;mutex);</strong>
+      usleep(1);
+   }
+   return 0;
+}
+
+int main(int argc, char **argv)
+{
+   pthread_t ct, ut;
+   app_data td = {5,5,0,0,0,0,100,0};
+   void *retval;
+
+   <strong class="ph b">pthread_mutex_init(&amp;td.mutex, NULL);</strong>
+   pthread_create(&amp;ut, NULL, user_thread, &amp;td);
+   pthread_create(&amp;ct, NULL, changer_thread, &amp;td);
+   pthread_join(ct, &amp;retval);
+   pthread_join(ut, &amp;retval);
+   <strong class="ph b">pthread_mutex_destroy(&amp;td.mutex);</strong>
+   printf("result should be %d; it's %d\n", td.max_use * (5 + 5), td.result);
+
+   return EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+
+<div class="p">
+This program should give the results we want:
+
+<pre class="pre codeblock">result should be 1000; it's 1000
+</pre>
+</div>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">More than one reader</h2>
+
+
+<div class="p">
+What if you have one thread that's changing the data, but more than one other thread that just wants
+to read it?
+Let's add a thread that needs to read <var class="keyword varname">a</var> and <var class="keyword varname">b</var> as well:
+
+<pre class="pre codeblock">void *subtracter_thread(void *data)
+{
+   int use=0;
+   app_data *td=(app_data*)data;
+
+   while(use &lt; td-&gt;max_use2) {
+      pthread_mutex_lock(&amp;td-&gt;mutex);
+      if (td-&gt;a == 50) {
+         td-&gt;result2 -= (td-&gt;a + td-&gt;b);
+         use++;
+         td-&gt;use_count2++;
+      }
+      pthread_mutex_unlock(&amp;td-&gt;mutex);
+      usleep(1);
+   }
+   return 0;
+}
+</pre>
+</div>
+
+
+<div class="p">
+We need to modify <span class="keyword apiname">main()</span> to spawn the new thread and set the
+<var class="keyword varname">max_use2</var> member in the <span class="keyword dtype">app_data</span> structure:
+
+<pre class="pre codeblock">int main(int argc, char **argv)
+{
+   pthread_t ct, ut<strong class="ph b">, st</strong>;
+   app_data td = {5,5,0,0,0,0,100,<strong class="ph b">100</strong>};
+   void *retval;
+
+   pthread_mutex_init(&amp;td.mutex, NULL);
+   pthread_create(&amp;ut, NULL, user_thread, &amp;td);
+   pthread_create(&amp;ct, NULL, changer_thread, &amp;td);
+   <strong class="ph b">pthread_create(&amp;st, NULL, subtracter_thread, &amp;td);</strong>
+   pthread_join(ct, &amp;retval);
+   pthread_join(ut, &amp;retval);
+   <strong class="ph b">pthread_join(st, &amp;retval);</strong>
+   pthread_mutex_destroy(&amp;td.mutex);
+   printf("result should be %d; it's %d\n", td.max_use * (5 + 5), td.result);
+   <strong class="ph b">printf("result2 should be %d; it's %d\n", -(td.max_use2 * (50 + 50)),
+          td.result2);</strong>
+
+   return EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+
+<div class="p">
+If you compile and run this, you get just what you wanted:
+
+<pre class="pre codeblock">result should be 1000; it's 1000
+result2 should be -10000; it's -10000
+</pre>
+</div>
+
+
+<p class="p">
+But wait: shouldn't <span class="keyword apiname">user_thread()</span> and <span class="keyword apiname">subtracter_thread()</span>
+be able to read <var class="keyword varname">a</var> and <var class="keyword varname">b</var> at the same time?
+(Remember that with mutexes, anything wrapped in the lock/unlock pair can't be executed at the same
+time as another piece of code wrapped in the lock/unlock pair.)
+Neither of them changes <var class="keyword varname">a</var> or <var class="keyword varname">b</var>, so it would be nice if you
+could let both of them read these members at the same time—just not when
+<span class="keyword apiname">changer_thread()</span> is changing them.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Using read-write locks</h2>
+
+
+<p class="p">
+
+
+With readers/writer locks (or rwlocks), you can easily implement this kind of behavior.
+Unlike mutexes, rwlocks can be locked either as read or as write.
+As long as they're not locked for write access, any threads can lock for read and unlock as much as
+they want. However, if they're locked for write access, all read locks occurring afterwards are
+blocked until the write lock is unlocked.
+</p>
+
+
+<p class="p">
+Here's how to make our program use an rwlock:
+</p>
+
+
+<ul class="ul">
+<li class="li">Change the mutex to an rwlock in the <span class="keyword dtype">app_data</span> structure.</li>
+
+
+<li class="li">In <span class="keyword apiname">user_thread()</span> and <span class="keyword apiname">subtracter_thread()</span>, which read the
+  data, change:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword apiname">pthread_mutex_lock()</span> to
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_rdlock.html"><span class="keyword apiname">pthread_rwlock_rdlock()</span></a>
+    
+    
+  </li>
+
+
+  <li class="li"><span class="keyword apiname">pthread_mutex_unlock()</span> to
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_unlock.html"><span class="keyword apiname">pthread_rwlock_unlock()</span></a>
+    
+    
+  </li>
+
+
+  </ul>
+
+</li>
+
+
+<li class="li">In <span class="keyword apiname">changer_thread()</span>, which writes the data, change:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword apiname">pthread_mutex_lock()</span> to
+    <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_wrlock.html"><span class="keyword apiname">pthread_rwlock_wrlock()</span></a>
+    
+    
+  </li>
+
+
+  <li class="li"><span class="keyword apiname">pthread_mutex_unlock()</span> to <span class="keyword apiname">pthread_rwlock_unlock()</span></li>
+
+
+  </ul>
+
+</li>
+
+
+<li class="li">Modify <span class="keyword apiname">main()</span> so that the rwlock is initialized instead of a mutex.
+  We'll use <span class="keyword const">NULL</span> again as the <var class="keyword varname">attr</var> argument to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_rwlock_init.html"><span class="keyword apiname">pthread_rwlock_init()</span></a>
+  because we want to use the default attributes for the rwlock.
+  
+  
+</li>
+
+
+</ul>
+
+
+<div class="p">
+
+
+Here's the updated code, with the changes in bold:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;unistd.h&gt;
+
+typedef struct {
+   int a;
+   int b;
+   int result;
+   int result2;
+   int use_count;
+   int use_count2;
+   int max_use;
+   int max_use2;
+   <strong class="ph b">pthread_rwlock_t rwl;</strong>
+} app_data;
+
+void *user_thread(void *data)
+{
+   int uses = 0;
+   app_data *td = (app_data*)data;
+
+   while(uses &lt; td-&gt;max_use) {
+      <strong class="ph b">pthread_rwlock_rdlock(&amp;td-&gt;rwl);</strong>
+      if (td-&gt;a == 5) {
+         td-&gt;result += (td-&gt;a + td-&gt;b);
+         td-&gt;use_count++;
+         uses++;
+      }
+      <strong class="ph b">pthread_rwlock_unlock(&amp;td-&gt;rwl);</strong>
+      usleep(1);
+   }
+   return 0;
+}
+
+void *changer_thread(void *data)
+{
+   app_data *td = (app_data*)data;
+
+   while ((td-&gt;use_count + td-&gt;use_count2) &lt; (td-&gt;max_use + td-&gt;max_use2)) {
+      <strong class="ph b">pthread_rwlock_wrlock(&amp;td-&gt;rwl);</strong>
+      if (td-&gt;a == 5) {
+         td-&gt;a = 50;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      } else {
+         td-&gt;a = 5;
+         td-&gt;b = td-&gt;a + usleep(1000);
+      }
+      <strong class="ph b">pthread_rwlock_unlock(&amp;td-&gt;rwl);</strong>
+      usleep(1);
+   }
+   return 0;
+}
+
+void *subtracter_thread(void *data)
+{
+   int use=0;
+   app_data *td=(app_data*)data;
+
+   while(use &lt; td-&gt;max_use2) {
+      <strong class="ph b">pthread_rwlock_rdlock(&amp;td-&gt;rwl);</strong>
+      if (td-&gt;a == 50) {
+         td-&gt;result2 -= (td-&gt;a + td-&gt;b);
+         use++;
+         td-&gt;use_count2++;
+      }
+      <strong class="ph b">pthread_rwlock_unlock(&amp;td-&gt;rwl);</strong>
+      usleep(1);
+   }
+   return 0;
+}
+
+int main(int argc, char **argv)
+{
+   pthread_t ct, ut, st;
+   app_data td = {5,5,0,0,0,0,100,100};
+   void *retval;
+
+   <strong class="ph b">pthread_rwlock_init(&amp;td.rwl, NULL);</strong>
+   pthread_create(&amp;ut, NULL, user_thread, &amp;td);
+   pthread_create(&amp;ct, NULL, changer_thread, &amp;td);
+   pthread_create(&amp;st, NULL, subtracter_thread, &amp;td);
+   pthread_join(ct, &amp;retval);
+   pthread_join(ut, &amp;retval);
+   pthread_join(st, &amp;retval);
+   <strong class="ph b">pthread_rwlock_destroy(&amp;td.rwl);</strong>
+   printf("result should be %d; it's %d\n", td.max_use * (5 + 5), td.result);
+   printf("result2 should be %d; it's %d\n", -(td.max_use2 * (50 + 50)),
+          td.result2);
+
+   return EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+
+<p class="p">
+Now <span class="keyword apiname">subtracter_thread()</span> and <span class="keyword apiname">user_thread()</span> can read the data
+at the same time, but <span class="keyword apiname">changer_thread()</span> can't access the data at the same time as
+either <span class="keyword apiname">subtracter_thread()</span> or <span class="keyword apiname">user_thread()</span>.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_More_synchronization.html">More on synchronization</a></div>
+</div>
+</div></body>
+</html>

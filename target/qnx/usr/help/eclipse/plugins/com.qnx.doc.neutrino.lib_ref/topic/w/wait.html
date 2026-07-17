@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="wait()" />
+<meta name="abstract" content="Wait for the status of a terminated child process" />
+<meta name="description" content="Wait for the status of a terminated child process" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-w.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/process_PROCDETECTTERM.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/e/errno.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/spawn.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/w/wait4.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/w/waitid.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/w/waitpid.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="wait" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>wait()</title>
+</head>
+<body id="wait">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">wait()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Wait for the status of a terminated child process</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+
+pid_t wait( int * <var class="keyword varname">stat_loc</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">stat_loc</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a location where the function can store the terminating status of the child.
+  For more information, see
+  <q class="q"><a class="xref" href="#wait__StatusMacros">Status macros</a>,</q>
+  below.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+The <span class="keyword apiname">wait()</span> function suspends execution of the calling
+thread until status information from one of its terminated child
+processes is available, or until the delivery of a signal whose action
+is either to terminate the process or execute a signal handler. If
+status information is available prior to the call to <span class="keyword apiname">wait()</span>,
+the return is immediate.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+<ul class="ul">
+<li class="li">
+In order to wait for the status of a terminated child process whose real or saved user ID is different from
+the calling process's real or effective user ID, your process must have the
+<span class="keyword const">PROCMGR_AID_WAIT</span> ability enabled.
+For more information, see
+<a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+
+</li>
+
+
+<li class="li">If the parent process sets the action for <span class="keyword const">SIGCHLD</span> to <span class="keyword const">SIG_IGN</span>,
+  its children won't enter the zombie state, and it won't be able to use
+  the <span class="keyword apiname">wait*()</span> functions to wait on their deaths.
+</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p" id="wait__StatusMacros"><strong class="ph b">Status macros</strong></p>
+
+
+<p class="p">
+If the <var class="keyword varname">stat_loc</var> variable is non-<span class="keyword const">NULL</span>, 
+the terminating status of the child process is in the location that it
+points to.
+The macros listed below, defined in <span class="ph filepath">&lt;sys/wait.h&gt;</span>, extract
+information from <var class="keyword varname">stat_loc</var>. 
+The <var class="keyword varname">stat_val</var> argument to these macros is the integer value pointed to by <var class="keyword varname">stat_loc</var>.
+</p>
+
+
+<p class="p">
+POSIX defines the following macros:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword apiname">WEXITSTATUS</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to the low-order 8 bits of the termination status of the child process
+  if the value of <span class="keyword apiname">WIFEXITED</span>( <var class="keyword varname">stat_val</var> ) is nonzero.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WIFCONTINUED</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to a nonzero value if the status returned was from a
+  child process that has continued from a job control stop. 
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WIFEXITED</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to a nonzero value if the status returned was from a normally terminated child process.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WIFSIGNALED</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to nonzero value if the child process terminated from reception of a signal that wasn't caught.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WIFSTOPPED</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to a nonzero value if the status returned is for a child process that's stopped.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WSTOPSIG</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to the number of the signal that caused the child process to stop
+  if the value of <span class="keyword apiname">WIFSTOPPED</span>( <var class="keyword varname">stat_val</var> ) is nonzero.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WTERMSIG</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to the number of the signal that terminated the child process
+  if the value of <span class="keyword apiname">WIFSIGNALED</span>( <var class="keyword varname">stat_val</var> ) is nonzero.
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+This macro isn't part of a POSIX standard:
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword apiname">WCOREDUMP</span>( <var class="keyword varname">stat_val</var> )</dt>
+
+<dd class="dd">Evaluates to a nonzero value if the child process left a core dump.
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+One of the macros <span class="keyword apiname">WIFEXITED</span>(<var class="keyword varname">*stat_loc</var>) and
+<span class="keyword apiname">WIFSIGNALED</span>(<var class="keyword varname">*stat_loc</var>) 
+evaluates to a nonzero value.
+</p>
+
+
+<p class="p">
+The non-POSIX 
+<a class="xref" href="waitid.html" title="Wait for a child process to change state"><span class="keyword apiname">waitid()</span></a>
+function gives even more status information than the above macros.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+The process ID of the terminating child process, or -1 if an error occurred
+or on delivery of a signal
+(<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>
+is set to <span class="keyword const">EINTR</span>).
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">ECHILD</span></dt>
+
+<dd class="dd">The calling process has no existing unwaited-for child processes.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINTR</span></dt>
+
+<dd class="dd">The function was interrupted by a signal. The value of the location
+  pointed to by <var class="keyword varname">stat_loc</var> is undefined.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d723013e493">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d723013e495"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e493 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e495 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e493 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e495 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e493 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d723013e495 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-w.html">W</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/process_PROCDETECTTERM.html">Detecting process termination (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/e/errno.html" title="Thread-local error variable">errno</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/spawn.html" title="Create and execute a new child process">spawn()</a></li>
+<li class="linklist"><a class="link" href="../../topic/w/wait4.html" title="Wait for one or more child process to change its state">wait4()</a></li>
+<li class="linklist"><a class="link" href="../../topic/w/waitid.html" title="Wait for a child process to change state">waitid()</a></li>
+<li class="linklist"><a class="link" href="../../topic/w/waitpid.html" title="Wait for a child process to stop or terminate">waitpid()</a></li></ul></div>
+</div></body>
+</html>

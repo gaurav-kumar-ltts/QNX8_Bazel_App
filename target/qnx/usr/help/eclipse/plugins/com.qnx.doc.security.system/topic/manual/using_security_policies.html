@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using security policies" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="using_security_policies" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Using security policies</title>
+</head>
+<body id="using_security_policies">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Using security policies</h1>
+
+    
+    <div class="body conbody">
+        <p class="p"><span class="keyword">QNX OS</span> security policies use a security policy file to define the rules that grant
+            privileges to processes and the security policy types used to apply the rules to
+            processes and other system elements.</p>
+
+        <p class="p">For convenience and efficiency, <span class="keyword">QNX OS</span> provides the
+                <span class="keyword cmdname">secpolgenerate</span> utility, which completes most of the work required
+            to create a security policy for the current system, as well as other tools that manage
+            and monitor behavior related to security policies. For a detailed description of how to
+            use <span class="keyword cmdname">secpolgenerate</span> to develop and modify security policies, see
+                    <q class="q"><a class="xref" href="tutorial.html" title="The steps for developing a QNX OS system that uses a security policy include adding security types and generating a policy using the secpolgenerate utility.">Tutorial: Build a system that uses a security
+                    policy</a>.</q></p>
+
+        <div class="section"><h2 class="title sectiontitle">Creating and applying a security policy</h2>
+            <p class="p">The following workflow illustrates the security policy mechanism in brief.</p>
+<ol class="ol" id="using_security_policies__ol_dqg_hjf_rhb">
+                <li class="li">At system build time, create a file (for example,
+                        <span class="ph filepath">policy.txt</span>) and add content to it that defines security
+                    policy types and the privileges they have. You can use
+                        <span class="keyword cmdname">secpolgenerate</span> to speed up the creation process. Some
+                    example security policy file
+                    content:<pre class="pre codeblock"># Type that represents the random process
+type random_t;
+# Type to use for the sshd daemon (a client of random)
+type sshd_t;
+        
+allow_attach random_t /dev/random;
+allow sshd_t random_t : channel connect;</pre></li>
+
+                <li class="li">Compile the policy using the <span class="keyword cmdname">secpolcompile</span> utility. For
+                    example:<pre class="pre codeblock">secpolcompile -o secpol.bin policy.txt</pre></li>
+
+                <li class="li">Include the file in your IFS as <span class="ph filepath">/proc/boot/secpol.bin</span>.</li>
+
+                <li class="li">At boot time, use the <span class="keyword cmdname">secpolpush</span> utility to push policy
+                    content to <span class="keyword cmdname">procnto</span>.</li>
+
+                <li class="li">Apply the corresponding policy rules by specifying the appropriate security type
+                    when you run a process. For
+                    example:<pre class="pre codeblock">on -T random_t random -U 22:22</pre></li>
+
+            </ol>
+There is no default security policy.</div>
+
+        <div class="section"><h2 class="title sectiontitle">What a policy controls</h2>A system's security policy controls the
+            following privileges:<ul class="ul" id="using_security_policies__ul_hcf_t4f_rhb">
+                <li class="li">Operations specified by abilities.</li>
+
+                <li class="li">Which paths can be attached to. For example, a policy can guarantee that the
+                    random service and no other process provides
+                    <span class="ph filepath">/dev/random</span>.</li>
+
+                <li class="li">Which channels a process can connect to. If a policy does not allow a process to
+                    connect to a server, a process cannot exploit any bugs that the server might
+                    have.</li>
+
+                <li class="li">Operations defined by custom permissions. Security polices can use custom
+                    classes and permissions that you define to create fine-grained privilege control
+                    that works with your particular system.</li>
+
+            </ul>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Types</h2><p class="p">Security policy rules use security types to identify
+                processes and the objects that they interact with. In the security policy, the types
+                are represented by names.</p>
+<p class="p">For example, the following two rules grant
+                privileges to a process that has the type <tt class="ph tt">random_t</tt> (most likely the random
+                service). The second rule grants a privilege to a process of type <tt class="ph tt">random_t</tt>
+                when it interacts with a channel with type
+                <tt class="ph tt">devb_t</tt>:</p>
+<pre class="pre codeblock">allow_attach random_t /dev/random;
+allow random_t devb_t : channel connect;</pre><p class="p">The
+                type <tt class="ph tt">devb_t</tt> could also be used for a process and grant it privileges via
+                rules. However, because objects such as channels don’t have privileges, those
+                privileges would only apply to processes with that type. </p>
+<p class="p">When you compile a
+                policy, the types in the policy are assigned an integer value that is an alternate
+                way to identify a security type. Numbering starts at 0 and increases by one for each
+                type that’s declared.</p>
+<p class="p">When you start a process with a type, the system
+                restricts it to the actions given to it by that type's rules (e.g.,
+                    <span class="keyword cmdname">random</span> started as <tt class="ph tt">random_t</tt>).</p>
+A process can change
+            the rules that apply to it by changing its type (using
+                <span class="keyword apiname">secpol_transition_type()</span>) and a process can spawn processes as a
+            type other than its own type (using
+                <span class="keyword apiname">secpol_posix_spawnattr_settypeid()</span>).<div class="note"><span class="notetitle">Note:</span> To avoid weakening
+                security by giving a process permissions it does not need, make sure each resource
+                manager has its own type (i.e., two or more resource managers should not share a
+                type).</div>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Specifying types in a security policy</h2><p class="p">Type names follow the same
+                rules as C identifiers. They can contain alphanumeric characters and the underscore,
+                but must not start with a digit.</p>
+All the types that the system requires have to
+            be declared in the policy. Any mistyped names are detected as errors at compilation
+            time.</div>
+
+        <div class="section"><h2 class="title sectiontitle">Specifying types in code</h2>Because the type identifiers assigned to
+            types are not fixed, code that uses types should look up the name to convert to an
+            identifier rather than embed a number (using
+            <span class="keyword apiname">secpol_get_type_id()</span>).</div>
+
+        <div class="section"><h2 class="title sectiontitle">Assigning types to processes</h2>
+            <p class="p">Processes started from the <span class="keyword cmdname">ifs</span> start-up script are not
+                automatically fully controlled by a security policy. Although they appear to have a
+                type ID of 0 and are affected by some parts of a policy, they only have the set of
+                abilities that <span class="keyword">QNX OS</span> assigns by default.</p>
+
+            <p class="p">During the startup process, transient commands such as <span class="keyword cmdname">mount</span> can
+                be run without explicit types but anything that runs beyond startup should not. To
+                start processes with explicit types, <span class="keyword">QNX OS</span> provides the
+                    <span class="keyword cmdname">on</span> utility and <span class="keyword cmdname">slm</span> service, though you can
+                also do it via custom services or utilities by using the type ID attribute in calls
+                to <span class="keyword apiname">posix_spawn()</span>.</p>
+
+            <p class="p">After a process is started with an explicit type, it is fully controlled by a
+                security policy and any child processes that it creates inherit the parent's type
+                (unless the process explicitly changes it or the policy dictates that type should
+                change). Thus, by making sure that all processes that run past startup have an
+                explicit type, you ensure that the system is fully controlled by the policy, and
+                only processes that the policy fully controls can be created.</p>
+
+            <p class="p">To verify that there are no processes running without an explicit type, run
+                    <span class="keyword cmdname">pidin -f a_n</span> after startup and check the output to make sure
+                that all processes have a security type.</p>
+
+            <p class="p">Processes can change their own type by calling
+                    <span class="keyword apiname">secpol_transition_type()</span> and set the type of processes they
+                spawn by using <span class="keyword apiname">secpol_posixattr_settypeid()</span>. However, the ability
+                to change their own type or that of their children is controlled by an ability and
+                thus controlled by the policy.</p>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Assigning types to objects</h2>When a policy determines whether an action
+            can be taken, it considers the type of the process that takes the action and the object
+            it acts on.<p class="p">Currently, the only object that <span class="keyword">QNX OS</span> provides is a channel.
+                The type assigned to a channel determines the types that other processes must have
+                to connect to it.</p>
+<p class="p">By default, channels have the type of the process that
+                creates them. In addition, a security policy can specify which type a channel takes
+                when a process of a specified type calls <span class="keyword apiname">resmgr_attach()</span> for a
+                    specific path. For more information, see 
+                    <q class="q"><a class="xref" href="secpol_language.html#secpol_language__connecting_to_channels">Rules for connecting to channels</a>.</q> </p>
+
+            <p class="p">You can
+                add objects that take types as required by defining the object class and the
+                associated actions in the security policy and then referencing them in policy rules.
+                For an example of using a custom class that represents an acted-on object (a
+                mountpoint), see <q class="q">Permission checking by operation and object acted on</q> in
+                    <q class="q"><a class="xref" href="restrict_permissions_by_object.html" title="The secpol_get_permission() and secpol_check_permission() functions allow you to support fine-grained permission checking in a system that uses security policies.">Customizing permissions using
+                        a security policy</a>.</q></p>
+</div>
+
+        <div class="section"><h2 class="title sectiontitle">Controlling type changes</h2><p class="p">Use the PROCMGR_AID_SETTYPEID ability
+                to:</p>
+<ul class="ul" id="using_security_policies__ul_qwx_v5f_rhb">
+                <li class="li">control the ability of a process to specify a type identifier when a new process
+                    is spawned</li>
+
+                <li class="li">indicate that a process is allowed to change its own type</li>
+
+            </ul>
+Usually if a process is granted the <span class="keyword const">PROCMGR_AID_SETTYPEID</span> ability,
+            it should be granted only a limited subrange since a process can gain the privileges of
+            any type it is allowed to switch to or spawn processes with.</div>
+
+        
+    </div>
+
+</body>
+</html>

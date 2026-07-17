@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Remove unnecessary debug printing" />
+<meta name="abstract" content="Callouts in either the IPL or the startup program handle any debug printing that happens early in the system boot (before the serial driver is loaded)." />
+<meta name="description" content="Callouts in either the IPL or the startup program handle any debug printing that happens early in the system boot (before the serial driver is loaded)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_optimize_os.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="remove_debug_printing" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Remove unnecessary debug printing</title>
+</head>
+<body id="remove_debug_printing">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Remove unnecessary debug printing</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">Callouts in either the IPL or the startup program handle any debug printing that happens early in the system boot (before the serial driver is loaded).</p>
+
+        <p class="p">  These callout routines normally write directly to the registers of the first UART. However, no interrupts are available before the kernel has initialized, so if the UART FIFO is full, the callouts can't insert a character until another character leaves the FIFO. With a standard UART, a fast startup can become slow if you burden the boot process with too many messages. </p>
+
+           <div class="p">To prevent this from occurring, follow these practices:
+           <dl class="dl">
+               
+                   <dt class="dt dlterm">Comment out unneeded <span class="keyword apiname">kprintf()</span> statements</dt>
+
+                   <dd class="dd">In IPL or
+                       Startup, look for unneeded <span class="keyword apiname">kprintf()</span> statements in
+                       <span class="keyword apiname">main()</span> and comment them out.</dd>
+
+               
+               
+                   <dt class="dt dlterm">Reduce <span class="ph codeph">-v</span> options</dt>
+
+                   <dd class="dd">In the <span class="ph codeph">script</span> block of the buildfile (boot script), find the line that
+                       launches the kernel (<span class="ph filepath">procnto-smp-instr</span>) and reduce the
+                       <span class="ph codeph">-v</span> options. For instance, if the line looks like this:
+                       <pre class="pre codeblock">PATH=:/proc/boot:/bin:/usr/bin
+LD_LIBRARY_PATH=:/proc/boot:/lib:/usr/lib:/lib/dll procnto-smp-instr –vvvv   </pre>
+                       you can replace <span class="ph codeph">-vvvv</span> with <span class="ph codeph">-v</span>, or simply remove
+                       the option altogether.</dd>
+
+               
+               
+                   <dt class="dt dlterm">Remove <span class="keyword cmdname">display_msg</span> calls</dt>
+
+                   <dd class="dd">In the boot script, remove any <span class="keyword cmdname">display_msg</span> calls that use
+                        the startup callouts. These include all <span class="keyword cmdname">display_msg</span>
+                        statements that occur before the following sequence:
+                        <pre class="pre codeblock">waitfor /dev/ser1
+reopen /dev/ser1</pre> These statements
+                        redirect the serial output to the newly loaded serial driver (typically
+                        right above the <span class="keyword cmdname">waitfor</span>), which will be interrupt driven
+                        and won't need to wait.</dd>
+
+               
+               
+                   <dt class="dt dlterm">Avoid a slow baud rate</dt>
+
+                   <dd class="dd">Don't use a console baud rate of less than 115,200 unless you absolutely must.
+                        Otherwise, you may potentially execute longer in a loop in the kernel
+                            <span class="keyword apiname">printf()</span>, waiting for the UART FIFO to have enough
+                        space to send characters out.</dd>
+
+                   <dd class="dd ddexpand">Chances are, you won't do this, for the simple
+                        reason that it's inconveniently slow. But in systems with few UARTs, it's
+                        tempting to share a 9600-baud GPS device with the default serial console. If
+                        you do this and still have some serial debug output in the kernel or
+                        startup, you could end up severely throttling back the code to keep pace
+                        with the slow baud rate.</dd>
+
+               
+           </dl>
+
+           </div>
+        
+           
+
+    </div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_optimize_os.html" title="This chapter presents optimization techniques you can apply in the bootup sequence that precedes the boot script.">Optimizing the Loading and Launching of the OS</a></div>
+</div>
+</div></body>
+</html>

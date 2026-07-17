@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="qcrypto_cipher_args_t" />
+<meta name="abstract" content="Cipher algorithm arguments" />
+<meta name="description" content="Cipher algorithm arguments" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="_qcrypto_cipher_args" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>qcrypto_cipher_args_t</title>
+</head>
+<body id="_qcrypto_cipher_args">
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">qcrypto_cipher_args_t</span></h1>
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Cipher algorithm arguments</em></p>
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2><pre class="pre">#include &lt;qcrypto/qcrypto.h&gt;
+</pre>
+<pre class="pre">typedef struct {
+    qcrypto_cipher_action_t    action;
+    const uint8_t*             iv;
+    size_t                     ivsize;
+    qcrypto_cipher_padding_t   padding;
+    union {
+        union {
+            struct {
+                size_t		unitsize;
+            } xts;
+            struct {
+                size_t            tagsize;
+                const uint8_t    *tag;
+            } gcm;
+            struct {
+                size_t            tagsize;
+                const uint8_t    *tag;
+                size_t            inputsize;
+                size_t            aadsize;
+            } ccm;
+            struct {
+                size_t            tagsize;
+                const uint8_t    *tag;
+            } ocb;
+        } aes;
+        struct {
+            size_t            tagsize;
+            const uint8_t     *tag;
+        } chacha20_poly1305;
+        struct {
+            const uint32_t    counter;
+        } chacha20;
+        void    *private;
+    };
+} qcrypto_cipher_args_t;</pre>
+</div>
+<div class="section"><h2 class="title sectiontitle">Data:</h2><dl class="dl"><dt class="dt dlterm"><span class="keyword dtype">qcrypto_cipher_action_t </span><var class="keyword varname">action</var></dt>
+<dd class="dd"><p class="p">The cipher action (encryption or decryption).</p>
+</dd>
+<dt class="dt dlterm"><span class="keyword dtype">uint8_t* </span><var class="keyword varname">iv</var></dt>
+<dd class="dd"><p class="p">The initialization vector (IV) buffer.</p>
+</dd>
+
+    <dt class="dt dlterm"><span class="keyword dtype">size_t </span><var class="keyword varname">ivsize</var></dt>
+<dd class="dd"><p class="p">The IV size.</p>
+</dd>
+
+    <dt class="dt dlterm"><span class="keyword dtype">qcrypto_cipher_padding_t </span><var class="keyword varname">padding</var></dt>
+<dd class="dd"><p class="p">The padding mode.</p>
+</dd>
+
+    <dt class="dt dlterm"><span class="keyword dtype">size_t </span><var class="keyword varname">unitsize</var></dt>
+<dd class="dd"><p class="p">The unit size (usually the block size). Maximum is 16 MiB.</p>
+</dd>
+<dt class="dt dlterm"><span class="keyword dtype">size_t </span><var class="keyword varname">tagsize</var></dt>
+<dd class="dd"><p class="p">The tag (or MAC) size.</p>
+</dd>
+<dt class="dt dlterm"><span class="keyword dtype">uint8_t </span> *<var class="keyword varname">tag</var></dt>
+<dd class="dd"><p class="p">The decryption tag.</p>
+</dd>
+<dt class="dt dlterm"><span class="keyword dtype">size_t </span><var class="keyword varname">inputsize</var></dt>
+<dd class="dd"><p class="p">The plaintext or ciphertext size.</p>
+</dd>
+<dt class="dt dlterm"><span class="keyword dtype">size_t </span><var class="keyword varname">aadsize</var></dt>
+<dd class="dd"><p class="p">The AAD size.</p>
+</dd>
+
+    <dt class="dt dlterm"><span class="keyword dtype">uint8_t</span> <var class="keyword varname">counter</var></dt>
+<dd class="dd"><p class="p">The block counter.</p>
+</dd>
+
+    <dt class="dt dlterm"><span class="keyword dtype">void* </span><var class="keyword varname">private</var></dt>
+<dd class="dd"><p class="p">Private arguments to pass for other types of ciphers.</p>
+</dd>
+</dl>
+</div>
+<div class="section"><h2 class="title sectiontitle">Library:</h2><span class="ph filepath">libqcrypto</span></div>
+<div class="section"><h2 class="title sectiontitle">Description:</h2><p class="p">The arguments are organized based on the algorithm name. Some modes of operation require extra
+        parameters to set up the algorithm.</p>
+
+      <p class="p">The <span class="ph codeph">private</span> field can be used for custom plugins that implement custom
+        algorithms that the QNX cryptography library API does not support.</p>
+
+        <p class="p">The <var class="keyword varname">padding</var> value can only be a value other than
+            <span class="keyword const">QCRYPTO_CIPHER_PADDING_NONE</span> if the cipher is a block cipher;
+            otherwise, an error is returned. See <a class="xref" href="../qcrypto_cipher_padding_t.html" title="A structure to contain cipher padding modes">qcrypto_cipher_padding_t</a>.</p>
+
+        <p class="p">For more information, see <a class="xref" href="../qcrypto_cipher_init.html" title="Initialize a cipher"><span class="keyword apiname">qcrypto_cipher_init()</span></a>.</p>
+
+      <p class="p"> </p>
+</div>
+</div>
+</body>
+</html>

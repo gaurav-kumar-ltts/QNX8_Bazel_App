@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Windows" />
+<meta name="abstract" content="Use buffer sharing when you want one window to display the same content as another." />
+<meta name="description" content="Use buffer sharing when you want one window to display the same content as another." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_rendering-cloning.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_cloning-window" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Windows</title>
+</head>
+<body id="cscreen_cloning-window">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Windows
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Use buffer sharing when you want one window to display the same content as another.
+    </p>
+
+        <p class="p">
+            
+            
+            When windows share buffers, there's only one set of buffers. One window must be the owner of the buffers,
+            and the other window is simply accessing these buffers. These buffers must have
+            been created with
+            <a class="xref" href="../screen_create_window_buffers.html" title="Allocate new buffers for a window"><span class="keyword apiname">screen_create_window_buffers()</span></a>
+            or associated with
+            <a class="xref" href="../screen_attach_window_buffers.html" title="Associate buffers with a window"><span class="keyword apiname">screen_attach_window_buffer()</span></a>.
+            The window that's sharing the buffers doesn't necessarily need any buffers itself because it's relying
+            on the use of the buffers owned by the other window. Naturally, the window that doesn't own the buffers
+            can't set any of the properties of those buffers; the properties of the shared buffers are controlled
+            by the window that owns them.
+        </p>
+
+        <p class="p">
+            Updates to the shared buffers can be posted only by the window that owns the buffers
+            (i.e., the window whose handle was identified as the second parameter (<span class="keyword parmname">share</span>) to
+            <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>).
+            Only the buffers that exist when
+            <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>
+            is called are shared. What this means is that if the window that owns the
+            shared buffers creates new buffers after
+            <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>
+            was called, then the sharing window doesn't have access to the newly created buffers. The
+            old buffers still exist because there's a window associated with the buffers, but they won't be
+            updated. You can call <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>
+            again to update the sharing window with any new or updated buffers.
+        </p>
+
+        <p class="p">
+            When it comes to displaying the content of these windows, <span class="keyword">Screen</span> uses
+            the one set of buffers to update all windows. 
+        </p>
+
+        <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>
+                Windows sharing buffers
+            </span>
+            
+            <br /><img class="image" src="../../images/window_buffer-sharing.svg" /><br />
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle">Sharing buffers when there's a window hierarchy</h2>
+            
+            
+            
+            <p class="p">
+                Buffers of child windows are not included in the shared buffers when you call
+                <a class="xref" href="../screen_share_window_buffers.html" title="Cause a window to display content produced in another window"><span class="keyword apiname">screen_share_window_buffers()</span></a>.
+                Only the buffers of the window, not its children, specified in the API function are accessible to
+                be shared. For example, suppose you have one window that has a child window. The parent window is just a yellow
+                background and the child window has a buffer that contains the image of a simple hourglass shape. If
+                another window shares buffers with the parent window, that window won't have access to the child window's
+                hourglass shape.
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>
+                    A window sharing buffers with a window hierarchy
+                </span>
+                
+                <br /><img class="image" src="../../images/window_buffer-sharing-hierarchy.svg" width="672" /><br />
+            </div>
+
+            <p class="p">
+                As you can see, the window (Window_B) that's sharing buffers with the parent window (Window_A) doesn't
+                include the hourglass because that hourglass image is stored in the buffer of the child window
+                (Window_C) and therefore is not included in the shared buffers between Window_B and Window_A.
+            </p>
+
+            <p class="p">
+                If what you need is the visible content of one window in another window without worrying about the
+                hierarchy of the original window, use the function
+                <a class="xref" href="../screen_read_window.html" title="Take a screenshot of the window and store the resulting image in the specified buffer"><span class="keyword apiname">screen_read_window()</span></a>. This function
+                takes a screenshot of a window and stores the result into a buffer you provide. It can be a pixmap or
+                window buffer. This way, you can access the visible content of another window without having to share
+                buffers of a window and its children.
+            </p>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>
+                    A window taking a screenshot of another window
+                </span>
+                
+                <br /><img class="image" src="../../images/window_read-window.svg" width="672" /><br />
+            </div>
+
+        </div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_rendering-cloning.html" title="Cloning is about duplicating content (e.g., two windows sharing the same content) by sharing buffers.">Cloning</a></div>
+</div>
+</div></body>
+</html>

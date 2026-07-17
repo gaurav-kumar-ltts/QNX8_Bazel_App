@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Startup" />
+<meta name="DC.subject" content="Startup, QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="keywords" content="Startup, QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="startup" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Startup</title>
+</head>
+<body id="startup">
+
+
+  <h1 class="title topictitle1" id="ariaid-title1">Startup</h1>
+
+
+
+  
+  <div class="body conbody">
+    <p class="p">This module takes over after the first-stage bootloader (BIOS, UEFI, U-boot, or IPL) has
+      finished executing. The startup code executes after it has been copied from the boot device
+      into the system’s DRAM. The startup code sets up a number of in-memory data structures by
+      populating them with information about the hardware, so that the QNX kernel and other device
+      drivers can run. Collectively, these data structures are known as the QNX system page
+      (syspage).</p>
+<p class="p">When you adapt startup code from an existing BSP to a new target board,
+      ensure your investigation includes the following system elements:</p>
+<dl class="dl">
+      
+        <dt class="dt dlterm">DRAM memory size</dt>
+
+        <dd class="dd">
+          <p class="p">The startup code usually has a routine that determines how much DRAM is installed in
+            the system based on information that U-Boot or the IPL passes to it. However, in some
+            cases, you need to manually specify how much DRAM is present in the system.</p>
+
+          <p class="p">For example, the target system that the original BSP was written for has 2 gigabytes of
+            DRAM, but your custom target has only 1 gigabyte of DRAM. To ensure that the startup
+            code doesn’t populate the system page with incorrect information, update it to specify
+            the correct DRAM size. (If the QNX kernel thinks there is 2 gigabytes of DRAM present
+            when there is actually only 1 gigabyte present, the kernel crashes as soon as you try to
+            boot the system.)</p>
+
+        </dd>
+
+      
+      
+        <dt class="dt dlterm">CPU Frequency and clocks</dt>
+
+        <dd class="dd">
+          <p class="p">As with DRAM memory size, it is important to go through the startup code to ensure that
+            the clock initialization is correct for your target board, if the CPU core frequency or
+            any of the peripheral clocks differ from the reference BSP.</p>
+
+        </dd>
+
+      
+      
+        <dt class="dt dlterm">Pinmux and GPIO configuration</dt>
+
+        <dd class="dd">
+          <p class="p">Although a variety of common peripherals can be built into the SoC, the method that
+            internally connects these peripheral blocks to the CPU core can sometimes be
+            configurable by the software. </p>
+
+          <p class="p">For example, a peripheral such as a UART interface can have the option of using two or
+            three different sets of multiplexed pins that transmit UARTsignals from the SoC to
+            external devices. Unless the custom board you are porting to uses exactly the same pin
+            configuration as the reference board, you need to modify the startup code’s
+            <span class="keyword apiname">init_pinmux()</span> routine to ensure that each peripheral’s signals are
+            routed to the correct sets of external pins on the SoC. </p>
+
+          <p class="p">Similarly, some peripherals utilize GPIO (general purpose input/output) pins on the SoC
+            for particular functionality. To accommodate any differences in GPIO pin utilization
+            between the reference hardware and the custom hardware, ensure that you examine the
+            portion of the startup code that initializes the GPIO pins and modify it if
+            necessary.</p>
+
+        </dd>
+
+      
+      
+      </dl>
+<div class="note"><span class="notetitle">Note:</span> Different revisions of SoC can have different DRAM, clocks, and Pinmux.</div>
+
+
+    <p class="p">Unlike many other operating systems that perform most initialization tasks after the OS
+    is running, <span class="keyword">QNX OS</span> performs many key initializations using its startup
+    program. These initializations include timers, interrupt controllers, and cache controllers. Custom
+      board projects can require modifications to the following board and startup code elements:</p>
+
+    <ul class="ul" id="startup__ul_rkl_xg4_qy">
+      <li class="li"> Memory mapping</li>
+
+      <li class="li"> Voltages</li>
+
+      <li class="li"> Kernel callouts</li>
+
+    </ul>
+
+    <p class="p">For a discussion of modifying or creating the startup code, see <q class="q">Modifying the startup</q>
+      in the Startup Programs chapter of <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/about.html"><em class="ph i">Building Embedded
+        Systems</em></a>.</p>
+
+  
+  <dl class="dl">
+    
+      <dt class="dt dlterm">Memory mapping</dt>
+
+      <dd class="dd"><p class="p">Your custom board’s hardware determines the memory configuration options that are available
+        to you. </p>
+
+      <p class="p">Some boards expect the startup code to load the OS at a specific address (for example,
+        SABRE platforms). </p>
+
+      <p class="p">Not all boards support compression, which prevents you from compressing the IFS to improve
+        performance or conserve memory.
+        </p>
+
+      <p class="p">The type of media used to store the IPL and the IFS affects the IPL design. The most common
+            type of media used are non-linearly-mapped devices (for example, an eMMC, SD card, or
+            SPI NOR Flash device). The storage provided by these devices can't be mapped directly
+            into the processor's address space. Because the processor can't address the OS image,
+            the IPL needs to copy the entire image (including the startup code) into RAM. For more
+            information, see “Image storage” in the Initial Program Loaders (IPLs) chapter of <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/about.html"><em class="ph i">Building Embedded Systems</em></a>.</p>
+
+      </dd>
+
+    
+    
+    
+      <dt class="dt dlterm" id="startup__voltages">Voltages</dt>
+
+      <dd class="dd"><p class="p">A system that uses the QNX Graphics Framework (GF) needs to power up the GPU before it
+        initializes the graphics functionality. Refer to the hardware specifications for your board
+        to determine whether your GPU requires the startup code to perform this task. For example,
+        some boards enable the GPU by default and others require you to set the voltage and enable
+        it.</p>
+
+      <p class="p">Depending on your system’s requirements, you can configure the startup code to turn on only
+        some graphics resources (for example, the display controller only). Other graphics resources
+        can then be turned on after startup when they are needed (for example, using a driver).</p>
+</dd>
+
+    
+
+    
+      <dt class="dt dlterm">Callouts</dt>
+
+      <dd class="dd"><p class="p">The kernel uses callouts to provide the <span class="keyword">QNX OS</span> kernel and process manager with
+        hardware-specific code. If your hardware platform isn't supported by the callouts in the
+        startup library, or by any of the available board-specific callouts, you write your own.</p>
+
+      <p class="p">For information about the callouts and how to write a kernel callout, see <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/callouts/callout_about.html">Kernel Callouts</a> in <em class="ph i">Building Embedded Systems</em>.</p>
+</dd>
+
+    
+
+    
+      <dt class="dt dlterm">Flattened device tree (FDT)</dt>
+
+      <dd class="dd"><p class="p">Some system elements make use of a flattened device tree (FDT) data structure that describes a
+            board's hardware (for example, some network drivers). The FDT is configured via startup
+            code. For more information, go to <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/startup_options.html">
+              <q class="q"><span class="keyword cmdname">startup-*</span> options</q></a> in the <cite class="cite">Utilities
+              Reference</cite>.</p>
+</dd>
+
+    
+  </dl>
+
+  </div>
+
+</body>
+</html>

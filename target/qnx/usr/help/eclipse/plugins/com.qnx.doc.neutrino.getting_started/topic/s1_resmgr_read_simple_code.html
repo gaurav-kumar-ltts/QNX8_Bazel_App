@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The code" />
+<meta name="abstract" content="Here's the code that addresses all the above points. We'll go through it step by step in the discussion that follows." />
+<meta name="description" content="Here's the code that addresses all the above points. We'll go through it step by step in the discussion that follows." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_read_simple.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="read_simple_code" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The code</title>
+</head>
+<body id="read_simple_code">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">The code</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Here's the code that addresses all the above points.
+We'll go through it step by step in the discussion that follows.
+</p>
+
+
+<p class="p">
+  
+  
+  
+  
+</p>
+
+
+<pre class="pre codeblock">/*
+ * io_read1.c
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/iofunc.h&gt;
+
+// our data string
+char    *data_string = "Hello, world!\n";
+
+int io_read (resmgr_context_t *ctp, io_read_t *msg, iofunc_ocb_t *ocb)
+{
+    int     sts;
+    int     nbytes;
+    int     nleft;
+    int     off;
+    int     xtype;
+    struct _xtype_offset *xoffset;
+
+    // 1) verify that the device is opened for read
+    if ((sts = iofunc_read_verify (ctp, msg, ocb, NULL)) != EOK) {
+        return (sts);
+    }
+
+    // 2) check for and handle an XTYPE override
+    xtype = msg -&gt; i.xtype &amp; _IO_XTYPE_MASK;
+    if (xtype == _IO_XTYPE_OFFSET) {
+        xoffset = _IO_INPUT_PAYLOAD(msg);
+        off = xoffset -&gt; offset;
+    } else if (xtype == _IO_XTYPE_NONE) {
+        off = ocb -&gt; offset;
+    } else {   // unknown, fail it
+        return (ENOSYS);
+    }
+
+    // 3) how many bytes are left?
+    nleft = ocb -&gt; attr -&gt; nbytes - off;
+
+    // 4) how many bytes can we return to the client?
+    nbytes = min (nleft, msg -&gt; i.nbytes);
+
+    // 5) if returning data, write it to client
+    if (nbytes) {
+        /* the first nbytes value, the status parameter, 
+        tells the client how many bytes we're giving them */
+        MsgReply (ctp -&gt; rcvid, nbytes, data_string + off, nbytes);
+
+        // 6) set up POSIX stat() "atime" data
+        ocb -&gt; attr -&gt; flags |= IOFUNC_ATTR_ATIME |
+                                IOFUNC_ATTR_DIRTY_TIME;
+
+        // 7) advance the lseek() index by the number of bytes
+        // read if not _IO_XTYPE_OFFSET
+        if (xtype == _IO_XTYPE_NONE) {
+            ocb -&gt; offset += nbytes;
+        }
+    } else {
+        /* 8) no more data to return, tell the client we have 0 
+        bytes left through the status parameter */
+        MsgReply (ctp -&gt; rcvid, 0, NULL, 0);
+    }
+
+    // 9) indicate we already did the MsgReply to the library
+    return (_RESMGR_NOREPLY);
+}
+</pre>
+
+<dl class="dl">
+
+<dt class="dt dlterm">Step 1</dt>
+
+<dd class="dd">Here we ensured that the client's <span class="keyword apiname">open()</span>
+  call had in fact specified that the device was to be opened for reading.
+  If the client opened the device for writing only, and then attempted to
+  perform a read from it, it would be considered an error.
+  In that case, the helper function
+  <span class="keyword apiname">iofunc_read_verify()</span> would return <span class="keyword const">EBADF</span>,
+  and not <span class="keyword const">EOK</span>, so we'd return that value to the library,
+  which would then pass it along to the client.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 2</dt>
+
+<dd class="dd">Here we checked to see if the client had specified an
+  <em class="ph i">xtype-override</em>—a per-message override (e.g., because while
+  the device had been opened in non-blocking mode, this specifies for
+  this one request that we'd like blocking behavior).
+  Note that the blocking aspect of the <q class="q">xtype</q> override can be noted by the
+  <span class="keyword apiname">iofunc_read_verify()</span> function's last parameter—since
+  we're illustrating a very simple example, we just passed in a
+  <span class="keyword const">NULL</span> indicating that we don't care about this aspect.
+  
+  
+  
+
+  <p class="p">
+  More important, however, is to see how particular <q class="q">xtype</q> modifiers are handled.
+  An interesting one is the <span class="keyword const">_IO_XTYPE_OFFSET</span> modifier, which,
+  if present, indicates that the message passed from the client contains an
+  offset and that the read operation should <em class="ph i">not</em> modify the
+  <q class="q">current file position</q> of the file descriptor (this is used by the function
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pread.html"><span class="keyword apiname">pread()</span></a>,
+  for example).
+  </p>
+
+
+  <p class="p">
+  If the <span class="keyword const">_IO_XTYPE_OFFSET</span> modifier is not present, then the
+  read operation can go ahead and modify the <q class="q">current file position.</q>
+  We use the variable <var class="keyword varname">xtype</var> to store the <q class="q">xtype</q> that
+  we received in the message, and the variable <var class="keyword varname">off</var> to
+  represent the current offset that we should be using during processing.
+  You'll see some additional handling of the <span class="keyword const">_IO_XTYPE_OFFSET</span>
+  modifier below, in step 7.
+  
+  
+  
+  
+  </p>
+
+
+  <p class="p">
+  If there is a different <q class="q">xtype override</q> than
+  <span class="keyword const">_IO_XTYPE_OFFSET</span> (and not the no-op one of
+  <span class="keyword const">_IO_XTYPE_NONE</span>), we fail the request with <span class="keyword const">ENOSYS</span>.
+  This simply means that we don't know how to handle it, and we therefore
+  return the error up to the client.
+  
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Steps 3 &amp; 4</dt>
+
+<dd class="dd">To calculate how many bytes we can actually return to the client,
+  we perform steps 3 and 4, which figure out how many bytes are available
+  on the device (by taking the total device size from
+  <var class="keyword varname">ocb</var>-&gt;<var class="keyword varname">attr</var>-&gt;<var class="keyword varname">nbytes</var>
+  and subtracting the current offset into the device).
+  Once we know how many bytes are left, we take the smaller of that number
+  and the number of bytes that the client specified that they wish to read.
+  For example, we may have seven bytes left, and the client wants to read only two.
+  In that case, we can return only two bytes.
+  Alternatively, if the client wanted 4096 bytes, but we had only seven left,
+  we could return only seven bytes.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 5</dt>
+
+<dd class="dd">Now that we've calculated how many bytes we're going to return to the
+  client, we need to do different things based on whether or not we're
+  returning data.
+  If we are returning data, then after the check in step 5, we reply to
+  the client with the data.
+  Notice that we use <span class="ph codeph">data_string + off</span> to return data starting
+  at the correct offset (the <var class="keyword varname">off</var> is calculated based on
+  the xtype override).
+
+  <p class="p">
+  Also notice the second parameter to
+  <span class="keyword apiname">MsgReply()</span>—it's documented as the
+  <var class="keyword varname">status</var> argument, but in this case we're using it to
+  return the number of bytes.
+  This is because the implementation of the client's <span class="keyword apiname">read()</span>
+  function knows that the return value from its <span class="keyword apiname">MsgSendv()</span>
+  (which is the <var class="keyword varname">status</var> argument to
+  <span class="keyword apiname">MsgReply()</span>, by the way) is the number of bytes that were read.
+  This is a common convention.
+  
+  
+  
+  
+  
+  
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 6</dt>
+
+<dd class="dd">Since we're returning data from the device, we know that the device has been accessed.
+  We set the <span class="keyword const">IOFUNC_ATTR_ATIME</span> and <span class="keyword const">IOFUNC_ATTR_DIRTY_TIME</span>
+  bits in the <var class="keyword varname">flags</var> member of the attribute structure. This
+  serves as a reminder to the stat I/O function handler that the access time is
+  not valid and should be fetched from the system clock before replying. If we
+  really wanted to, we could have stuffed the current time into the
+      <var class="keyword varname">atime</var> member of the attributes structure and cleared the
+      <span class="keyword const">IOFUNC_ATTR_DIRTY_TIME</span> flag. But this isn't very efficient,
+  since we're expecting to get a lot more <span class="keyword apiname">read()</span> requests from
+  the client than <span class="keyword apiname">stat()</span> requests. However, your usage patterns
+  may dictate otherwise.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="note"><span class="notetitle">Note:</span>  So which time does the client see when it finally <em class="ph i">does</em> call
+            <span class="keyword apiname">stat()</span>? The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_stat_default.html"><span class="keyword apiname">iofunc_stat_default()</span></a> function provided
+        by the resource manager library will look at the <var class="keyword varname">flags</var>
+        member of the attribute structure to see if the times are valid (the
+            <var class="keyword varname">atime</var>, <var class="keyword varname">ctime</var>, and
+            <var class="keyword varname">mtime</var> fields). If they are not (as will be the case
+        after our read I/O function handler has been called and returned data), the
+            <span class="keyword apiname">iofunc_stat_default()</span> function will update the
+        time(s) with the current time. The real value of the time is also updated on
+        a <span class="keyword apiname">close()</span>, as you'd expect.
+        
+        
+        
+        
+        
+        
+    </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 7</dt>
+
+<dd class="dd">Now we advance the <span class="keyword apiname">lseek()</span> offset by the number of bytes
+  that we returned to the client, only if we are <em class="ph i">not</em> processing
+  the <span class="keyword const">_IO_XTYPE_OFFSET</span> override modifier.
+  This ensures that, in the non-<span class="keyword const">_IO_XTYPE_OFFSET</span> case, if the client calls
+  <span class="keyword apiname">lseek()</span> to get the current position,
+  or (more importantly) when the client calls <span class="keyword apiname">read()</span> to get the next few
+  bytes, the offset into the resource is set to the correct value.
+  In the case of the <span class="keyword const">_IO_XTYPE_OFFSET</span> override, we leave the <var class="keyword varname">ocb</var>
+  version of the offset alone.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 8</dt>
+
+<dd class="dd">Contrast steps 5 through 7 with this step.
+  Here we only reply to the client while using the status parameter to tell it that we have 0 bytes left for it
+  (<span class="keyword apiname">read()</span> will return this 0 indicating End Of File, <span class="keyword const">EOF</span>); we don't perform any other functions.
+  Notice also that there is no data area specified to the <span class="keyword apiname">MsgReply()</span>, because we're not returning data.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm">Step 9</dt>
+
+<dd class="dd">Finally, in step 9, we perform processing that's common regardless of
+  whether or not we returned data to the client.
+  Since we've already unblocked the client via the <span class="keyword apiname">MsgReply()</span>, we certainly
+  don't want the resource manager library doing that for us, so we tell it that we've
+  already done that by returning <span class="keyword const">_RESMGR_NOREPLY</span>.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_read_simple.html" title="To illustrate how your resource manager might return data to a client, consider a simple resource manager that always returns the constant string &#34;Hello, world!\n&#34;. There are a number of issues involved, even in this very simple case.">A simple read I/O function handler example</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

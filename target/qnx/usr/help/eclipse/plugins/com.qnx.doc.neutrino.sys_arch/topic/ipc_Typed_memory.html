@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Typed memory" />
+<meta name="abstract" content="POSIX typed memory provides an interface that lets you open named memory objects and perform mapping operations on them." />
+<meta name="description" content="POSIX typed memory provides an interface that lets you open named memory objects and perform mapping operations on them." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add_containing.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Typed_memory" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Typed memory</title>
+</head>
+<body id="Typed_memory">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Typed memory</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+POSIX typed memory provides an interface that lets you open named memory objects and perform mapping operations on them.
+</p>
+
+
+<p class="p">
+
+
+Typed memory is useful in providing an abstraction between
+BSP- or board-specific address layouts and device drivers or user code.
+You can reserve memory in advance for specific purposes, such as graphics, and remove that
+memory from the system RAM that programs typically allocate from.
+</p>
+
+
+<p class="p">
+POSIX specifies that typed memory pools (or objects) are created and defined in an implementation-specific fashion.
+Under <span class="keyword">QNX OS</span>, typed memory objects are defined from the memory regions
+specified in the <var class="keyword varname">asinfo</var> section of the system page.
+Thus, typed memory objects map directly to the address space hierarchy
+(<var class="keyword varname">asinfo</var> segments) defined by startup.
+The typed memory objects also inherit the properties defined in
+<var class="keyword varname">asinfo</var>, namely the physical address (or bounds) of the memory segments.
+</p>
+
+
+<div class="p">
+In general, the naming and properties of the <var class="keyword varname">asinfo</var> entries
+are arbitrary and completely under the user's control.
+There are, however, some mandatory entries:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><tt class="ph tt">memory</tt></dt>
+
+<dd class="dd">Physical addressability of the processor, which depends on the architecture.</dd>
+
+
+
+
+<dt class="dt dlterm"><tt class="ph tt">ram</tt></dt>
+
+<dd class="dd">All of the RAM on the system.
+  This may consist of multiple entries.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><tt class="ph tt">sysram</tt></dt>
+
+<dd class="dd">System RAM, which is memory that has been given to the OS to manage.
+  This may also consist of multiple entries.
+  The OS uses this pool for all general-purpose memory allocations on the system, including code, data, stack,
+  heap, kernel and process manager data, shared memory objects, and memory-mapped files.
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+You can create additional entries, but only in startup, using the
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add.html"><span class="keyword apiname">as_add()</span></a>
+function (see the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/startup_library.html">Startup Library</a></q> chapter of <cite class="cite">Building Embedded Systems</cite>).
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Typed memory objects can be either inside or outside SYSRAM.
+Objects that are inside SYSRAM are used to restrict normal allocations to a subset of the normal pool,
+while those outside SYSRAM are used to carve regions that aren't available for general-purpose allocation.
+</div>
+
+
+<p class="p">
+The names of typed memory regions are derived directly from the names of
+the <var class="keyword varname">asinfo</var> segments.
+The <var class="keyword varname">asinfo</var> section itself describes a hierarchy, and so the
+naming of typed memory objects is a hierarchy.
+Their names may contain intermediate slash (<tt class="ph tt">/</tt>) characters that are considered as path-component separators.
+</p>
+
+
+<div class="p">
+Let's look at a sample <var class="keyword varname">asinfo</var> configuration, which you can display with the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/pidin.html"><span class="keyword cmdname">pidin</span></a> 
+<span class="keyword cmdname">syspage=asinfo</span> command:
+
+<pre class="pre codeblock">Header size=0x00000108, Total Size=0x00000cd0, #Cpu=2, Type=256
+Section:asinfo offset:0x00000710 size:0x00000340 elsize:0x00000020
+  0000) 0000000000000000-000000000000ffff o:ffff a:0000 p:100 c:0 n:/io
+  0020) 0000000000000000-000fffffffffffff o:ffff a:0010 p:100 c:0 n:/memory
+  0040) 0000000000000000-00000000ffffffff o:0020 a:0010 p:100 c:0 n:/memory/below4G
+  0060) 0000000000000000-0000000000ffffff o:0020 a:0010 p:100 c:0 n:/memory/isa
+  0080) 0000000006000000-00000000ffefffff o:0020 a:0013 p:100 c:0 n:/memory/device
+  00a0) 00000000fff00000-00000000ffffffff o:0020 a:0005 p:100 c:0 n:/memory/rom
+  00c0) 0000000000000000-000000000009f7ff o:0060 a:0017 p:100 c:0 n:/memory/isa/ram
+  00e0) 0000000000100000-0000000000ffffff o:0060 a:0037 p:100 c:0 n:/memory/isa/ram
+  0100) 0000000001000000-0000000005ffffff o:0040 a:0037 p:100 c:0 n:/memory/below4G/ram
+  0120) 0000000006000000-000000003fedffff o:0080 a:0017 p:100 c:0 n:/memory/device/ram
+  0140) 000000003ff00000-000000003fffffff o:0080 a:0017 p:100 c:0 n:/memory/device/ram
+  0160) 00000000000f6a00-00000000000f6a23 o:0020 a:0007 p:100 c:0 n:/memory/acpi_rsdp
+  0180) 00000000fee00000-00000000fee003ef o:0020 a:0003 p:100 c:0 n:/memory/lapic
+  01a0) 000000000142c038-0000000001c9bb7b o:0020 a:0005 p:100 c:0 n:/memory/imagefs
+  01c0) 0000000001400f30-000000000142c037 o:0020 a:0007 p:100 c:0 n:/memory/startup
+  01e0) 000000000142c038-0000000001c9bb7b o:0020 a:0007 p:100 c:0 n:/memory/bootram
+  0200) 0000000000000000-00000000ffffffff o:ffff a:0010 p:100 c:0 n:/virtual
+  0220) ffff800000001000-ffff8000000f25d0 o:0200 a:0000 p:100 c:0 n:/virtual/vboot
+  0240) 0000000000001000-000000000009efff o:00c0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+  0260) 0000000000106000-0000000000108fff o:00e0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+  0280) 000000000010f000-00000000004f6fff o:00e0 a:0007 p:100 c:0 n:/memory/isa/ram/sysram
+  02a0) 00000000004f8000-0000000000ffffff o:00e0 a:0027 p:100 c:0 n:/memory/isa/ram/sysram
+  02c0) 0000000001000000-000000000142bfff o:0100 a:0007 p:100 c:0 n:/memory/below4G/ram/sysram
+  02e0) 0000000001c9c000-0000000005ffffff o:0100 a:0027 p:100 c:0 n:/memory/below4G/ram/sysram
+  0300) 0000000006000000-000000003f2d4fff o:0120 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+  0320) 000000003ff00000-000000003fffffff o:0140 a:0007 p:100 c:0 n:/memory/device/ram/sysram
+</pre>
+</div>
+
+
+<p class="p">
+For details about the above information, see the section on
+<a class="xref" href="../../com.qnx.doc.neutrino.building/topic/syspage/asinfo.html"><var class="keyword varname">asinfo</var></a>
+in the <q class="q">System Page</q> chapter of <cite class="cite">Building Embedded Systems</cite>.
+</p>
+
+
+<p class="p">
+
+You use
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html"><span class="keyword apiname">posix_typed_mem_open()</span></a>
+to open a typed memory object, specifying the name of the object, the access mode, and
+flags that indicate how the object behaves when it's mapped.
+The name you pass to this function follows the above naming convention.
+If the name starts with a leading slash (<tt class="ph tt">/</tt>), an exact match is done.
+POSIX allows an implementation to define what happens when the name doesn't
+start with a leading slash;
+in <span class="keyword">QNX OS</span>, a tail match is done on the pathname components specified.
+</p>
+
+
+<p class="p">
+You can also use ampersands and vertical bars (<tt class="ph tt">&amp;</tt> and <tt class="ph tt">|</tt>) between segments to specify
+intersections and unions, respectively.
+You can specify an arbitrary number of them; they're evaluated from left to right, but parentheses aren't supported.
+</p>
+
+
+<div class="p">
+Here are some examples of how <span class="keyword apiname">posix_typed_mem_open()</span> resolves
+names, using the above sample configuration:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3086e214">This name:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d3086e217">Resolves to:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">/memory</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 "><tt class="ph tt">/memory</tt></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">isa</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 ">Fails because <tt class="ph tt">isa</tt> isn't a leaf in the hierarchy</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">/memory/rom</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 "><tt class="ph tt">/memory/rom</tt></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">/sysram</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 ">Fails because <tt class="ph tt">sysram</tt> isn't at the top of the hierarchy</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">sysram</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 ">All <tt class="ph tt">sysram</tt> segments, including
+    four occurrences of <tt class="ph tt">/memory/isa/ram/sysram</tt>,
+    two occurrences of <tt class="ph tt">/memory/device/below4G/sysram</tt>,
+    and two occurrences of <tt class="ph tt">/memory/device/ram/sysram</tt>
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e214 "><tt class="ph tt">below4G&amp;sysram</tt></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d3086e217 ">The intersection of all physical address ranges for <tt class="ph tt">below4G</tt>
+    with all physical address ranges for <tt class="ph tt">sysram</tt>.
+
+    <p class="p">
+    For example, if you have two memory regions, one being <tt class="ph tt">/ram/below4G</tt> with addresses from 0 to 4 GB,
+    and the other being <tt class="ph tt">/ram/sysram</tt> with addresses from 1 GB to 6 GB,
+    then <tt class="ph tt">below4G&amp;sysram</tt> gives pages in the range 1 GB to 4 GB.
+    </p>
+
+  </td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+Specifying a union or intersection can be more useful than specifying a full name.
+</p>
+
+
+<p class="p">
+As an extension to POSIX, the typed memory name hierarchy is exported through the process manager
+namespace under <span class="ph filepath">/dev/tymem</span>.
+Applications can list this hierarchy and look at the <var class="keyword varname">asinfo</var>
+entries in the system page to get information about the typed memory.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can't open typed memory through the namespace interface (as you can for shared memory objects), because
+<span class="keyword apiname">posix_typed_mem_open()</span> requires an additional <var class="keyword varname">tflag</var> argument,
+which you can't provide when you call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/open.html"><span class="keyword apiname">open()</span></a>.
+</div>
+
+
+<p class="p">
+If successful,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html"><span class="keyword apiname">posix_typed_mem_open()</span></a>
+returns a file descriptor for the typed memory object.
+What you do with the file descriptor depends on which approach you want to take:
+</p>
+
+
+<ul class="ul">
+<li class="li">the POSIX approach, using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>
+  to establish a memory mapping from the typed memory object
+  
+</li>
+
+
+<li class="li">the <span class="keyword">QNX OS</span> approach, using
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html"><span class="keyword apiname">shm_open()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/shm_ctl.html"><span class="keyword apiname">shm_ctl()</span></a>.
+  This isn't portable, but it's more efficient and secure.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Memory that's mapped from a typed-memory file descriptor is implicitly locked.
+</p>
+
+
+<p class="p">
+
+POSIX also defines
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html"><span class="keyword apiname">posix_typed_mem_get_info()</span></a>,
+which you can use to get information about a typed memory object.
+For more information about working with typed memory, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/typed_memory_overview.html">Typed memory</a></q>
+in the <q class="q">Working with Memory</q> chapter of the <span class="keyword">QNX OS</span> <cite class="cite">Programmer's Guide</cite>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc.html" title="Interprocess Communication (IPC) plays a fundamental role in the transformation of the microkernel from an embedded realtime kernel into a full-scale POSIX operating system. As various service-providing processes are added to the microkernel, IPC is the “glue” that connects those components into a cohesive whole.">Interprocess Communication (IPC)</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_get_info.html">posix_typed_mem_get_info()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/posix_typed_mem_open.html">posix_typed_mem_open()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add.html">as_add() (Building Embedded Systems)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/startup_lib/as_add_containing.html">as_add_containing() (Building Embedded Systems)</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ham_attach()" />
+<meta name="abstract" content="Attach an entity" />
+<meta name="description" content="Attach an entity" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/hamapi_funcs.html" />
+<meta name="DC.relation" scheme="URI" content="ham_attach.html" />
+<meta name="DC.relation" scheme="URI" content="ham_connect.html" />
+<meta name="DC.relation" scheme="URI" content="ham_detach.html" />
+<meta name="DC.relation" scheme="URI" content="ham_detach_self.html" />
+<meta name="DC.relation" scheme="URI" content="ham_disconnect.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_daemon.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ham_attach" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ham_attach()</title>
+</head>
+<body id="ham_attach">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ham_attach()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Attach an entity</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre">
+#include &lt;ha/ham.h&gt;
+
+ham_entity_t *ham_attach( const char *<var class="keyword varname">ename</var>, 
+                          int <var class="keyword varname">reserved</var>,
+                          pid_t <var class="keyword varname">pid</var>,  
+                          const char *<var class="keyword varname">line</var>, 
+                          unsigned <var class="keyword varname">flags</var> );
+</pre>
+
+</div>
+
+
+  <div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+    
+    
+    <dl class="dl">
+      
+        <dt class="dt dlterm"><var class="keyword varname">ename</var></dt>
+
+        <dd class="dd">The name of the entity; it must be unique across the whole context of the HAM.</dd>
+
+      
+      
+      
+        <dt class="dt dlterm"><var class="keyword varname">reserved</var></dt>
+
+        <dd class="dd">Set this argument to <span class="keyword const">0</span>.</dd>
+
+      
+      
+      
+        <dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+        <dd class="dd">Process ID to attach to, if the process is already running. If 
+          <var class="keyword varname">pid</var> <tt class="ph tt">≤</tt> 0, the HAM starts the process and begins monitoring it. 
+          In this case, <var class="keyword varname">line</var> must also be specified with the FULL <var class="keyword varname">path</var> 
+          (including all required arguments) to start the process.
+        </dd>
+
+      
+      
+      
+        <dt class="dt dlterm"><var class="keyword varname">line</var></dt>
+
+        <dd class="dd">This contains the FULL command line, 
+          including arguments, to start the process. This is used ONLY if <var class="keyword varname">pid</var> <tt class="ph tt">≤</tt> 0 
+          and is ignored otherwise.
+          If either the pathname or the arguments contain spaces that need to be passed
+          literally to the spawn call, they need to be quoted.
+          As long as the subcomponents within the
+          <var class="keyword varname">path</var> arguments are quoted, using either of the following methods:
+          
+          <pre class="pre codeblock">\'path with space\'
+  </pre>
+          
+          <p class="p">
+            or:
+          </p>
+
+          
+          <pre class="pre codeblock">\"path with space\",
+  </pre>
+          
+          
+          <p class="p">
+            the following is allowed:
+          </p>
+
+          
+          <pre class="pre codeblock">"\'path with space\' arg1 arg2 \"arg3 with space\"".
+  </pre>
+          
+          <p class="p">
+            This would be parsed as:
+          </p>
+
+          
+          <pre class="pre codeblock">"path with space" -&gt; path
+
+arg1 = arg1
+
+arg2 = arg2
+
+arg3 = "arg3 with space".
+  </pre>
+          
+        </dd>
+
+      
+      
+      
+        <dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+        <dd class="dd">Currently, the following flag is defined:
+          
+          <dl class="dl">
+            
+              <dt class="dt dlterm"><span class="keyword const">HENTITYKEEPONDEATH</span></dt>
+
+              <dd class="dd">Indicates that the entity and all it conditions 
+                will be retained when the entity dies and is not restarted.
+                The default is to remove all entities that aren't restarted.
+              </dd>
+
+            
+            
+          </dl>
+
+          
+        </dd>
+
+      
+    </dl>
+
+    
+  </div>
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libham</span></p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+You use the <span class="keyword apiname">ham_attach()</span> function to attach an
+<em class="ph i">entity</em> to the HAM. An entity can be any process
+on the system. You can use this function to:
+
+
+</p>
+
+
+<ul class="ul">
+<li class="li">attach a process that's already running
+
+<p class="p">
+or:
+</p>
+
+
+</li>
+
+
+<li class="li">tell the HAM to start a process and then add it as an entity to its context.</li>
+
+
+</ul>
+
+
+<p class="p">
+Once an entity has been attached, you can add <em class="ph i">conditions</em>
+and <em class="ph i">actions</em> to it.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Since the <span class="keyword apiname">ham_attach()</span> function
+opens a temporary connection to the HAM, it also calls 
+<a class="xref" href="ham_connect.html" title="Connect to the HAM"><span class="keyword apiname">ham_connect()</span></a> and
+<a class="xref" href="ham_disconnect.html" title="Disconnect from the HAM"><span class="keyword apiname">ham_disconnect()</span></a>
+internally. So any client that makes a <span class="keyword apiname">ham_attach()</span> call doesn't need to call 
+<span class="keyword apiname">ham_connect()</span> or <span class="keyword apiname">ham_disconnect()</span> 
+before and after the call to <span class="keyword apiname">ham_attach()</span>,
+unless they want to call another API function that depends on a
+permanent connection to the HAM already being available.
+For instance, a client must call <span class="keyword apiname">ham_connect()</span> explicitly 
+if they plan to call <span class="keyword apiname">ham_condition()</span>, because the latter function 
+uses a file descriptor that gets created by the former function.
+</div>
+
+
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+A valid handle to an entity on success; otherwise, NULL (<var class="keyword varname">errno</var> is set).
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+
+<dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+<dd class="dd">Couldn't connect to the HAM.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EEXIST</span></dt>
+
+<dd class="dd">The name provided for the entity already exists.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">The name given in <var class="keyword varname">ename</var> is invalid (e.g., it
+  contains the <q class="q"><span class="ph codeph">/</span></q> character) or is NULL.
+
+  <p class="p">
+    The <var class="keyword varname">pid</var> provided is <tt class="ph tt">≤</tt> 0, but 
+    no <var class="keyword varname">line</var> was provided or the 
+    <var class="keyword varname">line</var> provided is too long, i.e.,
+    it exceeds <span class="keyword const">_POSIX_PATH_MAX</span> 
+    (defined in <span class="ph filepath">&lt;limits.h&gt;</span>).
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENAMETOOLONG</span></dt>
+
+<dd class="dd">The name given (in <var class="keyword varname">ename</var>) is too long, i.e.,
+  it exceeds <span class="keyword const">_POSIX_PATH_MAX</span> (defined in <span class="ph filepath">&lt;limits.h&gt;</span>).
+  Note that the <em class="ph i">combined length</em> of an entity/condition/action
+  name is also limited by <span class="keyword const">_POSIX_PATH_MAX</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOENT</span></dt>
+
+<dd class="dd">(QNX Neutrino 7.0 or later) There isn't a process with the specified <var class="keyword varname">pid</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+<dd class="dd">Not enough memory to create a new handle.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+In addition to the above errors, the HAM returns any error
+it encounters while servicing the request to add a new entity
+to its context.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d18056e434">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d18056e436"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e434 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e436 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e434 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e436 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e434 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d18056e436 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/hamapi_funcs.html">HAM API Reference</a></div>
+</div>
+
+<div class="linklist"><ul class="linklist">
+<li class="linklist"><a class="link" href="ham_attach.html" title="Attach an entity"><span class="keyword apiname">ham_attach()</span></a></li>
+<li class="linklist"><a class="link" href="ham_connect.html" title="Connect to the HAM"><span class="keyword apiname">ham_connect()</span></a></li>
+<li class="linklist"><a class="link" href="ham_detach.html" title="Detach an entity from the HAM"><span class="keyword apiname">ham_detach()</span></a></li>
+<li class="linklist"><a class="link" href="ham_detach_self.html" title="Detach a self-attached entity from the HAM"><span class="keyword apiname">ham_detach_self()</span></a></li>
+<li class="linklist"><a class="link" href="ham_disconnect.html" title="Disconnect from the HAM"><span class="keyword apiname">ham_disconnect()</span></a></li></ul></div>
+
+<div class="linklist"><ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_daemon.html"><span class="keyword apiname">procmgr_daemon()</span></a></li></ul>in the <span class="keyword">QNX OS</span> <em class="ph i">C Library Reference</em><br />
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="aiocb, aiocb64" />
+<meta name="abstract" content="Asynchronous I/O control block" />
+<meta name="description" content="Asynchronous I/O control block" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-a.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_cancel.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_error.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_fsync.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_read.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_return.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_suspend.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/a/aio_write.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/l/lio_listio.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="aiocb" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>aiocb, aiocb64</title>
+</head>
+<body id="aiocb">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">aiocb</span>, <span class="keyword dtype">aiocb64</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Asynchronous I/O control block</em></p>
+
+
+
+<div class="section">
+
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;aio.h&gt;
+
+struct aiocb {
+        int                                     aio_filedes;
+        int                                     aio_reqprio;
+#if __OFF_BITS__ == 64
+        off_t                           aio_offset;
+#elif __OFF_BITS__ == 32
+#if defined(__LITTLEENDIAN__)
+        off_t                           aio_offset;
+        off_t                           aio_offset_hi;
+#elif defined(__BIGENDIAN__)
+        off_t                           aio_offset_hi;
+        off_t                           aio_offset;
+#else
+ #error endian not configured for system
+#endif
+#else
+ #error __OFF_BITS__ value is unsupported
+#endif
+        __volatile void*        aio_buf;
+        size_t                          aio_nbytes;
+        struct sigevent         aio_sigevent;
+        int                                     aio_lio_opcode;
+
+        /* used by the library, applications shouldn't touch them */
+        void                            *_aio_lio_state;
+        int                                     _aio_pad[3];
+        struct aiocb        *_aio_next;
+        unsigned            _aio_flag;
+        unsigned            _aio_iotype;
+        ssize_t             _aio_result;
+        unsigned            _aio_error;
+        void                *_aio_suspend;
+        void                *_aio_plist;
+        int                 _aio_policy;
+        struct __sched_param  _aio_param;
+};
+
+#ifdef __EXT_LF64SRC
+struct aiocb64 {
+        int                                     aio_filedes;
+        int                                     aio_reqprio;
+        off64_t                         aio_offset;
+        __volatile void*        aio_buf;
+        size_t                          aio_nbytes;
+        struct sigevent         aio_sigevent;
+        int                                     aio_lio_opcode;
+        
+        /* used by the library, applications shouldn't touch them */
+        void                            *_aio_lio_state;
+        int                                     _aio_pad[3];
+        struct aiocb        *_aio_next;
+        unsigned            _aio_flag;
+        unsigned            _aio_iotype;
+        ssize_t             _aio_result;
+        unsigned            _aio_error;
+        void                *_aio_suspend;
+        void                *_aio_plist;
+        unsigned            _aio_policy;
+        struct __sched_param  _aio_param;
+};
+#endif
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword dtype">aiocb</span> and <span class="keyword dtype">aiocb64</span> structures define
+the control block for asynchronous I/O operations.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <span class="keyword dtype">aiocb64</span> data type is a large-file support version of <span class="keyword dtype">aiocb</span>
+provided for backwards compatibility.
+If you're using large-file support functions and data types, you should define
+<span class="keyword const">_LARGEFILE64_SOURCE</span> with a value of 1 to ensure they appear in the name space.
+For more information, see <q class="q"><a class="xref" href="../summary.html#summary__CLASSIFICATION">Classification</a></q> in <q class="q">What's in a Function Description?</q>.
+</div>
+
+
+<p class="p">
+These structures include at least the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">aio_filedes</var></dt>
+
+<dd class="dd">The file descriptor to use in an asynchronous I/O operation.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_reqprio</var></dt>
+
+<dd class="dd">The request priority offset.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_offset</var></dt>
+
+<dd class="dd">The file offset.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_offset_hi</var></dt>
+
+<dd class="dd">(<span class="keyword dtype">aiocb</span> only) The high-order bits of the file offset.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_buf</var></dt>
+
+<dd class="dd">A pointer to a buffer.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_nbytes</var></dt>
+
+<dd class="dd">The length of a transfer.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_sigevent</var></dt>
+
+  <dd class="dd">The <a class="xref" href="../s/sigevent.html" title="Structure that describes an event"><span class="keyword dtype">sigevent</span></a> to be delivered once the
+    operation is complete. The event doesn't need to be registered.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">aio_lio_opcode</var></dt>
+
+<dd class="dd">The operation to be performed; one of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">LIO_NOP</span> — a
+    <a class="xref" href="../l/lio_listio.html" title="Initiate a list of I/O requests"><span class="keyword apiname">lio_listio()</span></a>
+    element operation option indicating that no transfer is requested.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">LIO_NOWAIT</span> — a <span class="keyword apiname">lio_listio()</span>
+    synchronization operation indicating that the calling thread is to
+    continue execution while the <span class="keyword apiname">lio_listio()</span> operation is
+    being performed, and no notification is given when the
+    operation is complete.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">LIO_READ</span> — a <span class="keyword apiname">lio_listio()</span> element
+    operation option requesting a read.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">LIO_WAIT</span> — a <span class="keyword apiname">lio_listio()</span>
+    synchronization operation indicating that the calling thread is to
+    suspend until the <span class="keyword apiname">lio_listio()</span> operation is complete.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">LIO_WRITE</span> — a <span class="keyword apiname">lio_listio()</span> element
+    operation option requesting a write.
+    
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The other members are used by the library.
+Applications shouldn't touch them.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><span class="keyword dtype">aiocb</span> is
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a>;
+<span class="keyword dtype">aiocb64</span> is
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">Large-file support</a></p>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Caveats:</h2>
+
+
+<p class="p">
+The first time you call an <span class="keyword apiname">aio_*</span> function, a thread pool
+is created, making your process multithreaded if it isn't already.
+The thread pool isn't destroyed until your process ends.
+</p>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-a.html">A</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/a/aio_cancel.html" title="Cancel an asynchronous I/O operation">aio_cancel()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_error.html" title="Get the error status for an asynchronous I/O operation">aio_error()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_fsync.html" title="Asynchronously synchronize a file">aio_fsync()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_read.html" title="Asynchronously read from a file">aio_read(), aio_read64()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_return.html" title="Get the return status for an asynchronous I/O operation">aio_return()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_suspend.html" title="Wait for asynchronous I/O operations to be completed">aio_suspend()</a></li>
+<li class="linklist"><a class="link" href="../../topic/a/aio_write.html" title="Asynchronously write to a file">aio_write(), aio_write64()</a></li>
+<li class="linklist"><a class="link" href="../../topic/l/lio_listio.html" title="Initiate a list of I/O requests">lio_listio(), lio_listio64()</a></li></ul></div>
+</div></body>
+</html>

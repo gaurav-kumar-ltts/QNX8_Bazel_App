@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="mount() function call" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages_HANDLING_mount.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mount_function" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>mount() function call</title>
+</head>
+<body id="mount_function">
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">mount()</span> function call</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+The prototype for <span class="keyword apiname">mount()</span> is as follows:
+
+<pre class="pre codeblock">int mount( const char *special_device, 
+           const char *mount_directory, 
+           int flags, 
+           const char *mount_type, 
+           const void *mount_data, 
+           int mount_datalen ); 
+</pre>
+</div>
+
+
+<p class="p">
+The argument that we need to consider here is the <var class="keyword varname">flags</var> field.
+</p>
+
+
+<p class="p">
+To support the mounting of non-existent special devices (such as NFS devices)
+or arbitrary strings (such as the name of a shared object or DLL),
+we need to massage the arguments to this function slightly because
+the <span class="keyword cmdname">mount</span> utility has two
+methods (<span class="keyword option">-T</span> and <span class="keyword option">-t</span>) for specifying the mount type. 
+</p>
+
+
+<div class="p">
+In the general case where <var class="keyword varname">special_device</var> is an actual device,
+a typical <span class="keyword cmdname">mount</span> command may look like: 
+
+<pre class="pre codeblock">% mount -t qnx6 /dev/hd0t177 /mnt/fs
+</pre>
+</div>
+
+
+<p class="p">
+Here, the <var class="keyword varname">special_device</var> is <span class="ph filepath">/dev/hd0t177</span>,
+the <var class="keyword varname">mount_directory</var> is <span class="ph filepath">/mnt/fs</span>, and the mount
+type is <span class="ph codeph">qnx6</span>.
+The mount request should be directed only to the process
+responsible for managing the <var class="keyword varname">special_device</var>.
+That is, the resource manager that has provided the
+<span class="ph filepath">/dev/hd0t177</span> path into the pathname space.
+In this scenario, the resource manager is given an OCB for the
+<var class="keyword varname">special_device</var> rather than the
+string <span class="ph codeph">/dev/hd0t177</span>.
+This simplifies the processing in the resource manager since having the OCB,
+which is an internal data pointer, for the special device implies that
+the server doesn't have to recursively communicate with itself to get a
+handle for the device.
+</p>
+
+
+<div class="p"> A less frequently used, but very useful case, is where the <var class="keyword varname">special_device</var>
+                                 isn't an actual device. For example: <pre class="pre codeblock">% mount -T io-sock /lib/dll/devs-em.so
+</pre>
+                      </div>
+
+
+<p class="p"> Note that the mountpoint is missing from the command line. In this case, <span class="keyword const">NULL</span> (or
+                                            <span class="ph filepath">/</span>) acts as an implied
+                                            <var class="keyword varname">mount_directory</var>, which causes the
+                                 process handling the request (i.e., the default prefix of
+                                            <span class="keyword cmdname">io-sock</span>) to take the appropriate
+                                 action when it receives the mount request. The special_device is
+                                            <span class="ph filepath">/lib/dll/devs-em.so</span> and the type is
+                                            <span class="ph codeph">io-sock</span>. </p>
+
+
+<p class="p"> In this case, you want to avoid having the special device interpreted as being provided by the
+                                 same process that will handle the mount request. While the file
+                                            <span class="ph filepath">/lib/dll/devs-em.so</span> is probably
+                                 handled by some filesystem process, we're actually interested in
+                                 mounting a network interface that's managed by the
+                                            <span class="keyword cmdname">io-sock</span> process. Ideally, the mount
+                                 callout will receive only the special device string
+                                            <span class="ph filepath">/lib/dll/devs-em.so</span> and not the
+                                 device's OCB. </p>
+
+
+<p class="p">
+The behavioral difference between the <span class="keyword option">-t</span> and <span class="keyword option">-T</span>
+options for the <span class="keyword cmdname">mount</span> utility can be obtained by ORing in
+<span class="keyword const">_MFLAG_OCB</span> to the standard <span class="keyword apiname">mount()</span> <var class="keyword varname">flags</var> parameter.
+If you don't want to use the OCB method of performing the mount request,
+use <span class="keyword option">-T</span>, which we translate to <span class="keyword const">_MFLAG_OCB</span>.
+</p>
+
+
+<p class="p">
+Mount requests are connection requests, which means they operate on a path
+in the same way that the <span class="keyword apiname">open()</span> or <span class="keyword apiname">unlink()</span> calls do.
+The requests are sent along the path specified by <var class="keyword varname">dir</var>.
+When a resource manager receives a request to mount something, the
+information is already provided in the same way that it would be for an
+<span class="keyword apiname">open()</span> for creation request, namely in the
+<var class="keyword varname">msg-&gt;connect.path</var> variable.
+</p>
+
+
+<p class="p">
+For more details on the name-resolution process, see
+<q class="q"><a class="xref" href="messages_HANDLING_PRIVATE_MSG.html">Handling private messages and pulses</a></q>
+in this chapter.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages_HANDLING_mount.html">Handling mount()</a></div>
+</div>
+</div></body>
+</html>

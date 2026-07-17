@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Custom" />
+<meta name="abstract" content="You can use the custom() callout to define a function to be invoked synchronously when a kernel call with the value __KER_SYS_CUSTOM (defined in &lt;sys/kercalls.h&gt;) is invoked by a process." />
+<meta name="description" content="You can use the custom() callout to define a function to be invoked synchronously when a kernel call with the value __KER_SYS_CUSTOM (defined in &lt;sys/kercalls.h&gt;) is invoked by a process." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_custom" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Custom</title>
+</head>
+<body id="callout_custom">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Custom</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc"> You can use the <span class="keyword apiname">custom()</span> callout to define a function to be invoked
+		synchronously when a kernel call with the value <span class="keyword const">__KER_SYS_CUSTOM</span> (defined in
+			<span class="ph filepath">&lt;sys/kercalls.h&gt;</span>) is invoked by a process.</p>
+
+		<div class="section" id="callout_custom__custom">
+			<p class="p">
+				
+				
+				 The function is called in
+				privileged mode (EL1/Ring0) and using the kernel stack, but without entering the
+				kernel. Interrupts are disabled. The callout is invoked on the kernel persona of the
+				calling thread. It runs in a limited environment: don't enable interrupts, don't
+				make kernel calls, and don't do any floating point or equivalent operations.</p>
+
+			<div class="p">The signature for the callout is:
+<pre class="pre codeblock">uintptr_t (*custom_callout)( struct syspage_entry *<var class="keyword varname">syspageptr</var>,
+                             uint32_t <var class="keyword varname">type_id</var>,
+                             uintptr_t *<var class="keyword varname">regs</var> )
+</pre></div>
+
+			<div class="p">The arguments are as follows:<dl class="dl">
+					
+						<dt class="dt dlterm"><var class="keyword varname">syspageptr</var></dt>
+
+						<dd class="dd">A pointer to the system page; see the <q class="q"><a class="xref" href="../syspage/syspage_about.html" title="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory.">System Page</a></q>
+							chapter. The system page includes references to many data structures
+							that store essential system information.<div class="p">In the <a class="xref" href="../syspage/callout.html" title="Information for kernel callouts"><span class="keyword dtype">callout_entry</span></a> data structure, the value
+								for the <var class="keyword varname">custom</var> field must be either:<ul class="ul">
+									<li class="li"><span class="keyword const">NULL</span>, indicating that no custom kernel call
+										callout is provided</li>
+
+									<li class="li">non-<span class="keyword const">NULL</span>, and pointing to valid code provided
+										by the startup program, indicating that a custom kernel call
+										callout is provided</li>
+
+								</ul>
+</div>
+</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">type_id</var></dt>
+
+						<dd class="dd">The calling process's type (which can be used by the callout for
+							permission checking). This is useful only if your system is using <a class="xref" href="../../../com.qnx.doc.security.system/topic/manual/security_policies.html">security policies</a>.</dd>
+
+					
+					
+						<dt class="dt dlterm"><var class="keyword varname">regs</var></dt>
+
+						<dd class="dd">An array holding the register values of the calling thread. The layout
+							of the thread registers is defined by the
+								<var class="keyword varname">arch</var><span class="keyword dtype">_CPU_REGISTERS</span> structure,
+							which can be found in the
+								<var class="keyword varname">arch</var><span class="ph filepath">/context.h</span> header. For
+							example, the layout for x86_64 is defined by the
+								<span class="keyword dtype">X86_64_CPU_REGISTERS</span> structure in
+								<span class="ph filepath">x86_64/context.h</span>, and for AArch64 by
+								<span class="keyword dtype">AARCH64_CPU_REGISTERS</span> in
+								<span class="ph filepath">aarch64/context.h</span>.</dd>
+
+					
+				</dl>
+</div>
+
+			<p class="p">Note that there's no C library function wrapping the kernel call, as the C signature of the
+				function depends on the implementation of the callout and is at the discretion of
+				the author of the callout. The kernel only takes care to propagate the registers of
+				the calling thread to and from the callout. The standard ABI should be followed when
+				writing C wrappers for the kernel call.</p>
+
+			<p class="p">On a multiCPU system, it's possible that the callout may be invoked on multiple CPUs at the
+				same time. This can be a problem if the callout accesses a resource that's shared
+				between CPUs, because there could end up being multiple callout instances
+				concurrently accessing and modifying the resource.</p>
+
+			<p class="p">For example, suppose your custom kernel callout shares a resource and you implement a simple
+				spinlock. If this callout is heavily used (e.g., in a burst of calls), it's possible
+				for the callout instance running in one CPU to continually lose on the spinlock and
+				thus, interrupts could be disabled for a long time. In this case, you would have to
+				implement a synchronization primitive that provides fairness, implements the
+				necessary barriers, doesn't make kernel calls, and disables interrupts.</p>
+
+			<p class="p">If the callout will access only per-CPU resources (i.e., those not shared across CPUs), this isn't a problem.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Example</h2>
+			
+			<div class="p">Here's an example of a custom callout for AArch64:
+<pre class="pre codeblock">#include "callout.ah"
+
+/*
+ * -----------------------------------------------------------------------
+ * Routine to patch callout code
+ *
+ * On entry:
+ *  r0 - physical address of syspage
+ *  r1 - virtual  address of syspage
+ *  r2 - offset from start of syspage to start of the callout routine
+ *  r3 - offset from start of syspage to read/write data used by callout
+ * -----------------------------------------------------------------------
+ */
+patch_custom:
+    ret
+
+/*
+ * -----------------------------------------------------------------------
+ * Sample implementation of a custom kernel call callout.
+ *
+ * On entry:
+ *  r0 - pointer to the system page
+ *  r1 - type ID for the calling process
+ *  r2 - pointer to the first position in an array of 64-bit values holding
+ *       the register context of the calling thread
+ * -----------------------------------------------------------------------
+ */
+CALLOUT_START(custom, 0, patch_custom)
+    mov     x5, #0xabcd
+    movk    x5, #0xabcd, lsl #16
+    movk    x5, #0xabcd, lsl #32
+    movk    x5, #0xabcd, lsl #48
+
+    /*
+     * Reject processes with a type ID other than 47.
+     */
+    cmp      x1, #47
+    beq      1f
+    mov      x0, #-1
+    ret
+
+1:
+    /*
+     * Return the sum of the values held in the caller's x0 and x1 registers.
+     */
+    ldp      x2, x3, [x2]
+    add      x0, x2, x3
+    ret
+CALLOUT_END(custom)
+</pre></div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Invoking the callout</h2>
+			
+			<div class="p">
+				 Here's a program that uses the
+				callout by invoking a kernel call:
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+
+extern unsigned long SysCustom(unsigned long a, unsigned long b);
+
+int main(int argc, char **argv)
+{
+    unsigned long   rc = SysCustom(3, 4);
+    if (rc == -1) {
+        perror("SysCustom");
+    } else {
+        printf("rc=%ld\n", rc);
+    }
+    return 0;
+}
+</pre></div>
+
+			<div class="p">Here's a sample implementation of a SysCustom() kernel callout on AArch64:<div class="note"><span class="notetitle">Note:</span>  Kernel calls
+					can accept arguments only in registers. This limits kernel calls to using
+					arguments that are pointers or integers up to 64 bits long. The maximum number
+					of arguments supported is 6.</div>
+<pre class="pre codeblock">.text
+.align 2
+.global SysCustom
+SysCustom:
+mov w8, #106 ; prep register with call type
+svc #0x51
+ret ; return
+ret
+.type SysCustom,function
+.size SysCustom,.-SysCustom
+</pre></div>
+
+			<div class="p">Here's a sample implementation of a SysCustom() kernel callout on x86_64 with fewer than 4
+				arguments:<pre class="pre codeblock">.text
+.p2align 4,,15
+.global SysCustom
+.type SysCustom, @function
+SysCustom:
+movl    $106,%eax
+syscall
+ret
+ret
+.size SysCustom,.-SysCustom
+</pre></div>
+
+			<div class="p">Here's a sample implementation of a SysCustom() kernel callout on x86_64 with 4 or more
+				arguments:<pre class="pre codeblock">.text
+.p2align 4,,15
+.global SysCustom
+.type SysCustom, @function
+SysCustom:
+mov     %rcx, %r10
+movl    $106, %eax
+syscall
+ret
+ret
+.size SysCustom,.-SysCustom
+</pre></div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

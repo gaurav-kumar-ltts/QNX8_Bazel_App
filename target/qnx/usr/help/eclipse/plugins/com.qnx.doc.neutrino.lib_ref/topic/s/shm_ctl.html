@@ -1,0 +1,1434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="shm_ctl(), shm_ctl_special()" />
+<meta name="abstract" content="Give special attributes to a shared memory object" />
+<meta name="description" content="Give special attributes to a shared memory object" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-s.html" />
+<meta name="DC.relation" scheme="URI" content="../../../com.qnx.doc.neutrino.prog/topic/memory.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/mprotect.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/p/procmgr_ability.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_create_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_delete_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_open.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_open_handle.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_revoke.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/shm_unlink.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/t/threadctl.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="shm_ctl" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>shm_ctl(), shm_ctl_special()</title>
+</head>
+<body id="shm_ctl">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">shm_ctl()</span>, <span class="keyword apiname">shm_ctl_special()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Give special attributes to a shared memory object</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/mman.h&gt;
+
+int shm_ctl( int <var class="keyword varname">fd</var>,
+             int <var class="keyword varname">flags</var>,
+             uint64_t <var class="keyword varname">paddr</var>,
+             uint64_t <var class="keyword varname">size</var> );
+
+int shm_ctl_special( int <var class="keyword varname">fd</var>,
+                     int <var class="keyword varname">flags</var>,
+                     uint64_t <var class="keyword varname">paddr</var>,
+                     uint64_t <var class="keyword varname">size</var>,
+                     unsigned <var class="keyword varname">special</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">fd</var></dt>
+
+<dd class="dd">The file descriptor that's associated with the shared memory object, as returned by
+  <a class="xref" href="shm_open.html" title="Open a shared memory object based on a pathname"><span class="keyword apiname">shm_open()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">flags</var></dt>
+
+<dd class="dd">A bitwise OR of one or more <span class="keyword const">SHMCTL_*</span> flags, which are defined
+  in <span class="ph filepath">&lt;sys/mman.h&gt;</span>.
+
+  <div class="p">
+  <ul class="ul">
+
+  <li class="li"><span class="keyword const">SHMCTL_ANON</span> — allocate anonymous memory. If used with
+    <span class="keyword const">SHMCTL_PHYS</span> (i.e., <span class="ph codeph">SHMCTL_ANON | SHMCTL_PHYS</span>),
+    the memory allocated is physically contiguous;
+    <span class="keyword const">SHMCTL_ANON</span> without <span class="keyword const">SHMCTL_PHYS</span> requests mostly contiguous memory.
+    
+  </li>
+
+
+    <li class="li"><span class="keyword const">SHMCTL_GET_FLAGS</span> — return the flags defined for the object. If you
+                  specify this flag with other flags, the existing flags, not the new ones in the
+                  call, are returned. <p class="p">This flag is useful for learning if an object is assigned a
+                    physical address and hence, should not be given to unknown clients due to
+                    security risks, as explained in the <var class="keyword varname">paddr</var> argument
+                    description below.</p>
+
+                  
+                  <div class="note"><span class="notetitle">Note:</span>  The flags returned don't include <span class="keyword const">SHMCTL_TYMEM</span> because it
+                    applies only to the backing that's installed when you call a specific instance
+                    of <span class="keyword apiname">shm_ctl()</span>. The object might be backed in part by memory
+                    not from typed memory. </div>
+
+                </li>
+
+
+    <li class="li"><span class="keyword const">SHMCTL_GLOBAL</span> (deprecated) — hint that any mapping to the
+      object could be global across all processes.
+      
+    </li>
+
+
+    <li class="li"><span class="keyword const">SHMCTL_HIGHUSAGE</span> (deprecated) — hint that the object is
+      used a lot, so the system should try to do things to speed up access to it.
+      
+    </li>
+
+
+    <li class="li"><span class="keyword const">SHMCTL_LOWERPROT</span> (deprecated) — hint that the system may map this object in
+      a way that trades lower memory protection for better performance.
+      
+    </li>
+
+
+    
+
+    <li class="li"><span class="keyword const">SHMCTL_PHYS</span> — If used without <span class="keyword const">SHMCTL_ANON</span> or <span class="keyword const">SHMCTL_TYMEM</span>,
+                  overlay the shared memory object onto the
+                  physical memory at the address given in <var class="keyword varname">paddr</var>.
+                      
+                </li>
+
+
+    <li class="li"><span class="keyword const">SHMCTL_PRIV</span> (deprecated) — hint that a mapping of this object may require privileged
+      access.
+      
+    </li>
+
+
+  <li class="li"><span class="keyword const">SHMCTL_REPEAT</span> — create a strided physical object; that is,
+    extend an existing object that was initialized with <span class="keyword const">SHMCTL_PHYS</span>,
+    with a repeating pattern of physical addresses. For example:
+    
+
+<pre class="pre codeblock">shm_ctl( fd, SHMCTL_PHYS, baseaddr, vstride );
+shm_ctl( fd, SHMCTL_REPEAT, pstride, count );
+</pre>
+  </li>
+
+
+    <li class="li" id="shm_ctl__revocable"><span class="keyword const">SHMCTL_REVOCABLE</span> — allow the creator of the shared
+                  memory object to revoke access to it by calling <a class="xref" href="shm_revoke.html" title="Revoke mappings to shared memory"><span class="keyword apiname">shm_revoke()</span></a>. Only the creator of the object can
+                  set this flag; otherwise, <span class="keyword apiname">shm_ctl()</span> fails and sets
+                    <var class="keyword varname">errno</var> to <span class="keyword const">EPERM</span>. After creating the object, you
+                  can either use this flag alone or paired with another flag that you can toggle
+                  (e.g. <span class="keyword const">SHMCTL_SEAL</span>).
+                    
+                  
+                  
+                  
+                  <p class="p"> For more information, see <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.prog/topic/process_secure_buffer_mgmt.html">Secure Buffer Management</a></q> in the <q class="q">Shared Memory</q> chapter of
+                    the <span class="keyword">QNX OS</span>
+                    <cite class="cite">Programmer's Guide</cite>. </p>
+
+                </li>
+
+
+                <li class="li">
+                  
+                  
+                  
+                  <span class="keyword const">SHMCTL_SEAL</span> — prevent the object's layout (e.g., its size and
+                  backing memory) and attributes from being modified. Only the process that created
+                  the object can set this flag; after it's set, no process (including the object's
+                  creator) can modify the layout or change any attributes. But, processes may still
+                  query the flags of an object with <span class="keyword const">SHMCTL_GET_FLAGS</span>. <div class="note"><span class="notetitle">Note:</span> 
+                    <ul class="ul">
+                      <li class="li"> A sealed object is not write-protected. Anyone who has write access can
+                        still change the content of the object—they just can't shrink or
+                        extend it or otherwise make it point to memory not already referenced by it.
+                        The intent is to provide a safe way to use shared memory objects for
+                        interprocess communication. </li>
+
+                      <li class="li">If you want to seal a shared memory object after calling
+                          <span class="keyword apiname">shm_ctl()</span> or <span class="keyword apiname">shm_ctl_special()</span> to
+                        configure the object, you must use <span class="keyword apiname">shm_ctl()</span>. Calling
+                          <span class="keyword apiname">shm_ctl_special()</span> specifying only
+                          <span class="keyword const">SHMCTL_SEAL</span> fails with an error of <span class="keyword const">EBADF</span>.
+                      </li>
+
+                    </ul>
+
+                  </div>
+
+                </li>
+
+
+  <li class="li"><span class="keyword const">SHMCTL_TYMEM</span> — allocate typed memory from the pool
+    identified by a file descriptor that was returned by a call to
+    <a class="xref" href="../p/posix_typed_mem_open.html" title="Open a typed memory object"><span class="keyword apiname">posix_typed_mem_open()</span></a>.
+    It isn't necessary to keep this file descriptor open after the call to <span class="keyword apiname">shm_ctl()</span>.
+    
+
+    <p class="p">
+    If you specify <span class="keyword const">SHMCTL_TYMEM</span>, you must also specify <span class="keyword const">SHMCTL_ANON</span>.
+    If and only if you specified the <span class="keyword const">POSIX_TYPED_MEM_ALLOCATE_CONTIG</span> flag for
+    <span class="keyword apiname">posix_typed_mem_open()</span>, you must specify <span class="keyword const">SHMCTL_PHYS</span> in addition to
+    <span class="keyword const">SHMCTL_ANON</span> and <span class="keyword const">SHMCTL_TYMEM</span>.
+    </p>
+
+  </li>
+
+
+  </ul>
+
+  </div>
+
+
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">paddr</var></dt>
+
+<dd class="dd">The interpretation of this argument depends on the bits set in <var class="keyword varname">flags</var>:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">SHMCTL_PHYS</span>, except when used with <span class="keyword const">SHMCTL_TYMEM</span> (see below) or with <span class="keyword const">SHMCTL_ANON</span>
+    — a physical address to assign to the object. When <span class="ph codeph">SHMCTL_ANON | SHMCTL_PHYS</span> is set,
+    <var class="keyword varname">paddr</var> should be 0, because any physical address pointed to by this argument will be ignored.
+
+    <div class="note warning"><span class="warningtitle">Warning:</span> 
+    Sharing memory through the direct mapping of physical addresses is extremely dangerous, and you should avoid it.
+
+    <p class="p">
+    For example, suppose process A allocates some memory, maps it, determines the physical address,
+    and gives the address to process B so that it can map the memory.
+    Process B uses direct mapping.
+    Process A can free the memory or terminate, and the memory could then be given to another process,
+    while process B continues to use it.
+    This could cause a process or even the kernel to crash later.
+    </p>
+
+    </div>
+
+  </li>
+
+
+  <li class="li"><span class="keyword const">SHMCTL_REPEAT</span> — the stride, which is used to increment the physical address given to the
+      original <span class="keyword apiname">shm_ctl()</span> call.</li>
+
+
+  <li class="li"><span class="keyword const">SHMCTL_TYMEM</span> — a file descriptor that was returned by a call to
+    <a class="xref" href="../p/posix_typed_mem_open.html" title="Open a typed memory object"><span class="keyword apiname">posix_typed_mem_open()</span></a>,
+    cast to be a <span class="keyword dtype">uint64_t</span>.
+  </li>
+
+
+  </ul>
+
+
+  <p class="p">
+  If <var class="keyword varname">paddr</var> is a physical address or a stride, its value
+  must be a multiple of the page size (<span class="ph codeph">sysconf(_SC_PAGESIZE)</span>).
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">size</var></dt>
+
+<dd class="dd">The new size of the object, in bytes, regardless of the ANON/PHYS flag.
+  If you specify <span class="keyword const">SHMCTL_PHYS</span> in the flags, then <var class="keyword varname">size</var> must be
+  a multiple of the page size.
+
+  <p class="p">
+  For <span class="keyword const">SHMCTL_REPEAT</span>, this argument is the length, which is used to increment the offset
+  within the object.
+  The value must be a multiple of the page size.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">special</var></dt>
+
+<dd class="dd">(<span class="keyword apiname">shm_ctl_special()</span> only)
+  Processor-specific flags; see the following:
+
+  <ul class="ul">
+  <li class="li"><a class="xref" href="#shm_ctl__ARM_specific">Bits in the <var class="keyword varname">special</var> argument for ARM processors</a></li>
+
+  <li class="li"><a class="xref" href="#shm_ctl__AARCH64_specific">Bits in the <var class="keyword varname">special</var> argument for AArch64 processors</a></li>
+
+  <li class="li"><a class="xref" href="#shm_ctl__x86-64_specific">Bits in the <var class="keyword varname">special</var> argument for x86-64 processors</a></li>
+
+  </ul>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  Calling <span class="keyword apiname">shm_ctl_special()</span> with a <var class="keyword varname">special</var>
+  argument of 0 is not equivalent to calling <span class="keyword apiname">shm_ctl()</span>.
+  
+  Setting <var class="keyword varname">special</var> to 0 can clear some special bits that are on by default.
+  </div>
+
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">shm_ctl()</span> function modifies the attributes of the shared memory
+object identified by the handle, <var class="keyword varname">fd</var>.
+This handle is the value returned by
+<a class="xref" href="shm_open.html" title="Open a shared memory object based on a pathname"><span class="keyword apiname">shm_open()</span></a>.
+The <span class="keyword apiname">shm_ctl_special()</span> function is similar to <span class="keyword apiname">shm_ctl()</span>,
+but has an additional, processor-specific argument.
+</p>
+
+
+<div class="p">
+Your process might need some abilities enabled (see
+<a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>):
+
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d844495e674">In order to use:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d844495e677">You need:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e674 "><span class="keyword const">SHMCTL_GLOBAL</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e677 "><span class="keyword const">PROCMGR_AID_MEM_GLOBAL</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e674 "><span class="keyword const">SHMCTL_PHYS</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e677 "><span class="keyword const">PROCMGR_AID_MEM_PHYS</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e674 "><span class="keyword apiname">shm_ctl_special()</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e677 "><span class="keyword const">PROCMGR_AID_MEM_SPECIAL</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+Typically, you can call <span class="keyword apiname">shm_ctl()</span> only once on a new object created with
+<span class="keyword apiname">shm_open()</span>.
+Reopening an existing object with the <span class="keyword const">O_TRUNC</span> flag doesn't make the object new again.
+</p>
+
+
+<div class="p">
+You can make subsequent calls to <span class="keyword apiname">shm_ctl()</span> only in order to extend an existing object,
+and only when using the same combination of <span class="keyword const">SHMCTL_ANON</span> and <span class="keyword const">SHMCTL_PHYS</span>
+as in the original call. How you can extend an existing object depends on these other two flags:
+
+<ul class="ul">
+<li class="li">You can extend objects created with <span class="keyword const">SHMCTL_PHYS</span> (a physical address) in one of these ways:
+
+  <ul class="ul">
+  <li class="li">by seeking beyond the end of the object—typically with
+    <a class="xref" href="../l/lseek.html" title="Set the current read/write file offset"><span class="keyword apiname">lseek()</span></a>—and
+    installing another physical address and size with <span class="ph codeph">shm_ctl(... SHMCTL_PHYS ...)</span>
+  </li>
+
+
+  <li class="li">by calling <span class="ph codeph">shm_ctl(... SHMCTL_REPEAT ...)</span> when the file descriptor is at the beginning
+    of the object
+  </li>
+
+
+  </ul>
+
+</li>
+
+
+<li class="li">Objects created with <span class="keyword const">SHMCTL_ANON</span> are extended to a new size
+  that's the current offset plus the size provided in the <span class="keyword apiname">shm_ctl()</span> call.
+  Note that you can't shrink an object; the second call is ignored if the resulting size is smaller than
+  the current one.
+  Memory is allocated to fill the difference between the previous and current sizes.
+</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+If you first initialized an object with <span class="keyword apiname">shm_ctl_special()</span>, all subsequent calls that
+follow the rules above must also be done with <span class="keyword apiname">shm_ctl_special()</span>, using the same special attributes.
+</p>
+
+
+<p class="p">
+Shared memory objects that are populated with <span class="keyword apiname">shm_ctl()</span> are implicitly locked.
+</p>
+
+
+
+
+
+
+<h3 class="title sectiontitle">Bits in the <var class="keyword varname">special</var> argument for ARM processors</h3>
+
+<p class="p">
+For ARM platforms, the <var class="keyword varname">special</var> argument specifies the
+memory attributes that will be used when the object is mapped.
+</p>
+
+
+<div class="p">
+ The type of mapping defines the default memory attributes assigned:
+ <ul class="ul">
+   <li class="li">
+     Any non-RAM memory locations, that are mapped using <span class="keyword apiname">mmap()</span> with the <span class="keyword const">PROT_NOCACHE</span> protection type,
+     are assigned device-nGnRnE as a default (<span class="keyword const">ARM_SHMCTL_SO</span>).
+   </li>
+
+   <li class="li">
+     Any RAM memory locations, that are mapped using <span class="keyword apiname">mmap()</span> with the <span class="keyword const">PROT_NOCACHE</span> protection type,
+     are assigned Normal Uncached memory as a default (<span class="keyword const">ARM_SHMCTL_NC</span>).
+   </li>
+
+   <li class="li">
+     Cached memory locations mapped using <span class="keyword apiname">mmap()</span> are assigned Normal Write-back, Write-Allocate as a default
+     (<span class="keyword const">ARM_SHMCTL_WBWA</span>).
+   </li>
+
+ </ul>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+On AArch64 the <span class="keyword const">ARM_SHMCTL_*</span> bits are supported only for backward compatibility.
+New code should use the <span class="keyword const">AARCH64_PTE_*</span> values for attributes and shareability,
+ORed with the <span class="keyword const">AARCH64_SHMCTL</span> flag.
+See
+<q class="q"><a class="xref" href="#shm_ctl__AARCH64_specific">Bits in the <var class="keyword varname">special</var> argument for AArch64 processors</a>,</q>
+below.
+</div>
+
+
+<div class="p">
+You can specify the memory attributes via one of the following:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_SO</span></dt>
+
+<dd class="dd">Map the object with the Strongly Ordered memory attribute (device-nGnRnE).
+  This provides uncached access and provides implicit memory ordering
+  equivalent to a barrier before and after the memory access.
+  
+
+  <p class="p">
+    Non-RAM memory locations, that are mapped using mmap() with the PROT_NOCACHE protection type,
+    are assigned as device-nGnRnE as a default.
+  </p>
+
+
+  <p class="p">
+  All loads and stores must be aligned for the access size, otherwise
+  a memory fault is triggered resulting in delivery of a <span class="keyword const">SIGBUS</span> signal.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_DEV</span></dt>
+
+  <dd class="dd">Map the object with the Device memory attribute (device-nGnRE).
+  This provides uncached access and is subject to the ordering rules
+  defined by the <cite class="cite">ARM Architecture Reference Manual</cite>.
+  
+
+
+  <p class="p">
+  Reads are performed using a single memory access with the size as
+  specified by the load instruction.
+  </p>
+
+
+  <p class="p">
+  Stores are performed using a single memory access with the size as
+  specified by the load instruction.
+  </p>
+
+
+  <p class="p">
+  An explicit memory barrier may be required after store operations
+  to ensure visibility of the store to the memory system.
+  </p>
+
+
+  <p class="p">For an example on using this flag, see <q class="q"><a class="xref" href="#shm_ctl__arm_shmctl_dev">Sharing device memory</a></q> below.</p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_NC</span></dt>
+
+<dd class="dd">Map the object with the Normal Uncached memory attribute.
+  This provides uncached access and is subject to the ordering rules
+  defined by the <cite class="cite">ARM Architecture Reference Manual</cite>.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Stores can be merged into a write buffer before being written to the
+  memory system.
+  </p>
+
+
+  <p class="p">
+  An explicit memory barrier may be required after store operations
+  to ensure visibility of the store to the memory system.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_WT</span></dt>
+
+<dd class="dd">Map the object with the Normal Write-Through attribute.
+  This provides cacheable access, subject to the ordering rules for Normal memory types.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Loads allocate a cache line and return data from the cache.
+  </p>
+
+
+  <p class="p">
+  Stores don't cause allocation of a cache line.
+  If a store hits in the cache, the cache is modified and the data is
+  written to memory via a write buffer.
+  If a store misses in the cache, the data is written to memory via a
+  write buffer. Multiple stores may be merged in the write buffer before
+  being written to the memory system.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_WB</span></dt>
+
+<dd class="dd">Map the object with the Normal Write-Back attribute.
+  This provides cacheable access, subject to the ordering rules for Normal memory types.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Loads allocate a cache line and return data from the cache.
+  </p>
+
+
+  <p class="p">
+  Stores don't cause allocation of a cache line.
+  If a store hits in the cache, the cache is modified and the line is
+  marked for write back to the memory system at a later time.
+  If a store misses in the cache, the data is written to memory via a
+  write buffer. Multiple stores may be merged in the write buffer before
+  being written to the memory system.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_WBWA</span></dt>
+
+<dd class="dd">Map the object with the Normal Write-Back, Write-Allocate attribute.
+  This provides cacheable access, subject to the ordering rules for Normal memory types.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Loads allocate a cache line and return data from the cache.
+  </p>
+
+
+  <p class="p">
+  Stores allocate a cache line and modify the cache, marking the line
+  for write back to the memory system at a later time.
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+You can specify the shareability of the mapping with the following:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">ARM_SHMCTL_SH</span></dt>
+
+<dd class="dd">Map the object with the Shareable memory attribute.
+  The memory may
+  be accessed by multiple observers (other processors or bus masters).
+  This is used to indicate that the memory has coherency requirements.
+  You'll almost always want to specify this flag.
+  
+
+  <p class="p">
+  For <span class="keyword const">ARM_SHMCTL_NC</span>, accesses are coherent with respect to loads and
+  stores, and the additional coherency applies to load/store exclusive operations.
+  </p>
+
+
+  <p class="p">
+  For <span class="keyword const">ARM_SHMCTL_WT</span>, <span class="keyword const">ARM_SHMCTL_WB</span>, and <span class="keyword const">ARM_SHMCTL_WBWA</span>, this indicates
+  that hardware cache coherency is required.
+  </p>
+
+
+  <p class="p">
+  The level at which this coherency applies is system dependent, and it
+  may still require explicit cache maintenance to enforce coherency for
+  memory accesses by other bus masters (e.g., DMA operations).
+  </p>
+
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The ARM MMU is now configured to use the <span class="ph codeph">TEX</span> remap facility,
+which limits the range of memory attributes that can be used.
+Versions of <span class="keyword">QNX OS</span> before 7.0 didn't use <span class="ph codeph">TEX</span> remap, and this allowed
+<span class="keyword apiname">shm_ctl_special()</span> to specify any attribute encoded via the <span class="ph codeph">TEX[2:0]</span>,
+<span class="ph codeph">C</span>, and <span class="ph codeph">B</span> bits.
+Any encoding using nonzero <span class="ph codeph">TEX[2:1]</span> bits is no longer possible.
+</div>
+
+
+<p class="p">
+You can find full details of the ARM memory attributes and ordering requirements
+in section A3.5, <q class="q">Memory types and attributes and the memory order model,</q>
+in the <cite class="cite">ARM Architecture Reference Manual (ARM DDI 0406)</cite>.
+</p>
+
+
+<h3 class="title sectiontitle">Bits in the <var class="keyword varname">special</var> argument for AArch64 processors</h3>
+
+<p class="p">
+For AArch64 platforms, the <var class="keyword varname">special</var> argument specifies the
+memory and shareability attributes that will be used when the object is mapped.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+On AArch64 the <span class="keyword const">ARM_SHMCTL_*</span> bits are supported only for backward compatibility.
+New code should use the <span class="keyword const">AARCH64_PTE_*</span> values for attributes and shareability,
+ORed with the <span class="keyword const">AARCH64_SHMCTL</span> flag.
+</div>
+
+
+<p class="p">
+You must specify one of the following memory attributes:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_DEV</span></dt>
+
+<dd class="dd">Map the object with the Device memory attribute (device-nGnRE).
+  This provides uncached access and is subject to the ordering rules
+  defined by the <cite class="cite">ARM Architecture Reference Manual</cite>.
+  
+  
+
+  <p class="p">
+  All loads and stores must be aligned for the access size, otherwise
+  a memory fault is triggered resulting in delivery of a <span class="keyword const">SIGBUS</span> signal.
+  </p>
+
+
+  <p class="p">
+  Reads are performed using a single memory access with the size as
+  specified by the load instruction.
+  </p>
+
+
+  <p class="p">
+  Stores are performed using a single memory access with the size as
+  specified by the load instruction.
+  </p>
+
+
+  <p class="p">
+  An explicit memory barrier may be required after store operations
+  to ensure visibility of the store to the memory system.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_NC</span></dt>
+
+<dd class="dd">Map the object with the Normal Uncached memory attribute.
+  This provides uncached access and is subject to the ordering rules
+  defined by the <cite class="cite">ARM Architecture Reference Manual</cite>.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Stores can be merged into a write buffer before being written to the
+  memory system.
+  </p>
+
+
+  <p class="p">
+  An explicit memory barrier may be required after store operations
+  to ensure visibility of the store to the memory system.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_SODEV</span></dt>
+
+<dd class="dd">Map the object with the Strongly Ordered memory attribute (device-nGnRnE).
+  This provides uncached access and provides implicit memory ordering
+  equivalent to a barrier before and after the memory access.
+  
+  
+
+  <p class="p">
+    Non-RAM memory locations, that are mapped using mmap() with the PROT_NOCACHE protection type,
+    are assigned as device-nGnRnE as a default.
+  </p>
+
+
+  <p class="p">
+  All loads and stores must be aligned for the access size, otherwise
+  a memory fault is triggered resulting in delivery of a <span class="keyword const">SIGBUS</span> signal.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_WBnWA</span></dt>
+
+<dd class="dd">Map the object with the Write-Back, No-Write-Allocate attribute.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_WBWA</span></dt>
+
+<dd class="dd">Map the object with the Normal Write-Back, Write-Allocate attribute.
+  This provides cacheable access, subject to the ordering rules for Normal memory types.
+  
+
+  <p class="p">
+  Loads and stores may be performed to unaligned addresses, except for
+  those instructions that always require correct alignment.
+  </p>
+
+
+  <p class="p">
+  Loads allocate a cache line and return data from the cache.
+  </p>
+
+
+  <p class="p">
+  Stores allocate a cache line and modify the cache, marking the line
+  for write back to the memory system at a later time.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_WTnWA</span></dt>
+
+<dd class="dd">Map the object with the Write-Through, No-Write-Allocate attribute.
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+You can use a bitwise OR to include one of the following shareability attributes:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_ISH</span></dt>
+
+<dd class="dd">Inner shareable.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_NSH</span></dt>
+
+<dd class="dd">Non-shareable (the default).
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">AARCH64_PTE_OSH</span></dt>
+
+<dd class="dd">Outer shareable.
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If you don't specify inner- or outer-shareable, the memory is non-shareable (<span class="keyword const">AARCH64_PTE_NSH</span>).
+This is almost never what you want for non-device memory (device memory is outer-shareable).
+Unless you have a reason not to, you should specify inner-shareable for non-device memory.
+</p>
+
+
+<p class="p">
+For more information, see the <cite class="cite">ARM Architecture Reference Manual</cite>.
+</p>
+
+
+<h3 class="title sectiontitle">Bits in the <var class="keyword varname">special</var> argument for x86-64 processors</h3>
+<p class="p">
+  For x86-64 platforms, the <var class="keyword varname">special</var> argument specifies the memory
+  type that will be used when the object is mapped.
+  The memory type dictates caching and ordering behaviors for memory accesses within the object.
+</p>
+
+
+<p class="p">
+  The flags below are set on pages and defined in <span class="ph filepath">x86_64/mmu.h</span>.
+</p>
+
+
+<p class="p">
+  You must specify one of the following memory types:
+</p>
+
+
+<dl class="dl">
+  
+    <dt class="dt dlterm"><span class="keyword const">X86_64_PTE_MTYPE_WB</span></dt>
+
+    <dd class="dd">
+      <p class="p">
+        Map the object with the Write Back memory type.
+      </p>
+
+
+      <p class="p">
+        Reads and writes of system memory are cached.
+      </p>
+
+
+      <p class="p">
+        Writes are performed entirely in the cache when possible. Modified cache lines are written to system memory when a write-back
+        operation is performed (e.g., cache lines need to be deallocated, cache maintenance).
+      </p>
+
+
+      <p class="p">
+        Speculative reads are allowed.
+      </p>
+
+
+      <p class="p">
+        Write combining is allowed.
+      </p>
+
+    </dd>
+
+  
+
+  
+    <dt class="dt dlterm"><span class="keyword const">X86_64_PTE_MTYPE_WT</span></dt>
+
+    <dd class="dd">
+      <p class="p">
+        Map the object with the Write Through memory type.
+      </p>
+
+
+      <p class="p">
+        All writes are written to a cache line when possible and through to system memory.
+      </p>
+
+
+      <p class="p">
+        Reads and writes of system memory are cached.
+      </p>
+
+
+      <p class="p">
+        Speculative reads are allowed.
+      </p>
+
+
+      <p class="p">
+        Write combining is allowed.
+      </p>
+
+
+      <p class="p">
+        This setting enforces coherency between caches in the processors and system memory.
+      </p>
+
+    </dd>
+
+  
+
+  
+    <dt class="dt dlterm"><span class="keyword const">X86_64_PTE_MTYPE_WC</span></dt>
+
+    <dd class="dd">
+      <p class="p">
+        Map the object with the Write Combine memory type.
+      </p>
+
+
+      <p class="p">
+        System memory locations are not cached.
+      </p>
+
+
+      <p class="p">
+        Coherency is not enforced.
+      </p>
+
+
+      <p class="p">
+        Speculative reads are allowed.
+      </p>
+
+
+      <p class="p">
+        Writes may be delayed and combined to reduce memory accesses.
+      </p>
+
+    </dd>
+
+  
+
+  
+    <dt class="dt dlterm"><span class="keyword const">X86_64_PTE_MTYPE_UC</span></dt>
+
+    <dd class="dd">
+      <p class="p">
+        Map the object with the Strong Uncacheable memory type.
+      </p>
+
+
+      <p class="p">
+        Reads and writes are not cacheable.
+      </p>
+
+
+      <p class="p">
+        Speculative reads are not permitted.
+      </p>
+
+
+    </dd>
+
+  
+
+  
+    <dt class="dt dlterm"><span class="keyword const">X86_64_PTE_MTYPE_UCM</span></dt>
+
+    <dd class="dd">
+      <p class="p">
+        Map the object with the Uncacheable memory type.
+      </p>
+
+
+      <p class="p">
+        This type setting has the same characteristics as Strong Uncacheable.
+        The exception is that the UCM can be overriden by programming MTRRs for the WC
+        memory type.
+      </p>
+
+    </dd>
+
+  
+</dl>
+
+
+  <p class="p">
+    For more information, see the <cite class="cite">Intel Software Developers Manual</cite>.
+  </p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm">0</dt>
+
+<dd class="dd">Success.</dd>
+
+
+  
+  <dt class="dt dlterm">&gt;0</dt>
+
+  <dd class="dd">Success. If <span class="keyword const">SHMCTL_GET_FLAGS</span> is used, the function returns a bitfield of the flags that have been set by previous calls to <span class="keyword cmdname">shm_ctl()</span> on the shared memory object.</dd>
+
+
+
+
+<dt class="dt dlterm">-1</dt>
+
+<dd class="dd">An error occurred
+    (<a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a> is set).
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EAGAIN</span></dt>
+
+<dd class="dd">(<span class="keyword apiname">shm_ctl_special()</span> only) The special value doesn't match the current special value.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EBADF</span></dt>
+
+<dd class="dd">One of the following occurred:
+
+  <ul class="ul">
+  <li class="li">The shared memory object is already <q class="q">special.</q></li>
+
+
+  <li class="li">After calling <span class="keyword apiname">shm_ctl()</span> or <span class="keyword apiname">shm_ctl_special()</span> to configure
+    a shared memory object, you tried to seal the object by calling <span class="keyword apiname">shm_ctl_special()</span>
+    specifying only <span class="keyword const">SHMCTL_SEAL</span>
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EBUSY</span></dt>
+
+<dd class="dd">You tried to extend a contiguous anonymous object (created with <span class="ph codeph">SHMCTL_ANON | SHMCTL_PHYS</span>).</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">Invalid arguments, including the following:
+
+  <ul class="ul">
+  <li class="li">An invalid combination of flags was specified.</li>
+
+
+  <li class="li">You specified <span class="keyword const">SHMCTL_PHYS</span> in the flags, but
+    the value of <var class="keyword varname">paddr</var> or <var class="keyword varname">size</var> isn't
+    a multiple of the page size.
+  </li>
+
+
+  <li class="li">You tried to add segments inside an explicit physical object (created with <span class="keyword const">SHMCTL_PHYS</span>
+    and a physical address).
+  </li>
+
+
+  <li class="li">You specified <span class="keyword const">SHMCTL_REPEAT</span> in the flags, and the stride isn't a
+    multiple of the page size.
+  </li>
+
+
+  <li class="li">You specified <span class="keyword const">SHMCTL_REVOCABLE</span> in the flags, but the object wasn't populated
+                with <span class="keyword apiname">shm_ctl()</span>.</li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ENOMEM</span></dt>
+
+<dd class="dd">There wasn't enough memory.
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EPERM</span></dt>
+
+<dd class="dd">One of the following occurred:
+
+  <ul class="ul">
+  <li class="li">The calling process doesn't have the required permission; see
+  <a class="xref" href="../p/procmgr_ability.html" title="Control a process's ability to perform certain operations"><span class="keyword apiname">procmgr_ability()</span></a>.
+  </li>
+
+
+  <li class="li">The creator specified <span class="keyword const">SHMCTL_SEAL</span>, so changes to the layout and flags are no longer permitted.</li>
+
+  <li class="li">You specified <span class="keyword const">SHMCTL_REVOCABLE</span> in the flags, but you're not the creator of the
+                object.</li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Examples:</h2>
+
+
+<h3 class="title sectiontitle">Sharing device memory</h3>
+
+<div class="p">
+This example shows how to create a region of device memory using a shared object, map this memory into the current process's
+address space, and then destroy the memory when the program is finished using it.
+
+<pre class="pre codeblock">/*
+ *  create_device_shm.c
+*/
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;aarch64/mmu.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;assert.h&gt;
+#include &lt;fcntl.h&gt;
+
+#define S1_SHM_NAME	"shm_s1"
+
+#define TOTAL_PAGE_SIZE    (4096)
+
+static char *src;
+static int src_fd;
+
+/** Remove the shared memory object and destroy the device memory */
+void destroy_device_shm(int shm_fd, char *name)
+{
+    close(shm_fd);
+    shm_unlink(name);
+}
+
+/**
+ * Create a shared memory object and configure it to simulate device memory.
+ * Return the file descriptor of the new object if successful, -1 otherwise.
+ */
+int create_device_shm(char *name, uint64_t size)
+{
+    int fd;
+    int rc;
+
+    fd = shm_open(name, O_RDWR|O_CREAT|O_TRUNC, 0666);
+    if (fd &lt; 0) {
+        return -1;
+    }
+    rc = shm_ctl_special(fd, SHMCTL_ANON | SHMCTL_PHYS, 0, size, <strong class="ph b">ARM_SHMCTL_DEV</strong>);
+    if (rc != 0) {
+        destroy_device_shm(fd, name);
+        return -1;
+    }
+
+    return fd;
+}
+
+void cleanup()
+{
+    munmap(src, TOTAL_PAGE_SIZE);
+    destroy_device_shm(src_fd, S1_SHM_NAME);
+}
+
+int main(void)
+{
+    // Create device memory region
+    src_fd = create_device_shm(S1_SHM_NAME, TOTAL_PAGE_SIZE);
+    assert(src_fd &gt;= 0);
+
+    // Map device memory into current address space
+    src = mmap(NULL, TOTAL_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, src_fd, 0);
+    assert(src != (void *)MAP_FAILED);
+
+    // Your code goes here
+
+    // Destroy device memory region
+    cleanup();
+    return 0;
+}
+</pre>
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d844495e1751">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d844495e1753"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1751 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1753 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1751 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1753 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1751 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d844495e1753 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-s.html">S</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../../com.qnx.doc.neutrino.prog/topic/memory.html">Working with Memory (QNX OS Programmer's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/m/mmap.html" title="Map a memory region into a process's address space">mmap(), mmap64(), mmap_handle(), mmap_handle_pid()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/munmap.html" title="Unmap previously mapped addresses">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/mprotect.html" title="Change memory protection">mprotect()</a></li>
+<li class="linklist"><a class="link" href="../../topic/p/procmgr_ability.html" title="Control a process's ability to perform certain operations">procmgr_ability()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_create_handle.html" title="Create a handle so a specific process can access a shared memory object">shm_create_handle()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_delete_handle.html" title="Delete a handle to a shared memory object">shm_delete_handle()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_open.html" title="Open a shared memory object based on a pathname">shm_open()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_open_handle.html" title="Open a shared memory object based on a handle">shm_open_handle(), shm_open_handle_pid()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_revoke.html" title="Revoke mappings to shared memory">shm_revoke()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/shm_unlink.html" title="Remove the name of a shared memory object">shm_unlink()</a></li>
+<li class="linklist"><a class="link" href="../../topic/t/threadctl.html" title="Control a thread">ThreadCtl(), ThreadCtl_r(), ThreadCtlExt(), ThreadCtlExt_r()</a></li></ul></div>
+</div></body>
+</html>

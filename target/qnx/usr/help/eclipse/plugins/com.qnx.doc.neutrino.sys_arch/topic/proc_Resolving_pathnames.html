@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Resolving pathnames" />
+<meta name="abstract" content="When a process opens a file, the POSIX-compliant open() library routine first sends the pathname to procnto, where the pathname is compared against the prefix tree to determine which resource managers should be sent the open() message." />
+<meta name="description" content="When a process opens a file, the POSIX-compliant open() library routine first sends the pathname to procnto, where the pathname is compared against the prefix tree to determine which resource managers should be sent the open() message." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Resolving_pathnames" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Resolving pathnames</title>
+</head>
+<body id="Resolving_pathnames">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Resolving pathnames</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+When a process opens a file, the POSIX-compliant <span class="keyword apiname">open()</span>
+library routine first sends the pathname
+to <span class="keyword cmdname">procnto</span>, where the pathname is compared
+against the prefix tree to determine which resource managers
+should be sent the <span class="keyword apiname">open()</span> message.
+</p>
+
+
+<p class="p">
+The prefix tree may contain identical or partially
+overlapping regions of authority—multiple servers
+can register the same prefix. If the regions are identical,
+the order of resolution can be specified (see <q class="q">Ordering mountpoints,</q> below).
+If the regions are overlapping,
+the responses from the path manager are ordered with the longest prefixes first;
+for prefixes of equal length, the same specified order of resolution
+applies as for identical regions.
+</p>
+
+
+<div class="p">
+For example, suppose we
+have these prefixes registered:
+
+
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:33.33333333333333%" /><col style="width:66.66666666666666%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e89">Prefix</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e92">Description</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e89 "><span class="ph filepath">/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e92 ">Power-Safe filesystem
+         (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-qnx6.so.html"><span class="keyword cmdname">fs-qnx6.so</span></a>)
+  </td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e89 "><span class="ph filepath">/dev/ser1</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e92 ">Serial device manager
+        (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devc-ser*</span></a>)
+</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e89 "><span class="ph filepath">/dev/ser2</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e92 ">Serial device manager (<span class="keyword cmdname">devc-ser*</span>)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e89 "><span class="ph filepath">/dev/hd0</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e92 ">Raw disk volume
+        (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/d/devb-eide.html"><span class="keyword cmdname">devb-eide</span></a>)
+  </td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+The filesystem manager has registered a prefix for a
+mounted Power-Safe filesystem (i.e., <span class="ph filepath">/</span>).
+The block device driver has registered a prefix for a block special
+file that represents an entire physical hard drive (i.e.,
+<span class="ph filepath">/dev/hd0</span>). The serial device manager has
+registered two prefixes for the two PC serial ports.
+</p>
+
+
+<div class="p">
+The following table illustrates the longest-match rule for
+pathname resolution:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e183">This pathname:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e186">matches:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e189">and resolves to:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e183 "><span class="ph filepath">/dev/ser1</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e186 "><span class="ph filepath">/dev/ser1</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e189 "><span class="keyword cmdname">devc-ser*</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e183 "><span class="ph filepath">/dev/ser2</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e186 "><span class="ph filepath">/dev/ser2</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e189 "><span class="keyword cmdname">devc-ser*</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e183 "><span class="ph filepath">/dev/ser</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e186 "><span class="ph filepath">/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e189 "><span class="keyword cmdname">fs-qnx6.so</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e183 "><span class="ph filepath">/dev/hd0</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e186 "><span class="ph filepath">/dev/hd0</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e189 "><span class="keyword cmdname">devb-eide.so</span></td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e183 "><span class="ph filepath">/usr/jhsmith/test</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e186 "><span class="ph filepath">/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e189 "><span class="keyword cmdname">fs-qnx6.so</span></td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Ordering mountpoints</h2>
+
+
+<div class="p">
+
+Generally the order of resolving a filename is the order in which you 
+mounted the filesystems at the same mountpoint (i.e., new mounts go on top
+of or in front of any existing ones).
+You can specify the order of resolution when you mount the filesystem.
+For example, you can use:
+
+<ul class="ul">
+<li class="li">the <span class="keyword option">before</span> and <span class="keyword option">after</span> keywords for block I/O
+  (<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/utils-d.html"><span class="keyword cmdname">devb-*</span></a>)
+  drivers, in the <span class="keyword option">blk</span> options
+</li>
+
+
+<li class="li">the <span class="keyword option">-Z b</span> and <span class="keyword option">-Z a</span> options to
+  <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/f/fs-nfs3.html"><span class="keyword cmdname">fs-nfs3</span></a>
+</li>
+
+
+</ul>
+
+</div>
+
+
+<div class="p">
+You can also use the <span class="keyword option">-o</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mount.html"><span class="keyword cmdname">mount</span></a>
+with these keywords:
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword option">before</span></dt>
+
+<dd class="dd">Mount the filesystem so that it's resolved before any other filesystems
+  mounted at the same pathname (in other words, it's placed in front of
+  any existing mount).
+  When you access a file, the system looks on this filesystem first.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword option">after</span></dt>
+
+<dd class="dd">Mount the filesystem so that it's resolved after any other filesystems
+  mounted at the same pathname (in other words, it's placed behind any
+  existing mounts).
+  When you access a file, the system looks on this filesystem last, and
+  only if the file wasn't found on any other filesystems.
+</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<p class="p">
+If you specify the appropriate <span class="keyword option">before</span> option,
+the filesystem floats in front of any other filesystems mounted at the
+same mountpoint, except those that you later mount with <span class="keyword option">before</span>.
+If you specify <span class="keyword option">after</span>, the filesystem goes behind any
+other filesystems mounted at the same mountpoint,
+except those that are already mounted with <span class="keyword option">after</span>.
+So, the search order for these filesystems is:
+</p>
+
+
+<ol class="ol">
+<li class="li">those mounted with <span class="keyword option">before</span></li>
+
+<li class="li">those mounted with no flags</li>
+
+<li class="li">those mounted with <span class="keyword option">after</span></li>
+
+</ol>
+
+
+<p class="p">
+with each list searched in order of mount requests.
+The first server to claim the name gets it.
+You would typically use <span class="keyword option">after</span> to have a filesystem wait at the
+back and pick up things the no one else is handling,
+and <span class="keyword option">before</span> to make sure a filesystem looks first at filenames.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Single-device mountpoints</h2>
+
+
+<div class="p">
+Consider an example involving three servers:
+
+<dl class="dl">
+
+<dt class="dt dlterm">Server A</dt>
+
+<dd class="dd">A Power-Safe filesystem. Its mountpoint is <span class="ph filepath">/</span>.
+  It contains the files <span class="ph filepath">bin/true</span> and <span class="ph filepath">bin/false</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Server B</dt>
+
+<dd class="dd">A flash filesystem. Its mountpoint is <span class="ph filepath">/bin</span>.
+  It contains the files <span class="ph filepath">ls</span> and <span class="ph filepath">echo</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Server C</dt>
+
+<dd class="dd">A single device that generates numbers. Its mountpoint is <span class="ph filepath">/dev/random</span>.</dd>
+
+
+
+</dl>
+
+</div>
+
+
+<div class="p">
+At this point, the process manager's internal mount table would look like this:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:33.33333333333333%" /><col style="width:66.66666666666666%" /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e472">Mountpoint</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d19744e475">Server</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e472 "><span class="ph filepath">/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e475 ">Server A (Power-Safe filesystem)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e472 "><span class="ph filepath">/bin</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e475 ">Server B (flash filesystem)</td>
+
+</tr>
+
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e472 "><span class="ph filepath">/dev/random</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d19744e475 ">Server C (device)</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+Of course, each <q class="q">Server</q> name is actually an
+abbreviation for the <var class="keyword varname">nd, pid, chid</var> for that
+particular server channel.
+</p>
+
+
+<div class="p">
+Now suppose a client wants to send a message to Server C.
+The client's code might look like this:
+
+<pre class="pre codeblock">int fd;
+fd = open("/dev/random", ...);
+read(fd, ...);
+close(fd);
+</pre>
+</div>
+
+
+<div class="p">
+In this case, the C library will ask the process manager for
+the servers that could <em class="ph i">potentially</em> handle the path
+<span class="ph filepath">/dev/random</span>. The process manager would return
+a list of servers:
+
+<ul class="ul">
+<li class="li">Server C (most likely; longest path match)</li>
+
+<li class="li">Server A (least likely; shortest path match)</li>
+
+</ul>
+
+</div>
+
+
+<div class="p">
+From this information, the library will then contact each
+server in turn and send it an <em class="ph i">open</em> message,
+including the component of the path that the server should validate:
+
+<ol class="ol">
+<li class="li">Server C receives a null path, since the request came in on the same path as the mountpoint.</li>
+
+
+<li class="li">Server A receives the path <span class="ph filepath">dev/random</span>, since its mountpoint was <span class="ph filepath">/</span>.</li>
+
+
+</ol>
+
+</div>
+
+
+<p class="p">
+As soon as one server positively acknowledges the request,
+the library won't contact the remaining servers. This means
+Server A is contacted only if Server C denies the request.
+</p>
+
+
+<p class="p">
+This process is fairly straightforward with single device entries, 
+where the first server is generally the server that will
+handle the request. Where it becomes interesting is in
+the case of <em class="ph i">unioned filesystem mountpoints</em>.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Unioned filesystem mountpoints</h2>
+
+
+<p class="p">
+Let's assume we have two servers set up as before:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm">Server A</dt>
+
+<dd class="dd">A Power-Safe filesystem. Its mountpoint is <span class="ph filepath">/</span>.
+  It contains the files <span class="ph filepath">bin/true</span> and
+  <span class="ph filepath">bin/false</span>.
+</dd>
+
+
+
+
+<dt class="dt dlterm">Server B</dt>
+
+<dd class="dd">A flash filesystem. Its mountpoint is
+  <span class="ph filepath">/bin</span>. It contains the files <span class="ph filepath">ls</span>
+  and <span class="ph filepath">echo</span>.
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+Note that each server has a <span class="ph filepath">/bin</span> directory,
+but with different contents.
+</p>
+
+
+<p class="p">
+Once both servers are mounted, you would see the following
+due to the union of the mountpoints:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="ph filepath">/</span></dt>
+
+<dd class="dd">Server A</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/bin</span></dt>
+
+<dd class="dd">Servers A and B</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/bin/echo</span></dt>
+
+<dd class="dd">Server B</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/bin/false</span></dt>
+
+<dd class="dd">Server A</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/bin/ls</span></dt>
+
+<dd class="dd">Server B</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="ph filepath">/bin/true</span></dt>
+
+<dd class="dd">Server A</dd>
+
+
+
+</dl>
+
+
+<div class="p">
+What's happening here is that the resolution for the path
+<span class="ph filepath">/bin</span> takes place as before, but rather than limit the
+return to just one connection ID, <em class="ph i">all</em> the servers
+are contacted and asked about their handling for the path:
+
+<pre class="pre codeblock">DIR *dirp;
+dirp = opendir("/bin", ...);
+closedir(dirp);
+</pre>
+</div>
+
+
+<p class="p">
+This results in:
+</p>
+
+
+<ol class="ol">
+<li class="li">Server B receives a null path, since the request
+came in on the same path as the mountpoint.
+</li>
+
+
+<li class="li">Server A receives the path <span class="ph filepath">"bin"</span>, since its
+mountpoint was <span class="ph filepath">"/"</span>.
+</li>
+
+
+</ol>
+
+
+<p class="p">
+The result now is that we have a collection of file
+descriptors to servers who handle the path <span class="ph filepath">/bin</span>
+(in this case two servers); the actual directory name entries are read in turn when a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>
+is called. If any of the names in the directory are accessed with a regular open,
+then the normal resolution procedure takes place and only one server is accessed.
+
+</p>
+
+
+<p class="p">
+For a more detailed look at this, see
+<q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Unioned_filesystem.html">Unioned filesystems</a></q>
+in the Resource Managers chapter of <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Running more than one resource manager
+on overlapping pathname spaces might cause deadlocks.
+</div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Why overlay mountpoints?</h2>
+
+
+<p class="p">
+This overlaying of mountpoints is a very handy feature when
+doing field updates, servicing, etc. It also makes for a
+more unified system, where pathnames result in connections
+to servers regardless of what services they're providing,
+thus resulting in a more unified API.
+</p>
+
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/proc_PATHMAN.html" title="I/O resources aren't built into the microkernel, but are instead provided by resource manager processes that may be started dynamically at runtime. The procnto manager allows resource managers, through a standard API, to adopt a subset of the pathname space as a “domain of authority” to administer.">Pathname management</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html">The client view (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html">Inheriting file descriptors (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html">Pathname space mapping (QNX OS User's Guide)</a></li></ul></div>
+</div></body>
+</html>

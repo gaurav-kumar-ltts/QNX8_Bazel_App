@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Scaling the network interface driver framework (iflib)" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Performance Tuning User Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Performance Tuning User Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/networking_tuning.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="scalability" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Scaling the network interface driver framework (iflib)</title>
+</head>
+<body id="scalability">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Scaling the network interface driver framework (<span class="ph filepath">iflib</span>)</h1>
+
+
+<div class="body conbody">
+<div class="section">
+	<div class="p">You may scale <span class="ph filepath">iflib</span> for larger systems with the following method:
+		<ul class="ul">
+			<li class="li"><a class="xref" href="#scalability__set_pci">setting the number of PCI interrupts and queues</a></li>
+
+		</ul>
+
+	</div>
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Setting the number of PCI interrupts and queues</h2>
+    <p class="p">By default, the <span class="ph filepath">iflib</span> framework used by many PCI drivers
+        allocates a PCI MSI-X interrupt and queue for each CPU core to implement
+        receive-side scaling (RSS) on each interface. In a system with many such interfaces,
+        this mechanism can result in large numbers of interrupts allocated and multiple
+        queues running on each core.</p>
+
+    <p class="p">Because there are a limited number of MSI-X interrupts available in a system, high
+        core and interface counts can lead to the system running out of interrupts. These
+        errors are reported in <span class="keyword cmdname">slog2info</span>. For example:</p>
+
+    <pre class="pre codeblock">Jan 10 23:55:14.235 io_sock.184334 main_buffer 131 ixl2: Failed to enable MSI-X on 3:0:2 :The Requested Number And Type Of Interrupts Are Unavailable Or Could Not Be Reserved With Current Request Type [(PCI_ERR_IRQ_NOT_AVAIL)]</pre>
+    <p class="p">In addition, each queue is implemented as a thread, and multiple queues running on
+        each core can lead to poor performance with excessive context switching between the
+        threads.</p>
+
+    <p class="p">You can resolve both these issues by using a <span class="keyword cmdname">sysctl</span> tunable to set
+        the number of queues per interface to an appropriate value rather than letting
+            <span class="ph filepath">iflib</span> use the default (the number of CPUs). The tunable
+        uses the format:
+            dev.<var class="keyword varname">device_type</var>.<var class="keyword varname">device_instance</var>.iflib.override_nrxqs.</p>
+
+    <p class="p">For example, in a system with 24 CPUs and eight interfaces, the default total number
+        of interrupts and queue processing threads is 192. To reduce it to 24, first create
+        the configuration file <span class="ph filepath">/etc/io-sock.conf</span> with the following
+        contents:</p>
+
+    <pre class="pre codeblock">dev.ix.0.iflib.override_nrxqs="3"
+dev.ix.1.iflib.override_nrxqs="3"
+dev.ix.2.iflib.override_nrxqs="3"
+dev.ix.3.iflib.override_nrxqs="3"
+dev.ix.4.iflib.override_nrxqs="3"
+dev.ix.5.iflib.override_nrxqs="3"
+dev.ix.6.iflib.override_nrxqs="3"
+dev.ix.7.iflib.override_nrxqs="3"
+dev.ix.0.iflib.override_ntxqs="3"
+dev.ix.1.iflib.override_ntxqs="3"
+dev.ix.2.iflib.override_ntxqs="3"
+dev.ix.3.iflib.override_ntxqs="3"
+dev.ix.4.iflib.override_ntxqs="3"
+dev.ix.5.iflib.override_ntxqs="3"
+dev.ix.6.iflib.override_ntxqs="3"
+dev.ix.7.iflib.override_ntxqs="3"</pre>
+    <p class="p">Then, pass the file to <span class="keyword cmdname">io-sock</span> when you start it. For example: </p>
+
+    <pre class="pre codeblock">io-sock -o config=/etc/iosock.conf -m phy -m pci -d ix</pre>
+</div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/networking_tuning.html">Networking stack (io-sock)</a></div>
+</div>
+</div></body>
+</html>

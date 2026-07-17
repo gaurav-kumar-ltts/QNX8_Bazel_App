@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Combining multiple image files" />
+<meta name="abstract" content="Combining the IPL, an OS image (IFS) created by mkifs, and a flash filesystem image created by mkefs can be useful or even required." />
+<meta name="description" content="Combining the IPL, an OS image (IFS) created by mkifs, and a flash filesystem image created by mkefs can be useful or even required." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="images_combine" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Combining multiple image files</title>
+</head>
+<body id="images_combine">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Combining multiple image files</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Combining the IPL, an OS image (IFS) created by <span class="keyword cmdname">mkifs</span>, and a flash filesystem image
+		created by <span class="keyword cmdname">mkefs</span> can be useful or even required.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			<ul class="ul">
+				<li class="li">Some boards accept only a single image, so the OS image and any other other images must be
+					combined before they are transfered to the target board.</li>
+
+				<li class="li">A single image can simplify manufacturing of systems after they go into production. Copying a single
+					image is simpler, faster, and less susceptible to error than copying multiple images.</li>
+
+			</ul>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The IPL, OS image, and flash filesystem combined into a single image. Padding is used to
+					align the different image components with block sizes required by the board.</span>
+				
+				<br /><img class="image" src="../../images/image_combined.svg" width="528" /><br />
+			</div>
+
+		</div>
+
+		<div class="section" id="images_combine__comb"><h2 class="title sectiontitle">Combining the images</h2>
+			
+			
+			<p class="p">To enable configurations like the one above, you must create two separate images and combine them.
+				You can use the <span class="keyword cmdname">diskimage</span> utility to create a single, combined image for a partitioned medium,
+				such as a hard drive, SD card, or MMC on your host, then transfer the image to your target (see the
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/diskimage.html"><span class="keyword cmdname">diskimage</span></a> reference and the
+				<q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/diskimage_config_file.html"><span class="keyword cmdname">diskimage</span> configuration file</a></q> section
+				in the <cite class="cite">Utilities Reference</cite>, and your <cite class="cite">BSP User's Guide</cite>).</p>
+
+			<p class="p">The boot image filesystem will be run from RAM to improve performance, and the
+				eXecute In Place (XIP) image filesystem will be run from flash to conserve RAM.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> 
+				<ul class="ul">
+					<li class="li">Each section of your combined image (IPL, IFS, EFS) must begin at a memory page boundary.
+						Typically, this is a 4 KB boundary; see the diagram above.</li>
+
+					<li class="li">The IPL code hands execution to the startup code and OS in the first image.</li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">Instead of using <span class="keyword cmdname">diskimage</span>, you can use a hardware flash or EPROM programmer to burn
+				the separate images with appropriate alignment, or other utilities, such as:
+				<ul class="ul">
+					<li class="li"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/c/cat.html"><span class="keyword cmdname">cat</span></a></li>
+
+					<li class="li"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/dd.html"><span class="keyword cmdname">dd</span></a></li>
+
+					<li class="li"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkrec.html"><span class="keyword cmdname">mkrec</span></a></li>
+
+					<li class="li"><a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/o/objcopy.html"><span class="keyword cmdname">objcopy</span></a></li>
+
+				</ul>
+
+			</div>
+
+			<div class="note"><span class="notetitle">Note:</span> QNX recommends that you use <span class="keyword cmdname">diskimage</span> to combine images.
+				<p class="p">For another approach to mounting a secondary image filesystem, see the
+					<a class="xref" href="../../../com.qnx.doc.neutrino.technotes/topic/reloadable_ifs.html"><em class="ph i">Reloadable Image Filesystems</em></a> technote.</p>
+
+			</div>
+
+			<h3 class="title sectiontitle">Restrictions to using XIP</h3>
+			<div class="p">The following restrictions apply to XIP image filesystems:
+				<ul class="ul">
+					<li class="li">The board must support XIP.</li>
+
+					<li class="li">The IFS must be uncompressed and stored on linearly mapped media.</li>
+
+					<li class="li">The IFS may not reside in NOR flash where there is a flash filesystem driver running for that same
+						flash array (because the flash driver will occasionally put the flash in a mode where it can't be
+						read as data).</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling lseek()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_lseek" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling lseek()</title>
+</head>
+<body id="HANDLING_lseek">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">lseek()</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+
+
+
+
+Your resource manager will receive an <span class="keyword const">_IO_LSEEK</span> message when a client calls
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lseek.html"><span class="keyword apiname">lseek()</span></a>,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fseek.html"><span class="keyword apiname">fseek()</span></a>,
+or
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/rewinddir.html"><span class="keyword apiname">rewinddir()</span></a>.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+A resource manager that handles directories will also need to
+interpret the <span class="keyword const">_IO_LSEEK</span> message for directory operations.
+</div>
+
+
+<div class="p">
+The prototype for the <var class="keyword varname">io_lseek</var> handler is as follows:
+
+<pre class="pre codeblock">int io_lseek ( resmgr_context_t *<var class="keyword varname">ctp</var>,
+               io_lseek_t *<var class="keyword varname">msg</var>,
+               RESMGR_OCB_T *<var class="keyword varname">ocb</var> )
+</pre>
+</div>
+
+
+<p class="p">
+
+
+The default handler,
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_lseek_default.html"><span class="keyword apiname">iofunc_lseek_default()</span></a>,
+simply calls the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_lseek.html"><span class="keyword apiname">iofunc_lseek()</span></a>
+helper function.
+</p>
+
+
+<div class="p">
+
+The <span class="keyword dtype">io_lseek_t</span> structure is (once again), a union of an input message and an output message:
+
+<pre class="pre codeblock">struct _io_lseek {
+  uint16_t         type;
+  uint16_t         combine_len;
+  short            whence;
+  uint16_t         flags;
+  uint64_t         offset;
+};
+
+typedef union {
+  struct _io_lseek i;
+  uint64_t         o;
+} io_lseek_t;
+</pre>
+</div>
+
+
+<p class="p">
+The <var class="keyword varname">whence</var> and <var class="keyword varname">offset</var> members of the input message
+are passed from the client's <span class="keyword apiname">lseek()</span> function.
+Usually, the routine should adjust the OCB's <var class="keyword varname">offset</var> parameter after
+interpreting the <var class="keyword varname">whence</var> and <var class="keyword varname">offset</var> parameters.
+Then, it should return either the new offset in the reply message
+(for example, using the <var class="keyword varname">msg-&gt;o</var> field) or an error.
+</p>
+
+
+<p class="p">
+
+The only currently defined flag is <span class="keyword const">_IO_LSEEK_IGNORE_NON_SEEKABLE</span>.
+The client sets this flag if it wants the resource manager to ignore the request if lseek operations
+aren't supported (for example, an <span class="keyword apiname">aio_read()</span> on a pipe).
+In this case, the resource manager shouldn't change the offset.
+</p>
+
+
+<p class="p">
+
+If the <span class="keyword const">_IO_COMBINE_FLAG</span> is set in the <var class="keyword varname">combine_len</var> field, the message
+is part of a combine message. In this case, the handler should just return an error status on failure
+or EOK on success, and not return the current offset in the reply message.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

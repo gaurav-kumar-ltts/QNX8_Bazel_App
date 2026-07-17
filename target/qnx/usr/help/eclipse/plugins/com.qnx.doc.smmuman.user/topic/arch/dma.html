@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Isolation of DMA devices" />
+<meta name="abstract" content="The SMMUMAN supports spatial isolation of DMA devices on systems with IOMMU/SMMUs." />
+<meta name="description" content="The SMMUMAN supports spatial isolation of DMA devices on systems with IOMMU/SMMUs." />
+<meta name="DC.subject" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="keywords" content="QNX SDP, 8.0, SMMUMAN User's Guide, API, Configuration, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/arch/arch.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dma" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Isolation of DMA devices</title>
+</head>
+<body id="dma">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Isolation of DMA devices</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The SMMUMAN supports spatial isolation of DMA devices on systems with
+		IOMMU/SMMUs.</p>
+
+		<div class="section" id="dma__isolation"><h2 class="title sectiontitle">Isolation</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p">The figure below presents the four isolation axes that can be implemented in a
+				software system. Spatial isolation is fundamental to all other forms of isolation.</p>
+
+			<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The isolation axes: spatial, resource, data, temporal.</span>
+				
+				<br /><img class="image" src="../../images/smmu_isolation.svg" width="288" alt="Isolation axes" /><br />
+			</div>
+
+			<p class="p">In a QNX system, the OS kernel (<span class="keyword cmdname">procnto</span>) uses MMU page tables to
+				control attempts to access memory. In a virtualized system with the
+				<span class="keyword">QNX OS</span> plus its virtualization extension
+				(a <span class="ph filepath">libmod_qvm</span> variant) running as the host, a second layer of
+				page tables (or intermediate page tables) is used to manage guest access to memory.</p>
+
+			<p class="p">MMUs can’t be used to manage Direct Memory Access (DMA) device attempts to access
+				memory, however. The following section describes a different hardware mechanism,
+				called an IOMMU/SMMU, which manages DMA device access to memory.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> On ARM platforms, intermediate page tables are known as Stage 2 page tables; on
+				x86 platforms they are known as Extended Page Tables (EPT)).</div>
+
+		</div>
+
+		<div class="section" id="dma__dma"><h2 class="title sectiontitle">DMA devices and IOMMU/SMMUs</h2>
+			
+			<p class="p">A DMA device (e.g., GPU, network card, sound card) initiates reads and writes to
+				memory without involving the CPU in the transaction.</p>
+
+			<p class="p">That is, the CPU doesn't control a DMA device's access to memory. Instead, a DMA
+				device takes control of the memory bus to gain direct access to system memory. Since
+				no CPU is implicated in the memory access, an OS can’t manage a DMA device’s access
+				to system memory without support from hardware IOMMU/SMMUs.</p>
+
+			<p class="p">Most importantly, the protections the OS can provide against incorrect (and possibly
+				malicious) access to memory by requests that go through the CPU do not apply to
+				access requests from DMA devices. The OS cannot ensure that a DMA device is
+				prevented from accessing memory it is not authorized to access.</p>
+
+			<p class="p">A System Memory Management Unit (IOMMU/SMMU) is a hardware component that provides
+				translation and access control for non-CPU initiated reads and writes (e.g., from
+				DMA devices), similar to the translation and access control that page tables provide for
+				CPU-initiated reads and writes.</p>
+
+			<h3 class="title sectiontitle">Hardware limitations</h3>
+			
+			
+			
+			
+			
+			<p class="p">Note that on some boards the IOMMU/SMMU hardware doesn't provide the
+				<span class="keyword cmdname">smmuman</span> service the information it requires to map individual
+				devices and report their attempted transgressions.</p>
+
+			<p class="p">For example, on some ARM boards the IOMMU doesn't provide the
+				<span class="keyword cmdname">smmuman</span> service the information it requires to identify
+				individual PCI devices. Similarly, on x86 boards the VT-d hardware can't identify or
+				control individual MMIO devices that do DMA. Additionally, some boards might not
+				have enough session identifiers (SIDs) to be able to assign a unique SID to every
+				hardware device, so multiple hardware devices may have to share an SID.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Pass-through DMA devices in virtualized systems</h2>
+			
+			
+			
+			<p class="p">In a virtualized system, pass-through devices are devices that are <q class="q">owned</q> by a
+				guest running in a VM. A driver in the guest controls the device hardware directly.</p>
+
+			<div class="p">For a DMA device to be usable as a pass-through device in a virtualized system, an
+				IOMMU/SMMU is required for the following reasons:
+				<ul class="ul">
+					<li class="li"><p class="p">A DMA device that is passed through to a guest won’t work if its memory
+							access is restricted to the host-physical memory regions assigned for the
+							guest’s memory. It requires its own region in host-physical memory, and this
+							region must be mapped to guest-physical memory.</p>
+
+						<p class="p">An IOMMU/SMMU is required to map guest-physical addresses visible to the DMA
+							device to host-physical addresses. Since the DMA device is owned by the
+							guest, it is configured to output guest-physical addresses to the bus, and
+							the IOMMU/SMMU is needed to convert these addresses to host-physical
+							addresses before they are passed on to the memory controller.</p>
+</li>
+
+					<li class="li"><p class="p">The hypervisor host layer has no knowledge of a device that is passed through
+							to a guest, and a DMA device’s memory access doesn’t go through a CPU, which
+							could trap transgressions. If the guest OS fails to notice that a DMA device
+							is misbehaving, in the absence of an IOMMU/SMMU, no further checks are
+							available.</p>
+
+						<p class="p">To protect against misbehaving pass-through DMA devices, an IOMMU/SMMU must
+							be programmed with the memory regions that each DMA device (regardless of
+							ownership) is permitted to access.</p>
+</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/arch/arch.html" title="This chapter presents the architecture of the SMMUMAN, and its responsibilities and behavior.">SMMUMAN Architecture</a></div>
+</div>
+</div></body>
+</html>

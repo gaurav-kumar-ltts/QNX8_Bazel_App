@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Flash filesystem" />
+<meta name="abstract" content="This buildfile starts up the flash filesystem on an x86 board." />
+<meta name="description" content="This buildfile starts up the flash filesystem on an x86 board." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="flash_filesystem_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Flash filesystem</title>
+</head>
+<body id="flash_filesystem_example">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Flash filesystem</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">This buildfile starts up the flash filesystem on an x86 board.</p>
+
+<pre class="pre codeblock">[virtual=x86_64,bios +compress] .bootstrap = {
+    startup-x86
+    PATH=/proc/boot:/bin
+    procnto-smp-instr
+}
+
+[+script] .script = {
+    devc-con -e -n5 &amp;
+    reopen /dev/con1
+    devf-abc123 -r -b3 -m2 -u2 -t4 &amp;
+    waitfor /fs0p0
+    [+session] TERM=qansi PATH=/proc/boot:/bin esh &amp;
+}
+
+[type=link] /tmp=/dev/shmem
+[type=link] /bin=/fs0p0/bin
+[type=link] /etc=/fs0p0/etc
+
+libc.so
+libgcc_s.so.1
+ldqnx-64.so.2
+libsocket.so
+
+devf-abc123
+devc-con
+esh
+</pre>
+		<div class="section"><h2 class="title sectiontitle">The boot file</h2>
+			
+			<p class="p">The bootstrap inline file (e.g., <span class="ph codeph">.bootstrap</span>) specifies the startup
+				program (<span class="keyword cmdname">startup-x86</span>) and the kernel
+				(<span class="keyword cmdname">procnto</span>). Notice that we set the <span class="keyword envar">PATH</span> environment
+				variable to point to both <span class="ph filepath">/proc/boot</span> and <span class="ph filepath">/bin</span>.
+				The <span class="ph filepath">/bin</span> directory is a link (created with the
+				<span class="keyword cmdname">[type=link]</span>) to the flash filesystem's
+				<span class="ph filepath">/fs0p0/bin</span> path.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">The script file</h2>
+			
+			<div class="p">In the script inline file (e.g., <span class="ph codeph">.script</span>), we start the console
+				driver with five consoles, reopen standard input, output, and error for
+				<span class="ph filepath">/dev/con1</span>, and start the flash filesystem driver
+				<span class="keyword cmdname">devf-abc123</span>. The command-line options we use are:
+			<dl class="dl">
+				
+					<dt class="dt dlterm"><span class="keyword option">-r</span></dt>
+
+					<dd class="dd">Enable fault recovery for dirty extents, dangling extents, and partial
+						reclaims.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword option">-b3</span></dt>
+
+					<dd class="dd">Enable background reclaim at priority <span class="ph codeph">3</span>.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword option">-u2</span></dt>
+
+					<dd class="dd">Specify the highest update level (<span class="ph codeph">2</span>) to update files and
+						directories.</dd>
+
+				
+				
+					<dt class="dt dlterm"><span class="keyword option">-t4</span></dt>
+
+					<dd class="dd">Specify the highest number of threads. Extra threads will increase
+						performance when background reclaim is enabled (with the <span class="keyword option">-b</span>
+						option) and when multiple chips and/or spare blocks are available.</dd>
+
+				
+			</dl>
+
+			</div>
+
+			<div class="p">The <span class="keyword cmdname">devf-abc123</span> will automatically mount the flash partition as
+				<span class="ph filepath">/fs0p0</span>. Notice the process manager symbolic links we
+				created at the bottom of the buildfile:
+<pre class="pre codeblock">[type=link] /bin=/fs0p0/bin
+[type=link] /etc=/fs0p0/etc
+</pre></div>
+
+			<p class="p">These symbolic links give us <span class="ph filepath">/bin</span> and <span class="ph filepath">/etc</span>
+				from the flash filesystem.</p>
+
+			<p class="p">For more information, see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/d/devf-ram.html"><span class="keyword cmdname">devf-ram</span></a> in the
+				<span class="keyword">QNX OS</span> <cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

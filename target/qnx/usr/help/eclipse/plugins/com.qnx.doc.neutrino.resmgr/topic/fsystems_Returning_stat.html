@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Returning information associated with a directory structure" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fsystems_ReturnEntries.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Returning_stat" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Returning information associated with a directory structure</title>
+</head>
+<body id="Returning_stat">
+
+<h1 class="title topictitle1" id="ariaid-title1">Returning information associated with a directory structure</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+Instead of returning just the <span class="keyword dtype">struct dirent</span> in the
+<span class="keyword const">_IO_READ</span> message, you can also return a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat_struct.html"><span class="keyword dtype">struct stat</span></a>,
+as a potential optimization.
+This is basically a usage question.
+If your device is typically used in such a way that first <span class="keyword apiname">readdir()</span> is
+called and then <span class="keyword apiname">stat()</span> is called, it will be more efficient to return both.
+If not, it is more efficient to not return the stat information.
+See the documentation for 
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a> 
+in the <cite class="cite">C Library Reference</cite> for more information.
+
+
+
+
+</p>
+
+
+<div class="p">
+
+The client can set the <var class="keyword varname">xtype</var> member of the message to
+<span class="keyword const">_IO_XFLAG_DIR_EXTRA_HINT</span> to send a hint to the filesystem
+to return the extra information, however the filesystem isn't guaranteed to do so.
+If the resource manager provides the information,
+it must put it in a <span class="keyword dtype">struct dirent_extra_stat</span>, which is defined as follows:
+
+
+<pre class="pre codeblock">struct dirent_extra_stat {
+    uint16_t            d_datalen;
+    uint16_t            d_type;
+    uint32_t            d_reserved;
+    struct stat         d_stat;
+};
+</pre>
+</div>
+
+
+<div class="p">
+
+
+The resource manager must set <var class="keyword varname">d_type</var> to
+the appropriate <span class="keyword const">_DTYPE_LSTAT*</span> or <span class="keyword const">_DTYPE_STAT*</span> value, depending on
+whether or not it resolves symbolic links and which version of POSIX is being used (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>).
+For example:
+
+<pre class="pre codeblock">if(msg-&gt;i.xtype &amp; _IO_XFLAG_DIR_EXTRA_HINT) { 
+    struct dirent_extra_stat    extra;
+    extra.d_datalen = sizeof extra.d_stat;
+    extra.d_type = _DTYPE_LSTAT;
+    extra.d_reserved = 0;
+    iofunc_stat(ctp, &amp;attr, &amp;extra.d_stat);
+    ...
+}
+</pre>
+</div>
+
+
+<p class="p">
+There's a <span class="keyword dtype">dirent_extra_stat</span> after each directory entry:
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Returning the optional <span class="keyword dtype">struct dirent_extra_stat</span> along with
+the <span class="keyword dtype">struct dirent</span> entry can improve efficiency.</span>
+
+<br /><img class="image" src="../images/structst.svg" width="288" alt="Directory structure info" /><br />
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <span class="keyword dtype">dirent_extra_stat</span> structure must be aligned on an 8-byte boundary
+but it follows a variable-length pathname.
+The <var class="keyword varname">d_reclen</var> member of the <span class="keyword dtype">struct dirent</span>
+must contain the size of <em class="ph i">both</em> structures,
+including any space necessary for the pathname and alignment.
+There must be no more than seven bytes of alignment filler.
+</div>
+
+
+<p class="p">
+
+The client has to check for extra data by using the <span class="keyword apiname">_DEXTRA_*()</span>
+macros (see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a> 
+in the <cite class="cite">C Library Reference</cite>.)
+If this check fails, the client will need to call <span class="keyword apiname">lstat()</span> or
+<span class="keyword apiname">stat()</span> explicitly.
+For example, <span class="keyword cmdname">ls -l</span> checks for extra <span class="keyword const">_DTYPE_LSTAT</span>
+information; if it isn't present, <span class="keyword cmdname">ls</span> calls <span class="keyword apiname">lstat()</span>.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fsystems_ReturnEntries.html">Returning directory entries from _IO_READ</a></div>
+</div>
+</div></body>
+</html>

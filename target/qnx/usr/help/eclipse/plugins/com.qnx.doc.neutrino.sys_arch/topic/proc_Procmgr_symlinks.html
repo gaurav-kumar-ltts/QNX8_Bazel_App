@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Process manager symbolic links" />
+<meta name="abstract" content="We've discussed prefixes that map to a resource manager. Another form of mapping is a process manager symbolic link (procmgr symlink), which is a simple string substitution. Unlike a filesystem symbolic link, it exists only in memory instead of being a filesystem object." />
+<meta name="description" content="We've discussed prefixes that map to a resource manager. Another form of mapping is a process manager symbolic link (procmgr symlink), which is a simple string substitution. Unlike a filesystem symbolic link, it exists only in memory instead of being a filesystem object." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_PATHMAN.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_Special_device_names.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/proc_Relative_pathnames.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Symbolic_prefixes" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Process manager symbolic links</title>
+</head>
+<body id="Symbolic_prefixes">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Process manager symbolic links</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> We've discussed prefixes that map to a resource manager. Another form of mapping is a
+    process manager symbolic link (procmgr symlink), which is a simple string substitution. Unlike a
+    filesystem symbolic link, it exists only in memory instead of being a filesystem
+    object.</p>
+
+
+<p class="p">
+      
+      
+      
+      
+  Procmgr symlinks behave a lot like ordinary symlinks with the following exceptions:</p>
+
+  <ul class="ul">
+    <li class="li">Because they don't exist in the filesystem, you can create them in cases where you can't
+        create ordinary symlinks (e.g., read-only filesystems).</li>
+
+    <li class="li">To create them, a process requires the <span class="keyword const">PATHSPACE</span> ability. If security
+        policies are in use, its type must have an <tt class="ph tt">allow_link</tt> rule that specifies the path
+        where the symlink is created. Filesystem permissions are ignored.</li>
+
+    <li class="li">A procmgr symlink can permit a process whose root directory has been changed (i.e., a
+        chrooted process) to access paths outside its root directory (for more information, go to
+            <q class="q"><a class="xref" href="../../com.qnx.doc.security.system/topic/manual/chroot.html">chroot (change
+            root)</a></q> in the <span class="keyword">QNX OS</span>
+        <cite class="cite">System Security Guide</cite>).</li>
+
+    <li class="li">Procmgr symlinks are not persistent and are lost when the system reboots.</li>
+
+  </ul>
+
+  <p class="p">You can use the following methods to create procmgr symlinks:</p>
+
+      <ul class="ul">
+      <li class="li">Using the <span class="keyword cmdname">procmgr_symlink</span> command in a boot script (go to <q class="q">Script
+          files</q> in the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a> entry in the <cite class="cite">Utilities Reference</cite>)</li>
+
+      <li class="li">Calling <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pathmgr_symlink.html"><span class="keyword apiname">pathmgr_symlink()</span></a></li>
+
+      <li class="li">Using the <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/l/ln-target.html"><span class="keyword cmdname">ln</span></a> (link) command. This command is typically used to create
+        links on a filesystem: either hard links, or symbolic links by using the <span class="keyword option">-s</span>
+        option. If you specify both <span class="keyword option">-s</span> and <span class="keyword option">-P</span>, then a procmgr
+        symbolic link is created. 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+              <tr class="row">
+                <th class="entry cellrowborder" style="vertical-align:top;" id="d49452e152">Command</th>
+
+                <th class="entry cellrowborder" style="vertical-align:top;" id="d49452e155">Description</th>
+
+              </tr>
+
+            </thead>
+<tbody class="tbody">
+              <tr class="row">
+                <td class="entry cellrowborder" style="vertical-align:top;" headers="d49452e152 "><span class="keyword cmdname">ln -s</span>
+                  <var class="keyword varname">existing_file</var>
+                  <var class="keyword varname">symbolic_link</var></td>
+
+                <td class="entry cellrowborder" style="vertical-align:top;" headers="d49452e155 ">Create a filesystem symbolic link.</td>
+
+              </tr>
+
+              <tr class="row">
+                <td class="entry cellrowborder" style="vertical-align:top;" headers="d49452e152 "><span class="keyword cmdname">ln -Ps</span>
+                  <var class="keyword varname">existing_file</var>
+                  <var class="keyword varname">symbolic_link</var></td>
+
+                <td class="entry cellrowborder" style="vertical-align:top;" headers="d49452e155 ">Create a procmgr symlink.</td>
+
+              </tr>
+
+            </tbody>
+</table>
+</div>
+
+        <p class="p"> Note that a procmgr symlink always takes precedence over a filesystem symbolic link.
+        </p>
+</li>
+
+    </ul>
+
+<div class="p">As an example that uses <span class="keyword cmdname">ln</span>, assume that you're running on a machine that
+      doesn't have a local filesystem. However, there's a filesystem on another machine available
+      over NFS (mounted at <span class="ph filepath">/nfs_host</span>) that you wish to access as
+        <span class="ph filepath">/bin</span>. You accomplish this using the following procmgr symbolic link:
+          
+      <pre class="pre codeblock">ln -Ps /nfs_host/x86_64/bin  /bin
+</pre>
+    </div>
+
+
+<p class="p"> This procmgr symlink causes <span class="ph filepath">/bin</span> to be mapped into
+        <span class="ph filepath">/nfs_host/x86_64/bin</span>. For example, <span class="ph filepath">/bin/ls</span> is
+      replaced with the following: <span class="ph filepath">/nfs_host/x86_64/bin/ls</span>
+    </p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/proc_Special_device_names.html">Creating special device names</a></strong><br />
+You can also use procmgr symlinks to create special device names.</li>
+<li class="link ulchildlink"><strong><a href="../topic/proc_Relative_pathnames.html">Relative pathnames</a></strong><br />
+Pathnames need not start with slash. In such cases, the path is considered       <em class="ph i">relative</em> to the current working directory.</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/proc_PATHMAN.html" title="I/O resources aren't built into the microkernel, but are instead provided by resource manager processes that may be started dynamically at runtime. The procnto manager allows resource managers, through a standard API, to adopt a subset of the pathname space as a “domain of authority” to administer.">Pathname management</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_Client_view.html">The client view (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/process_File_descriptors.html">Inheriting file descriptors (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.user_guide/topic/files_Pathname_space_mapping.html">Pathname space mapping (QNX OS User's Guide)</a></li></ul></div>
+</div></body>
+</html>

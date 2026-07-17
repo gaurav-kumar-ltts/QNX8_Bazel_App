@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Detecting and reporting errors" />
+<meta name="abstract" content="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time." />
+<meta name="description" content="The primary goal for detecting heap corruption problems is to correctly identify the source of errors and fix them to avoid getting faults in the allocator at some later time." />
+<meta name="DC.subject" content="heap, corruption, detecting and reporting, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="heap, corruption, detecting and reporting, QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_Using_librcheck.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_Configuring_librcheck_for_MemAnalysis.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_CheckingLevel.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_Error_handler.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/hat_Caveats.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="DetectingAndReportingErrors" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Detecting and reporting errors</title>
+</head>
+<body id="DetectingAndReportingErrors">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Detecting and reporting errors</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The primary goal for detecting heap corruption problems is to correctly identify the source of
+errors and fix them to avoid getting faults in the allocator at some later time.
+</p>
+
+
+<div class="p">
+The first step to achieving this goal is to create an allocator that can
+determine whether the heap is corrupted on every entry into the allocator,
+whether it's for an allocation request or for a release request.
+For example, on a release request, the allocator should be capable of determining whether:
+
+<ul class="ul">
+<li class="li">the pointer given to it is valid</li>
+
+<li class="li">the associated block's header is corrupt</li>
+
+<li class="li">either of the neighboring blocks is corrupt</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+
+
+To detect heap corruption, we provide a replacement library for the standard allocator
+that can keep additional block information in the header of every heap buffer.
+You can use this replacement library, which is implemented by the
+<span class="ph filepath">librcheck.so</span> shared object and referred to simply as
+<span class="ph filepath">librcheck</span>, while testing an application to help
+isolate any heap corruption problems.
+</p>
+
+
+<div class="p">
+When this allocator detects a source of heap corruption, it can print an
+error message indicating:
+
+<ul class="ul">
+<li class="li">the point at which the error was detected</li>
+
+<li class="li">the program location that made the request</li>
+
+<li class="li">information about the heap buffer that contained the problem</li>
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The library technique can be refined to also detect some sources of errors
+that may still elude detection, such as memory overruns or underruns,
+that occur before the corruption is detected by the allocator.
+This may be done when the standard libraries are the vehicle for the heap corruption,
+such as an errant call to <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/memcpy.html"><span class="keyword apiname">memcpy()</span></a>.
+In <span class="ph filepath">librcheck</span>, the standard memory manipulation functions and string functions
+are replaced with versions that use the information in this library to determine
+if their arguments reside in the heap and if they would cause the bounds
+of the heap buffer to be exceeded. Under these conditions, the functions can
+then call the error-reporting functions to provide information about the source of the error.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/hat_Using_librcheck.html">Using the librcheck library</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/hat_Configuring_librcheck_for_MemAnalysis.html">Configuring librcheck for Memory Analysis</a></strong><br />
+</li>
+<li class="link ulchildlink"><strong><a href="../topic/hat_CheckingLevel.html">Controlling the level of checking</a></strong><br />
+ You can use environment variables or the <span class="keyword apiname">mallopt()</span> function to enable extra checks within the <span class="ph filepath">librcheck</span> library. </li>
+<li class="link ulchildlink"><strong><a href="../topic/hat_Error_handler.html">Specifying an error handler</a></strong><br />
+ Typically, when the library detects an error, it displays a diagnostic message, and the program continues executing. In cases where a critical error is encountered, an error message is printed and the program is aborted (via <span class="keyword apiname">abort()</span>). </li>
+<li class="link ulchildlink"><strong><a href="../topic/hat_Caveats.html">Caveats</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hat.html" title="If you develop a program that dynamically allocates memory, you're also responsible for tracking any memory that you allocate whenever a task is performed, and for releasing that memory when you no longer need it. If you fail to track the memory correctly, you may introduce memory leaks or unintentionally write to an area outside of the allocated memory space.">Heap analysis</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/analyze_mem_rsc_usage.html">Analyze Memory Usage and Find Errors (IDE User's Guide)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/calloc.html">calloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/free.html">free()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/malloc.html">malloc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mallopt.html">mallopt()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html">mmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html">munmap()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/realloc.html">realloc()</a></li></ul></div>
+</div></body>
+</html>

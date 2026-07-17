@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Secure procfs (/proc filesystem) option" />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="mkqnximage_procfs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Secure procfs (/proc filesystem) option</title>
+</head>
+<body id="mkqnximage_procfs">
+
+    
+    <h1 class="title topictitle1" id="ariaid-title1">Secure procfs (<span class="ph filepath">/proc</span> filesystem) option</h1>
+
+    
+    
+    
+    <div class="body conbody">
+        <div class="section">
+            <p class="p">The <span class="keyword option">--secure-procfs</span> option configures the permissions on the procfs
+                    (<span class="ph filepath">/proc</span>) filesystem. The default for
+                    <span class="keyword cmdname">mkqnximage</span> is to enable the option, as should usually be the
+                case on a real system. To see the effect on configuration, you compare with an image
+                with the option set to <tt class="ph tt">no</tt>. </p>
+
+            <p class="p">Changes to this option affect the <span class="keyword option">-d</span> and <span class="keyword option">-u</span> options
+                passed to <span class="keyword cmdname">procnto</span> on boot. In particular, when enabled, both
+                options are set to 0777,  which removes all POSIX access permissions from the files
+                in <span class="ph filepath">/proc/<var class="keyword varname">pid</var>/</span> (where <var class="keyword varname">pid</var>
+                is a process’s PID).</p>
+
+            <p class="p">If you build an image, log in and execute: </p>
+
+            <pre class="pre codeblock"># ls -l /proc/1 </pre>
+            <p class="p">with the option enabled (<tt class="ph tt">--secure-procfs=yes</tt>), the output should be: </p>
+
+            <pre class="pre codeblock"># ls -l /proc/1 
+
+total 0 
+
+----------   1 root      root         0 Apr 08 10:32 as 
+
+----------   1 root      root         0 Apr 08 10:32 cmdline 
+
+... </pre>
+            <p class="p">while with the option disabled, the output would be: </p>
+
+            <pre class="pre codeblock"># ls -l /proc/1 
+
+total 0 
+
+-rw-------   1 root      root         0 Apr 08 09:55 as 
+
+-rw-r--r--   1 root      root         0 Apr 08 09:55 cmdline </pre>
+            <p class="p">You can see the effect of this difference if you run the <span class="keyword cmdname">pidin</span>
+                command as a non-root user. For example:</p>
+
+            <pre class="pre codeblock">on -u 100 pidin arg </pre>
+            <p class="p">If run on an image with the option disabled, this displays a complete list of
+                processes though with only their names, not command line arguments. If run on an
+                image with the option enabled, the list of processes would be empty. </p>
+
+            <p class="p">It is a good idea on a real system to remove access to procfs. On a production
+                system, most processes do not require access to procfs. Removing access can help
+                mitigate against exploiting vulnerabilities that are discovered post-release. QNX
+                recommends that you grant access selectively to those processes that need it. </p>
+
+            <p class="p">As seen above, removing access makes commands such as <span class="keyword cmdname">pidin</span>
+                unusable for non-root users. Another effect is on servers that, as a debugging aid,
+                provide names of clients in log messages instead of simply their PID. Accessing the
+                name of a process requires reading the <span class="ph filepath">cmdline</span> file for the
+                process, which is disabled when you enable this option. Finally, debugging requires
+                access to <span class="ph filepath">/proc/<var class="keyword varname">pid</var>/as</span>.</p>
+
+            <p class="p">You can use abilities to selectively re-enable access to files in
+                        <span class="ph filepath">/proc/<var class="keyword varname">pid</var>/</span>. For example, you can run
+                a non-root shell that allows a limited range of the ability
+                    <span class="keyword const">PROCMGR_AID_XPROCESS_QUERY</span>: </p>
+
+            <pre class="pre codeblock"># on -u 100 -A allow,all,inherit,xprocess_query:20-25 ksh 
+
+$ </pre>
+            <p class="p">If you run <span class="keyword cmdname">pidin</span> in that shell, it shows a subset of processes: </p>
+
+            <pre class="pre codeblock">$ pidin arg 
+
+     pid Arguments 
+
+   16387 slogger2 -U 21:21 -P /pps/slogger2  
+
+   40965 devb-eide cam user=20:20 blk cache=64M,auto=partition,vnode=2000,ncache=2000,commit=low  
+
+  122888 random -U 22:22 -s /data/var/random/rnd-seed  
+
+  135177 pipe -U 24:24 </pre>
+            <p class="p">These are the processes that have UIDs in the range 20-25. The list does not include
+                the <span class="keyword cmdname">pidin</span> command itself because a process cannot even access the
+                        <span class="ph filepath">/proc/<var class="keyword varname">pid</var>/</span> files for itself without
+                the necessary abilities. </p>
+
+            <p class="p">While this example uses the <span class="keyword const">PROCMGR_AID_XPROCESS_QUERY</span> ability, there
+                are two other abilities that also control what can be done with files in
+                        <span class="ph filepath">/proc/<var class="keyword varname">pid</var>/</span>:
+                    <span class="keyword const">PROCMGR_AID_XPROCESS_MEM_READ</span> and
+                    <span class="keyword const">PROCMGR_AID_XPROCESS_DEBUG</span>.
+                    <span class="keyword const">PROCMGR_AID_XPROCESS_MEM_READ</span> is required by
+                    <span class="keyword cmdname">dumper</span> to allow it to generate a core file while both are
+                required to debug a program. </p>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

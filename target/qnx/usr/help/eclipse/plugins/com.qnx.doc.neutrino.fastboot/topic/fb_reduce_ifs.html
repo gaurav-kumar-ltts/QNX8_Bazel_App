@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Generic techniques to reduce the size of the IFS" />
+<meta name="abstract" content="Techniques you can use to reduce the size of an IFS include removing unused executables, implementing symbolic links, and moving selected files to an external filesystem." />
+<meta name="description" content="Techniques you can use to reduce the size of an IFS include removing unused executables, implementing symbolic links, and moving selected files to an external filesystem." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_optimize_os.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="screen_fb_reduce_ifs" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Generic techniques to reduce the size of the IFS</title>
+</head>
+<body id="screen_fb_reduce_ifs">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Generic techniques to reduce the size of the IFS</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">Techniques you can use to reduce the size of an IFS include removing unused executables, implementing symbolic links, and moving selected files to an external filesystem.</p>
+
+        <div class="section">
+            
+            
+            <p class="p">
+            The IPL copies the IFS from flash memory into RAM. The kernel and the applications can begin running only after this copy operation is complete. Therefore, the smaller you make the IFS, the sooner those components can run. Here are some techniques you can use to reduce the size of your IFS:</p>
+
+            <dl class="dl">
+                
+                    <dt class="dt dlterm">Remove unused executables</dt>
+
+                    <dd class="dd">
+                        Remove executables from the image only if the benefits of doing so outweigh the loss of useful tools.</dd>
+
+                    <dd class="dd ddexpand">Note that you don't have to manually strip executables of their debug information; <span class="keyword cmdname">mkifs</span> takes care of that automatically. Note that <span class="keyword cmdname">mkefs</span> doesn't automatically strip binaries—you should do this in your makefile.</dd>
+
+                
+                
+                    <dt class="dt dlterm">Use symbolic links</dt>
+
+                    <dd class="dd">
+                        Shared libraries in POSIX systems, including the <span class="keyword">QNX OS</span>, typically have two representations in the filesystem: a regular filename (with a version number) and a symbolic link (without a version number). For instance, <span class="ph filepath">libc.so.2</span> and <span class="ph filepath">libc.so</span>.</dd>
+
+                    <dd class="dd ddexpand">The target system should contain both representations; thus, code that requires a specific version of the shared library can link to that version, and code that doesn't care can link to the generic version. On Windows, which doesn't support true symbolic links, the QNX development installation creates duplicates of linked files, instead of symbolic links.</dd>
+
+                    <dd class="dd ddexpand">If you use both versioned and unversioned representations of shared objects on your target, make a symbolic link to the other, either in the QNX Momentics IDE or in the boot script. Otherwise, you risk ending up with two distinct copies of the executable in the IFS. Since many shared libraries can be rather large (<span class="ph filepath">libc.so</span>, for instance, ranges from 600 KB to 700 KB), performing this step can reduce the IFS size significantly.</dd>
+
+                
+                
+                    <dt class="dt dlterm">Move selected files into an external filesystem</dt>
+
+                    <dd class="dd">
+                        
+                        If a file doesn't need to start early in the boot process, move it into a flash external filesystem. The smallest IFS consists of the kernel, <span class="ph filepath">libc</span>, a UART driver, a flash driver, and little else. After the flash driver loads, it can automount the external filesystem partitions, and you can start running the remainder of your drivers or applications files from there.</dd>
+
+                    <dd class="dd ddexpand">There is a trade-off here, of course. The IFS is completely loaded from flash into RAM as one big chunk. Once loaded into the IFS, any executables that you run out of IFS will load from RAM into RAM. For external filesystems, the files are loaded out of flash into RAM each time they're needed. So if you need to load an executable multiple times during bootup, it may be better to leave it in IFS since you pay the flash-copying penalty only the first time.</dd>
+
+                
+            </dl>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_optimize_os.html" title="This chapter presents optimization techniques you can apply in the bootup sequence that precedes the boot script.">Optimizing the Loading and Launching of the OS</a></div>
+</div>
+</div></body>
+</html>

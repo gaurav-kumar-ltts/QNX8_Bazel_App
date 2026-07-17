@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="init_cacheattr()" />
+<meta name="abstract" content="Initialize board-level caches, and populate the cacheattr member in the system page." />
+<meta name="description" content="Initialize board-level caches, and populate the cacheattr member in the system page." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="init_cacheattr" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>init_cacheattr()</title>
+</head>
+<body id="init_cacheattr">
+
+	<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">init_cacheattr()</span></h1>
+
+	
+	
+	<div class="body refbody"><p class="shortdesc">Initialize board-level caches, and populate the <span class="keyword dtype">cacheattr</span> member in the
+		system page.</p>
+
+		<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+			
+			
+			
+
+			
+			<pre class="pre codeblock">void init_cacheattr (void)</pre>
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+			
+			<p class="p">None.</p>
+
+		</div>
+
+
+		<div class="section"><h2 class="title sectiontitle">Description:</h2>
+			<p class="p">This function initializes the system page's
+				<a class="xref" href="../syspage/cacheattr.html" title="Information about the on-chip and off-chip cache system configuration"><span class="keyword dtype">cacheattr</span></a>
+				member with information about board-level caches. This function may be a stub, if
+				there are no board-level caches. However, it may also be used to handle hardware
+				errata that affect board-level caches, or to improve performance.</p>
+
+			<p class="p">For many x86 platforms, the generic function works. For ARM platforms, board-specific
+				functions are often required.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> The
+				<a class="xref" href="init_cpuinfo.html" title="Populate the cpuinfo data structure in the system page with CPU information."><span class="keyword apiname">init_cpuinfo()</span></a>
+				function initializes caches implemented in the CPU.</div>
+
+		</div>
+
+		
+		<div class="section"><h2 class="title sectiontitle">Example:</h2>
+			
+			
+			
+			<p class="p">Below is the code for a <span class="keyword apiname">init_cacheattr()</span> function that looks after errata
+				and improves performance of an ARM board (the Texas Instruments DRA74x and DRA75x (Jacinto 6)
+				Vayu EVM):</p>
+
+			<pre class="pre codeblock">#include "dra74x_startup.h"
+
+/*
+ * ARM errata 798870 says:
+ * If back-to-back speculative cache line fills (fill A and fill B) are
+ * issued from the L1 data cache of a CPU to the L2 cache, the second
+ * request (fill B) is then cancelled, and the second request would have
+ * detected a hazard against a recent write or eviction (write B) to the
+ * same cache line as fill B then the L2 logic might deadlock.
+ */
+static void arm_errata_798870(void)
+{
+	unsigned val;
+	unsigned monitor_id;
+
+	/* Read Main ID Register (MIDR) */
+	__asm__ __volatile__ ("mrc p15, 0, %0, c0, c0, 0" : "=r" (val));
+
+	val = (val &gt;&gt; 4);
+	val &amp;= 0xf;
+
+	/*
+	 * L2ACTLR[7]: Enable hazard detect timeout for A15.
+	 */
+	if (val == 0xf) {
+		__asm__ __volatile__ ("mrc p15, 1, %0, c15, c0, 0" : "=r" (val));
+
+		/*
+		 * Set L2ACTLR[7] to reissue any memory transaction in the L2 that has been
+		 * stalled for 1024 cycles to verify that its hazard condition still exists
+		 */
+		val |= (1 &lt;&lt; 7);
+		monitor_id = 0x104;
+
+		/* Set L2 Cache Auxiliary control register - value to write in R0 */
+		secure_monitor_call(monitor_id, val, 0, NULL, NULL);
+	}
+}
+
+void init_cacheattr()
+{
+    if(!in_hvc) {
+        arm_errata_798870();
+    }
+}</pre>
+		</div>
+
+	</div>
+
+</body>
+</html>

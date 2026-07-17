@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Shared libraries" />
+<meta name="abstract" content="Your buildfile must tell the build process to include in the image all of the shared objects required by the drivers you'll be running." />
+<meta name="description" content="Your buildfile must tell the build process to include in the image all of the shared objects required by the drivers you'll be running." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="shared_libraries" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Shared libraries</title>
+</head>
+<body id="shared_libraries">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Shared libraries</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Your buildfile must tell the build process to include in the image all of the shared
+		objects required by the drivers you'll be running.</p>
+
+		<div class="section">
+			
+			
+			
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Including shared objects</h2>
+			
+			
+			
+			
+			
+			
+			<p class="p"><em class="ph i">All</em> drivers require at least the standard C library shared object
+				(<span class="ph filepath">libc.so</span>). Since the shared object search order looks in
+				<span class="ph filepath">/proc/boot</span>, you don't have to do anything special.
+				Just specify the name of the shared object on a line by itself; this means <q class="q">include
+				this file</q>.</p>
+
+			<p class="p">To include the runtime linker, we create a process manager
+				symbolic link to it in <span class="ph filepath">/proc/boot/</span>.</p>
+
+			<div class="p">The following buildfile snippet instructs the build process to include the shared
+				objects for the C library and for a shared version of GCC's low-level runtime library,
+				and <span class="ph filepath">ldqnx-64.so.2</span>:
+<pre class="pre codeblock"># include the C shared library and GCC's low-level runtime library
+libc.so
+libgcc_s.so.1
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+</pre></div>
+
+			<h3 class="title sectiontitle">Automatically</h3>
+			<p class="p">You can use the <span class="keyword cmdname">mkifs</span> 
+				<span class="keyword option">autoso</span> attribute to list all shared libraries needed by the binaries
+				specified in your buildfile, or even to automatically add them to your IFS image.
+				For more information, see <q class="q"><a class="xref" href="../buildfiles/autoso.html" title="You can use the mkifs autoso attribute to add to your IFS image any shared libraries that are required by binaries included in the image but that are missing from the buildfile.">Adding missing shared libraries automatically</a></q> in the
+				<q class="q">OS Image Buildfiles</q> chapter of this guide, and the <span class="keyword cmdname">mkifs</span>
+				<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__autoso"><span class="keyword option">autoso</span></a> attribute in the <span class="keyword">QNX OS</span>
+				<cite class="cite">Utilities Reference</cite>.</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Determining which shared objects you need</h2>
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">There are several ways to determine which shared objects you need to include in your
+				system image.</p>
+
+			<h3 class="title sectiontitle">On the target</h3>
+			<p class="p">On the target system, you can use the <span class="keyword cmdname">ldd</span> utility, or the
+				<span class="keyword envar">DL_DEBUG</span> environment variable.</p>
+
+			<div class="p">The <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/l/ldd.html"><span class="keyword cmdname">ldd</span></a> (<q class="q">list dynamic dependencies</q>) utility
+				lists the shared objects required by the program you specify. For example:
+<pre class="pre codeblock"># ldd usr/bin/ssh
+./usr/bin/ssh:
+	libcrypto.so.3 =&gt; /proc/boot/libcrypto.so.3 (0x27a8d3c000)
+	libz.so.2 =&gt; /proc/boot/libz.so.2 (0x27a91a1000)
+	libsocket.so.4 =&gt; /proc/boot/libsocket.so.4 (0x27a91bd000)
+	libregex.so.1 =&gt; /proc/boot/libregex.so.1 (0x27a92c	0b000)
+	libc.so.6 =&gt; /proc/boot/libc.so.6 (0x27a921e000)
+	libgcc_s.so.1 =&gt; /proc/boot/libgcc_s.so.1 (0x27a92d1000)
+</pre></div>
+
+			<div class="p">Setting the <span class="keyword envar">DL_DEBUG</span> environment variable causes the shared
+				library loader to display debugging information about libraries as they're opened.
+				For example:
+<pre class="pre codeblock"># export DL_DEBUG=libs
+# ping 10.42.110.235
+load_object: attempt load of libsocket.so.3
+load_elf64: loaded lib at addr b8200000(text) b822bccc(data)
+dlopen("nss_files.so.0",513)
+load_object: attempt load of nss_files.so.0
+dlopen: Library cannot be found
+dlopen("nss_dns.so.0",513)
+load_object: attempt load of nss_dns.so.0
+dlopen: Library cannot be found
+</pre></div>
+
+			<p class="p">For more information about the values for <span class="keyword envar">DL_DEBUG</span>, see the entry for
+				<a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/d/dlopen.html"><span class="keyword apiname">dlopen()</span></a> in the <span class="keyword">QNX OS</span>
+				<cite class="cite">C Library Reference</cite>.</p>
+
+			<h3 class="title sectiontitle">On the host</h3>
+			<div class="p">The <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/o/objdump.html"><span class="keyword cmdname">objdump</span></a> utility displays information about the
+				executables you're including in the image; look for the objects marked as
+				<span class="ph codeph">NEEDED</span>. For example:
+<pre class="pre codeblock">$ ntox86_64-objdump -x x86_64/usr/bin/ping | grep NEEDED
+  NEEDED               libsocket.so.3
+  NEEDED               libc.so.6
+</pre></div>
+
+			<p class="p">The <span class="keyword cmdname">ping</span> executable needs <span class="ph filepath">libsocket.so.3</span> and
+				<span class="ph filepath">libc.so.6</span>.</p>
+
+			<div class="p">You then need to use <span class="keyword cmdname">objdump</span> recursively to see what other shared
+				objects these shared objects need:
+<pre class="pre codeblock">$ ntox86_64-objdump -x x86_64/lib/libsocket.so.3 | grep NEEDED
+  NEEDED               libc.so.6
+$ ntox86_64-objdump -x x86_64/lib/libc.so.6 | grep NEEDED
+</pre></div>
+
+			<p class="p">The <span class="ph filepath">libsocket.so.3</span> shared object needs only
+				<span class="ph filepath">libc.so.6</span>, which, in turn, needs nothing.
+				</p>
+
+			<h3 class="title sectiontitle">Automatically</h3>
+			<p class="p">As explained above, the <span class="keyword cmdname">mkifs</span> 
+				<span class="keyword option">autoso</span> attribute lets you list all shared libraries needed by the
+				binaries in your IFS image, or automatically add them to it.
+				For more information, see the <q class="q"><a class="xref" href="../buildfiles/autoso.html" title="You can use the mkifs autoso attribute to add to your IFS image any shared libraries that are required by binaries included in the image but that are missing from the buildfile.">Adding missing shared libraries automatically</a></q> section
+				in this guide, and the <span class="keyword cmdname">mkifs</span> <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html#mkifs__autoso"><span class="keyword option">autoso</span></a> attribute in the <cite class="cite">Utilities Reference</cite>.
+			</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

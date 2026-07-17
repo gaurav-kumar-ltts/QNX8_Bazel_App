@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example" />
+<meta name="abstract" content="This example demonstrates how you can get the ACL for a file, modify it, and then set it for the file." />
+<meta name="description" content="This example demonstrates how you can get the ACL for a file, modify it, and then set it for the file." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/acl.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="about" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Example</title>
+</head>
+<body id="about">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Example</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+This example demonstrates how you can get the ACL for a file, modify it, and then set it for
+the file.
+</p>
+
+
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/acl.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;fcntl.h&gt;
+
+int main(int argc, char *argv[]) {
+
+   acl_t my_acl;
+   char  *text_acl;
+   ssize_t len;
+   acl_entry_t my_entry;
+   gid_t  group_id;
+   acl_permset_t permset;
+   int fd;
+
+   fd = open( "my_file.txt", O_CREAT | O_RDONLY, 0666 );
+   close(fd);
+
+   /* Get the file's ACL. */
+   my_acl = acl_get_file ("my_file.txt", ACL_TYPE_ACCESS);
+   if (my_acl == NULL)
+   {
+      perror ("acl_get_file()");
+      return EXIT_FAILURE;
+   }
+
+   /* Convert the ACL into text so we can see what it is. */
+   text_acl = acl_to_text (my_acl, &amp;len);
+   if (text_acl == NULL)
+   {
+      perror ("acl_to_text()");
+      return EXIT_FAILURE;
+   }
+   printf ("Initial ACL: %s\n", text_acl);
+
+   /* We're done with the text version, so release it. */
+   acl_free (text_acl);
+
+   /* Add an entry for a named group to the ACL. */
+   if (acl_create_entry (&amp;my_acl, &amp;my_entry) == -1)
+   {
+      perror ("acl_create_entry()");
+      return EXIT_FAILURE;
+   }
+
+   if (acl_set_tag_type (my_entry, ACL_GROUP) == -1)
+   {
+      perror ("acl_set_tag_type");
+      return EXIT_FAILURE;
+   }
+
+   group_id = 120;
+   if (acl_set_qualifier (my_entry, &amp;group_id) == -1)
+   {
+      perror ("acl_set_qualifier");
+      return EXIT_FAILURE;
+   }
+
+   /* Modify the permissions. */
+   acl_get_permset (my_entry, &amp;permset);
+   acl_clear_perms (permset);
+
+   if (acl_add_perm (permset, ACL_READ))
+   {
+      perror ("acl_add_perm");
+      return EXIT_FAILURE;
+   }
+
+   /* Recalculate the mask entry. */
+   if (acl_calc_mask (&amp;my_acl))
+   {
+      perror ("acl_calc_mask");
+      return EXIT_FAILURE;
+   }
+
+   /* Make sure the ACL is valid. */
+   if (acl_valid (my_acl) ==-1)
+   {
+      perror ("acl_valid");
+      return EXIT_FAILURE;
+   }
+
+   /* Update the ACL for the file. */
+   if (acl_set_file ("my_file.txt", ACL_TYPE_ACCESS, my_acl) == -1)
+   {
+      perror ("acl_set_file");
+      return EXIT_FAILURE;
+   }
+
+   /* Free the ACL in working storage. */
+   acl_free (my_acl);
+
+   /* Verify it all worked, by getting and printing the file's ACL. */
+   my_acl = acl_get_file ("my_file.txt", ACL_TYPE_ACCESS);
+   if (my_acl == NULL)
+   {
+      perror ("acl_get_file()");
+      return EXIT_FAILURE;
+   }
+
+   text_acl = acl_to_text (my_acl, &amp;len);
+   if (text_acl == NULL)
+   {
+      perror ("acl_to_text()");
+      return EXIT_FAILURE;
+   }
+   printf ("Updated ACL: %s\n", text_acl);
+
+   /* We're done with the text version, so release it. */
+   acl_free (text_acl);
+
+   return EXIT_SUCCESS;
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/acl.html" title="Some filesystems, such as the Power-Safe (fs-qnx6.so) and QNX compressed filesystems, extend file permissions with Access Control Lists, which are based on the withdrawn IEEE POSIX 1003.1e and 1003.2c draft standards.">Working with Access Control Lists (ACLs)</a></div>
+</div>
+</div></body>
+</html>

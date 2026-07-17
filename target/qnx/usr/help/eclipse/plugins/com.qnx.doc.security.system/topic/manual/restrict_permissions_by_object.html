@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Customizing permissions using a security policy" />
+<meta name="abstract" content="The secpol_get_permission() and secpol_check_permission() functions allow you to support fine-grained permission checking in a system that uses security policies." />
+<meta name="description" content="The secpol_get_permission() and secpol_check_permission() functions allow you to support fine-grained permission checking in a system that uses security policies." />
+<meta name="DC.subject" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, QNX OS System Security Guide, API, Configuration" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="bluetooth_client_api" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Customizing permissions using a security policy</title>
+</head>
+<body id="bluetooth_client_api">
+
+<h1 class="title topictitle1" id="ariaid-title1">Customizing permissions using a security policy</h1>
+
+
+
+<div class="body conbody"><p class="shortdesc">The <span class="keyword apiname">secpol_get_permission()</span> and
+            <span class="keyword apiname">secpol_check_permission()</span> functions allow you to support fine-grained
+        permission checking in a system that uses security policies.</p>
+
+  <div class="p"> You can use
+                <span class="keyword apiname">secpol_check_permission()</span> in one of the following two ways, which
+            depend on how the function's <var class="keyword varname">otype</var> (object type) parameter is
+                used:<ul class="ul" id="bluetooth_client_api__ul_dws_nhz_fhb">
+                <li class="li">Check a permission based on both the type of the requester and the operation
+                    being performed (for example, to restrict one or more options in a set of
+                    filesystem mount operations)</li>
+
+                <li class="li">Check a permission based on the object being acted on as well as the type of the
+                    requester and the operation being performed (for example, to restrict the
+                    filesystem mount options allowed for a specific mountpoint)</li>
+
+            </ul>
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Permission checking by operation</h2>
+            
+            <p class="p">To check a permission based on both the type of the requester and the operation being
+                performed, set <var class="keyword varname">otype</var> to the type ID of the resource manager
+                itself (obtained by calling <span class="keyword apiname">secpol_type_id()</span>).</p>
+
+            <p class="p">For example, while currently QNX systems use a single ability to control mounting a
+                filesystem, it could be changed to use security policy permissions instead. The
+                following security policy entries define a client who can only mount and unmount
+                filesystems (<tt class="ph tt">fs_client_t</tt>) and a super client who can perform all operations
+                    (<tt class="ph tt">fs_super_client_t</tt>):</p>
+
+            <pre class="pre codeblock">class fs_operation { mount unmount suid trusted before after };
+
+allow fs_client_t filesystem_t:fs_operation {
+    mount unmount 
+};
+allow fs_super_client_t filesystem_t:fs_operation {
+    mount unmount suid trusted before after 
+};</pre>
+    <p class="p">This configuration does not restrict permissions based on the object that the operation is
+                performed on. If the resource manager supports multiple filesystems, the same
+                restrictions apply to all of them.</p>
+
+    <p class="p">The filesystem resource manager runs with a type of <tt class="ph tt">filesystem_t</tt>. To get the
+                permission handles that <span class="keyword apiname">secpol_check_permission()</span> requires, it
+                calls <span class="keyword apiname">secpol_get_permission()</span> with the appropriate class and
+                permission. For example:</p>
+
+    <pre class="pre codeblock">s_mount_perm = secpol_get_permission(NULL, "fs_operation", "mount", 0);</pre>
+    <p class="p">The following code example illustrates how the filesystem can check permissions for a mount
+                request:</p>
+
+    <pre class="pre codeblock">if ( secpol_check_permission(&amp;ctp-&gt;info, secpol_type_id(), s_mount_perm) != 0 ) {
+    return EPERM;
+}</pre>
+        </div>
+
+    <div class="section"><h2 class="title sectiontitle">Permission checking by operation and object acted on</h2>
+        
+        <p class="p">You can extend the fine-grained security illustrated in the previous example to
+                additionally check the object being acted on (i.e., the mountpoint).</p>
+
+        <p class="p">For example, a system has filesystems mounted in several places. One mountpoint must be
+                carefully protected because it is used to store binaries and other files for system
+                services. A second mountpoint is used to mount user-supplied USB thumb drives.
+                Although it is likely not important to control who can mount things on the second
+                mountpoint, any filesystems mounted there should not honor setuid bits (which would
+                allow a binary to execute with a user ID equal to the owner of the file, including
+                executing as <span class="ph filepath">root</span>).</p>
+
+            <p class="p">The security file to support this example defines <tt class="ph tt">system_fs_t</tt> and
+                    <tt class="ph tt">user_fs_t</tt> to represent the two mountpoints:</p>
+
+        <pre class="pre codeblock">type system_fs_t;
+type user_fs_t;
+        
+class fs_operation {
+    mount unmount suid trusted before after
+};
+
+allow {
+    fs_client_t fs_super_client_t
+} user_fs_t:fs_operation {
+    mount unmount
+};
+allow fs_super_client_t  system_fs_t:fs_operation {
+    mount unmount suid trusted before after
+};</pre>
+        <p class="p">Both regular and super clients can perform mount and unmount operations on the mountpoint
+                for the USB drive (configured to be treated as type <tt class="ph tt">user_fs_t</tt>) but any
+                setuid bit is disregarded. The super client can perform any operation on the system
+                mountpoint (configured to be treated as <tt class="ph tt">system_fs_t</tt>).</p>
+
+        <p class="p">The filesystem resource manager (again running as <tt class="ph tt">filesystem_t</tt>) uses the
+                following calls to look up the types that represent the two mountpoints:</p>
+
+        <pre class="pre codeblock">s_system_mp_type = secpol_get_type_id(NULL, "system_fs_t");
+s_user_mp_type = secpol_get_type_id(NULL, "user_fs_t");</pre>
+        <p class="p">The following calls provide the filesystem resource manager with the permission handles
+                for <span class="keyword apiname">secpol_check_permission()</span> (same as the first example):</p>
+
+        <pre class="pre codeblock">s_mount_perm = secpol_get_permission(NULL, "fs_operation", "mount", 0);</pre>
+        <p class="p">The resource manager can check permissions for a request to mount the system mountpoint
+                using the following code:</p>
+
+        <pre class="pre codeblock">if ( secpol_check_permission(&amp;ctp-&gt;info, s_system_mp_type, s_mount_perm) != 0 ) {
+    return EPERM;
+}</pre>
+        <p class="p">Similarly, it can check permissions for a request to mount the user mountpoint using the
+                following code:</p>
+
+        <pre class="pre codeblock">if ( secpol_check_permission(&amp;ctp-&gt;info, s_user_mp_type, s_mount_perm) != 0 ) {
+    return EPERM;
+}</pre>
+    </div>
+
+</div>
+
+</body>
+</html>

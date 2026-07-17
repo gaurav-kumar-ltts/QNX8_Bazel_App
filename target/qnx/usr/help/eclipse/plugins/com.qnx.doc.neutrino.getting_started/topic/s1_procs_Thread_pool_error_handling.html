@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Error handling" />
+<meta name="abstract" content="If you write your own main processing loop, you can handle errors as required. But with a thread pool, that code is hidden. To help you detect and respond to errors, the thread pool lets you configure an error handler, error_func(), that is called if your context_alloc(), block_func(), or handler_func() fails." />
+<meta name="description" content="If you write your own main processing loop, you can handle errors as required. But with a thread pool, that code is hidden. To help you detect and respond to errors, the thread pool lets you configure an error handler, error_func(), that is called if your context_alloc(), block_func(), or handler_func() fails." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_procs_tpool.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="s1_procs_Thread_pool_error_handling" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Error handling</title>
+</head>
+<body id="s1_procs_Thread_pool_error_handling">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Error handling</h1>
+
+
+
+  
+
+  
+<div class="body conbody"><p class="shortdesc">
+If you write your own main processing loop, you can handle errors as required.
+But with a thread pool, that code is hidden. To help you detect and respond to errors,
+the thread pool lets you configure an error handler, <var class="keyword varname">error_func()</var>,
+that is called if your <var class="keyword varname">context_alloc()</var>, <var class="keyword varname">block_func()</var>,
+or <var class="keyword varname">handler_func()</var> fails.
+</p>
+
+
+<p class="p">
+
+
+The function is always called on a <span class="keyword apiname">context_alloc()</span> failure.
+For <var class="keyword varname">block_func()</var> or <var class="keyword varname">handler_func()</var> failures, you can pass
+the following <var class="keyword varname">flags</var> values to <span class="keyword apiname">thread_pool_create()</span>
+to specify when you want <var class="keyword varname">error_func()</var> called:
+</p>
+
+
+  <ul class="ul">
+    
+  <li class="li"><span class="keyword const">POOL_FLAG_CALL_BLOCK_ERRF</span> — call <var class="keyword varname">error_func()</var> on an
+    error returned by <var class="keyword varname">block_func()</var>; i.e., if <var class="keyword varname">block_func()</var>
+    returns <span class="keyword const">NULL</span>.
+    
+    
+  </li>
+
+    
+  <li class="li"><span class="keyword const">POOL_FLAG_CALL_HANDLE_ERRF</span> — call <var class="keyword varname">error_func()</var>
+    on an error returned by <var class="keyword varname">handler_func()</var>;
+    i.e., if <var class="keyword varname">handler_func()</var> returns -1.
+    
+    
+  </li>
+
+    
+  </ul>
+
+  
+<div class="cautiontitle">CAUTION:</div><div class="note caution">
+If a process sets either <span class="keyword const">POOL_FLAG_CALL_BLOCK_ERRF</span> or
+<span class="keyword const">POOL_FLAG_CALL_HANDLE_ERRF</span> but doesn't supply <var class="keyword varname">error_func()</var>,
+and such an error occurs, a worker thread will terminate the process via the
+<span class="keyword apiname">abort()</span> function.
+</div>
+
+
+<div class="p">
+The <span class="keyword apiname">error_func()</span> function has the following syntax:
+<pre class="pre codeblock">void (*<var class="keyword varname">error_func</var>) (unsigned <var class="keyword varname">flags</var>, int <var class="keyword varname">err_value</var>);
+</pre>
+</div>
+ 
+
+<p class="p">
+When calling <var class="keyword varname">error_func()</var>, a worker thread in the thread pool passes a
+<var class="keyword varname">flags</var> field that indicates which functions failed; it also passes the
+<var class="keyword varname">errno</var> value after those functions have returned as <var class="keyword varname">err_value</var>.
+See <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/thread_pool_create.html"><span class="keyword apiname">thread_pool_create()</span></a>
+in the <span class="keyword">QNX OS</span> <cite class="cite">Utilities Reference</cite> for the
+<var class="keyword varname">flags</var> values that the worker thread could pass to
+<var class="keyword varname">error_func()</var>.
+</p>
+
+
+<p class="p">
+If you're using a thread pool for a <a class="xref" href="s1_resmgr_What_is.html" title="A resource manager is simply a program with some well-defined characteristics.">resource manager</a>,
+it's normal for <var class="keyword varname">handler_func()</var> to fail. A <var class="keyword varname">block_func()</var>
+failure, on the other hand, is typically a fatal condition.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_procs_tpool.html" title="Another thing that QNX OS has added is the concept of thread pools. You'll often notice in your programs that you want to run a certain number of threads but also to control the behavior of those threads within certain limits.">Pools of threads</a></div>
+</div>
+</div></body>
+</html>

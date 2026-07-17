@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example of the view shown in /proc/ham" />
+<meta name="DC.subject" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, High Availability Framework Developer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/hamover_HAMSTATE.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="PROCHAMVIEW" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Example of the view shown in /proc/ham</title>
+</head>
+<body id="PROCHAMVIEW">
+
+<h1 class="title topictitle1" id="ariaid-title1">Example of the view shown in <span class="ph filepath">/proc/ham</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">Consider the following simple example where a HAM is
+monitoring
+<span class="keyword cmdname">ptpd2</span>
+and restarts it when it dies:
+
+</p>
+
+<pre class="pre codeblock"># ls -al /proc/ham
+total 2
+-r--------  1 root      root            175 Aug 30 23:05 .info
+dr-x------  1 root      root              1 Aug 30 23:06 ptpd2
+</pre>
+
+<p class="p">The <span class="ph filepath">.info</span> file at the highest level provides information
+about the HAM and the Guardian, as well as an overview of the
+entities and other objects in the system:
+
+
+
+</p>
+
+<pre class="pre codeblock"># cat /proc/ham/.info
+Ham Pid            : 10993674
+Guardian Pid       : 10997782
+Ham Failures       : 0
+Guardian Failures  : 0
+Num Entities       : 1
+Num Conditions     : 1
+Num Actions        : 1
+</pre>
+
+<p class="p">In this case the only entity being monitored is
+<span class="keyword cmdname">ptpd2</span>, which appears as a directory at the top level
+under <span class="ph filepath">/proc/ham</span>:
+
+</p>
+
+<pre class="pre codeblock"># ls -al /proc/ham/ptpd2
+total 2
+-r--------  1 root      root            173 Aug 30 23:06 .info
+dr-x------  1 root      root              1 Aug 30 23:06 death
+
+# cat /proc/ham/ptpd2/.info
+Path            : ptpd2
+Entity Pid      : 11014167
+Num conditions  : 1
+Entity type     : ATTACHED
+Stats:
+Created         : 2001/08/30 23:04:49:930148650
+Num Restarts    : 0
+</pre>
+
+<p class="p">As you can see, the <span class="ph filepath">.info</span> provides
+information and statistics relating to the <span class="keyword cmdname">ptpd2</span>
+entity that is being monitored. The information is
+generated dynamically and contains up-to-date data
+for each entity.
+
+</p>
+
+<p class="p">The <span class="keyword cmdname">ptpd2</span> entity has associated with it only one
+<em class="ph i">condition</em> (i.e., death), which is triggered when the entity
+dies.
+
+</p>
+
+<pre class="pre codeblock"># ls -al /proc/ham/ptpd2/death
+total 2
+-r--------  1 root      root            126 Aug 30 23:07 .info
+-r--------  1 root      root            108 Aug 30 23:07 restart
+
+# cat /proc/ham/ptpd2/death/.info
+Path            : ptpd2/death
+Entity Pid      : 11014167
+Num Actions     : 1
+Condition ReArm : ON
+Condition type  : CONDDEATH
+</pre>
+
+<p class="p">Similarly, there's only one <em class="ph i">action</em> associated
+with this death condition: the <em class="ph i">restart</em> mechanism.
+Each action under the condition appears as a file under the
+appropriate condition directory. The file contains details
+about the action that will be performed when the condition
+is triggered.
+
+</p>
+
+<pre class="pre codeblock"># cat /proc/ham/ptpd2/death/restart
+Path         : ptpd2/death/restart
+Entity Pid   : 11014167
+Action ReArm : ON
+Restart Line : /usr/sbin/ptpd2 -K
+</pre>
+
+<p class="p">When <span class="keyword cmdname">ptpd2</span> dies, all the actions associated with a
+death condition under it are executed:
+
+</p>
+
+<pre class="pre codeblock"># slay ptpd2
+
+# cat /proc/ham/ptpd2/.info
+Path            : ptpd2
+Entity Pid      : 11071511  &lt;- new pid of entity
+Num conditions  : 1
+Entity type     : ATTACHED
+Stats:
+Created         : 2001/08/30 23:04:49:930148650
+Last Death      : 2001/08/30 23:10:31:889820814
+Restarted       : 2001/08/30 23:10:31:904818519
+Num Restarts    : 1
+</pre>
+
+<p class="p">As you can see, the statistics relating to the entity
+<span class="keyword cmdname">ptpd2</span> are updated.
+
+</p>
+
+<p class="p">Similarly, if a HAM itself is terminated, the Guardian
+takes over as the new HAM, and creates a Guardian for itself.
+
+
+
+</p>
+
+<pre class="pre codeblock"># cat /proc/ham/.info
+Ham Pid            : 10993674  &lt;----- This is the HAM
+Guardian Pid       : 10997782  &lt;----- This is the Guardian
+Ham Failures       : 0
+Guardian Failures  : 0
+Num Entities       : 1
+Num Conditions     : 1
+Num Actions        : 1
+
+... Kill the ham ....
+
+# /bin/kill -9 10993674        &lt;---- Simulate failure
+
+... re-read the stats ...
+
+# cat /proc/ham/.info  
+Ham Pid            : 10997782  &lt;----- This is the new HAM
+Guardian Pid       : 11124746  &lt;----- This is the Guardian
+Ham Failures       : 1
+Guardian Failures  : 0
+Num Entities       : 1
+Num Conditions     : 1
+Num Actions        : 1
+</pre>
+
+<p class="p">As you can see, the old Guardian is now the new HAM, and a new
+Guardian has been created. All entities and conditions remain as
+before; the monitoring continues as usual. The HAM 
+and the Guardian ignore all signals that they can.
+
+
+
+</p>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/hamover_HAMSTATE.html">State of the HAM</a></div>
+</div>
+</div></body>
+</html>

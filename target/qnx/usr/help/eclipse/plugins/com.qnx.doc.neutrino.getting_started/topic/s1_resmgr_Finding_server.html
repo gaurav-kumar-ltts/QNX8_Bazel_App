@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Finding the server" />
+<meta name="abstract" content="The first thing that a client does is call open() to get a file descriptor. (Note that if the client calls the higher-level function fopen() instead, the same discussion applies—fopen() eventually calls open())." />
+<meta name="description" content="The first thing that a client does is call open() to get a file descriptor. (Note that if the client calls the higher-level function fopen() instead, the same discussion applies—fopen() eventually calls open())." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, Getting Started with the QNX OS, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/s1_resmgr_Client_view.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.resmgr/topic/about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Finding_server" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Finding the server</title>
+</head>
+<body id="Finding_server">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Finding the server</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+The first thing that a client does is call <span class="keyword apiname">open()</span> to get a file descriptor.
+(Note that if the client calls the higher-level function <span class="keyword apiname">fopen()</span>
+instead, the same discussion applies—<span class="keyword apiname">fopen()</span> eventually calls
+<span class="keyword apiname">open()</span>).
+</p>
+
+
+<p class="p">
+
+
+
+
+Inside the C library implementation of <span class="keyword apiname">open()</span>, a message
+is constructed, and sent to the process manager
+(<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>) component.
+The process manager is responsible for maintaining information
+about the <em class="ph i">pathname space</em>.
+This information consists of a tree structure that contains pathnames,
+process ID, channel ID, and handle associations (the first value, 0, is no longer in use):
+
+
+
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span><span class="keyword">QNX OS</span>'s namespace.</span>
+
+<br /><img class="image" src="../images/rm1.svg" width="672" alt="Process Manager maintained tree structure." /><br />
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Note that in the diagram above and in the descriptions that follow, I've used
+the designation <span class="keyword cmdname">fs-qnx6</span> as the name of the resource manager that implements
+the Power-Safe filesystem—in reality, it's a bit more complicated, because the filesystem
+drivers are based on a series of DLLs that get bundled together.
+So, there's actually no executable called <span class="keyword cmdname">fs-qnx6</span>; we're just using it as a placeholder
+for the filesystem component.
+
+</div>
+
+
+<div class="p">
+Let's say that the client calls <span class="keyword apiname">open()</span>:
+
+<pre class="pre codeblock">fd = open ("/dev/ser1", O_WRONLY);
+</pre>
+</div>
+
+
+<p class="p">
+In the client's C library implementation of <span class="keyword apiname">open()</span>,
+a message is constructed and sent to the process manager.
+This message states, <q class="q">I want to open <span class="ph filepath">/dev/ser1</span>; who
+should I talk to?</q>
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 2. </span>First stage of name resolution.</span>
+
+<br /><img class="image" src="../images/rm2.svg" width="288" alt="First stage of name resolution" /><br />
+</div>
+
+
+<p class="p">
+The process manager receives the request and looks through its tree structure
+to see if there's a match (let's assume for now that we need an exact match).
+Sure enough, the pathname <q class="q"><span class="ph filepath">/dev/ser1</span></q> matches
+the request, and the process manager is able to reply to the client:
+<q class="q">I found <span class="ph filepath">/dev/ser1</span>.  It's
+being handled by process ID 44, channel ID 1, handle 1. Send them
+your request!</q>
+
+
+</p>
+
+
+<p class="p">
+Remember, we're still in the client's <span class="keyword apiname">open()</span> code!
+</p>
+
+
+<p class="p">
+So, the <span class="keyword apiname">open()</span> function creates another message, and a
+connection to the process ID (44),
+channel ID (1), stuffing the handle into the message itself.
+This message is really the <q class="q">connect</q> message—it's the
+message that the client's <span class="keyword apiname">open()</span> library uses to establish a connection
+to a resource manager (step 3 in the picture below).
+When the resource manager gets the connect message, it looks at it and performs validation.
+For example, you may have tried to open-for-write a resource manager that
+implements a read-only filesystem, in which case you'd get back an error (in
+this case, <span class="keyword const">EROFS</span>).
+In our example, however, the serial port resource manager looks at the
+request (we specified <span class="keyword const">O_WRONLY</span>; perfectly legal for a serial
+port) and replies back with an <span class="keyword const">EOK</span> (step 4 in the picture below).
+
+
+
+
+
+
+
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 3. </span>The <span class="keyword const">_IO_CONNECT</span> message.</span>
+
+<br /><img class="image" src="../images/rm3.svg" width="288" alt="The _IO_CONNECT message" /><br />
+</div>
+
+
+<p class="p">
+Finally, the client's <span class="keyword apiname">open()</span> returns to the client with a valid
+file descriptor.
+</p>
+
+
+<p class="p">
+Really, this file descriptor is the connection ID we just used to send
+a connect message to the resource manager!
+Had the resource manager <em class="ph i">not</em> given us an <span class="keyword const">EOK</span>,
+we would have passed this error back to the client (via <var class="keyword varname">errno</var> and a
+<span class="keyword const">-1</span> return from <span class="keyword apiname">open()</span>).
+
+
+
+
+
+(It's worthwhile to note that the process manager can return the process ID
+and channel ID of <em class="ph i">more than one</em> resource manager in response to a name resolution request.
+In that case, the client will try each of them in turn until one
+succeeds, returns an error that's not <span class="keyword const">ENOSYS</span>, or <span class="keyword const">ENOENT</span>,
+or the client exhausts the list, in which case the <span class="keyword apiname">open()</span> fails.
+We'll discuss this further when we look at the <q class="q">before</q> and <q class="q">after</q> flags, later on.)
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/s1_resmgr_Client_view.html" title="We've already seen a hint of what the client expects. It expects a file-descriptor-based interface, using standard POSIX functions.">The client's view</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.sys_arch/topic/resource.html">Resource Managers (System Architecture)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html">Writing a Resource Manager</a></li></ul></div>
+</div></body>
+</html>

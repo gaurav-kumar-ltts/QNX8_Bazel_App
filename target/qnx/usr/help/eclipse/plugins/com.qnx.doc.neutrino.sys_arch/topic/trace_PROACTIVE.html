@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Proactive tracing" />
+<meta name="abstract" content="While the kernel provides an excellent unobtrusive method for instrumenting and monitoring processes, threads, and the state of your system in general, you can also have your applications proactively influence the event-collection process." />
+<meta name="description" content="While the kernel provides an excellent unobtrusive method for instrumenting and monitoring processes, threads, and the state of your system in general, you can also have your applications proactively influence the event-collection process." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/trace.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.sat/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_func_enter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_func_exit.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_here.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logbc.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logb.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logf.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logi.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_nlogf.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_cs_range.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_cs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_debug.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_destroy.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_get_info.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_init.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_vnlogf.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="PROACTIVE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Proactive tracing</title>
+</head>
+<body id="PROACTIVE">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Proactive tracing</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+While the kernel provides an excellent
+unobtrusive method for instrumenting and monitoring
+processes, threads, and the state of your system in general,
+you can also have your applications proactively influence
+the event-collection process.
+</p>
+
+
+<p class="p">
+
+
+
+Using the
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html"><span class="keyword apiname">TraceEvent()</span></a>
+library call, applications themselves can inject custom events into the trace stream.
+This facility is especially useful when building large,
+tightly coupled, multicomponent systems.
+</p>
+
+
+<div class="p">
+First, one process must register itself as the designated trace-logging process by issuing the
+<span class="keyword cmdname">_NTO_TRACE_LOGGER_ATTACH</span> command. This command has <var class="keyword varname">start_ev</var> and
+<var class="keyword varname">stop_ev</var> parameters, which can be <span class="keyword const">NULL</span> or pointers to sigevents that are to be delivered
+when tracing starts and stops:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_LOGGER_ATTACH, start_ev, stop_ev);
+</pre>
+</div>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Unlike in past releases, only one process can perform proactive tracing at a given time.
+</div>
+
+
+<div class="p">
+Then, the following simple call would inject the
+integer values of <var class="keyword varname">eventcode</var>, <var class="keyword varname">first</var>, and
+<var class="keyword varname">second</var> into the event stream:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_INSERTSUSEREVENT, eventcode, first, second);
+</pre>
+</div>
+
+
+<div class="p">
+You could also inject a string event (e.g., <q class="q">My Event</q>) into
+the event stream, as shown in the following code:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;sys/trace.h&gt;
+
+/* Code to associate with emitted events */
+#define MYEVENTCODE 12
+
+int main(int argc, char **argv) {
+    printf("My pid is %d \n", getpid());
+
+    /* Inject two integer events (26, 1975) */
+    TraceEvent(_NTO_TRACE_INSERTSUSEREVENT, MYEVENTCODE, 26, 1975);
+
+    /* Inject a string event (My Event) */
+    TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, MYEVENTCODE, "My Event");
+
+    return 0;
+}
+</pre>
+</div>
+
+
+<div class="p">
+The output, as gathered by the <span class="keyword cmdname">traceprinter</span> data
+interpreter, would look something like this:
+
+<pre class="pre codeblock">.
+.
+.
+t:0x38ea737e CPU:00 USREVENT:EVENT:12, d0:26 d1:1975
+.
+.
+.
+t:0x38ea7cb0 CPU:00 USREVENT:EVENT:12 STR:"My Event"
+</pre>
+</div>
+
+
+<p class="p">
+Note that 12 was specified as the trace user eventcode for these events.
+
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/trace.html" title="The microkernel (procnto-smp-instr) is equipped with a sophisticated tracing and profiling mechanism that lets you monitor your system's execution in real time. This instrumentation works on both single-CPU and SMP systems.">The Microkernel Instrumentation</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.sat/topic/about.html">System Analysis Toolkit User's Guide</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceevent.html">TraceEvent()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_func_enter.html">trace_func_enter()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_func_exit.html">trace_func_exit()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_here.html">trace_here()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logbc.html">trace_logbc()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logb.html">trace_logb()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logf.html">trace_logf()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_logi.html">trace_logi()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_nlogf.html">trace_nlogf()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_cs_range.html">traceparser_cs_range()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_cs.html">traceparser_cs()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_debug.html">traceparser_debug()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_destroy.html">traceparser_destroy()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_get_info.html">traceparser_get_info()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser_init.html">traceparser_init()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/traceparser.html">traceparser()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/t/trace_vnlogf.html">trace_vnlogf()</a></li></ul></div>
+</div></body>
+</html>

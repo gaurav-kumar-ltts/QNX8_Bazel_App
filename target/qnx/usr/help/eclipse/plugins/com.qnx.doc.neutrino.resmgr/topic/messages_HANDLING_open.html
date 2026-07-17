@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Handling open(), dup(), and close() messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/messages.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="HANDLING_open" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Handling open(), dup(), and close() messages</title>
+</head>
+<body id="HANDLING_open">
+
+<h1 class="title topictitle1" id="ariaid-title1">Handling <span class="keyword apiname">open()</span>, <span class="keyword apiname">dup()</span>, and <span class="keyword apiname">close()</span> messages</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+The resource manager library provides another convenient service for us:
+it knows how to handle <span class="keyword apiname">dup()</span> messages.
+
+
+
+</p>
+
+
+<div class="p">
+Suppose that the client executed code that eventually ended up performing:
+
+<pre class="pre codeblock">fd = open ("/dev/sample", O_RDONLY);
+…
+fd2 = dup (fd);
+…
+fd3 = dup (fd);
+…
+close (fd3);
+…
+close (fd2);
+…
+close (fd);
+</pre>
+</div>
+
+
+<p class="p">
+Our resource manager would get an <span class="keyword const">_IO_CONNECT</span>
+message for the first <span class="keyword apiname">open()</span>, followed by two
+<span class="keyword const">_IO_DUP</span> messages for the two <span class="keyword apiname">dup()</span>
+calls. Then, when the client executed the <span class="keyword apiname">close()</span>
+calls, we would get three <span class="keyword const">_IO_CLOSE</span> messages.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+Since the <span class="keyword apiname">dup()</span> functions generate duplicates of
+the file descriptors, we don't want to allocate new OCBs for
+each one. And since we're not allocating new OCBs for each
+<span class="keyword apiname">dup()</span>, we don't want to <em class="ph i">release</em> the
+memory in each <span class="keyword const">_IO_CLOSE</span> message when the
+<span class="keyword const">_IO_CLOSE</span> messages arrive! If we did that, the
+first close would wipe out the OCB.
+
+
+</p>
+
+
+<p class="p">
+The resource manager library knows how to manage this for
+us; it keeps count of the number of <span class="keyword const">_IO_DUP</span> and
+<span class="keyword const">_IO_CLOSE</span> messages sent by the client. Only on
+the <em class="ph i">last</em> <span class="keyword const">_IO_CLOSE</span> message will the
+library synthesize a call to our <span class="keyword const">_IO_CLOSE_OCB</span> handler.
+
+
+
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+Some users of the library will want to have the
+default functions manage the <span class="keyword const">_IO_DUP</span> and
+<span class="keyword const">_IO_CLOSE</span> messages,
+but some will want to override the default actions.
+For instance, if you need to leave clients blocked, you could unblock the requests in 
+a custom handler for <span class="keyword const">_IO_CLOSE</span> messages.
+An example of such a function is given in <q class="q"><a class="xref" href="read_write_unblocking.html">Unblocking if someone closes a file descriptor</a></q>.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/messages.html" title="Your resource manager will likely need to handle messages for operations other than read and write. Here, we explain and demonstrate how to handle other common message types.">Handling Other Messages</a></div>
+</div>
+</div></body>
+</html>

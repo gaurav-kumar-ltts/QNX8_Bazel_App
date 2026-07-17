@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sample code for handling _IO_WRITE messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_HANDLING_WRITE_MSG.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Sample_IO_WRITE" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sample code for handling _IO_WRITE messages</title>
+</head>
+<body id="Sample_IO_WRITE">
+
+<h1 class="title topictitle1" id="ariaid-title1">Sample code for handling <span class="keyword const">_IO_WRITE</span> messages</h1>
+
+
+<div class="body conbody">
+
+<div class="p">
+
+The following is a code snippet that can be added to one of the simple resource manager examples.
+It prints out whatever it's given (making the assumption that it's given only character text):
+
+<pre class="pre codeblock">int io_write (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb)
+{
+    int     status;
+    char    *buf;
+    size_t  nbytes;
+
+    if ((status = iofunc_write_verify(ctp, msg, ocb, NULL)) != EOK)
+        return (status);
+
+    if ((msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) != _IO_XTYPE_NONE)
+        return(ENOSYS);
+
+    /* Extract the length of the client's message. */
+    nbytes = _IO_WRITE_GET_NBYTES(msg);
+
+    /* Filter out malicious write requests that attempt to write more
+       data than they provide in the message. */
+    if(nbytes &gt; (size_t)ctp-&gt;info.srcmsglen - (size_t)ctp-&gt;offset - sizeof(io_write_t)) {
+        return EBADMSG;
+    }
+
+    /* set up the number of bytes (returned by client's write()) */
+    _IO_SET_WRITE_NBYTES (ctp, nbytes);
+
+    buf = (char *) malloc(nbytes + 1);
+    if (buf == NULL)
+        return(ENOMEM);
+
+    /*
+     *  Read the data from the sender's message.
+     *  We're not assuming that all of the data fit into the
+     *  resource manager library's receive buffer.
+     */
+    resmgr_msgget(ctp, buf, nbytes, sizeof(msg-&gt;i));
+    buf [nbytes] = '\0'; /* just in case the text is not NULL terminated */
+    printf ("Received %zu bytes = '%s'\n", nbytes, buf);
+    free(buf);
+
+    if (nbytes &gt; 0)
+        ocb-&gt;attr-&gt;flags |= IOFUNC_ATTR_MTIME | IOFUNC_ATTR_CTIME;
+
+    return (_RESMGR_NPARTS (0));
+}
+</pre>
+</div>
+
+
+<div class="p">
+Of course, we'll have to give the resource manager library 
+the address of our <var class="keyword varname">io_write</var> handler so that it'll know to call it. 
+In the code for <span class="keyword apiname">main()</span> where we called 
+<span class="keyword apiname">iofunc_func_init()</span>,
+we'll add a line to register our <var class="keyword varname">io_write</var> handler: 
+
+<pre class="pre codeblock">/* initialize functions for handling messages */
+iofunc_func_init(_RESMGR_CONNECT_NFUNCS, &amp;connect_funcs,
+                 _RESMGR_IO_NFUNCS, &amp;io_funcs);
+io_funcs.write = io_write;
+</pre>
+</div>
+
+
+<div class="p">
+You may also need to add the following prototype:
+
+<pre class="pre codeblock">int io_write (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb);
+</pre>
+</div>
+
+
+<div class="p">
+At this point, if you were to run the resource manager 
+(our simple resource manager used the name <span class="ph filepath">/dev/sample</span>), 
+you could write to it by doing <span class="keyword cmdname">echo Hello &gt; /dev/sample</span> as follows: 
+
+<pre class="pre codeblock"># echo Hello &gt; /dev/sample
+Received 6 bytes = 'Hello'
+</pre>
+</div>
+
+
+<p class="p"> Notice how we passed the last argument to <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgget.html"><span class="keyword apiname">resmgr_msgget()</span></a> (the <var class="keyword varname">offset</var>
+            argument) as the size of the input message buffer. This effectively skips over the
+            header and gets to the data component.
+                
+        </p>
+
+
+<p class="p"> If the buffer you supplied wasn't big enough to contain the entire message from the client
+            (e.g., you had a 4 KB buffer and the client wanted to write 1 megabyte), you'd have to
+            read the buffer in stages, using a <span class="ph codeph">for</span> loop, advancing the offset
+            passed to <span class="keyword apiname">resmgr_msgget()</span> by the amount read each time.
+                    
+        </p>
+
+
+<p class="p">
+Unlike the <var class="keyword varname">io_read</var> handler sample, this time we didn't do anything with
+<span class="ph codeph">ocb-&gt;offset</span>. 
+In this case there's no reason to. 
+The <span class="ph codeph">ocb-&gt;offset</span> would make more sense if we were managing things 
+that had advancing positions such as a file position.  
+</p>
+
+
+<p class="p">
+The reply is simpler than with the <var class="keyword varname">io_read</var> handler,
+since a <span class="keyword apiname">write()</span> call doesn't expect any data back.
+Instead, it just wants to know if the write succeeded and if so, 
+how many bytes were written. 
+To tell it how many bytes were written we used the
+<span class="keyword apiname">_IO_SET_WRITE_NBYTES()</span> macro. 
+It takes the <var class="keyword varname">nbytes</var> that we give it and stores it in the
+context structure (<var class="keyword varname">ctp</var>). 
+Then when we return to the library, 
+the library takes this <var class="keyword varname">nbytes</var> and passes it as the second parameter to the
+<span class="keyword apiname">MsgReplyv()</span>. The second parameter tells the
+kernel what the <span class="keyword apiname">MsgSend()</span> should return. 
+And since the <span class="keyword apiname">write()</span> function is calling <span class="keyword apiname">MsgSend()</span>, 
+that's where it finds out how many bytes were written.  
+</p>
+
+
+<p class="p">
+Since we're writing to the device, we should also update the modification,
+and potentially, the creation time. 
+For details on updating the modification and change of file status times, 
+see the section on 
+<q class="q"><a class="xref" href="read_write_UPDATINGTIME.html">Updating the time for reads and writes</a></q> 
+below.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write_HANDLING_WRITE_MSG.html">Handling the _IO_WRITE message</a></div>
+</div>
+</div></body>
+</html>

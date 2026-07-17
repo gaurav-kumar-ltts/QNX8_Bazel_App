@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A minimalist buildfile" />
+<meta name="abstract" content="Here's an example of a buildfile stripped down to minimize the time required to capture video and launch Screen." />
+<meta name="description" content="Here's an example of a buildfile stripped down to minimize the time required to capture video and launch Screen." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/cscreen_fastboot_about.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="example_buildscript" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A minimalist buildfile</title>
+</head>
+<body id="example_buildscript">
+
+    <h1 class="title topictitle1" id="ariaid-title1">A minimalist buildfile</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">Here's an example of a buildfile stripped down to minimize the time required to capture video and launch Screen.</p>
+
+        <div class="section">
+            
+            <p class="p">The system built with this buildfile would have very limited functionality, so unless displaying a video stream from
+                a camera is all you need it to do, you will need to add the components required for the additional functionality.
+                Remember to start the services you need immediately first and that every component added increases the IFS size,
+                increasing the time it will take to copy the IFS into RAM (see the <q class="q"><a class="xref" href="fb_optimize_os.html" title="This chapter presents optimization techniques you can apply in the bootup sequence that precedes the boot script.">Optimizing the Loading and Launching of the OS</a></q> chapter).</p>
+
+<pre class="pre codeblock"># Identify the buildfile and board
+
+# Comments and notes
+
+#[+keeplinked]
+[+compress]
+[image=0x40100000]
+[virtual=aarch64le,raw] .bootstrap = {
+    # Options specific to this BSP:
+    startup-rcar_v3h -P4 -W -Dscif0
+    
+    # When assigned globally, the variable will be set not only in procnto's environment,
+    # but also in the environment of each subsequently started process, including procnto,
+    # both in the bootstrap section and in the startup script.
+    # PATH set for procnto is the safe path for executables.
+    PATH=/proc/boot:/bin:/usr/bin:/sbin:/usr/sbin:/usr/lib
+    
+    # LD_LIBRARY_PATH is set "locally", on a line with a command invocation.
+    # It will only be available in this command’s environment.   
+    # LD_LIBRARY_PATH set here is the *safe* path for libraries.
+    # That is, these are the paths searched by setuid/setgid binaries.
+    #          (confstr(_CS_PATH...) and confstr(_CS_LIBPATH...))
+    LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/opt/lib:/usr/photon/lib:/usr/lib:/tmp:/etc procnto-smp-instr -ae
+}
+
+# Script inline file
+[+script] .script = {
+
+    display_msg Welcome to QNX OS on the R-Car V3H Condor Board
+
+    # Set up environment variables
+    ENV=/etc/profile
+
+    # Start only the drivers and utilities essential for graphics support
+    ...
+
+    # Start graphics
+    display_msg "Starting Screen ..."
+    screen -c /usr/lib/graphics/rcarv3h/graphics.conf
+
+    [+session] ksh
+}
+
+# Include only the shared libraries you need
+...
+
+# Include only the shared objects for device drivers you need
+...
+
+# Include required executables
+...
+
+# Include libqcrypto support, if required
+...
+
+# Include only drivers and utilities you need
+...
+
+# General commands
+...
+
+# Screen composition manager support
+/lib/libimg.so=libimg.so
+
+# uncomment for Image Loading
+# img_codec_bmp.so
+# img_codec_gif.so
+# img_codec_jpg.so
+# img_codec_png.so
+# img_codec_sgi.so
+# img_codec_tga.so
+# img_codec_pcx.so
+# img_codec_tif.so
+# img_codec_wbmp.so
+# libgif.so.5
+# libjpeg.so.4
+# libpng16.so
+# libtiff.so.5
+# libz.so.2
+# liblzma.so.5
+# libpng.so
+
+# Graphics support - screen
+screen-debug.so
+screen-gles2blt.so
+screen-sw.so
+screen-stdbuf.so
+screen-roguetq.so
+screen-rcar3-alloc.so
+
+libswblit.so
+libEGL.so
+libGLESv2.so
+libWFD.so
+libgestures.so
+libmemobj.so
+libscrmem.so
+libinputevents.so
+libkalman.so
+libscreen.so
+libmtouch-calib.so
+
+libcapture.so
+libcapture-soc-rcar3.so
+libcapture-decoder-adv7482.so
+libcapture-usb-uvc.so
+
+# Graphics base libraries
+/lib/dll/libwfdcfg-sample.so=libwfdcfg-sample.so
+/usr/lib/libOpenCL.so=libOpenCL.so
+
+# Input libraries
+/lib/libmtouch-devi.so=libmtouch-devi.so
+/lib/libmtouch-fake.so=libmtouch-fake.so
+/lib/libmtouch-hid.so=libmtouch-hid.so
+/lib/libmtouch-inject.so=libmtouch-inject.so
+
+# Video capture libraries
+/usr/lib/libcapture-simulated.so=libcapture-simulated.so
+
+# Board specific graphics libraries
+/usr/lib/graphics/rcarv3h-debug/libwfdcfg-rcarv3h-starterkit_g.so=graphics/rcarv3h-debug/libwfdcfg-rcarv3h-starterkit_g.so
+/usr/lib/graphics/rcarv3h-debug/libWFDrcar3_g.so=graphics/rcarv3h-debug/libWFDrcar3_g.so
+/usr/lib/graphics/rcarv3h/libwfdcfg-rcarv3h-starterkit.so=graphics/rcarv3h/libwfdcfg-rcarv3h-starterkit.so
+/usr/lib/graphics/rcarv3h/libWFDrcar3.so=graphics/rcarv3h/libWFDrcar3.so
+
+# Scaling configuration
+[search=${QNX_TARGET}/etc/system/config]/etc/system/config/scaling.conf=scaling.conf
+
+# Screen executables
+/sbin/screen=screen
+/usr/bin/gles2-gears=gles2-gears
+/usr/bin/sw-vsync=sw-vsync
+/usr/bin/calib-touch=calib-touch
+/usr/bin/events=events
+
+# Graphics base executables
+/usr/bin/egl-configs=egl-configs
+/usr/bin/gles3-gears=gles3-gears
+/usr/bin/screenshot=screenshot
+/usr/bin/sharewin=sharewin
+/usr/bin/win-vsync=win-vsync
+
+# Fonts
+/usr/lib/libfontconfig.so=libfontconfig.so
+/usr/lib/libfreetype.so=libfreetype.so
+
+# Image Codecs
+[search=${QNX_TARGET}/etc/system/config]/etc/system/config/img.conf=img.conf
+
+# Inputs
+/usr/sbin/mtouch=mtouch
+
+# Video capture executables
+/usr/bin/vcapture-demo=vcapture-demo
+
+# Board specific graphics files
+/usr/lib/graphics/rcarv3h-debug/graphics.conf=graphics/rcarv3h-debug/graphics.conf
+/usr/lib/graphics/rcarv3h/graphics.conf=graphics/rcarv3h/graphics.conf
+
+# Interrupt map
+...
+</pre>
+        <p class="p">For more information about the bootstrap inline file, scripts in buildfiles, and
+            buildfiles in general, see <cite class="cite">Building Embedded Systems</cite>, and in particular the
+                    <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.building/topic/buildfiles/buildfile.html">OS Image Buildfiles</a></q> chapter.</p>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/cscreen_fastboot_about.html" title="This chapter describes strategies and techniques that you can use to reduce the time between when you power on and when Screen is ready on your system.">Optimizing Screen Startup Times</a></div>
+</div>
+</div></body>
+</html>

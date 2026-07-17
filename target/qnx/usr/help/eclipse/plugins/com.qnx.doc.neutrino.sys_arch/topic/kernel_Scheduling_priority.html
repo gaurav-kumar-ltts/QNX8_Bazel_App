@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Scheduling priority" />
+<meta name="abstract" content="Every thread is assigned a priority. The thread scheduler selects the next thread to run by comparing the priorities of READY threads (i.e., those capable of using a processor)." />
+<meta name="description" content="Every thread is assigned a priority. The thread scheduler selects the next thread to run by comparing the priorities of READY threads (i.e., those capable of using a processor)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/kernel_SCHEDULING.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Scheduling_priority" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Scheduling priority</title>
+</head>
+<body id="Scheduling_priority">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Scheduling priority</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc"> Every thread is assigned a priority. The thread scheduler selects the next thread to run
+    by comparing the priorities of READY threads (i.e., those capable of using a processor).
+</p>
+
+
+<ul class="ul">
+<li class="li">On a single-core system, the READY thread with the highest priority is selected to run.</li>
+
+
+<li class="li">On a multicore (SMP) system, the scheduler runs the highest-priority READY thread on one of the
+    available processors (or CPUs, or cores). Additional processors run other threads in the system,
+    though not necessarily the next highest-priority threads.
+    Further details are given in the <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/multicore_thread_displacement.html">Thread displacement on multicore systems</a></q> section of the
+    <cite class="cite">Programmer's Guide</cite>.
+    <p class="p">For each scheduling decision on a given processor, the scheduler looks at
+        the highest priority READY threads that can run on each cluster (i.e., group of
+        associated processors) that the processor belongs to, and then selects the highest-priority
+        thread from this set. For information about clusters and configuring processor affinity for
+        threads (i.e., associating threads with specific clusters), refer to the
+        <q class="q"><a class="xref" href="../../com.qnx.doc.neutrino.prog/topic/multicore_processor_affinity.html">Processor affinity, clusters, runmasks, and inherit masks</a></q> section of the
+        <cite class="cite">Programmer's Guide</cite>.</p>
+
+</li>
+
+
+</ul>
+
+
+<p class="p">
+
+
+       The following diagram shows
+      the ready queue for a single-core system with five threads (B–F) that are READY. Thread
+      A is currently running. All other threads (G–Z) are BLOCKED. Threads A, B, and C are at
+      the highest priority, so they'll share the processor based on their scheduling policies.</p>
+
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The ready queue in a single-core system.</span>
+   
+   <br /><img class="image" src="../images/readyq.svg" alt="READY processes" /><br />
+</div>
+
+
+<p class="p">
+
+
+The OS supports a total of 256 scheduling priority levels.
+An unprivileged thread can set its priority to a level from 1 to 63
+(the highest unprivileged priority), <em class="ph i">independent of the scheduling
+policy</em>. Only threads with the <span class="keyword const">PROCMGR_AID_PRIORITY</span> ability enabled (see
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/procmgr_ability.html"><span class="keyword apiname">procmgr_ability()</span></a>
+in the <cite class="cite">C Library Reference</cite>)
+are allowed to set priorities above 63.
+The special <em class="ph i">idle</em> thread (in the process manager)
+has priority 0 and is always ready to run. A thread inherits
+the priority of its parent thread by default.
+
+
+</p>
+
+
+<div class="p">You can change the allowed priority range for unprivileged processes with the <span class="keyword option">-P</span>
+      option for <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto</span></a>:
+<pre class="pre codeblock">procnto-smp-instr -P <var class="keyword varname">priority</var>
+</pre>
+</div>
+
+
+<p class="p">
+You can append an <span class="keyword option">s</span> or <span class="keyword option">S</span> to this option
+if you want out-of-range priority requests by default to use the maximum allowed priority
+(reach a <q class="q">maximum saturation point</q>) instead of resulting in an error.
+When you're setting a priority, you can wrap it in one these (non-POSIX) macros to specify how to handle
+out-of-range priority requests:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_ERROR(priority)</span>—indicate an error
+  
+</li>
+
+
+<li class="li"><span class="keyword apiname">SCHED_PRIO_LIMIT_SATURATE(priority)</span>—use the maximum allowed priority
+  
+</li>
+
+
+</ul>
+
+
+<div class="p">Here's a summary of the ranges:
+      
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+               <tr class="row">
+                  <th class="entry cellrowborder" style="vertical-align:top;" id="d12010e198">Priority level</th>
+
+                  <th class="entry cellrowborder" style="vertical-align:top;" id="d12010e201">Owner</th>
+
+               </tr>
+
+            </thead>
+<tbody class="tbody">
+               <tr class="row">
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e198 ">0</td>
+
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e201 ">Idle thread</td>
+
+               </tr>
+
+               <tr class="row">
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e198 ">1 through <var class="keyword varname">priority</var> − 1</td>
+
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e201 ">Unprivileged or privileged</td>
+
+               </tr>
+
+               <tr class="row">
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e198 ">
+                     <var class="keyword varname">priority</var> through 255</td>
+
+                  <td class="entry cellrowborder" style="vertical-align:top;" headers="d12010e201 ">Privileged</td>
+
+               </tr>
+
+            </tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+Note that in order to prevent <em class="ph i">priority inversion</em>, the kernel
+may temporarily boost a thread's priority.
+For more information, see
+<q class="q"><a class="xref" href="kernel_Mutexes.html#Mutexes__Priority_inheritance">Priority inheritance and mutexes</a></q>
+later in this chapter, and
+<q class="q"><a class="xref" href="ipc_Priority_inheritance_messages.html" title="QNX OS uses message-driven priority inheritance to avoid priority-inversion problems.">Priority inheritance and messages</a></q>
+in the Interprocess Communication (IPC) chapter.
+The initial priority of the kernel's threads is 255, but the first thing
+they all do is block in a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreceive.html"><span class="keyword apiname">MsgReceive()</span></a>,
+so after that they operate at the priority of threads that send messages
+to them.
+
+
+
+
+
+
+</p>
+
+
+<p class="p">
+The threads on the ready queue are ordered by priority.
+The ready queue is actually implemented as 256 separate
+queues, one for each priority.
+The first thread in
+the highest-priority queue is selected to run.
+</p>
+
+
+<p class="p">
+Most of the time, threads are queued in FIFO
+order in the queue of their priority, but there are some exceptions:
+</p>
+
+
+<ul class="ul">
+<li class="li">A non-FIFO server thread that's coming out of a RECEIVE-blocked state with a
+  message sent by a client using an "nc" (non-cancellation point) variant of
+  <span class="keyword apiname">MsgSend*()</span> is inserted at the head of the
+  queue for that priority—that is, the order is LIFO, not FIFO.
+</li>
+
+
+<li class="li">If a thread sends a message with an <q class="q">nc</q>
+  (non-cancellation point) variant of <span class="keyword apiname">MsgSend*()</span>, then when the
+  server replies, the thread is placed at the front of the ready queue,
+  rather than at the end.
+  If the scheduling policy is round-robin, the thread's timeslice isn't
+  replenished; for example, if the thread had already used half its
+  timeslice before sending, then it still has only half a timeslice left
+  before being eligible for preemption.
+  
+</li>
+
+
+</ul>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/kernel_SCHEDULING.html" title="When and how are scheduling decisions made?">Thread scheduling</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.prog/topic/overview_PRIOR.html">Priorities and scheduling (QNX OS Programmer's Guide)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Priorities.html">Priorities (Getting Started with the QNX OS)</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_procs_Kernel_as_arbiter.html">The kernel as arbiter (Getting Started with the QNX OS)</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedparam.html">pthread_setschedparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pthread_setschedprio.html">pthread_setschedprio()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setparam.html">sched_setparam()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sched_setscheduler.html">sched_setscheduler()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/schedset.html">SchedSet(), SchedSet_r()</a></li></ul></div>
+</div></body>
+</html>

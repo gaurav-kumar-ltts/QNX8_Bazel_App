@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_device_map_as()" />
+<meta name="abstract" content="Get the translation between CPU memory addresses and PCI addresses" />
+<meta name="description" content="Get the translation between CPU memory addresses and PCI addresses" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_device_map_as" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_device_map_as()</title>
+</head>
+<body id="pci_device_map_as">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_device_map_as()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get the translation between CPU memory addresses and PCI addresses</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_err_t pci_device_map_as( pci_devhdl_t <var class="keyword varname">hdl</var>,
+                             const pci_ba_t * const <var class="keyword varname">as</var>,
+                             pci_ba_t *<var class="keyword varname">as_xlate</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">hdl</var></dt>
+
+<dd class="dd">The handle of the device, obtained by calling
+  <a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">as</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">pci_ba_t</span> structure that describes the address space.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">as_xlate</var></dt>
+
+<dd class="dd">A pointer to a <span class="keyword dtype">pci_ba_t</span> structure where the function can store the translation.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">pci_device_map_as()</span> function is used by driver software to obtain the required translations
+between CPU memory addresses and PCI addresses.
+It's used (for example) when you've allocated a set of memory buffers that a PCI device should transfer in to.
+In this case, you need to program the PCI device with the inbound physical addresses of the memory buffers,
+but depending on how the hardware is configured, there may be translation hardware that maps the PCI address
+that must be targeted in order to resolve to the memory buffer addresses.
+</p>
+
+
+<p class="p">
+You should always call this function in this or any other similar scenario.
+If there's no translation required, <var class="keyword varname">as_xlate</var> will effectively be the same as <var class="keyword varname">as</var>.
+</p>
+
+
+<p class="p">
+
+The <span class="keyword dtype">pci_ba_t</span> structure is defined as follows:
+</p>
+
+
+<pre class="pre codeblock">typedef struct
+{
+        pci_ba_val_t addr;
+        uint64_t size;
+        pci_asType_e type;
+        pci_asAttr_e attr;
+        int_t bar_num;
+} pci_ba_t;
+</pre>
+
+<p class="p">
+The members include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">addr</var></dt>
+
+<dd class="dd">The physical address of a memory buffer.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">size</var></dt>
+
+<dd class="dd">The size of the buffer, in bytes.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">type</var></dt>
+
+<dd class="dd">One of the following:
+  
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_asType_e_NONE</span></li>
+
+  <li class="li"><span class="keyword const">pci_asType_e_MEM</span></li>
+
+  <li class="li"><span class="keyword const">pci_asType_e_IO</span></li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">attr</var></dt>
+
+<dd class="dd">A bitwise OR of attribute flags.
+  You must specify one of the following:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_asAttr_e_INBOUND</span> — transfers from PCI space to CPU space.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">pci_asAttr_e_OUTBOUND</span> — transfers from CPU space to PCI space.
+    You generally don't need this type of translation.
+    
+  </li>
+
+
+  </ul>
+
+
+  <p class="p">
+  You can also OR in any of the following:
+  </p>
+
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_asAttr_e_16BIT</span>, <span class="keyword const">pci_asAttr_e_32BIT</span>,
+    <span class="keyword const">pci_asAttr_e_64BIT</span>  — a
+    2-bit field that indicates whether to encode the address space size as 16, 32, or 64 bit.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">pci_asAttr_e_PREFETCH</span></li>
+
+  
+  <li class="li"><span class="keyword const">pci_asAttr_e_CONTIG</span></li>
+
+  <li class="li"><span class="keyword const">pci_asAttr_e_EXPANSION_ROM</span></li>
+
+  <li class="li"><span class="keyword const">pci_asAttr_e_ENABLED</span> — applicable to expansion ROM.</li>
+
+  <li class="li"><span class="keyword const">pci_asAttr_e_SHARED</span> — otherwise reserved (applicable to slot aspace reservations).</li>
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">bar_num</var></dt>
+
+<dd class="dd">The Base Address Register number.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+The <var class="keyword varname">as</var> attributes (defined in <span class="ph filepath">&lt;pci/pci.h&gt;</span> as type
+<span class="keyword dtype">pci_asAttr_e</span>) should fully specify in the <var class="keyword varname">as-&gt;attr</var> field whether the driver
+is requesting translation for an outbound transfer (from CPU memory to PCI device) or inbound transfer
+(from PCI device to CPU memory).
+You should also specify other attributes, such as <span class="keyword const">pci_asAttr_e_CONTIG</span>,
+the alignment requirements, and so on.
+In addition to the <var class="keyword varname">as-&gt;attr</var> field, you should also properly initialize the
+<var class="keyword varname">type</var>, <var class="keyword varname">size</var>, and <var class="keyword varname">addr</var> fields.
+Note that all addresses are specified as physical addresses.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_OK</span></dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENODEV</span></dt>
+
+<dd class="dd">The device identified by <var class="keyword varname">hdl</var> doesn't exist.
+  Note that this error can also be returned if a device that supports live removal is removed after a successful
+  call to
+  <a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EINVAL</span></dt>
+
+<dd class="dd">The <var class="keyword varname">hdl</var> doesn't refer to a valid device that you attached to, or other parameters
+  are otherwise invalid.
+  This error can also be returned from the hardware-dependent module.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ASPACE_INVALID</span></dt>
+
+<dd class="dd">The address provided couldn't be translated into usable values.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If any error occurs, you should assume that storage you provided for <var class="keyword varname">as_xlate</var>
+contains invalid data.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d8067e449">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d8067e451"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e449 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e451 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e449 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e451 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e449 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d8067e451 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>

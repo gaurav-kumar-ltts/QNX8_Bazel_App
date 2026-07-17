@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="The development process" />
+<meta name="abstract" content="BSP development begins with a reference BSP from QNX." />
+<meta name="description" content="BSP development begins with a reference BSP from QNX." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Customizing a BSP, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dev_process" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>The development process</title>
+</head>
+<body id="dev_process">
+
+
+  <h1 class="title topictitle1" id="ariaid-title1">The development process</h1>
+
+
+
+  
+  
+  
+  <div class="body conbody"><p class="shortdesc"> BSP development begins with a reference BSP from QNX.</p>
+
+    <p class="p">The availability of compatible BSP components and your board’s specifications determine which options you select for loading and booting the OS. Generally speaking, the goal is to successfully complete a step of the boot process before proceeding to the next step.</p>
+
+    <p class="p">An alternative to developing custom BSP components yourself is QNX Professional Services,
+      which is available to create custom BSP content, including drivers.</p>
+
+
+    <img class="image" src="../images/bsp_development.svg" width="624" />
+
+    <div class="section"><h2 class="title sectiontitle">Reference BSP</h2>
+      
+      
+      <p class="p">Before you attempt to customize an existing BSP, familiarize yourself with the overall
+        process of booting a QNX system on a target platform. This process includes obtaining a BSP
+        and using it to build a bootable image that you transfer from your host system to your
+        target board.</p>
+
+      <p class="p">You can then select a BSP to use as a starting point for your custom BSP.</p>
+
+      <p class="p">For information about obtaining a BSP, its structure, and the Makefile instructions that
+        build a target image, see <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/bsp/bsp_about.html">“Working with QNX
+          BSPs”</a> in the <em class="ph i">Building Embedded Systems</em> guide.</p>
+
+    </div>
+
+
+    <div class="section"><h2 class="title sectiontitle">x86 vs. ARM platforms</h2>
+      
+      
+      
+      
+      <p class="p">Traditionally, when an x86 system boots, it provides some sort of first-stage OS loader. In
+        older systems, this first-stage loader was the BIOS. Newer systems replace the x86 BIOS with
+        a UEFI (Unified Extensible Firmware Interface), which provides a method for loading the OS
+        image from the boot device and enhanced features that the system can use at runtime. In
+        general, x86 systems allow you to load the QNX boot image using whatever boot method the
+        hardware provides (that is, the same loader you would use to load an operating system such
+        as Windows or Linux).</p>
+<p class="p">ARM-based platforms also traditionally provide a bootloader with
+        the reference hardware. In newer systems, the U-Boot loader is the most common bootloader
+        that ARM targets provide. You can use U-Boot to load a QNX OS image into the target’s
+        memory, the same as you would any other OS. In addition, QNX often provides a native
+        bootloader, known as the Initial Program Loader (IPL). You normally use the IPL instead of
+        U-Boot to accelerate the boot process or for boot operation configuration that cannot be
+        performed using U-Boot. When you migrate an existing BSP to a new target board, QNX
+        recommends that you use U-Boot as the bootloader for the new target board until you have
+        completed porting all the BSP components.</p>
+<div class="p"><span class="keyword">QNX OS</span> uses an Initial Program Loader
+        (IPL) to perform the following tasks: <ul class="ul">
+          <li class="li">Initialize the hardware</li>
+
+          <li class="li">Set up a stack for the C-language environment </li>
+
+          <li class="li">Load the OS image into memory</li>
+
+          <li class="li">Initiate the QNX startup code</li>
+
+        </ul>
+You can use U-Boot to replace the IPL functionality during the development process, or
+        if your board does not support the QNX IPL (see <q class="q"><a class="xref" href="#dev_process__u-boot">Using U-Boot</a></q>).</div>
+<p class="p">The IPL has to be customized for the hardware to correctly configure the
+        memory controller, set the clocks, and perform other hardware initializations.</p>
+Full
+      information about the IPLs for each type of board, see <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/ipl/ipl_about.html">Initial Program Loaders
+        (IPLs)</a> in the <em class="ph i">Building Embedded Systems</em> guide.</div>
+
+    
+    <div class="section" id="dev_process__u-boot"><h2 class="title sectiontitle">Using U-Boot</h2>
+      
+      <p class="p">During the development process, it can be helpful to use U-Boot to manually boot the
+        hardware and load the OS, even if your board supports the QNX IPL. For example, using U-Boot
+        allows you to eliminate the IPL as a possible source of a booting problem.</p>
+
+      <p class="p">In most cases, the final BSP uses an IPL because it is faster and is designed specifically
+        to bring up with QNX OS.</p>
+</div>
+
+    
+    <div class="section"><h2 class="title sectiontitle">CPU vs SoC</h2>
+      <p class="p">On older embedded systems, the CPU was usually a stand-alone device and all other
+        functionality was implemented via external Integrated Circuits (ICs). For example, a board
+        with a CPU, a network interface IC, a USB Host Controller IC, a serial UART, an external
+        host/PCI bridge device, and so on. For this type of board architecture, it was often not
+        feasible to try to adapt the QNX BSP for a reference design to a different board with the
+        same CPU because the new board could have different external peripherals and  require you to
+        update or replace all of the device drivers for peripheral devices.</p>
+
+      <p class="p">Newer embedded systems are increasingly using System on a Chip (SoC) processors, where the
+        CPU core is coupled with a variety of different peripheral interfaces within the same IC
+        package. With an SoC, when you port a BSP from a reference board to a new board using the
+        same IC, you can re-use all of the device drivers in the BSP (or at least all the ones for
+        peripherals contained within the SoC), with minimal changes. In this document, discussions
+        about customizing BSPs assume that the target embedded system you are porting the BSP to
+        uses the same SoC as the hardware that the reference BSP was developed for.</p>
+
+    </div>
+
+    
+    
+    <div class="section"><h2 class="title sectiontitle">Minimal bootable system</h2>  <p class="p">Attempting to boot <span class="keyword">QNX OS</span> on your board with the bare
+      minimum number of services allows you to isolate any problems. To create a minimal system,
+      edit the OS image buildfile to exclude any services or other components that are not necessary
+      for a baseline, functioning OS.</p>
+<div class="p">For example, you can exclude everything except the
+      following components:<ul class="ul" id="dev_process__ul_enh_2sn_qy">
+      <li class="li"> Serial driver (to allow you to log in and observe the OS start up)</li>
+
+      <li class="li"> The startup script</li>
+
+      <li class="li"> slog2info (to allow you to get debugging information)</li>
+
+      <li class="li"> Some commands such as ls, pwd, cd, cat (to allow you to view files and configuration, if
+        you need to troubleshoot a service) </li>
+
+      </ul>
+</div>
+ After this minimal system is running successfully, start to add the additional
+      components you require (for example, USB drivers or networking). <p class="p">The primary module you
+      need to adapt to get a minimal QNX system working on a new target is the QNX startup module.
+      For more information about the startup module, see the <a class="xref" href="startup.html">Startup</a>
+      documentation.</p>
+<p class="p">For information about building an OS image, see <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/os_images/images_about.html">OS
+      Images</a> and <a class="xref" href="../../com.qnx.doc.neutrino.building/topic/buildfiles/buildfile.html">OS Image
+      Buildfiles</a> in <em class="ph i">Building Embedded Systems</em>.</p>
+</div>
+
+    
+    <div class="section"><h2 class="title sectiontitle">Drivers</h2>  <p class="p">Each QNX BSP provides a
+      variety of device drivers for the various peripherals found on the target hardware that the
+      BSP is intended for. In general, you can re-use all device drivers for peripherals that are
+      internal to the SoC without any modification if that the pinmux and GPIO configuration for
+      those peripherals is properly addressed in the startup code. </p>
+ 
+      <img class="image" src="../images/adding_drivers.svg" width="624" />
+      <p class="p">In many cases, only minor modifications to the device
+      driver’s command line or syspage are necessary to enable a driver from a reference BSP to
+      operate properly on the new target board. You can specify all parameters such as IRQ, I/O
+      port, clock speed, and so on, on the command line. Use the command line examples from the
+      reference BSP to determine what changes (if any) you need to make for your custom
+      hardware.</p>
+<p class="p">For more information about drivers and instructions for writing one and adding
+      it to your BSP, see <a class="xref" href="../../com.qnx.doc.neutrino.resmgr/topic/about.html"><em class="ph i">Writing a Resource
+      Manager</em></a>.</p>
+</div>
+
+    
+
+
+  </div>
+
+</body>
+</html>

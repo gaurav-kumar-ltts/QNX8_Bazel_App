@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2025" />
+<meta name="DC.rights.owner" content="(C) Copyright 2025" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Using Streams" />
+<meta name="abstract" content="Streams are off-screen, multi-buffered render targets that are provided by the Screen API." />
+<meta name="description" content="Streams are off-screen, multi-buffered render targets that are provided by the Screen API." />
+<meta name="DC.subject" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="keywords" content="Graphics and Screen, 4.0 (8.x), Screen Graphics Subsystem Developer's Guide, API, Programming, Utilities" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing-producer.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing-consumer.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_resource_sharing-multiple-producers-consumers.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/cscreen_external_composition.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="cscreen_streams" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Using Streams</title>
+</head>
+<body id="cscreen_streams">
+
+    <h1 class="title topictitle1" id="ariaid-title1">
+        Using Streams
+    </h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+        Streams are off-screen, multi-buffered render targets that are provided by the <span class="keyword">Screen API</span>.
+    </p>
+
+        <p class="p">
+            
+            Streams are used by consumers that are applications rather than <span class="keyword">Screen</span> itself.
+            In the case of windows, it's most common that the consumer
+            is <span class="keyword">Screen</span> because the content is intended to be shown on a display. However,
+            the content of streams is intended to be consumed by other applications. These applications could be
+            separate, in the same or different process, from the one that's producing the streams' content. A common
+            case for using streams would be displaying output from a camera (or video) that requires some form of image
+            processing on the camera's output before it's displayed.
+        </p>
+
+        <p class="p">
+            Buffers of producer streams are created by calling
+            <a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a>.
+            These buffers are used for either rendering or posting. Initially, all the buffers that are created, are
+            available for rendering. As the buffers are posted, they become front buffers. The front buffers are once
+            again available as render buffers when all consumers have released them. Render buffers are available for
+            producer streams to safely render into. These buffers are retrieved using the
+            <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span> property of the stream. Front buffers have been posted by the
+            stream (i.e., <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a> was
+            called with these buffers). These buffers are retrieved using the <span class="keyword const">SCREEN_PROPERTY_FRONT_BUFFERS</span>
+            property of the stream. Consumers use the front buffers of producer streams when they are consuming content.
+            We don't recommend rendering into any buffer that's not available in <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>
+            because there's a risk that a buffer that's not in this list, is actively being consumed.
+        </p>
+
+        <p class="p">
+            Using streams generally implies a basic set of procedures for both the producer and the consumer. Content can
+            be accessed by multiple applications or processes, so it's important that each of the producers and consumers
+            understand how to provide and access the content. The <span class="keyword">Screen API</span> provides the capability
+            to perform what each of the producer and consumer are responsible for.
+        </p>
+
+        <p class="p">
+            A simple description of a set of producer-consumer functions and interactions is illustrated below to
+            provide a basic understanding of how streams are used to share content. The following steps don't include
+            details and specifics; those are provided in later sections.
+        </p>
+
+        <ol class="ol">
+            <li class="li">
+                Initially, both producer and consumer create their own streams. The producer creates a stream (Stream-p
+                ) with a set of buffers that it will render into. The consumer creates a stream (Stream-c), but doesn't
+                create any buffers because it intends to share those of the producer.
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-create.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+            <li class="li">
+                The producer starts rendering into one of its available render buffers. The consumer must call
+                <a class="xref" href="../screen_consume_stream_buffers.html" title="Cause a stream to become a consumer endpoint to another stream"><span class="keyword apiname">screen_consume_stream_buffers()</span></a>
+                to associate its stream to the producer's stream. Once the consumer establishes an association with
+                the producer, it can start waiting for content to be posted.
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-consume-and-render.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+            <li class="li">
+                Once the producer is ready to make its content available, it posts the buffer to the stream. The buffer that was
+                used for rendering becomes the front buffer. Once the buffer is posted to the stream, it's available to consumers.
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-post.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+            <li class="li">
+                Once a front buffer is available, the consumer must acquire the buffer before it can start processing
+                the buffer's content. By acquiring the buffer, the consumer prevents this buffer from being made available
+                in the producer's list of render buffers (<span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>).
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-acquire.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+            <li class="li">
+                When the consumer is finished accessing the buffer from the producer, it needs to release
+                the buffer. By releasing the buffer, it allows the buffer to be updated by the producer.
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-release.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+            <li class="li">
+                When the consumer releases the front buffer, the buffer is made available again in the
+                producer's list of render buffers (<span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>).
+                <div class="fig fignone">
+                    <br /><img class="image" src="../../images/using_streams-return-render-buffer.svg" width="672" /><br />
+                </div>
+
+            </li>
+
+        </ol>
+
+        <p class="p">
+            Other important points on streams to note are:
+        </p>
+
+        <ul class="ul">
+            <li class="li">
+                <p class="p">
+                    Streams can't be reconfigured. That is, the following propeties can't be changed once
+                    a stream has been realized:
+                </p>
+
+                <ul class="ul">
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_BUFFER_SIZE</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_FORMAT</span></li>
+
+                    <li class="li"><span class="keyword const">SCREEN_PROPERTY_USAGE</span></li>
+
+                </ul>
+
+                <p class="p">
+                    Once a stream has been created and realized, no new buffers can be created on that stream. If you need
+                    to change any of the properties listed above, you need to create a new stream and notify the
+                    consumers to share this stream instead.
+                </p>
+
+                <p class="p">
+                    Therefore, if you need to reconfigure your stream, you can do either of the following:
+                </p>
+
+                <dl class="dl">
+                    
+                        <dt class="dt dlterm">Use your existing stream</dt>
+
+                        <dd class="dd">
+                            <p class="p"> You must destroy the buffers of your existing stream, reconfigure the stream by setting stream properties, and then recreate new stream buffers: </p>
+
+                            <ol class="ol">
+                                <li class="li">
+                                    Call <a class="xref" href="../screen_destroy_stream_buffers.html" title="Send a request to Screen to destroy the buffers of the specified stream"><span class="keyword apiname">screen_destroy_stream_buffers()</span></a>
+                                    on your existing stream.
+                                </li>
+
+                                <li class="li">
+                                    Reconfigure the stream by setting its properties through the <span class="keyword apiname">screen_set_stream_property_*()</span>
+                                    <span class="keyword">Screen API</span> functions.
+                                </li>
+
+                                <li class="li">
+                                    Call <a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a>
+                                    to recreate the stream's buffers that are based on your newly modified properties.
+                                </li>
+
+                            </ol>
+
+                        </dd>
+
+                    
+                    
+                        <dt class="dt dlterm">Create an entirely new stream</dt>
+
+                        <dd class="dd">
+                            <p class="p">
+                                You must destroy the existing stream, then create a new stream with the appropriate properties set.
+                            </p>
+
+                            <ol class="ol">
+                                <li class="li">
+                                    Call <a class="xref" href="../screen_destroy_stream.html" title="Destroy a stream and free associated resources"><span class="keyword apiname">screen_destroy_stream()</span></a>
+                                    to free any resources allocated for your existing stream. 
+                                </li>
+
+                                <li class="li">
+                                    Call <a class="xref" href="../screen_create_stream.html" title="Create a stream that can be used to provide graphical content to generic consumers"><span class="keyword apiname">screen_create_stream()</span></a>
+                                    to create a new stream.
+                                </li>
+
+                                <li class="li">
+                                    Configure the stream by setting its properties through the <span class="keyword apiname">screen_set_stream_property_*()</span>
+                                    <span class="keyword">Screen API</span> functions.
+                                </li>
+
+                                <li class="li">
+                                    Call <a class="xref" href="../screen_create_stream_buffers.html" title="Send a request to Screen to add new buffers to a stream"><span class="keyword apiname">screen_create_stream_buffers()</span></a>
+                                    to create buffers for the new stream.
+                                </li>
+
+                            </ol>
+
+                        </dd>
+
+                    
+                </dl>
+
+            </li>
+
+            <li class="li">
+                 <p class="p">
+                     If the producer locks up, it's usually
+                     because of how the consumer is acquiring and releasing buffers. When the consumer acquires buffers,
+                     it's essentially keeping those buffers as front buffers, and preventing them from returning to the
+                     producer's list of render buffers. The function
+                     <a class="xref" href="../screen_post_stream.html" title="Make a stream frame available to its consumers"><span class="keyword apiname">screen_post_stream()</span></a> waits until
+                     there's a render buffer available to the producer (i.e., at least one buffer indicated by
+                     <span class="keyword const">SCREEN_PROPERTY_RENDER_BUFFERS</span>). If the consumer doesn't release the buffers by the
+                     time that the producer posts again, then the producer is blocked waiting on the
+                     consumer to release buffers back into the producer's list of render buffers.
+                 </p>
+
+                 <p class="p">
+                     <span class="keyword">Screen</span> releases any buffers that have been acquired by a consumer
+                     if the consumer terminates unexpectedly. Therefore, the producer won't be blocked indefinitely if
+                     one of its consumers crashes.
+                 </p>
+
+            </li>
+
+            <li class="li">
+                <p class="p">
+                    Streams require that the producer and the consumer be somewhat in synchronization with each other.
+                    Generally, there are fewer complications when you have a single producer stream associated with
+                    a single consumer stream.
+                </p>
+
+            </li>
+
+        </ul>
+
+        <p class="p">
+            
+        </p>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../../topic/manual/cscreen_resource_sharing-producer.html">Producer</a></strong><br />
+         The producer creates content and shares it with permitted consumers.     </li>
+<li class="link ulchildlink"><strong><a href="../../topic/manual/cscreen_resource_sharing-consumer.html">Consumer</a></strong><br />
+         The consumer takes content from a producer to perform additional processing.     </li>
+<li class="link ulchildlink"><strong><a href="../../topic/manual/cscreen_resource_sharing-multiple-producers-consumers.html">Multiple Consumers and Producers</a></strong><br />
+ It can get complicated when there are multiple producers and consumers within a system. </li>
+<li class="link ulchildlink"><strong><a href="../../topic/manual/cscreen_external_composition.html">External Composition</a></strong><br />
+         <span class="keyword">Screen</span> supports external composition (i.e., the use of a         compositor that's not <span class="keyword">Screen</span>) through the use of root         windows and streams.      </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/cscreen_resource_sharing.html" title="Resource sharing allows the access of buffers and their content within the same application and process, or between different applications and processes.">Resource Sharing</a></div>
+</div>
+</div></body>
+</html>

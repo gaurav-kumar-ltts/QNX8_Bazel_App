@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Unblocking if someone closes a file descriptor" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/signals.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="read_write_unblocking" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Unblocking if someone closes a file descriptor</title>
+</head>
+<body id="read_write_unblocking">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Unblocking if someone closes a file descriptor</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+
+
+Suppose the following sequence occurs:
+</p>
+
+
+<ul class="ul">
+<li class="li">A client opens a file descriptor and calls <span class="keyword apiname">read()</span> on it.</li>
+
+
+<li class="li">The resource manager doesn't reply in the <span class="keyword apiname">io_read()</span>
+  handler, so the client remains blocked.
+</li>
+
+
+<li class="li">A second thread in the client calls <span class="keyword apiname">close()</span> for the file descriptor while the first
+  thread is blocked on <span class="keyword apiname">read()</span>.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+If your resource manager handles the disconnection without considering the <span class="keyword apiname">read()</span>,
+then the client's <span class="keyword apiname">read()</span> is indefinitely blocked, even after the
+fd has been detached. This could happen for other blocking operations, such
+as calls to <span class="keyword apiname">write()</span> and <span class="keyword apiname">devctl()</span>.
+</p>
+
+
+<p class="p">
+To avoid this situation, your resource manager needs to maintain a list of
+blocked clients. Whenever it blocks a client that's waiting for an operation
+to complete, you must add this client to the list—and you need to
+remove a client from the list when you unblock it.
+</p>
+
+
+<div class="p">
+
+The resource manager framework provides an
+<a class="xref" href="../../com.qnx.doc.neutrino.getting_started/topic/s1_resmgr_io_close_dup.html"><span class="keyword apiname">io_close_dup()</span></a>
+callout (see the Resource Managers chapter of <cite class="cite">Getting Started with the <span class="keyword">QNX OS</span></cite>)
+that gets called whenever <span class="keyword apiname">close()</span> is called on a file descriptor
+or a client otherwise disconnects.
+In this callout, you must traverse the list and use the server connection ID
+(<var class="keyword varname">scoid</var>) and connection ID (<var class="keyword varname">coid</var>) to determine which client threads
+are blocked on that file descriptor, and reply to them (via
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgerror.html"><span class="keyword apiname">MsgError()</span></a>
+or otherwise) to unblock them.
+For example:
+
+<pre class="pre codeblock">int io_close_dup (resmgr_context_t *ctp, io_close_t *msg, RESMGR_OCB_T *ocb)
+{
+    // unblock any clients blocked on the file descriptor being closed
+    blocked_client_t *client, *prev;
+    prev = NULL;
+    
+    iofunc_lock_ocb_default(ctp, NULL, ocb);
+    client = blocked_clients;
+    while ( client != NULL )
+    {
+        if ( (client-&gt;coid == ctp-&gt;info.coid) &amp;&amp; (client-&gt;scoid == ctp-&gt;info.scoid) )
+        {
+            MsgError( client -&gt; rcvid, EBADF );
+            if (prev != NULL) // anywhere but the head of the list
+            {
+                prev-&gt;next = client-&gt;next;
+                free(client);
+                client = prev-&gt;next;
+            }
+            else // head of the list case
+            {
+                blocked_clients = client-&gt;next; 
+                free(client); 
+                client = blocked_clients; 
+            }
+        }
+        else // no match, move to the next entry and track previous entry
+        { 
+            prev = client;
+            client = client-&gt;next;
+        }
+    }
+    iofunc_unlock_ocb_default(ctp, NULL, ocb);
+    
+    // do rest of the regular close handling
+    return iofunc_close_dup_default(ctp, msg, ocb );
+}
+</pre>
+</div>
+
+
+<div class="cautiontitle" id="read_write_unblocking__ocb_attr">CAUTION:</div><div class="note caution">
+Unlike with most other I/O handlers, when the <span class="keyword apiname">io_close_dup()</span> handler runs,
+the attribute structure in the OCB (<span class="ph codeph">ocb-&gt;attr</span>) is <em class="ph i">not</em>  
+locked by default. In your implementation, you may need to modify some fields in this structure.
+In this case, you must explicitly lock it to prevent server-side race conditions, 
+which can cause bugs that are difficult to detect and fix.
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/signals.html" title="Your resource manager needs to avoid leaving clients blocked indefinitely, and it might need to handle interrupts.">Unblocking Clients and Handling Interrupts</a></div>
+</div>
+</div></body>
+</html>

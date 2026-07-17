@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Modes of operation" />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Analysis Toolkit (SAT) User's Guide, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/datacapture_Using_TraceEvent.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Modes_TraceEvent" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Modes of operation</title>
+</head>
+<body id="Modes_TraceEvent">
+
+<h1 class="title topictitle1" id="ariaid-title1">Modes of operation</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+
+<span class="keyword apiname">TraceEvent()</span> doesn't support the different modes of operation
+that <span class="keyword cmdname">tracelogger</span> does;
+your application has to indicate when to start tracing, how long to trace for, and so on:
+</p>
+
+
+<ul class="ul">
+<li class="li">To choose linear or ring mode, use the  <span class="keyword const">_NTO_TRACE_SETLINEARMODE</span> or
+  <span class="keyword const">_NTO_TRACE_SETRINGMODE</span> command:
+  
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_SETLINEARMODE);
+TraceEvent(_NTO_TRACE_SETRINGMODE);
+</pre>
+
+  <p class="p">
+  As described earlier in this chapter, in ring mode the kernel stores all
+  events in the ring of buffers without flushing them.
+  In linear mode (the default), every filled-up buffer is captured and flushed immediately.
+  </p>
+
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  <span class="keyword const">_NTO_TRACE_SETLINEARMODE</span> and <span class="keyword const">_NTO_TRACE_SETRINGMODE</span> cause the trace buffers
+  to be cleared, so you should use these commands before you start tracing.
+  </div>
+
+</li>
+
+
+<li class="li">To start tracing, use the <span class="keyword const">_NTO_TRACE_START</span> or
+  <span class="keyword const">_NTO_TRACE_STARTNOSTATE</span> command:
+  
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_START);
+TraceEvent(_NTO_TRACE_STARTNOSTATE);
+</pre>
+
+  <p class="p">
+  These commands are similar, except that <span class="keyword const">_NTO_TRACE_STARTNOSTATE</span> suppresses the initial system state
+  information (which includes thread IDs and the names of processes).
+  This information is overwritten when the kernel reuses the buffer; if you're logging events in ring mode,
+  you can capture the process names by issuing an <span class="keyword const">_NTO_TRACE_START</span> command followed
+  by <span class="keyword const">_NTO_TRACE_STOP</span> after you've finished tracing.
+  </p>
+
+</li>
+
+
+<li class="li">To stop tracing, use the <span class="keyword const">_NTO_TRACE_STOP</span> command:
+  
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_STOP);
+</pre>
+
+  <div class="p">
+  
+  You can decide whether to trace until you've gathered a certain
+  quantity of data, trace for a certain length of time, or
+  trace only during an operation that's of particular interest to you.
+  After stopping the trace, you should flush the buffer by issuing the
+  <span class="keyword const">_NTO_TRACE_FLUSHBUFFER</span> command:
+
+<pre class="pre codeblock">TraceEvent(_NTO_TRACE_FLUSHBUFFER);
+</pre>
+  </div>
+
+</li>
+
+
+</ul>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+If an application has called <span class="ph codeph">TraceEvent(_NTO_TRACE_START)</span>, and you then try to
+start <span class="keyword cmdname">tracelogger</span>, this utility might fail with a <q class="q">resource busy</q> message.
+To help avoid this:
+
+<ul class="ul">
+<li class="li">Start <span class="keyword cmdname">tracelogger</span> before your application issues an <span class="keyword const">_NTO_TRACE_START</span>
+  or <span class="keyword const">_NTO_TRACE_STARTNOSTATE</span> command.
+</li>
+
+
+<li class="li">Don't leave tracing on indefinitely; be sure to issue an <span class="keyword const">_NTO_TRACE_STOP</span>
+  after each <span class="keyword const">_NTO_TRACE_START</span> or <span class="keyword const">_NTO_TRACE_STARTNOSTATE</span> command.
+</li>
+
+
+</ul>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/datacapture_Using_TraceEvent.html">Using TraceEvent() to control tracing</a></div>
+</div>
+</div></body>
+</html>

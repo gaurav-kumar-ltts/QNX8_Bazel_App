@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="A single application" />
+<meta name="abstract" content="Suppose we have a product (we'll use the archiver, lha for this example) that we'd like to make available on all the processors that the QNX OS supports. Unfortunately, we've been using our own custom Makefiles for gcc on x86_64, and we have no idea how to make binaries for other processors." />
+<meta name="description" content="Suppose we have a product (we'll use the archiver, lha for this example) that we'd like to make available on all the processors that the QNX OS supports. Unfortunately, we've been using our own custom Makefiles for gcc on x86_64, and we have no idea how to make binaries for other processors." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/make_convent_Examples.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/make.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Single_application" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>A single application</title>
+</head>
+<body id="Single_application">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">A single application</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+Suppose we have a product (we'll use the archiver, <span class="keyword cmdname">lha</span> for this
+example) that we'd like to make available on all the processors that
+the <span class="keyword">QNX OS</span> supports.
+Unfortunately, we've been using our own custom Makefiles for <span class="keyword cmdname">gcc</span>
+on x86_64, and we have no idea how to make binaries for other processors.
+</p>
+
+
+<p class="p">
+The <span class="keyword">QNX OS</span> <span class="ph filepath">Makefile</span> system makes it very easy for us
+to build different processor versions.
+Instead of writing the entire complicated <span class="ph filepath">Makefile</span> ourselves,
+we simply include various <span class="keyword">QNX OS</span> <span class="ph filepath">Makefile</span> system files
+that will do most of the work for us.
+We just have to make sure the correct variables are defined, and
+variants are created.
+</p>
+
+
+<div class="p">
+First, let's get the source code for <span class="keyword cmdname">lha</span> from
+<a class="xref" href="http://www2m.biglobe.ne.jp/~dolphin/lha/prog/lha-114i.tar.gz" target="_blank"><span class="ph filepath">http://www2m.biglobe.ne.jp/~dolphin/lha/prog/lha-114i.tar.gz</span></a>
+and unarchive it:
+
+<pre class="pre codeblock">tar -zxvf lha-114i.tar.gz
+</pre>
+</div>
+
+
+<p class="p">
+This creates a directory called <span class="ph filepath">lha-114i</span>.
+If we run <span class="keyword cmdname">make</span> here, everything will compile, and when it's done,
+we'll have an x86_64 binary called <span class="ph filepath">lha</span> in the <span class="ph filepath">src</span>
+directory.
+</p>
+
+
+<div class="p">
+A typical compile command for this application using the original <span class="ph filepath">Makefile</span> looks like:
+
+<pre class="pre codeblock">gcc -O2 -DSUPPORT_LH7 -DMKSTEMP -DNEED_INCREMENTAL_INDICATOR \
+  -DTMP_FILENAME_TEMPLATE=""/tmp/lhXXXXXX"" \
+  -DSYSTIME_HAS_NO_TM -DEUC -DSYSV_SYSTEM_DIR -DMKTIME \
+  -c -o lharc.o lharc.c
+</pre>
+</div>
+
+
+<p class="p">
+We want to make sure our version compiles with the same options as the
+original version, so we have to make sure to include those compiler options somewhere.
+</p>
+
+
+<div class="p">
+Let's save the current <span class="ph filepath">Makefile</span> as a backup:
+
+<pre class="pre codeblock">cd src
+mv Makefile Makefile.old
+</pre>
+</div>
+
+
+<div class="p">
+As mentioned above, we need to define some variables in a file somewhere
+that our <span class="ph filepath">Makefile</span>s can include.
+The usual place to put these defines is in a <span class="ph filepath">common.mk</span> file.
+We can use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html"><span class="keyword cmdname">addvariant</span></a>
+utility to create our initial <span class="ph filepath">common.mk</span> and new <span class="ph filepath">Makefile</span>, like this:
+
+<pre class="pre codeblock">addvariant -i OS
+</pre>
+</div>
+
+
+<div class="p">
+Let's go through the <span class="ph filepath">common.mk</span> file line by line to figure
+out what's going on, and what we need to add:
+
+<pre class="pre codeblock">ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+</pre>
+</div>
+
+
+<p class="p">
+You should never change these four lines.
+The default <span class="ph filepath">qconfig.mk</span> defines a number of variables that
+the <span class="ph filepath">Makefile</span> system uses.
+</p>
+
+
+<div class="p">
+After these lines, we can define our own variables.
+Let's start with:
+
+<pre class="pre codeblock">INSTALLDIR=usr/bin
+</pre>
+</div>
+
+
+<p class="p">
+This defines where to install our binary.
+Third-party applications should go into <span class="ph filepath">usr/bin</span> instead of
+<span class="ph filepath">bin</span>, which is the default.
+</p>
+
+
+<div class="p">
+Next, we put in some packager info:
+ 
+<pre class="pre codeblock">define PINFO
+PINFO DESCRIPTION=Archiver using lha compression.
+endef
+</pre>
+</div>
+
+
+<p class="p">
+
+
+If we define <var class="keyword varname">PINFO</var> information like this in our
+<span class="ph filepath">common.mk</span> file, a <span class="ph filepath">lha.pinfo</span> file will be
+created in each of our variant directories.
+We'll look at this later.
+</p>
+
+
+<div class="p">
+After that, we add:
+
+<pre class="pre codeblock">NAME=lha
+</pre>
+</div>
+
+
+<p class="p">
+This tells the <span class="ph filepath">Makefile</span> system what the name of our project is.
+Since we're building binary executables, this will be the name of our binary.
+</p>
+
+
+<div class="p">
+
+
+<var class="keyword varname">EXTRA_INCVPATH</var> defines where our header files are located.
+By default, all the directories from our <var class="keyword varname">PROJECT_ROOT</var> down
+to our variant directory are added to the main include paths (i.e., where it
+will look for header files.)
+In our case, all the project headers are located in the project's root
+directory, so we don't need an <var class="keyword varname">EXTRA_INCVPATH</var> line.
+This commented-out line serves as an example:
+
+<pre class="pre codeblock">#EXTRA_INCVPATH=$(PROJECT_ROOT)/includes
+</pre>
+</div>
+
+
+<div class="p">
+
+
+
+
+Ordinarily, all the source code files in the <var class="keyword varname">PROJECT_ROOT</var>
+directory are compiled and linked to the final executable.
+If we want to exclude certain files from being compiled and linked, we
+specify the object files in <var class="keyword varname">EXCLUDE_OBJS</var>:
+
+<pre class="pre codeblock">EXCLUDE_OBJS=lhdir.o makezero.o
+</pre>
+</div>
+
+
+<div class="p">
+
+
+
+
+The compiler flags variable is where we put the original compiler flags listed above.
+In QNX Neutrino 7.0 or earlier, flags defined in <var class="keyword varname">CCFLAGS</var> got passed to both the C compiler, <span class="keyword cmdname">qcc</span>,
+and the C++ compiler, <span class="keyword cmdname">q++</span>.
+In QNX Neutrino 7.1 or later, the <var class="keyword varname">CCFLAGS</var> settings are passed to the C compiler only;
+to pass flags to the C++ compiler, you must set them in <var class="keyword varname">CXXFLAGS</var> instead:
+
+<pre class="pre codeblock">CCFLAGS=-O2 -DSUPPORT_LH7 -DMKSTEMP -DNEED_INCREMENTAL_INDICATOR
+  -DTMP_FILENAME_TEMPLATE=""/tmp/lhXXXXXX"" -DSYSTIME_HAS_NO_TM
+  -DEUC -DSYSV_SYSTEM_DIR -DMKTIME
+</pre>
+</div>
+
+
+<div class="p">
+That's all we need to add to get up and running.
+The last line in our <span class="ph filepath">common.mk</span> file is:
+
+<pre class="pre codeblock">include $(MKFILES_ROOT)/qtargets.mk
+</pre>
+</div>
+
+
+<p class="p">
+This does all the magic that figures out which CPU compiler to use, what
+binary to make, etc.
+You should never change this line.
+</p>
+
+
+<div class="p">
+Here's what our complete <span class="ph filepath">common.mk</span> file looks like:
+
+<pre class="pre codeblock">ifndef QCONFIG
+QCONFIG=qconfig.mk
+endif
+include $(QCONFIG)
+
+INSTALLDIR=usr/bin
+define PINFO
+PINFO DESCRIPTION=Archiver using lha compression.
+endef
+NAME=lha
+#EXTRA_INCVPATH=$(PROJECT_ROOT)/includes
+EXCLUDE_OBJS=lhdir.o makezero.o
+CCFLAGS=-O2 -DSUPPORT_LH7 -DMKSTEMP -DNEED_INCREMENTAL_INDICATOR
+  -DTMP_FILENAME_TEMPLATE=""/tmp/lhXXXXXX"" -DSYSTIME_HAS_NO_TM
+  -DEUC -DSYSV_SYSTEM_DIR -DMKTIME
+
+include $(MKFILES_ROOT)/qtargets.mk
+</pre>
+</div>
+
+
+<p class="p">
+That's it for the <span class="ph filepath">common.mk</span> file.
+We'll see where it is included in <span class="ph filepath">Makefile</span>s shortly.
+How about the <span class="ph filepath">Makefile</span> that was just created for us?
+We'll very rarely have to change any of the <span class="ph filepath">Makefile</span>s.
+Usually they just contain a <span class="ph codeph">LIST=</span> line, depending on where they
+are in our directory tree, and some <span class="ph filepath">Makefile</span> code to include
+the appropriate file that makes the recursion into subdirectories possible.
+The exception is the <span class="ph filepath">Makefile</span> at the very bottom.
+More on this later.
+</p>
+
+
+<div class="p">
+We'll have to have a usage description for our application as well.
+In our case, we can get a usage message simply by running <span class="keyword cmdname">lha</span>
+without any parameters, like this:
+
+<pre class="pre codeblock">./lha 2&gt; lha.use
+</pre>
+</div>
+
+
+<p class="p">
+For our final binaries, when someone types <span class="keyword cmdname">use lha</span> (assuming
+<span class="keyword cmdname">lha</span> is in their path), they'll get the proper usage message.
+</p>
+
+
+<p class="p">
+As described earlier in this appendix, we use a lot of subdirectories.
+Here are the ones we need:
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d67272e412">Directory</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d67272e415">Level</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e412 "><span class="ph filepath">nto</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e415 ">OS</td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e412 "><span class="ph filepath">nto/x86_64/</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e415 ">CPU</td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e412 "><span class="ph filepath">nto/x86_64/o</span></td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d67272e415 ">Variant</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+
+<p class="p">
+Unless we'll be releasing for QNX 4 as well as the <span class="keyword">QNX OS</span>, we'll need
+only the <span class="ph filepath">nto</span> directory for the OS level.
+For the CPU level, we'll have directories for anything we want to support:
+AArch64 and/or x86_64.
+</p>
+
+
+<p class="p">
+The final variant directory depends on what we're building, and what
+endianness we want to compile for:
+</p>
+
+
+<ul class="ul">
+<li class="li">Since x86_64 only has little endianness, it doesn't have an extension.</li>
+
+
+<li class="li">If there's a choice, the variant level directory name would have a
+  <span class="ph filepath">.be</span> or <span class="ph filepath">.le</span> at the end (e.g., <span class="ph filepath">o.le</span>).
+</li>
+
+
+<li class="li">If we're building shared libraries, we'd replace the <span class="ph filepath">o</span>
+  variant with a <span class="ph filepath">so</span> variant.
+</li>
+
+
+<li class="li">If we were building shared objects that aren't meant to be linked
+  directly with applications, we'd use a <span class="ph filepath">dll</span> variant.
+</li>
+
+
+<li class="li">If we were building static libraries, we'd use an <span class="ph filepath">a</span> variant.</li>
+
+
+</ul>
+
+
+<p class="p">
+We're building just an executable binary, so we use the <span class="ph filepath">o</span> variant.
+Each directory and subdirectory needs to have a <span class="ph filepath">Makefile</span>.
+Again, for most of them we're simply including the <span class="ph filepath">recurse.mk</span>
+file, which contains everything needed to recurse down our tree until we
+get to the <span class="ph filepath">o*</span> directory, as well as setting a
+<var class="keyword varname">LIST</var> variable, which for general use indicates where we are
+in our <span class="ph filepath">Makefile</span> tree.
+For example, if the directory contains variants, <var class="keyword varname">LIST</var> is set
+to <span class="ph codeph">VARIANT</span>.
+</p>
+
+
+<div class="p">
+Let's use the
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html"><span class="keyword cmdname">addvariant</span></a>
+utility to create a directory tree and appropriate <span class="ph filepath">Makefile</span>s
+for our various CPUs and variants.
+The <span class="keyword cmdname">addvariant</span> utility can do more than just add variants,
+but in our case, that's all we need it for.
+We create a variant by running:
+
+<pre class="pre codeblock">addvariant nto 
+</pre>
+</div>
+
+
+<div class="p">
+Let's do this for each of our CPUs, like this:
+
+<pre class="pre codeblock">addvariant nto aarch64 o.le
+addvariant nto x86_64 o
+</pre>
+</div>
+
+
+<div class="p">
+If we look at the <span class="ph filepath">Makefile</span> in the
+<span class="ph filepath">lha-114i/src/nto/x86_64/o</span> directory, we see it just contains:
+
+<pre class="pre codeblock">include ../../../common.mk
+</pre>
+</div>
+
+
+<p class="p">
+Since this is the bottom directory, we don't need to recurse any further,
+but rather we want to include the <span class="ph filepath">common.mk</span> file we created earlier.
+We also don't need a <var class="keyword varname">LIST</var> variable, since we have no subdirectories at this point.
+We now have a complete <span class="keyword">QNX OS</span>-style <span class="ph filepath">Makefile</span> tree.
+</p>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/make_convent_Examples.html" title="If you use our directory structure, you should use the addvariant command to create it. This section gives some examples of creating Makefiles for a single application, as well as for a library and an application.">Examples of creating Makefiles</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/a/addvariant.html">addvariant</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/make.html">make</a></li></ul></div>
+</div></body>
+</html>

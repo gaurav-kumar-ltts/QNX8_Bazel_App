@@ -1,0 +1,36 @@
+#!/bin/bash
+
+. $TOOL_DIR/functions
+
+function validate()
+{
+	status=0
+
+	if [ "${OPT_PART_SIZES}" = full ]; then
+		echo "Need to set the partition sizes using --part-sizes=<boot>:<system>[:<data>]"
+		status=1
+	fi
+
+	exit $status
+}
+
+function configure()
+{
+	# Set up the generation of the wpa_supplicant.conf file based on wifi.*
+	# snippets
+	cat > output/option_files/options.rasppi <<EOF
+EXTRA_FILE_PREFIX=(wifi)
+EOF
+	cat > output/option_files/generate.rasppi <<EOF
+generate_file "${TOOL_DIR}/inputs/wpa_supplicant.conf"
+EOF
+
+	exit 0
+}
+
+case "$1" in
+	validate)
+		validate;;
+	configure)
+		configure;;
+esac

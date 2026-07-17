@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Device control object" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content=", usblauncher_otg, device control object, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="keywords" content=", usblauncher_otg, device control object, QNX SDP, 8.0, Device Publishers Developer's Guide, API, Architecture" />
+<meta name="DC.relation" scheme="URI" content="../topic/usblauncher_otg.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="usblauncher_device_ctrl_pps" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Device control object</title>
+</head>
+<body id="usblauncher_device_ctrl_pps">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Device control object</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"></p>
+
+        <div class="section">
+            <p class="p">The device control object allows applications to perform actions on USB hardware,
+                modify the USB launcher service configuration, and request attached devices to run
+                certain protocols.</p>
+
+            <div class="p">Applications can write commands of the following types to the object: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:28.57142857142857%" /><col style="width:71.42857142857143%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e72">Use this command type:</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e75">To:</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e72 "><tt class="ph tt">BUS::</tt><var class="keyword varname">cmd,options</var></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e75 ">Set the state of the USB bus</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e72 "><tt class="ph tt">HUB::</tt><var class="keyword varname">cmd,options</var></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e75 ">Set the power state of a USB hub, or toggle a port's power on
+                                    or off</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e72 "><tt class="ph tt">LUA::</tt><var class="keyword varname">cmd,options</var></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e75 ">Modify the USB launcher service configuration</td>
+
+                            </tr>
+
+                            
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e72 "><tt class="ph tt">start_aoa::</tt><var class="keyword varname">options</var></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e75 ">Start Android Open Accessory (AOA) on an attached
+                                    device</td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+
+            </div>
+
+            <p class="p">After processing a command, the USB launcher service publishes the command's outcome
+                to the same object. For details about the attributes written, see the <q class="q"><a class="xref" href="#usblauncher_device_ctrl_pps__outcomes">Command outcomes</a></q> section. </p>
+
+            <p class="p">Each instance of the launcher service (i.e., <span class="keyword cmdname">usblauncher_otg</span>
+                process) creates one device control object. By default, the object's path is
+                    <span class="ph filepath">/usb/launcher/command</span>, but you can change the RMPS
+                directory (but not the filename) through the <span class="keyword option">-m</span> command option. </p>
+
+            <p class="p">You want to run multiple launcher service instances if you're running multiple USB
+                server (<span class="keyword cmdname">io-usb-otg</span>) instances. You would do this if, say, you
+                needed to manage different USB controllers independently. (The ports for each
+                controller would be managed by a separate server instance.)</p>
+
+            <p class="p">If you plan to use the same RMPS directory for storing the device control objects of
+                multiple USB launcher service instances, you need to start each instance with the
+                    <span class="keyword option">-S</span>
+                <var class="keyword varname">server_number</var> option, so the name of the object includes the
+                server number. For instance, the command <span class="keyword cmdname">usblauncher_otg -S 1</span>
+                creates an RMPS object named <span class="ph filepath">/usb/launcher/command1</span>. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle"><tt class="ph tt">BUS::</tt><var class="keyword varname">cmd, options</var></h2>
+            
+            
+            
+            
+            <div class="p">The <span class="keyword cmdname">BUS</span> command category supports these two commands: <ul class="ul">
+                    <li class="li"><tt class="ph tt">start</tt> — Start a USB bus. You must specify the number of one
+                        bus, but not multiple buses.</li>
+
+                    <li class="li"><tt class="ph tt">stop</tt> — Stop a USB bus. You must specify the number of one
+                        bus, but not multiple buses.</li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+        
+        <div class="section"><h2 class="title sectiontitle"><tt class="ph tt">HUB::</tt><var class="keyword varname">cmd, options</var></h2>
+            
+            
+            
+            
+            <div class="p">The <span class="keyword cmdname">HUB</span> command category supports these two commands: <ul class="ul">
+                    <li class="li">
+                        <div class="p"><tt class="ph tt">port_power</tt> — Set a hub's power state. This command lets
+                            you repower a port if the upstream hub has disabled it (e.g., due to an
+                            overcurrent condition that may no longer apply). The syntax is:
+                            <pre class="pre">HUB::port_power,busno=<var class="keyword varname">n</var>,devno=<var class="keyword varname">n</var>,level=<var class="keyword varname">boolean</var>[,portno=<var class="keyword varname">n</var>]</pre>
+</div>
+
+                    </li>
+
+                    <li class="li">
+                        <div class="p"><tt class="ph tt">toggle_port_power</tt> — Turn a hub's power off, wait for a
+                            fixed delay, then turn the power back on. The syntax is:
+                            <pre class="pre">HUB::toggle_port_power,busno=<var class="keyword varname">n</var>,devno=<var class="keyword varname">n</var>[,portno=<var class="keyword varname">n</var>,delay=<var class="keyword varname">n</var>]</pre>
+</div>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="p">The options in <tt class="ph tt">HUB</tt> commands are as follows: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col style="width:14.285714285714285%" /><col style="width:71.42857142857143%" /><col style="width:14.285714285714285%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e322">Options</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e325">Description</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e328">Type</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e322 "><tt class="ph tt">busno</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e325 ">Bus number of the hub</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e328 ">Integer</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e322 "><tt class="ph tt">devno</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e325 ">Device number of the hub</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e328 ">Integer</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e322 "><tt class="ph tt">level</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e325 ">New power setting, either off (<tt class="ph tt">0</tt>) or on
+                                    (<tt class="ph tt">1</tt>)</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e328 ">Boolean</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e322 "><tt class="ph tt">portno</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e325 ">
+                                    <p class="p">Port number.</p>
+
+                                    <p class="p">If you issue a <tt class="ph tt">port_power</tt> command and omit
+                                            <tt class="ph tt">portno</tt>, the specified <tt class="ph tt">level</tt> applies to
+                                        all ports on the hub.</p>
+
+                                    <p class="p">Likewise, if you issue a <tt class="ph tt">toggle_port_power</tt> command
+                                        and omit <tt class="ph tt">portno</tt>, the command toggles the power of
+                                        all ports on the hub. You must include <tt class="ph tt">portno</tt> if
+                                        you specify <tt class="ph tt">delay</tt>. </p>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e328 ">Integer </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e322 "><tt class="ph tt">delay</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e325 ">Delay, in milliseconds. The default is 500.</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e328 ">Integer </td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+
+            </div>
+
+            <p class="p">You can specify the values for <tt class="ph tt">busno</tt>, <tt class="ph tt">devno</tt>, <tt class="ph tt">portno</tt>, and
+                    <tt class="ph tt">delay</tt> in decimal or hexadecimal. The values for <tt class="ph tt">busno</tt> and
+                    <tt class="ph tt">devno</tt> typically fall in the range of 0 to 64. </p>
+
+        </div>
+
+        <div class="section"><h2 class="title sectiontitle"><tt class="ph tt">LUA::</tt><var class="keyword varname">cmd, options</var></h2>
+            
+            
+            
+            
+            
+            
+            <div class="p">The <tt class="ph tt">LUA</tt> command category lets you modify the USB launcher service
+                configuration. The command string begins with <tt class="ph tt">LUA::</tt> and is followed by the
+                command name and list of arguments: <pre class="pre">
+LUA::<var class="keyword varname">lua_cmd</var>,<var class="keyword varname">arg1</var>[,<var class="keyword varname">arg2</var>...]
+</pre>
+</div>
+
+            <div class="p">The command name and arguments are separated by commas, and the arguments are
+                key-value pairs with an equal sign (=) separating each key and value. You can issue
+                the following commands: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:25%" /><col style="width:75%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e538">Command</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e541">Description</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e538 "><span class="ph codeph">setvar,<var class="keyword varname">table_name</var>
+                                            [<var class="keyword varname">variable</var>]=<var class="keyword varname">value</var><a class="xref" href="#usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a></span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e541 ">
+                                    <div class="p">Override a table variable to change the behavior of a Lua
+                                        callout function. For example, this command enables the
+                                            <span class="keyword dtype">suspend_is_removal</span> flag:
+                                        <pre class="pre codeblock">LUA::setvar,launcher_config[suspend_is_removal]</pre></div>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e538 "><span class="ph codeph">setvar,<var class="keyword varname">variable</var>=<var class="keyword varname">value</var><a class="xref" href="#usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a></span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e541 ">Override a global variable to change the behavior of a Lua
+                                    callout function</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e538 "><span class="ph codeph">getvar,<var class="keyword varname">table_name</var>
+                                            [<var class="keyword varname">variable</var>]<a class="xref" href="#usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a></span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e541 ">Get the value of a table variable</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e538 "><span class="ph codeph">getvar,<var class="keyword varname">variable</var><a class="xref" href="#usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a></span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e541 ">Get the value of a global variable</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e538 "><span class="ph codeph">run,<var class="keyword varname">function</var><a class="xref" href="#usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a></span></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e541 ">Run a custom function defined in the main configuration
+                                    file</td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+</div>
+
+            
+            <p class="p"> Table variables and global variables are stored in the main configuration file,
+                    <span class="ph filepath">rules.lua</span>. When you issue a <tt class="ph tt">setvar</tt> or
+                    <tt class="ph tt">getvar</tt> command, the command validates the existence of the variable
+                and, if specified, the table. If one of these doesn't exist or if the value isn't of
+                the expected type, an error is returned. </p>
+
+            <p class="p"> Currently, the <tt class="ph tt">LUA</tt> category supports only the <span class="keyword dtype">LUA_STRING</span>,
+                    <span class="keyword dtype">LUA_BOOLEAN</span>, and <span class="keyword dtype">LUA_NUMBER</span> types. </p>
+
+        </div>
+
+        
+        
+        <div class="section" id="usblauncher_device_ctrl_pps__start_aoa"><h2 class="title sectiontitle"><tt class="ph tt">start_aoa::</tt><var class="keyword varname">options</var></h2>
+            
+            
+            
+            
+            <div class="p"> After learning that an attached device supports the Android Open Accessory (AOA)
+                protocol, a process can issue the <span class="keyword cmdname">start_aoa</span> command to make the
+                device switch to its Android personality: <pre class="pre">
+start_aoa::busno=<var class="keyword varname">bnum</var>,devno=<var class="keyword varname">dnum</var>,modes=<var class="keyword varname">AOAmodes</var>[,<var class="keyword varname">option</var>=<var class="keyword varname">value</var>...]
+</pre>
+
+            </div>
+
+            <div class="p">The supported options are: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:21.904761904761905%" /><col style="width:66.66666666666666%" /><col style="width:11.428571428571429%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e751">Option</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e754">Description</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e757">Type</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">busno</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Required)</em> Bus number of the device </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">Integer</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">description</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Optional)</em> Description of the device</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">devno</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Required)</em> Device number</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">Integer</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">manufacturer</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Sometimes required)</em> Manufacturer name</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">model</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Sometimes required)</em> Model number</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">modes</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 ">
+                                    <div class="p"><em class="ph i">(Required)</em> AOA modes that the device is being asked to
+                                        enable. The supported flags are: <ul class="ul">
+                                            <li class="li"><span class="keyword const">AOA_MODE_ACCESSORY</span>
+                                                (<tt class="ph tt">0x0001</tt>)</li>
+
+                                            <li class="li"><span class="keyword const">AOA_MODE_AUDIO</span> (<tt class="ph tt">0x0002</tt>)</li>
+
+                                        </ul>
+</div>
+
+                                    <p class="p">For details, see <q class="q">Specifying AOA modes</q> below.</p>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">Integer</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">serial</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Optional)</em> Serial number</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">uri</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Optional)</em> Uniform resource identifier of the
+                                    device</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e751 "><tt class="ph tt">version</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e754 "><em class="ph i">(Optional)</em> Version of the device</td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e757 ">String</td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+
+            </div>
+
+            <p class="p"> The values for <tt class="ph tt">busno</tt> and <tt class="ph tt">devno</tt> can be decimal, hexadecimal, or
+                mixed. Typically, these values fall in the range of 0 to 64. The flags in
+                    <tt class="ph tt">modes</tt> can be decimal or hexadecimal. </p>
+
+            <p class="p"> For information on the identifiers <tt class="ph tt">manufacturer</tt> through <tt class="ph tt">serial</tt>,
+                see the <a class="xref" href="https://source.android.com/devices/accessories/protocol.html" target="_blank">AOA section</a> of the Android Open Source
+                Project website. </p>
+
+            <h3 class="title sectiontitle">Specifying AOA modes</h3>
+            <p class="p"> If the device supports AOA version 1 (as indicated by an <tt class="ph tt">aoa</tt> value of 1 in
+                the device information object), you can enable only
+                    <span class="keyword const">AOA_MODE_ACCESSORY</span>. If the device supports AOA version 2, you can
+                enable one or both of <span class="keyword const">AOA_MODE_ACCESSORY</span> and
+                    <span class="keyword const">AOA_MODE_AUDIO</span>. </p>
+
+            <p class="p"> If you enable only the first mode, you must define the <tt class="ph tt">manufacturer</tt> and
+                    <tt class="ph tt">model</tt> options. If you enable the second mode, you should omit these two
+                identifiers; otherwise, the device will ask the user to associate an Android
+                application with the accessory (i.e., target system). </p>
+
+            <p class="p"> For either mode, the remaining identifiers are optional and allow you to launch an
+                application on the device, based on matches with the identifier strings. </p>
+
+        </div>
+
+        
+        
+
+        
+        <div class="section" id="usblauncher_device_ctrl_pps__outcomes"><h2 class="title sectiontitle">Command outcomes</h2>
+            
+            <div class="p">When the USB launcher service executes commands, it publishes the following
+                attributes to the device control object: 
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:14.000000000000002%" /><col style="width:36%" /><col style="width:24%" /><col style="width:26%" /></colgroup><thead class="thead" style="text-align:left;">
+                            <tr class="row">
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e1012">Attribute</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e1015">Description</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e1018">Type</th>
+
+                                <th class="entry cellrowborder" style="vertical-align:top;" id="d4921e1021">Examples</th>
+
+                            </tr>
+
+                        </thead>
+<tbody class="tbody">
+                            <tr class="row">
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1012 "><tt class="ph tt">cmd_status</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1015 ">
+                                    <p class="p">The processing status of the last command issued by
+                                            <em class="ph i">any</em> client. The USB launcher service broadcasts
+                                        each update to this attribute to all clients of this object,
+                                        not just to the one that issued the command.</p>
+
+                                    <p class="p">When the service receives a new command, it publishes the
+                                        processing status to <tt class="ph tt">cmd_status</tt> and to
+                                            <span class="ph filepath">slogger2</span>. The attribute value and
+                                        log message say whether the command was successfully
+                                        processed or not (e.g., if an illegal operation was
+                                        requested).</p>
+
+                                    <div class="note"><span class="notetitle">Note:</span> Even for unrecognized commands, the service writes an
+                                        error message to this attribute and to
+                                            <span class="ph filepath">slogger2</span>.</div>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1018 ">
+                                    <div class="p">An error string in the following format:
+                                        <pre class="pre"><var class="keyword varname">last_command</var>,
+completion_status
+=<var class="keyword varname">errno</var>
+(<var class="keyword varname">str_error(errno)</var>) </pre>
+</div>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1021 ">
+                                    <div class="p">If the command is processed successfully, this field
+                                        contains: <pre class="pre">0 (No error)</pre>
+</div>
+
+                                    <div class="p">If the client specifies an improper bus number or device
+                                        number (or both), this field contains:
+                                        <pre class="pre">19 (No such device)</pre>
+</div>
+
+                                </td>
+
+                            </tr>
+
+                            <tr class="row">
+                                <td class="entry cellrowborder" id="usblauncher_device_ctrl_pps__last_cmd" style="vertical-align:top;" headers="d4921e1012 "><tt class="ph tt">last_cmd</tt></td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1015 ">
+                                    <p class="p">The last command that was successfully processed, its
+                                        completion status, and in some cases, its execution details.
+                                        Only the client that issued the command receives
+                                        notification; the update isn't broadcast.</p>
+
+                                    <p class="p">The service updates this attribute when it finishes
+                                        processing a command, whether the underlying request
+                                        succeeded or not.</p>
+
+                                    <p class="p">In some cases, the service reads USB server descriptors and
+                                        includes their information in the new attribute value. </p>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1018 ">
+                                    <div class="p">A string in this format:
+                                        <pre class="pre"><var class="keyword varname">last_command</var>,
+completion_status
+=<var class="keyword varname">errno</var>
+(<var class="keyword varname">str_error(errno)</var>)
+[, details::
+<var class="keyword varname">extra_details</var>] </pre>
+</div>
+
+                                </td>
+
+                                <td class="entry cellrowborder" style="vertical-align:top;" headers="d4921e1021 ">
+                                    <div class="p">If a LUA <tt class="ph tt">getvar</tt> command succeeds, this field
+                                        contains a string like the following: <pre class="pre">last_cmd::LUA,
+completion_status=0
+(No error),
+lua_type::1,
+lua_value::false</pre>
+ where <tt class="ph tt">lua_type</tt> stores the
+                                        type of variable and <tt class="ph tt">lua_value</tt> stores the value
+                                        that <tt class="ph tt">getvar</tt> read from the variable. </div>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+</table>
+</div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/usblauncher_otg.html" title="The USB launcher service (usblauncher_otg) processes USB device attachments and detachments, launches drivers for communicating with devices, and publishes device information through RMPS. The service can also force a re-enumeration of a device, by resetting it or by requesting it to disconnect and change its personality.">The USB Launcher Service</a></div>
+</div>
+</div><div class="fn"><a id="usblauncher_device_ctrl_pps__single_var"><sup>a</sup></a>  You can name only one variable per <tt class="ph tt">setvar</tt> or
+                    <tt class="ph tt">getvar</tt> command.</div></body>
+</html>

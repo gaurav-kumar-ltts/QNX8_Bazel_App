@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Decoding JSON data" />
+<meta name="abstract" content="The following code sample uses the libjson library to parse a JSON string and store the fields in a data structure for later use." />
+<meta name="description" content="The following code sample uses the libjson library to parse a JSON string and store the fields in a data structure for later use." />
+<meta name="DC.subject" content="JSON library, example of decoding data, decoding JSON data, QNX SDP, 8.0, JSON Library Reference, API, Developer" />
+<meta name="keywords" content="JSON library, example of decoding data, decoding JSON data, QNX SDP, 8.0, JSON Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/overview.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="decoder_sample" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Decoding JSON data</title>
+</head>
+<body id="decoder_sample">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Decoding JSON data</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> The following code sample uses the <span class="ph filepath">libjson</span> library to parse a
+        JSON string and store the fields in a data structure for later use. </p>
+
+        <p class="p">
+            The <span class="keyword apiname">extract_file_info()</span> function parses the passed-in string, which
+            stores information about a file, and writes the various fields into a 
+            <span class="keyword dtype">file_t</span> structure that the caller can then read using the pointer it 
+            provided to the function.
+        </p>
+
+<pre class="pre codeblock">#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/json.h&gt;
+    
+typedef struct {
+    const char *path;
+    int type;
+    long long size;
+} info_t;
+
+typedef struct {
+    int id;
+    info_t info;
+} file_t;
+
+bool extract_file_info(const char *str, file_t *file_info)
+{
+    json_decoder_t *dec = json_decoder_create();
+    json_decoder_parse_json_str(dec, str);
+    
+    // Pre-initialise the structure so that omitted optional fields have default values
+    memset(file_info, 0, sizeof(*file_info));
+    file_info-&gt;info.type = 1;
+
+    // Extract data from the decoder. One can choose to check each call for success if
+    // it's important to report precise errors. Alternatively, as is done here, one can 
+    // ignore intermediate errors and just check the final status.
+    json_decoder_push_object(dec, NULL, false);
+    json_decoder_get_int(dec, "id", &amp;file_info-&gt;id, false);
+    
+    json_decoder_push_object(dec, "info", false);
+    json_decoder_get_string(dec, "path", &amp;file_info-&gt;info.path, false);
+    // The 'type' is optional. If not present, the call will fail but will not affect
+    // the decoder's status. We've initialized the field to the value it should have
+    // if not present, so it doesn't have to be there.
+    json_decoder_get_int(dec, "type", &amp;file_info-&gt;info.type, true);
+    // The 'size' is also optional.
+    json_decoder_get_int_ll(dec, "size", &amp;file_info-&gt;info.size, true);
+
+    json_decoder_error_t status = json_decoder_get_status(dec, true);
+
+    // While one might usually use a decoder to decode multiple strings, we just free it
+    json_decoder_destroy(dec);
+
+    // If everything above has succeeded, json_decoder_get_status() will return 
+    // JSON_DECODER_OK
+    if ( status != JSON_DECODER_OK ) {
+        printf("Data extraction failed\n");
+        return false;
+    }
+
+    return true;
+}
+</pre>
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/overview.html" title="The JSON library, libjson, allows applications to decode and encode JSON data. This is useful for reading and interpreting complex data or transferring data between systems.">JSON Library Overview</a></div>
+</div>
+</div></body>
+</html>

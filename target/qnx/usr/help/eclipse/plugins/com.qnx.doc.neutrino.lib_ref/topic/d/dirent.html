@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="dirent, dirent64" />
+<meta name="abstract" content="Data structure for a directory entry" />
+<meta name="description" content="Data structure for a directory entry" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-d.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/readdir.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/_readdir_r.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/r/readdir_r.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/scandir.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/s/stat_struct.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="dirent" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>dirent, dirent64</title>
+</head>
+<body id="dirent">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword dtype">dirent</span>, <span class="keyword dtype">dirent64</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Data structure for a directory entry</em></p>
+
+
+<div class="section">
+
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;dirent.h&gt;
+
+struct dirent {
+#if __OFF_BITS__ == 64
+        ino_t                   d_ino;
+        off_t                   d_offset;
+#elif __OFF_BITS__ == 32
+# if defined(__LITTLEENDIAN__)
+        ino_t                   d_ino;
+        ino_t                   d_ino_hi;
+        off_t                   d_offset;
+        off_t                   d_offset_hi;
+# elif defined(__BIGENDIAN__)
+        ino_t                   d_ino_hi;
+        ino_t                   d_ino;
+        off_t                   d_offset_hi;
+        off_t                   d_offset;
+# else
+#  error endian not configured for system
+# endif
+#else
+# error __OFF_BITS__ value is unsupported
+#endif
+        int16_t                 d_reclen;
+        int16_t                 d_namelen;
+        char                    d_name[1]);
+};
+
+#ifdef __EXT_LF64SRC
+struct dirent64 {
+        ino64_t                 d_ino;
+        off64_t                 d_offset;
+        int16_t                 d_reclen;
+        int16_t                 d_namelen;
+        char                    d_name[1]);
+};
+#endif
+</pre>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword dtype">dirent</span> structure describes an entry in a directory.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+The <span class="keyword dtype">dirent64</span> data type is a large-file support version of <span class="keyword dtype">dirent</span>
+provided for backwards compatibility.
+If you're using large-file support functions and data types, you should define
+<span class="keyword const">_LARGEFILE64_SOURCE</span> with a value of 1 to ensure they appear in the name space.
+For more information, see <q class="q"><a class="xref" href="../summary.html#summary__CLASSIFICATION">Classification</a></q> in <q class="q">What's in a Function Description?</q>.
+</div>
+
+
+<p class="p">
+The members include:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">d_ino</var></dt>
+
+<dd class="dd">A mountpoint-unique file serial number. This serial number is often used in
+various disk-checking utilities for such operations as
+determining infinite-loop directory links. (Note that the
+inode value cannot be zero, which would indicate that the
+inode represents an <em class="ph i">unused</em> entry.)
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">d_offset</var></dt>
+
+<dd class="dd">In some filesystems, this member identifies the directory entry itself;
+  in others, it's the offset of the <em class="ph i">next</em> directory entry.
+For a disk-based filesystem, this value might be the actual
+offset into the on-disk directory structure.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">d_reclen</var></dt>
+
+<dd class="dd">The size of this directory entry including the name and any other associated information
+(such as an optional <a class="xref" href="../s/stat_struct.html" title="Data structure for information about a file or directory"><span class="keyword dtype">struct stat</span></a> structure
+appended to the <span class="keyword dtype">struct dirent</span> entry). </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">d_namelen</var></dt>
+
+<dd class="dd">The length of the name not including the <span class="ph codeph">\0</span> string terminator. The terminator
+must be present, but <em class="ph i">isn't</em> counted. </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">d_name</var></dt>
+
+<dd class="dd">The actual name of that directory entry.</dd>
+
+
+
+</dl>
+
+
+<div class="note"><span class="notetitle">Note:</span>  <p class="p">These structures provide <var class="keyword varname">d_name</var> as a place-holder for the start of the
+name, but do not supply storage for more than the leading bytes in the name.</p>
+<p class="p">If using
+<span class="keyword apiname">readdir()</span>, the <span class="keyword dtype">dirent</span> structures returned by this function supply
+enough space to hold the entire name. </p>
+<div class="p">If using <span class="keyword apiname">readdir_r()</span>, you must
+supply an appropriate buffer for the <span class="keyword dtype">dirent</span> including name. This buffer size (in
+bytes) is always large enough:<pre class="pre codeblock">offsetof(struct dirent, d_name) + PATH_MAX</pre></div>
+
+If handling <span class="keyword apiname">readdir()</span> requests in a resource manager, you must generate
+appropriate variable-length entries to return to the client. See <q class="q"><a class="xref" href="../../../com.qnx.doc.neutrino.resmgr/topic/fsystems_ReturnEntries.html">Returning directory
+entries from _IO_READ</a></q> in <cite class="cite">Writing a Resource Manager</cite>. </div>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><span class="keyword dtype">dirent</span> is
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">POSIX 1003.1</a>;
+<span class="keyword dtype">dirent64</span> is
+<a class="xref" href="../summary.html#summary__CLASSIFICATION">Large-file support</a></p>
+</div>
+
+
+</div>
+
+
+
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-d.html">D</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/r/readdir.html" title="Read a directory entry">readdir(), readdir64()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/_readdir_r.html" title="Read a directory and get stat information">_readdir_r(), _readdir64_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/r/readdir_r.html" title="Read a directory (reentrant)">readdir_r(), readdir64_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/scandir.html" title="Scan a directory">scandir()</a></li>
+<li class="linklist"><a class="link" href="../../topic/s/stat_struct.html" title="Data structure for information about a file or directory">struct stat</a></li></ul></div>
+</div></body>
+</html>

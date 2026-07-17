@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="ConnectServerInfo(), ConnectServerInfo_r()" />
+<meta name="abstract" content="Get information about a server connection" />
+<meta name="description" content="Get information about a server connection" />
+<meta name="DC.subject" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, C Library Reference, API, Developer" />
+<meta name="DC.relation" scheme="URI" content="../../topic/lib-c.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/connectattach.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/connectclientinfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/c/connectflags.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/msginfo.html" />
+<meta name="DC.relation" scheme="URI" content="../../topic/m/msgreceivev.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="connectserverinfo" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>ConnectServerInfo(), ConnectServerInfo_r()</title>
+</head>
+<body id="connectserverinfo">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">ConnectServerInfo()</span>, <span class="keyword apiname">ConnectServerInfo_r()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get information about a server connection</em></p>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+<pre class="pre codeblock">#include &lt;sys/neutrino.h&gt;
+
+int ConnectServerInfo( pid_t <var class="keyword varname">pid</var>,
+                       int <var class="keyword varname">coid</var>, 
+                       struct _server_info* <var class="keyword varname">info</var> );
+
+int ConnectServerInfo_r( pid_t <var class="keyword varname">pid</var>,
+                         int <var class="keyword varname">coid</var>, 
+                         struct _server_info* <var class="keyword varname">info</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">pid</var></dt>
+
+<dd class="dd">The process ID of the owner of the connection, or 0 to search for the connection in the current process.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">coid</var></dt>
+
+<dd class="dd">The connection ID of the connection.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">info</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or a pointer to a
+  <a class="xref" href="#connectserverinfo__InfoStructure"><span class="keyword dtype">_server_info</span></a>
+  structure where the function can store information about the connection.
+  For more information, see below.
+</dd>
+
+
+  
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libc</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l c</span> option to
+<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+This library is usually included automatically.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+
+
+
+
+
+The <span class="keyword apiname">ConnectServerInfo()</span> and <span class="keyword apiname">ConnectServerInfo_r()</span>
+kernel calls get information about the connection <var class="keyword varname">coid</var> owned
+by process <var class="keyword varname">pid</var>, and store it in the structure pointed to by
+<var class="keyword varname">info</var>. If the process doesn't have a connection
+<var class="keyword varname">coid</var>, the call scans for the next higher connection and
+returns it if present. Otherwise, -1 is returned.  If you wish to
+check for the existence of an exact connection, you must compare the
+returned connection with the <var class="keyword varname">coid</var> you requested.
+</p>
+
+
+<p class="p">
+These functions are identical except in the way they indicate errors.
+See the <a class="xref" href="#connectserverinfo__Returns">Returns</a> section for details.
+</p>
+
+
+<p class="p">
+If the <var class="keyword varname">info</var> argument is <span class="keyword const">NULL</span>,
+<span class="keyword apiname">ConnectServerInfo()</span> ignores connections with dead servers and
+skips to the next coid.
+If <var class="keyword varname">info</var> is non-<span class="keyword const">NULL</span>, the function fills in
+the <span class="keyword dtype">_server_info</span> structure;
+for connections with dead servers, it turns on the
+<span class="keyword const">_NTO_COF_DEAD</span> bit in the <var class="keyword varname">flags</var> field of the structure.
+</p>
+
+
+<p class="p" id="connectserverinfo__InfoStructure"><strong class="ph b"><span class="keyword dtype">_server_info</span> structure</strong></p>
+
+
+<p class="p">
+The <span class="keyword dtype">_server_info</span> structure that <var class="keyword varname">info</var> points to 
+includes at least the following members:
+
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword dtype">pid_t</span> <var class="keyword varname">pid</var></dt>
+
+<dd class="dd">The server's process ID.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int32_t</span> <var class="keyword varname">chid</var></dt>
+
+<dd class="dd">The server's channel ID.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int32_t</span> <var class="keyword varname">scoid</var></dt>
+
+<dd class="dd">The server's connection ID.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int32_t</span> <var class="keyword varname">coid</var></dt>
+
+<dd class="dd">The client's connection ID.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword dtype">int16_t</span> <var class="keyword varname">flags</var></dt>
+
+<dd class="dd">Flags that indicate the properties of the connection.
+  The bits include:
+
+  <ul class="ul">
+  
+
+  <li class="li"><span class="keyword const">_NTO_COF_CLOEXEC</span> — the connection will be
+    closed when your process calls an 
+    <span class="keyword apiname">exec*()</span> function to start a new process.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">_NTO_COF_DEAD</span> — the connection is to a dead server.
+    
+  </li>
+
+
+  
+
+
+
+  
+
+  
+
+  
+
+  </ul>
+
+
+  <p class="p">
+  You can use
+  <a class="xref" href="connectflags.html" title="Modify or query the flags associated with a connection"><span class="keyword apiname">ConnectFlags()</span></a>
+  to get other flags associated with the connection.
+  </p>
+
+</dd>
+
+
+
+  
+    <dt class="dt dlterm"><span class="keyword dtype">uint32_t</span> <var class="keyword varname">type_id</var></dt>
+
+    <dd class="dd">The type ID of the server channel.</dd>
+
+  
+  
+</dl>
+
+
+
+</div>
+
+
+
+<div class="section" id="connectserverinfo__Returns"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<p class="p">
+A matched <var class="keyword varname">coid</var>.
+If an error occurs:
+</p>
+
+
+<ul class="ul">
+<li class="li"><span class="keyword apiname">ConnectServerInfo()</span> returns -1 and sets
+  <a class="xref" href="../e/errno.html" title="Thread-local error variable"><var class="keyword varname">errno</var></a>. 
+</li>
+
+
+<li class="li"><span class="keyword apiname">ConnectServerInfo_r()</span> returns the negative of a value from the Errors section
+  and <strong class="ph b">doesn't</strong> set <var class="keyword varname">errno</var>.
+</li>
+
+
+</ul>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Errors:</h2>
+
+
+<dl class="dl compact">
+
+<dt class="dt dlterm"><span class="keyword const">EFAULT</span></dt>
+
+<dd class="dd">A fault occurred when the kernel tried to access the buffers provided.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">EINVAL</span></dt>
+
+<dd class="dd">Process <var class="keyword varname">pid</var> doesn't have a connection &gt;= <var class="keyword varname">coid</var>.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">ESRCH</span></dt>
+
+<dd class="dd">The process indicated by <var class="keyword varname">pid</var> doesn't exist.</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+<p class="p"><a class="xref" href="../summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a></p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d492391e493">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d492391e495"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e493 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e495 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e493 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e495 ">Yes</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e493 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d492391e495 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/lib-c.html">C</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../topic/c/connectattach.html" title="Establish a connection between a process and a channel">ConnectAttach(), ConnectAttach_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/connectclientinfo.html" title="Get information about a client connection">ConnectClientInfo(), ConnectClientInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/c/connectflags.html" title="Modify or query the flags associated with a connection">ConnectFlags(), ConnectFlags_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/msginfo.html" title="Get additional information about a message">MsgInfo(), MsgInfo_r()</a></li>
+<li class="linklist"><a class="link" href="../../topic/m/msgreceivev.html" title="Wait for a message or pulse on a channel">MsgReceivev(), MsgReceivev_r()</a></li></ul></div>
+</div></body>
+</html>

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Measuring Boot Times" />
+<meta name="abstract" content="Before applying any of the techniques described here, always remember to get a stable baseline measurement of system boot speed." />
+<meta name="description" content="Before applying any of the techniques described here, always remember to get a stable baseline measurement of system boot speed." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Boot Optimization Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_about.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_timestamp.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/fb_measuring_copy_from_flash_to_ram.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="measuring_bootup_time" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Measuring Boot Times</title>
+</head>
+<body id="measuring_bootup_time">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Measuring Boot Times</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">Before applying any of the techniques described here, always remember to get a stable
+        baseline measurement of system boot speed.</p>
+
+        <p class="p">
+            
+            With a stable baseline measurement, when you start making changes you can ensure
+            that you're making real progress towards meeting your requirements.</p>
+
+           <div class="p">To optimize any boot stage, you must measure its duration, modify the code, then measure
+            again to see how much timing has improved. Some basic techniques exist for measuring
+            time; their applicability depends on the starting point of the measurement. There
+            are key points where you can measure times:
+            <ul class="ul">
+                <li class="li">
+                    Before the IPL is loaded the CPU can't execute instructions, so time measurements at
+                    this point require hardware assistance. This point is labeled "1" in the diagram below.
+                </li>
+
+                <li class="li">
+                    Software can run between the startup driver's launch (label "2") and the point at which the kernel
+                    is fully operational (label "3"), but not always with the same functions. For
+                    example, startup code cannot use most RTOS services, including POSIX timers. It
+                    supports only a limited subset of functions—such as <span class="keyword apiname">memcpy()</span>, <span class="keyword apiname">strcpy()</span>,
+                    <span class="keyword apiname">printf()</span>, and <span class="keyword apiname">kprintf()</span>—to perform rudimentary operations.
+                </li>
+
+                <li class="li">
+                    When optimizing times after the kernel is running (label "3"), you can access
+                    any OS feature, run all programs, and connect to the IDE with its
+                    assortment of tools.
+                </li>
+
+            </ul>
+
+            <div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>Startup sequence</span>
+                
+                <br /><img class="image" src="../images/bootup_timeline_boot_metrics.png" /><br />
+            </div>
+
+        </div>
+
+        <p class="p">
+            
+            
+             The table
+            that follows describes some of the techniques that you can use to measure times at these
+            points in the bootup sequence: </p>
+
+        
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" width="100%" frame="border" border="1" rules="all"><colgroup><col style="width:23.076923076923077%" /><col style="width:15.384615384615385%" /><col style="width:15.384615384615385%" /><col style="width:23.076923076923077%" /><col style="width:23.076923076923077%" /></colgroup><thead class="thead" style="text-align:left;">
+                    <tr class="row">
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d6140e121">Start Time</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d6140e124">Technique</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d6140e127">Accuracy</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d6140e130">Description</th>
+
+                        <th class="entry cellrowborder" style="vertical-align:top;" id="d6140e133">Pros and Cons</th>
+
+                    </tr>
+
+                </thead>
+<tbody class="tbody">
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">Before the IPL starts</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 ">Hardware lines and scope</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Nanoseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">Measures hardware lines (like CPU reset) and GPIO.</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Same as above.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the IPL starts and before the kernel is running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 ">GPIO and scope</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Nanoseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">The customer code switches a GPIO pin on and off at various points in
+                            the code. A digital oscilloscope measures these level changes or pulses
+                            to determine the time between events. </td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Distinguishing different points is impossible. Requires a free GPIO
+                            in the hardware design, as well as a digital scope and significant
+                            setup. </td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the startup driver starts and before the kernel is
+                            running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 "><span class="keyword apiname">ClockCycles()</span> (macro)</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Nanoseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">Not a function, but a macro that reads the CPU’s hardware counter
+                            directly. Gives the same result as the OS-level function of the same name,
+                            which is available after kernel boot. </td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Not supported on all architectures; works only if <span class="keyword apiname">ClockCycles()</span> is
+                            read directly from a hardware register, and not a derived value.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the kernel is running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 "><span class="keyword apiname">TraceEvent()</span></td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Microseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">Uses the instrumented kernel and collects data with
+                            tracelogger or the IDE system profiler. Customer code is
+                            sprinkled with calls to the <span class="keyword apiname">TraceEvent()</span> function.</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Can display grpahics when your process is executing, as well as
+                            all other system activity. The developer must set up the instrumented
+                            kernel.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the kernel is running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 "><span class="keyword cmdname">time</span></td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Milliseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">Command-line utility gives approximate execution time of a
+                            process.</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Measurement is unavailable until the process in question
+                            terminates.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the kernel is running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 "><span class="keyword apiname">ClockCycles()</span></td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Nanoseconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">System function that uses a high-speed CPU counter to determine the number
+                            of clock cycles from power-on to the point when <span class="keyword apiname">ClockCycles()</span> is
+                            called.</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Measures absolute time. Doesn’t necessarily reflect time spent in the
+                            measured process, since the kernel may have scheduled other threads during
+                            time of measurement.</td>
+
+                    </tr>
+
+                    <tr class="row">
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e121 ">After the kernel is running</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e124 "><span class="keyword apiname">slogf()</span> / <span class="keyword cmdname">slog2info</span></td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e127 ">Seconds</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e130 ">System logger function, used with <span class="ph filepath">slogger2</span>.</td>
+
+                        <td class="entry cellrowborder" style="vertical-align:top;" headers="d6140e133 ">Inaccurate timing; used mainly to determine sequence of
+                            events.</td>
+
+                    </tr>
+
+                 </tbody>
+</table>
+</div>
+
+        <div class="p">For the <span class="keyword apiname">TraceEvent()</span> technique, you must use the instrumented kernel
+            and load <span class="ph filepath">tracelogger</span> early in the boot script. For instance, to log
+            the first ten seconds of boot time, you would use this command:
+            <pre class="pre codeblock">tracelogger –n0 -s10</pre></div>
+
+        <p class="p">
+          See the
+          <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/t/tracelogger.html"><tt class="ph tt">tracelogger</tt></a>
+          documentation and the
+          <a class="xref" href="../../com.qnx.doc.sat/topic/about.html"><em class="ph i">System Analysis Toolkit User's Guide</em></a>
+          for details on how to analyze the resulting <span class="ph filepath">.kev</span> (kernel event trace) file.
+        </p>
+
+        <div class="p">To measure the absolute time since reset at various points in your boot script, simply
+            print out the <span class="keyword apiname">ClockCycles()</span> value:
+<pre class="pre codeblock">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/neutrino.h&gt;
+#include &lt;sys/syspage.h&gt;
+#include &lt;inttypes.h&gt;
+
+int main(int argc, char *argv[])
+{
+    uint64_t timesinceboot_ms;
+
+    timesinceboot_ms = ClockCycles() * 1000UL /
+                        SYSPAGE_ENTRY(qtime)-&gt;cycles_per_sec;
+
+    printf("ClockCycles()=%" PRIu64 " ms\n", timesinceboot_ms);
+
+    return EXIT_SUCCESS;
+}
+</pre>
+        </div>
+
+        <p class="p">This technique lets you measure how long it takes your code to execute the IPL and
+            startup phases. Normally, you would use the <span class="keyword apiname">ClockCycles()</span> value to
+            measure relative time: you record the value of <span class="keyword apiname">ClockCycles()</span> at two
+            points, then subtract the first value from the second value to get the duration of an
+            event. In this case, however, we’re using <span class="keyword apiname">ClockCycles()</span> to measure
+            the absolute time that has elapsed since the CPU power was applied.</p>
+
+        <div class="note"><span class="notetitle">Note:</span> 
+            Depending on how the BSP implements a reset, a <span class="keyword cmdname">shutdown</span> command to reset the target
+            may fail to clear the <span class="keyword apiname">ClockCycles()</span> value. If so, you might have to power-cycle the device.
+        </div>
+
+    </div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/fb_timestamp.html">Using timestamp to measure startup times</a></strong><br />
+You can use the <span class="keyword cmdname">timestamp</span> command to log                startup times at specific points during startup.</li>
+<li class="link ulchildlink"><strong><a href="../topic/fb_measuring_copy_from_flash_to_ram.html">Measuring the time to copy from flash to RAM</a></strong><br />
+ In the IPL and Sstartup stages, code is copied from flash into RAM and then executed. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fb_about.html" title="The Boot Optimization Guide describes techniques you can use to reduce the time from your board's initial power on until you have a fully functional QNX system running on the board.">About This Guide</a></div>
+</div>
+</div></body>
+</html>

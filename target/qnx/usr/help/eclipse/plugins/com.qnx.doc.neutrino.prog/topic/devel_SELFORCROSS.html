@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Cross-development" />
+<meta name="abstract" content="In this section, we'll describe how to compile and debug a QNX OS system. Your QNX OS system might be anything from a deeply embedded turnkey system to a powerful multiprocessor server. You'll develop the code to implement your system using development tools running on a supported cross-development platform." />
+<meta name="description" content="In this section, we'll describe how to compile and debug a QNX OS system. Your QNX OS system might be anything from a deeply embedded turnkey system to a powerful multiprocessor server. You'll develop the code to implement your system using development tools running on a supported cross-development platform." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Programmer's Guide, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Cross_development_ntwk_fs.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Cross_development_debugger.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/devel_Cross_development_embedded.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.ide.userguide/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.building/topic/about.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="SELFORCROSS" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Cross-development</title>
+</head>
+<body id="SELFORCROSS">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Cross-development</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+In this section, we'll describe how to compile and debug a <span class="keyword">QNX OS</span> system.
+Your <span class="keyword">QNX OS</span> system might be anything from
+a deeply embedded turnkey system to a powerful
+multiprocessor server. You'll develop the code to implement
+your system using development tools running on  a supported cross-development platform.
+</p>
+
+
+
+
+<p class="p">
+
+<span class="keyword">QNX OS</span> supports <em class="ph i">cross-development</em>, where you develop on your host
+system and then transfer and debug the executable on your target hardware.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+You can choose how you wish to compile and link your programs: 
+you can use tools with a command-line interface (via the <span class="keyword cmdname">qcc</span> command) or
+you can use our Integrated Development Environment (see the
+<a class="xref" href="../../com.qnx.doc.ide.userguide/topic/about.html">IDE <em class="ph i">User's Guide</em></a>).
+Our samples here illustrate the command-line method.
+</div>
+
+
+<div class="p">
+Let's look at the spectrum of methods available to you to run your executable:
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row">
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d22162e81">If your environment is:</th>
+
+  <th class="entry cellrowborder" style="vertical-align:top;" id="d22162e84">Then you can:</th>
+
+</tr>
+
+</thead>
+<tbody class="tbody">
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e81 ">Cross-development, network filesystem link</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e84 ">Compile and link, load over a network filesystem, and then run on the target</td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e81 ">Cross-development, debugger link</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e84 ">Compile and link, use a debugger to transfer the executable to the target, and
+    then run on the target
+  </td>
+
+</tr>
+
+<tr class="row">
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e81 ">Cross-development, rebuilding the image</td>
+
+  <td class="entry cellrowborder" style="vertical-align:top;" headers="d22162e84 ">Compile and link, rebuild the entire image, and then reboot the target.</td>
+
+</tr>
+
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+<p class="p">
+Which method you use depends on what's available to you. All
+the methods share the same initial step—write the
+code, then compile and link it for <span class="keyword">QNX OS</span> on the platform
+that you wish to run the program on.
+</p>
+
+
+<div class="p">
+
+Let's go through the steps necessary to build a simple
+<span class="keyword">QNX OS</span> program that displays
+the text <q class="q">Hello, world!</q>—the classic first C program.
+The program itself is very simple:
+
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+
+int main (void)
+{
+    printf ("Hello, world!\n");
+    return (0);
+}
+</pre>
+</div>
+
+
+<div class="p">
+  You compile it for AArch64 with the single line:
+
+<pre class="pre codeblock">qcc -V gcc_ntoaarch64le hello.c -o hello
+</pre>
+</div>
+
+
+<p class="p">
+This executes the C compiler with a special
+cross-compilation flag, <span class="keyword cmdname">-V gcc_ntoaarch64le</span>, that
+tells the compiler to use the <span class="keyword cmdname">gcc</span> compiler,
+<span class="keyword">QNX OS</span>-specific includes, libraries, and options to create
+  an AArch64 executable using the GCC compiler.
+At this point, you should have an executable called <span class="ph filepath">hello</span>.
+</p>
+
+
+<div class="p">
+To see a list of compilers and platforms supported, simply execute the command:
+
+<pre class="pre codeblock">qcc -V
+</pre>
+</div>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/devel_Cross_development_ntwk_fs.html">Cross-development with network filesystem</a></strong><br />
+ If you're using a network filesystem, let's assume you've already set up the filesystem on both ends.  </li>
+<li class="link ulchildlink"><strong><a href="../topic/devel_Cross_development_debugger.html">Cross-development with debugger</a></strong><br />
+ Once the debug agent is running, and you've established connectivity between the host and the target, you can use the debugger to upload the executable to the target, and then run and interact with it.  </li>
+<li class="link ulchildlink"><strong><a href="../topic/devel_Cross_development_embedded.html">Cross-development, deeply embedded</a></strong><br />
+</li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/devel.html" title="Let's start by looking at some things you should consider when you start to write a program for the QNX OS.">Compiling and Debugging</a></div>
+</div>
+
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.ide.userguide/topic/about.html">IDE User's Guide</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.building/topic/about.html">Building Embedded Systems</a></li></ul></div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html">mkifs</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html">q++, qcc</a></li></ul></div>
+</div></body>
+</html>

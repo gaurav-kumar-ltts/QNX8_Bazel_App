@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example: Code snippets of a defining a custom gesture" />
+<meta name="abstract" content="This example contains most of the code snippets that illustrate what you need in order to define a custom gesture." />
+<meta name="description" content="This example contains most of the code snippets that illustrate what you need in order to define a custom gesture." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/custom_gesture_tutorial.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="multiple-gesture-sets-example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Example: Code snippets of a defining a custom gesture</title>
+</head>
+<body id="multiple-gesture-sets-example">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Example: Code snippets of a defining a custom gesture</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc">
+    	This example contains most of the code snippets that illustrate what you
+    	need in order to define a custom gesture.
+    </p>
+
+		<div class="p"><strong class="ph b">custom_gesture.h</strong>
+		   <pre class="pre codeblock">#include &lt;gestures/types.h&gt;
+
+/* The stucture custom_gesture_params_t represents the parameters for the custom gesture. */
+typedef struct {
+   unsigned max_displacement; /* The maximum distance the finger can move before
+                                 the custom gesture fails. */
+   unsigned max_hold_ms;      /* The maximum time the finger can remain touching
+                                 the screen before the custom gesture fails. */
+   unsigned max_delay_ms;     /* The time between the first release and the second touch. */
+} custom_gesture_params_t;
+
+/* The enumeration custom_gesture_state_e defines additional states the custom
+ * gesture can transition between. */
+typedef enum {
+   CT_STATE_INIT = 0,
+   CT_STATE_FIRST_TOUCH,
+   CT_STATE_FIRST_RELEASE,
+   CT_STATE_SECOND_TOUCH,
+   CT_STATE_SECOND_RELEASE
+} custom_gesture_state_e;
+
+/* The structure gesture_custom_gesture_t carries data about the custom gesture. */
+typedef struct {
+   gesture_base_t base;             /* The gesture base data structure. */
+   custom_gesture_params_t params;  /* The custom gesture parameters. */
+   gesture_coords_t first_touch;    /* The coordinates of the first touch. */
+   gesture_coords_t first_release;  /* The coordinates of the first release. */
+   gesture_coords_t second_touch;   /* The coordinates of the second touch. */
+   gesture_coords_t second_release; /* The coordinates of the second release. */
+   custom_gesture_state_e dt_state; /* The intermediate state of the custom gesture. */
+   int fail_timer;                  /* The ID of the timer for this gesture. */
+} gesture_custom_gesture_t;
+
+/* Allocate and initialize the custom gesture structure */
+gesture_custom_gesture_t* custom_gesture_gesture_alloc(custom_gesture_params_t* params,
+                                                       gesture_callback_f callback,
+                                                       struct gestures_set* set);
+
+/* Initialize the custom parameters */
+void custom_gesture_gesture_default_params(custom_gesture_params_t* params);
+
+		   </pre>
+		</div>
+
+        <div class="p">
+          <strong class="ph b">custom_gesture.c</strong>
+        <pre class="pre codeblock">/*The example below shows the implementation of a custom user-defined gesture. */ 
+
+#include &lt;sys/types.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;malloc.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;gestures/set.h&gt;
+#include &lt;gestures/timer.h&gt;
+#include &lt;custom_gesture.h&gt;
+#include &lt;input/event_types.h&gt;
+#include &lt;gestures/defaults.h&gt;
+
+/* Custom free() function */
+void custom_gesture_gesture_free(gesture_base_t* gesture)
+{
+   free(gesture);
+}
+
+/* Custom helper function */
+static int _check_valid(gesture_coords_t* coords1, gesture_coords_t* coords2,
+                        unsigned max_displacement, unsigned max_ms)
+{
+   return ((max_displacement_abs(coords1, coords2) &lt;= max_displacement) &amp;&amp;
+           (diff_time_ms(coords1, coords2) &lt;= max_ms));
+}
+
+/* Custom process_event() function */
+gesture_state_e custom_gesture_gesture_process_event(struct contact_id_map* map,
+                                                     gesture_base_t* gesture,
+                                                     mtouch_event_t* event,
+                                                     int* consumed)
+{
+   gesture_custom_gesture_t* custom_gesture = (gesture_custom_gesture_t*)gesture;
+   gesture_coords_t coords;
+   gesture_coords_t* compare_coords;
+   int set_id = map_contact_id(map, event-&gt;contact_id);
+
+   if (set_id &lt; 0) {
+      error("process_event() called with event with invalid contact_id");
+      goto failed;
+   }
+
+   switch (custom_gesture-&gt;base.state) {
+      case GESTURE_STATE_UNRECOGNIZED:
+         switch (event-&gt;event_type) {
+            case INPUT_EVENT_MTOUCH_TOUCH:
+               if (set_id &gt; 0) {
+                  goto failed;
+               } else if (custom_gesture-&gt;dt_state &gt; CT_STATE_FIRST_TOUCH) {
+                  gesture_timer_clear(gesture, custom_gesture-&gt;fail_timer);
+                  save_coords(event, &amp;custom_gesture-&gt;second_touch);
+                  if (!_check_valid(&amp;custom_gesture-&gt;first_release,
+                                    &amp;custom_gesture-&gt;second_touch,
+                                    custom_gesture-&gt;params.max_displacement,
+                                    custom_gesture-&gt;params.max_delay_ms)) {
+                     goto failed;
+                  }
+                  custom_gesture-&gt;dt_state = CT_STATE_SECOND_TOUCH;
+               } else {
+                  save_coords(event, &amp;custom_gesture-&gt;first_touch);
+                  custom_gesture-&gt;dt_state = CT_STATE_FIRST_TOUCH;
+               }
+
+               goto nochange;
+            case INPUT_EVENT_MTOUCH_MOVE:
+               save_coords(event, &amp;coords);
+               if (custom_gesture-&gt;dt_state &gt;= CT_STATE_SECOND_TOUCH) {
+                  compare_coords = &amp;custom_gesture-&gt;second_touch;
+               } else {
+                  compare_coords = &amp;custom_gesture-&gt;first_touch;
+               }
+
+               if (!_check_valid(compare_coords, &amp;coords,
+                                 custom_gesture-&gt;params.max_displacement,
+                                 custom_gesture-&gt;params.max_hold_ms)) {
+                  goto failed;
+               }
+
+               goto nochange;
+            case INPUT_EVENT_MTOUCH_RELEASE:
+               if (custom_gesture-&gt;dt_state &gt;= CT_STATE_SECOND_TOUCH) {
+                  save_coords(event, &amp;custom_gesture-&gt;second_release);
+                  if (!_check_valid(&amp;custom_gesture-&gt;second_touch,
+                                    &amp;custom_gesture-&gt;second_release,
+                                    custom_gesture-&gt;params.max_displacement,
+                                    custom_gesture-&gt;params.max_hold_ms)) {
+                     goto failed;
+                  }
+                  custom_gesture-&gt;dt_state = CT_STATE_SECOND_RELEASE;
+                  goto complete;
+               } else {
+                  save_coords(event, &amp;custom_gesture-&gt;first_release);
+                  if (!_check_valid(&amp;custom_gesture-&gt;first_touch,
+                                    &amp;custom_gesture-&gt;first_release,
+                                    custom_gesture-&gt;params.max_displacement,
+                                    custom_gesture-&gt;params.max_hold_ms)) {
+                     goto failed;
+                  }
+                  custom_gesture-&gt;dt_state = CT_STATE_FIRST_RELEASE;
+
+                  /* Set a timer in case an event doesn't come in */
+                  gesture_timer_set_event(gesture,
+                                          custom_gesture-&gt;fail_timer,
+                                          custom_gesture-&gt;params.max_delay_ms,
+                                          event);
+               }
+
+               goto nochange;
+            default:
+               warn("Unhandled switch/case: %d", event-&gt;event_type);
+               goto failed;
+         }
+      case GESTURE_STATE_RECOGNIZED:
+         error("GESTURE_STATE_RECOGNIZED is an invalid state for double tap");
+         break;
+      case GESTURE_STATE_UPDATING:
+         error("GESTURE_STATE_UPDATING is an invalid state for double tap");
+         break;
+      case GESTURE_STATE_COMPLETE:
+         error("process_event() called on complete gesture");
+         break;
+      case GESTURE_STATE_FAILED:
+         error("process_event() called on failed gesture");
+         break;
+      case GESTURE_STATE_NONE:
+         error("process_event() called on uninitialized gesture");
+         break;
+   }
+
+nochange:
+   *consumed = 0;
+   return custom_gesture-&gt;base.state;
+
+failed:
+   *consumed = 0;
+   return GESTURE_STATE_FAILED;
+
+complete:
+   *consumed = 1;
+   return GESTURE_STATE_COMPLETE;
+}
+
+/* Custom timer callback */
+static gesture_state_e
+timeout(gesture_base_t* base, void* param)
+{
+   return GESTURE_STATE_FAILED;
+}
+
+/* Custom reset() function */
+void custom_gesture_gesture_reset(gesture_base_t* gesture)
+{
+   gesture_custom_gesture_t* custom_gesture = (gesture_custom_gesture_t*)gesture;
+   custom_gesture-&gt;dt_state = CT_STATE_INIT;
+}
+
+/* Initialize custom gesture parameters with default values. */
+void custom_gesture_gesture_default_params(custom_gesture_params_t* params)
+{
+   params-&gt;max_displacement = GESTURE_MAX_MOVE_TOLERANCE_PIX;
+   params-&gt;max_hold_ms = GESTURE_MAX_TAP_DELAY_MS;
+   params-&gt;max_delay_ms = GESTURE_MIN_HOLD_DELAY_MS;
+}
+
+/* Custom alloc() function */
+gesture_custom_gesture_t* custom_gesture_gesture_alloc(custom_gesture_params_t* params,
+                                                       gesture_callback_f callback,
+                                                       struct gestures_set* set)
+{
+	gesture_custom_gesture_t* custom_gesture = calloc(1, sizeof(*custom_gesture));
+   if (NULL == custom_gesture) {
+      return NULL;
+   }
+
+   gesture_base_init(&amp;custom_gesture-&gt;base);
+   gestures_set_add(set, &amp;custom_gesture-&gt;base);
+   custom_gesture-&gt;base.type = GESTURE_USER;
+   custom_gesture-&gt;base.funcs.free = custom_gesture_gesture_free;
+   custom_gesture-&gt;base.funcs.process_event = custom_gesture_gesture_process_event;
+   custom_gesture-&gt;base.funcs.reset = custom_gesture_gesture_reset;
+   custom_gesture-&gt;base.callback = callback;
+   custom_gesture-&gt;fail_timer = gesture_timer_create(&amp;custom_gesture-&gt;base, timeout, NULL);
+   custom_gesture_gesture_reset(&amp;custom_gesture-&gt;base);
+
+   if (NULL != params) {
+      custom_gesture-&gt;params = *params;
+   } else {
+      custom_gesture_gesture_default_params(&amp;custom_gesture-&gt;params);
+   }
+
+   return custom_gesture;
+}
+        </pre>
+		</div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/custom_gesture_tutorial.html" title="This tutorial shows you the basics for defining a custom gesture recognizer.">Tutorial: Create a custom gesture</a></div>
+</div>
+</div></body>
+</html>

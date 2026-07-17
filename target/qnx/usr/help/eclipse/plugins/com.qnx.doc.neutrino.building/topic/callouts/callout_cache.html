@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Cache control" />
+<meta name="abstract" content="The cache controller circuitry in your system determines whether you need to provide a callout for the kernel to interface to the cache controller." />
+<meta name="description" content="The cache controller circuitry in your system determines whether you need to provide a callout for the kernel to interface to the cache controller." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_cache" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Cache control</title>
+</head>
+<body id="callout_cache">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Cache control</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The cache controller circuitry in your system determines whether you need to provide a
+		callout for the kernel to interface to the cache controller.</p>
+
+		<div class="section">
+			
+			
+			<p class="p">On the x86 architecture, the cache controller is integrated tightly with the CPU,
+				meaning the kernel doesn't have to talk to the cache controller. On the ARM
+				architecture, you need a callout that can tell the cache controllers to invalidate
+				portions of the cache when certain functions are performed in the kernel.</p>
+
+			<div class="p">The callout prototype for cache control is <span class="keyword apiname">control()</span>.
+				This callout gets passed:
+				<ul class="ul">
+					<li class="li">a set of flags defining the operation to perform (see <q class="q"><a class="xref" href="#callout_cache__flags">Flags</a></q> below)</li>
+
+					<li class="li">the address (either in virtual or physical mode, depending on flags in the
+						<var class="keyword varname">cacheattr</var> array in the system page)</li>
+
+					<li class="li">the number of cache lines to affect</li>
+
+				</ul>
+
+			</div>
+
+			<p class="p">This callout is responsible for returning the number of cache lines that it
+				affected. The caller (the kernel) can use this information and call the
+				<span class="keyword apiname">control()</span> callout repeatedly at a higher level.
+				A return of 0 (zero) means the entire cache was affected
+				(e.g., all entries were invalidated).</p>
+
+			<p class="p">For more information about caches, see <a class="xref" href="../syspage/cacheattr.html" title="Information about the on-chip and off-chip cache system configuration"><var class="keyword varname">cacheattr</var></a> in the System Page chapter.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> It is unlikely that you will need to write your own cache control callout. In most
+				cases, a cache control callout from the standard startup library will work.</div>
+
+		</div>
+
+		<div class="section" id="callout_cache__flags"><h2 class="title sectiontitle">Flags</h2>
+			
+			
+			
+			<p class="p">The kernel uses a <span class="keyword apiname">control()</span> function's flags argument to pass
+				instructions to a cache control callout. The flag values can be the
+				same as the <span class="keyword const">MS_*</span> flags used for the <a class="xref" href="../../../com.qnx.doc.neutrino.lib_ref/topic/m/msync.html"><span class="keyword apiname">msync()</span></a> function (e.g.,
+				<span class="keyword const">MS_ASYNC</span> to make the controller perform asynchronous writes, and
+				<span class="keyword const">MS_INVALIDATE_ICACHE</span> to invalidate the instruction cache only).</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Examples</h2>
+			
+<pre class="pre codeblock">/*
+ * Cortex A8 specific cache operations
+ *
+ * unsigned control(paddr_t base,
+ *		unsigned num_lines,
+ *		int flags,
+ *		struct cacheattr_entry *cache,
+ *		volatile struct syspage_entry * )
+ */
+
+#include "callout.ah"
+
+#define	MAX_LINES	32
+#define	LINE_SIZE	64
+#define LINE_LIMIT	1024
+
+CALLOUT_START(cache_a8_i, 0, 0)
+	/*
+	 * For large flushes just do the whole cache
+	 */
+	cmp		r1, #LINE_LIMIT
+	movhi	r0, #0
+	mcrhi	p15, 0, r0, c7, c5, 0		// ICIALLU
+	mcrhi	p15, 0, r1, c7, c10, 4		// DSB (deprecated encoding)
+	movhi	pc, lr
+
+	/*
+	 * Trim the address to a cache line boundary, and stop at 32 lines
+	 * to avoid having to re-issue the whole flush if we get preempted
+	 */
+	bic		r3, r0, #(LINE_SIZE-1)
+	cmp		r1, #MAX_LINES
+	movhi	r1, #MAX_LINES
+	mov		r0, r1
+
+	/*
+	 * Invalidate lines by address
+	 */
+0:	mcr		p15, 0, r3, c7, c5, 1		// ICIMVAU
+	add		r3, r3, #LINE_SIZE
+	subs	r1, r1, #1
+	bne		0b
+	mcr		p15, 0, r1, c7, c5, 6		// BPIALL
+	mcr		p15, 0, r1, c7, c10, 4		// DSB (deprecated encoding)
+	mov	pc, lr
+CALLOUT_END(cache_a8_i)
+
+CALLOUT_START(cache_a8_d, 0, 0)
+	/*
+	 * Trim the address to a cache line boundary, and stop at 32 lines
+	 * to avoid having to re-issue the whole flush if we get preempted
+	 */
+	bic		r3, r0, #(LINE_SIZE-1)
+	cmp		r1, #MAX_LINES
+	movhi	r1, #MAX_LINES
+	mov		r0, r1
+
+	tst		r2, #MS_INVALIDATE
+	bne		1f
+
+	/*
+	 * Clean lines by address
+	 */
+0:	mcr		p15, 0, r3, c7, c10, 1		// DCCMVAC
+	add		r3, r3, #LINE_SIZE
+	subs	r1, r1, #1
+	bne		0b
+	mcr		p15, 0, r1, c7, c10, 4		// DSB (deprecated encoding)
+	mov		pc, lr
+
+	/*
+	 * Clean and invalidate lines by address
+	 */
+1:	mcr		p15, 0, r3, c7, c14, 1		// DCCIMVAC
+	add		r3, r3, #LINE_SIZE
+	subs	r1, r1, #1
+	bne		1b
+	mcr		p15, 0, r1, c7, c10, 4		// DSB (deprecated encoding)
+	mov		pc, lr
+CALLOUT_END(cache_a8_d)</pre>
+		</div>
+
+	</div>
+
+</body>
+</html>

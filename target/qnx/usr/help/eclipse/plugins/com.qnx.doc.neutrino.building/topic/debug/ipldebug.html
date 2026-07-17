@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Generating IPL debug symbols" />
+<meta name="abstract" content="To generate debug symbols for the IPL, you must recompile both the IPL library and the board's IPL with debug information." />
+<meta name="description" content="To generate debug symbols for the IPL, you must recompile both the IPL library and the board's IPL with debug information." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ipldebug" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Generating IPL debug symbols</title>
+</head>
+<body id="ipldebug">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Generating IPL debug symbols</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">To generate debug symbols for the IPL, you must recompile both the IPL library and the board's IPL
+		with debug information.</p>
+
+		<div class="p">
+			The general procedure is:
+			<ol class="ol">
+				<li class="li">Build the IPL library and the target board's IPL.
+					(Ensure any modifications you require are complete before you build.)</li>
+
+				<li class="li">Transfer the IPL to the board; for example, write the IPL into flash memory using a flash
+					writer or JTAG, transfer it over a serial or network connection, or load it from an SD
+					card or other removable media.</li>
+
+				<li class="li">Modify the <span class="ph filepath"><var class="keyword varname">board_name</var>.lnk</span> file to output ELF format.</li>
+
+				<li class="li">Recompile the IPL library and the board's IPL source with debug information.</li>
+
+				<li class="li">Load the board's IPL ELF file containing debug information into the hardware debugger.</li>
+
+			</ol>
+
+		</div>
+
+		<div class="note"><span class="notetitle">Note:</span>  Be sure to synchronize the source code, the IPL transferred to the board, and the IPL debug symbols.</div>
+
+		<div class="p">To build the IPL library with debug information, execute the following:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/src/hardware/ipl/lib/<var class="keyword varname">target</var>/a.le
+# make clean
+# make CCOPTS=-g
+# cp libipl.a <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/install/<var class="keyword varname">processor</var>/lib
+# make install 
+</pre></div>
+
+		<p class="p">The above steps recompile the target-specific IPL library (<span class="ph filepath">libipl.a</span>) with debug
+			information and copy this library to the board's <span class="ph filepath">install/<var class="keyword varname">processor</var>/lib</span>
+			directory, assuming that the BSP is configured to look for this library first in this directory.
+			The <span class="keyword cmdname">make install</span> is optional, and copies <span class="ph filepath">libipl.a</span> to
+			<span class="ph filepath"><var class="keyword varname">processor</var>/usr/lib</span>.
+		</p>
+
+		<div class="p">Modify the <span class="ph filepath"><var class="keyword varname">board_name</var>.lnk</span> file to output ELF format:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/src/hardware/ipl/boards/<var class="keyword varname">board_name</var>
+</pre></div>
+
+		<div class="p">Edit the file <span class="ph filepath"><var class="keyword varname">board_name</var>.lnk</span>, changing the first lines from:
+<pre class="pre codeblock">TARGET(elf64-<var class="keyword varname">target</var>)
+OUTPUT_FORMAT(raw)
+ENTRY(entry_vec)
+</pre>
+			to:
+<pre class="pre codeblock">TARGET(elf64-<var class="keyword varname">target</var>)
+OUTPUT_FORMAT(elf64-<var class="keyword varname">target</var>)
+ENTRY(entry_vec)
+</pre></div>
+
+		<div class="p">You can now rebuild the board's IPL to produce debug symbols in ELF format, as follows:
+<pre class="pre codeblock"># cd <var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/src/hardware/ipl/boards/<var class="keyword varname">board_name</var>/<var class="keyword varname">target</var>/le
+# make clean
+# make CCOPTS=-g
+</pre></div>
+
+		<p class="p">The <span class="ph filepath">ipl-<var class="keyword varname">board_name</var></span> file is now in ELF format with debug symbols from
+			both the IPL library and the board's IPL.</p>
+
+		<div class="p">You can use the <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/o/objdump.html"><span class="keyword cmdname">objdump</span></a>
+			utility to view the ELF information. For example, to view the symbol information contained in the
+			<span class="ph filepath">ipl-<var class="keyword varname">board_name</var></span> file:
+<pre class="pre codeblock"># objdump -t ipl-<var class="keyword varname">board_name</var> | less
+</pre></div>
+
+		<div class="p">You can now import this file into a hardware debugger to provide the necessary symbol information.
+			In addition to the <span class="ph filepath">ipl-<var class="keyword varname">board_name</var></span> file, the hardware debugger needs the
+			source code listings found in the following directories:
+			<ul class="ul">
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/<var class="keyword varname">board_name</var>/src/hardware/ipl/boards/<var class="keyword varname">board_name</var></span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/ipl/lib</span></li>
+
+				<li class="li"><span class="ph filepath"><var class="keyword varname">bsp_working_dir</var>/src/hardware/ipl/lib/<var class="keyword varname">target</var></span></li>
+
+			</ul>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

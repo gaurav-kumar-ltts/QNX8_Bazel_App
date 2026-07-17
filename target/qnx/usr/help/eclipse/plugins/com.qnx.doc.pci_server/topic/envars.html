@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Environment variables" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/overview.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="envars" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Environment variables</title>
+</head>
+<body id="envars">
+
+
+<h1 class="title topictitle1" id="ariaid-title1">Environment variables</h1>
+
+
+
+
+
+
+<div class="body conbody"><p class="shortdesc"></p>
+
+
+<p class="p">
+The PCI server uses various environment variables.
+Their names are defined in <span class="ph filepath">&lt;pci/pci.h&gt;</span>, in the form
+<tt class="ph tt">PCI_<var class="keyword varname">variable</var></tt>.
+The only mandatory variable is <span class="keyword envar">PCI_HW_MODULE</span>;
+without a hardware-dependent module specified, there's no way to access the hardware.
+</p>
+
+
+<p class="p">
+Environment variables must be present in the environment of each process that uses <span class="ph filepath">libpci</span>,
+including the PCI server process (<span class="keyword cmdname">pci-server</span>).
+Unless otherwise indicated, any of these variables must be set in the <span class="ph codeph">[envars]</span> section of the configuration file.
+</p>
+
+
+<dl class="dl">
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_HW_MODULE</span></dt>
+
+<dd class="dd">(Required) The name of the hardware-dependent module for your target system; see the
+  <span class="ph filepath">pci_hw-*</span> files in
+  <span class="ph filepath">${<span class="keyword envar">QNX_TARGET</span>}/<var class="keyword varname">processor</var>/lib/dll/pci/</span>
+  on your development host and in <span class="ph filepath">/lib/dll/pci/</span> on your target.
+  If you don't set this environment variable, you'll get a <span class="keyword const">SIGSEGV</span>.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_HW_CONFIG_FILE</span></dt>
+
+<dd class="dd">(Optional) The name of a hardware-dependent configuration file (see
+  <q class="q"><a class="xref" href="config.html">Configuration files</a></q>).
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_SLOG_MODULE</span></dt>
+
+<dd class="dd">(Optional) The name of the logging module (e.g., <span class="ph filepath">/lib/dll/pci/pci_slog2.so</span>).
+  If unset, no logs are recorded.
+  <div class="p">This variable must be set on the command line (not in the configuration file) prior to starting the PCI server:
+<pre class="pre codeblock">PCI_SLOG_MODULE=pci_slog2.so pci-server --config=<var class="keyword varname">server_config_file</var></pre> 
+  </div>
+
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_DEBUG_MODULE</span></dt>
+
+<dd class="dd">(Optional) The name of the debug logging module (e.g., <span class="ph filepath">/lib/dll/pci/pci_debug2.so</span>).
+  If unset, no debug information is logged.
+  <div class="p">This variable must be set on the command line (not in the configuration file) prior to starting the PCI server:
+<pre class="pre codeblock">PCI_DEBUG_MODULE=pci_debug2.so pci-server --config=<var class="keyword varname">server_config_file</var></pre> 
+  </div>
+
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_CAP_MODULE_DIR</span></dt>
+
+<dd class="dd">(Optional) The location of an alternate capability module directory (the default is
+  <span class="ph filepath">/lib/dll/pci</span>).
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_BASE_VERBOSITY</span></dt>
+
+<dd class="dd">(Optional) Controls the amount of log detail for every module and library.
+  Its value should be an unsigned integer.
+  The default is 0; the higher the value, the more information is logged.
+  
+  
+  
+</dd>
+
+<dd class="dd ddexpand">
+  
+  This environment variable works in conjunction with the <var class="keyword varname">pci_verbosity</var>
+  variable that's declared in <span class="ph filepath">&lt;pci/pci.h&gt;</span>:
+  
+  <ul class="ul">
+  <li class="li">For programs that don't manipulate the <var class="keyword varname">pci_verbosity</var> variable,
+    
+    the value behaves the same as
+    incrementing the verbosity parameter by the value of the <span class="keyword envar">PCI_BASE_VERBOSITY</span>
+    environment variable.
+  </li>
+
+
+  <li class="li">For programs that do manipulate the <var class="keyword varname">pci_verbosity</var> variable,
+    this base level changes the default from 0 to the specified value, and
+    any command-line options to increase <var class="keyword varname">pci_verbosity</var> increase it from the
+    base value set in the environment variable.
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_SERVER_BUSCFG_MODULE</span></dt>
+
+<dd class="dd">
+  
+  
+  
+  
+  (Optional) This environment variable is meaningful only for the PCI server, and it lets you specify the name of a bus configuration
+  module. Target systems need a bus configuration module to perform reconfigurations in order to use Power Management, Hot Plug, or other
+  such capabilities. They also may need it if devices are reset (either directly or as part of a bridge secondary bus reset),
+  as some devices do not preserve state across such events.
+</dd>
+
+<dd class="dd ddexpand">
+  This variable is helpful only if the PCI server will configure the PCI bus
+  (e.g., by assigning secondary/subordinate bus numbers to bridges, (re)calculating address
+  space requirements and assigning them to devices by updating BAR registers).
+</dd>
+
+<dd class="dd ddexpand">
+  
+  For information on starting the PCI server so it configures the bus, see <q class="q"><a class="xref" href="server.html" title="The PCI server (pci-server) is a resource manager process that manages the PCI hierarchy.">The PCI server</a></q>.
+  In this case, this environment variable is still optional because if it isn't specified,
+  the generic module identified by the <span class="keyword const">PCI_SERVER_BUSCFG_MODULE_DEFAULT</span> string
+  (which is defined in <span class="ph filepath">&lt;pci/pci.h&gt;</span>) is used.
+  The environment variable lets you use alternative and/or board-specific configuration modules.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_MODULE_BLACKLIST</span></dt>
+
+<dd class="dd">(Optional) A colon-separated list of modules that you don't want to load.
+  This is useful for testing and for controlling what capabilities a driver can use without having
+  to recompile or use command-line controls.
+  
+  
+  
+</dd>
+
+<dd class="dd ddexpand">
+  The blacklist is checked when an attempt is made to load a module.
+  Once a module has been successfully loaded, the blacklist is no longer consulted for that module,
+  so it's important that the blacklist be created before a module is loaded for the first time.
+</dd>
+
+<dd class="dd ddexpand">
+  While generally applicable to any PCI module, the blacklist's main purpose is to control
+  the use of capability modules without modifying the driver software itself.
+  For example, a driver written to use MSI-X and MSI (preferentially
+  in that order) could be started with the MSI-X capability module blacklisted
+  so that it uses the MSI module, without changing software or requiring a
+  command-line option to the driver.
+</dd>
+
+<dd class="dd ddexpand">
+  Because this is an environment variable, this control can be provided on a per-driver basis.
+  However, when this variable is specified for the PCI server, the effect is more global in nature.
+  Blacklisting any capability modules in the server environment actually prevents their use
+  for <em class="ph i">all</em> driver software, regardless of the setting of the variable in that driver's
+  environment. Drivers can still read the device capabilities, but can't enable or use them.
+</dd>
+
+<dd class="dd ddexpand">
+  You can specify modules as a simple name or with a leading slash.
+  If you use a simple name, the module must exist in the <span class="ph filepath">/lib/dll/pci/</span> directory.
+  If the first character of the name is a slash, the name must specify the full path to the module.
+  Only an exact pathname match prevents the loading of a module.
+  Keep this in mind if the capability module directory has been altered with the
+  <span class="keyword envar">PCI_CAP_MODULE_DIR</span> environment variable.
+  <div class="note"><span class="notetitle">Note:</span> 
+  Because a vid/did-specific capability module is always checked for before a
+  generic capability module, if you're using a vid/did-specific capability
+  module and wish to prevent the use of that capability, you should blacklist both the vid/did-specific
+  and the generic modules.
+  </div>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_SERVER_NODE_NAME</span></dt>
+
+<dd class="dd">(Optional) The node name used to communicate with the PCI server (the default is <span class="ph filepath">/dev/pci</span>).
+  
+  
+  
+  
+  
+</dd>
+
+<dd class="dd ddexpand">
+  
+  This variable is required only if the PCI server is started with a different node name
+  (with either the server's <span class="keyword option">-n</span> option or the
+  <tt class="ph tt">SERVER_NODE_NAME</tt> parameter in a configuration file specified with the
+  <span class="keyword option">--config</span> option, with the <span class="keyword option">-n</span> option taking precedence).
+</dd>
+
+<dd class="dd ddexpand">
+  You typically don't need to change this name, and we don't encourage you to do so.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword envar">PCI_STRINGS_FILE</span></dt>
+
+<dd class="dd">(Optional) The strings database file.
+  If not set, the default file,
+  <span class="ph filepath">/etc/system/config/pci/pcidatabase.com-tab_delimited.txt</span>, is used.
+  See
+  <q class="q"><a class="xref" href="strings.html">The Strings module</a>.</q>
+  
+  
+</dd>
+
+
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/overview.html" title="The PCI server manages the hierarchy of PCI devices attached to a system.">PCI Server Overview</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Example: Code snippets of a gesture-handling application" />
+<meta name="abstract" content="This example contains most of the code snippets that illustrate how to create a gesture application and cascade multiple gesture sets using failure callbacks." />
+<meta name="description" content="This example contains most of the code snippets that illustrate how to create a gesture application and cascade multiple gesture sets using failure callbacks." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="keywords" content="QNX SDP, 8.0, Gestures Library Reference, API, Developer, Programming" />
+<meta name="DC.relation" scheme="URI" content="../../topic/manual/create_gestures_app_tutorial.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="multiple-gesture-sets-example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Example: Code snippets of a gesture-handling application</title>
+</head>
+<body id="multiple-gesture-sets-example">
+
+    <h1 class="title topictitle1" id="ariaid-title1">Example: Code snippets of a gesture-handling application</h1>
+
+    
+    
+    <div class="body conbody"><p class="shortdesc"> This example contains most of the code snippets that illustrate how to create a
+        gesture application and cascade multiple gesture sets using failure callbacks. </p>
+
+		<div class="p">
+		    
+<pre class="pre codeblock">#include &lt;stdio.h&gt;
+#include &lt;screen/screen.h&gt;
+#include &lt;input/screen_helpers.h&gt;
+#include &lt;gestures/types.h&gt;
+#include &lt;gestures/set.h&gt;
+#include &lt;gestures/event_list.h&gt;
+#include &lt;gestures/swipe.h&gt;
+#include &lt;gestures/pinch.h&gt;
+#include &lt;gestures/press_and_tap.h&gt;
+#include &lt;gestures/rotate.h&gt;
+#include &lt;gestures/two_finger_pan.h&gt;
+#include &lt;gestures/tap.h&gt;
+#include &lt;gestures/double_tap.h&gt;
+#include &lt;gestures/triple_tap.h&gt;
+#include &lt;gestures/long_press.h&gt;
+#include &lt;gestures/two_finger_tap.h&gt;
+
+/* The callback invoked when a gesture is recognized or updated. */
+void gesture_callback(gesture_base_t* gesture, mtouch_event_t* event, void* param, int async)
+{
+    if (async) {
+        printf("[async] ");
+    }
+    switch (gesture-&gt;type) {
+        case GESTURE_TWO_FINGER_PAN: {
+            gesture_tfpan_t* tfpan = (gesture_tfpan_t*)gesture;
+            printf("Two-finger pan: %d, %d", tfpan-&gt;centroid.x, tfpan-&gt;centroid.y);
+            break;
+        }
+        case GESTURE_ROTATE: {
+            gesture_rotate_t* rotate = (gesture_rotate_t*)gesture;
+            if (rotate-&gt;angle != rotate-&gt;last_angle) {
+                printf("Rotate: %d degs", rotate-&gt;angle - rotate-&gt;last_angle);
+            } else {
+                return;
+            }
+            break;
+        }
+        case GESTURE_SWIPE: {
+            gesture_swipe_t* swipe = (gesture_swipe_t*)gesture;
+            printf("Swipe ");
+            if (swipe-&gt;direction &amp; GESTURE_DIRECTION_UP) {
+                printf("up %d", swipe-&gt;last_coords.y - swipe-&gt;coords.y);
+            } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_DOWN) {
+                printf("down %d", swipe-&gt;coords.y - swipe-&gt;last_coords.y);
+            } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_LEFT) {
+                printf("left %d", swipe-&gt;last_coords.x - swipe-&gt;coords.x);
+            } else if (swipe-&gt;direction &amp; GESTURE_DIRECTION_RIGHT) {
+                printf("right %d", swipe-&gt;coords.x - swipe-&gt;last_coords.x);
+            }
+            break;
+        }
+        case GESTURE_PINCH: {
+            gesture_pinch_t* pinch = (gesture_pinch_t*)gesture;
+            printf("Pinch %d, %d", (pinch-&gt;last_distance.x - pinch-&gt;distance.x),
+                                   (pinch-&gt;last_distance.y - pinch-&gt;distance.y));
+            break;
+        }
+        case GESTURE_TAP:
+            printf("Tap");
+            break;
+        case GESTURE_DOUBLE_TAP:
+            printf("Double tap");
+            break;
+        case GESTURE_TRIPLE_TAP:
+            printf("Triple tap");
+            break;
+        case GESTURE_PRESS_AND_TAP:
+            printf("Press and tap");
+            break;
+        case GESTURE_TWO_FINGER_TAP:
+            printf("Two-finger tap");
+            break;
+        case GESTURE_LONG_PRESS:
+            printf("Long press");
+            break;
+        case GESTURE_USER:
+            printf("User");
+            break;
+        default:
+            printf("Unknown");
+            break;
+    }
+    printf("\n");
+}
+
+/**
+ * The set failure callback that's invoked when all gestures in the first set have
+ * transitioned to the failed state.
+ */
+
+void fail_callback(struct gestures_set* set, struct event_list* list, int async)
+{
+    if (set == first_set) {
+        /* Sample list copy - not necessary if events don't need to be kept
+           following the call to gestures_set_process_event_list() */
+        struct event_list* new_list = event_list_alloc(0, 0, 0, 1);
+        if (new_list) {
+            event_list_copy(list, new_list);
+            gestures_set_process_event_list(second_set, new_list, NULL);
+            event_list_free(new_list);
+        }
+    }
+}
+
+/** Initialize the gesture sets */
+static void init_gestures()
+{
+    gesture_tap_t* tap;
+    gesture_double_tap_t* double_tap;
+    gesture_triple_tap_t* triple_tap;
+    gesture_tft_t* tft;
+
+    first_set = gestures_set_alloc();
+    if (NULL != first_set) {
+        long_press_gesture_alloc(NULL, gesture_callback, first_set);
+        tap = tap_gesture_alloc(NULL, gesture_callback, first_set);
+        double_tap = double_tap_gesture_alloc(NULL, gesture_callback, first_set);
+        triple_tap = triple_tap_gesture_alloc(NULL, gesture_callback, first_set);
+        tft = tft_gesture_alloc(NULL, gesture_callback, first_set);
+        gesture_add_mustfail(&amp;tap-&gt;base, &amp;double_tap-&gt;base);
+        gesture_add_mustfail(&amp;double_tap-&gt;base, &amp;triple_tap-&gt;base);
+        gestures_set_register_fail_cb(first_set, fail_callback);
+
+        second_set = gestures_set_alloc();
+
+        if (NULL != second_set) {
+            swipe_gesture_alloc(NULL, gesture_callback, second_set);
+            pinch_gesture_alloc(NULL, gesture_callback, second_set);
+            rotate_gesture_alloc(NULL, gesture_callback, second_set);
+            pt_gesture_alloc(NULL, gesture_callback, second_set);
+            tfpan_gesture_alloc(NULL, gesture_callback, second_set);
+            tft_gesture_alloc(NULL, gesture_callback, second_set);
+        } else {
+            gestures_set_free(first_set);
+            first_set = NULL;
+        }
+    } else {
+        fprintf(stderr, "Failed to allocate gesture sets\n");
+    }
+}
+
+static void gestures_cleanup()
+{
+    if (NULL != first_set) {
+        gestures_set_free(first_set);
+        first_set = NULL;
+    }
+    if (NULL != second_set) {
+        gestures_set_free(second_set);
+        second_set = NULL;
+    }
+}
+
+int main(int argc, const char* argv[])
+{
+    int screen_val;
+    screen_event_t screen_ev;
+    int rc;
+    ...
+    mtouch_event_t mtouch_event;
+    init_gestures();
+    while (1) {
+        while (screen_get_event(screen_ctx, screen_ev, ~0L) == EOK) {
+            rc = screen_get_event_property_iv(screen_ev, SCREEN_PROPERTY_TYPE, &amp;screen_val);
+            if (rc || screen_val == SCREEN_EVENT_NONE) {
+                break;
+            }
+            switch (screen_val) {
+                case SCREEN_EVENT_MTOUCH_TOUCH:
+                case SCREEN_EVENT_MTOUCH_MOVE:
+                case SCREEN_EVENT_MTOUCH_RELEASE:
+                    rc = screen_get_mtouch_event(screen_ev, &amp;mtouch_event, 0);
+                    if (rc) {
+                        fprintf(stderr, "Error: failed to get mtouch event\n");
+                        continue;
+                    }
+                    gestures_set_process_event(first_set, &amp;mtouch_event, NULL);
+                    break;
+            }
+        }
+    }
+    gestures_cleanup();
+    return 0;
+}
+</pre>
+		</div>
+
+    </div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../../topic/manual/create_gestures_app_tutorial.html" title="This tutorial shows you the basics for creating a gesture application using system-supported gesture recognizers.">Tutorial: Create a gesture-handling application</a></div>
+</div>
+</div></body>
+</html>

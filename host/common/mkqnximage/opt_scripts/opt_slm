@@ -1,0 +1,61 @@
+#!/bin/bash
+
+function brief()
+{
+    echo '--slm=[yes|no]'
+}
+
+function help()
+{
+    brief
+    cat <<EOF
+    If yes, start system using slm instead of a shell script.  The default is no.
+EOF
+}
+
+function validate() {
+    if [ "$OPT_SLM" = yes -o "$OPT_SLM" = no ]; then
+        exit 0
+    else
+        echo "--slm must be set to 'yes' or 'no'"
+        exit 1
+    fi
+}
+
+function configure()
+{
+    rm -f output/option_files/*.opt_slm
+    if [ "$OPT_SLM" = yes ]; then
+        cat >output/option_files/options.opt_slm <<EOF
+EXTRA_FILE_PREFIX=(slm)
+EOF
+        cat >output/option_files/generate.opt_slm <<EOF
+generate_file ${TOOL_DIR}/inputs/slm.cfg
+EOF
+        cat >output/option_files/ifs_files.opt_slm <<EOF
+[perms=555] pci_patchup {
+#!/bin/sh
+chmod a+rx /dev/pci/server_id_1
+#if ! defined(OPT_SECPOL_no)
+chmod a+r /dev/shmem/pci/pci_db
+setfacl -m user:__IO_USB_ID__:rw,user:__IO_SOCK_ID__:rw /dev/shmem/pci/pci_hw /dev/shmem/pci/pci_sync
+#endif
+}
+EOF
+    fi
+
+    exit 0
+}
+
+case "$1" in
+	brief)
+		brief;;
+	help)
+		help;;
+	validate)
+		validate;;
+	configure)
+		configure;;
+    default)
+        echo no;;
+esac

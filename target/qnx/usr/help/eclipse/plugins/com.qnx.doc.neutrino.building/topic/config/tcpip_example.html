@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="TCP/IP with network filesystem" />
+<meta name="abstract" content="This buildfile starts up an Ethernet driver, the TCP/IP stack, and the network filesystem." />
+<meta name="description" content="This buildfile starts up an Ethernet driver, the TCP/IP stack, and the network filesystem." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="tcpip_example" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>TCP/IP with network filesystem</title>
+</head>
+<body id="tcpip_example">
+
+	<h1 class="title topictitle1" id="ariaid-title1">TCP/IP with network filesystem</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">This buildfile starts up an Ethernet driver, the TCP/IP stack,
+		and the network filesystem.</p>
+
+		<div class="section">
+			
+			
+				<span class="keyword option">-d</span> specifies the driver that should be loaded; in this case, the
+			driver for a fictional Horatio Ethernet controller. The <span class="keyword option">-m</span> options load
+			the general drivers for Flattened Device Tree (FDT) bus and Ethernet PHY devices: <pre class="pre codeblock" id="tcpip_example__codeblock_n5f_sg4_lzb">[virtual=aarch64le,elf +compress] .bootstrap = {
+    startup-abc123 -u reg -vvv
+    PATH=/proc/boot procnto-smp-instr
+}
+
+[+script] .script = {
+ devc-ser8250 -e -b9600 0x1d0003f8,0x23 &amp;
+
+ waitfor /dev/ser1 4
+
+ reopen /dev/ser1
+
+# Start the logging server
+ slogger2
+ waitfor /dev/slog
+
+# Start the entropy server
+ random
+
+# Network drivers and filesystems
+ io-sock -m fdt -m phy -d horatio
+ if_up -p horatio0
+ ifconfig horatio0 192.0.2.2/24
+ if_up horatio0
+
+ fs-nfs3 192.0.2.1:/srv /mnt
+ waitfor /mnt
+
+ [+session] sh &amp;
+}
+
+# make /tmp point to the shared memory area
+[type=link] /tmp=/dev/shmem
+
+# Redirect console messages
+[type=link] /dev/console=/dev/ser1
+
+# We use the runtime linker (ldqnx-64.so)
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+
+# Automatically add the dependent libraries
+[-autolink]
+[autoso=add]
+
+# Serial Driver
+devc-serpl011
+
+# Logging daemon
+slogger2
+
+# Entropy
+random
+qcrypto-openssl-3.so
+/etc/qcrypto.conf = {
+openssl-3   tags=*
+}
+
+# Shell
+sh
+
+# Include the network files so we can access files across the net
+devs-horatio.so
+io-sock
+mods-fdt.so
+mods-phy.so
+if_up
+ifconfig
+fs-nfs3</pre>
+			<p class="p">The startup adds the FDT (flattened device tree) support that this networking driver
+				requires (by specifying <span class="ph codeph">-u reg</span>).</p>
+<p class="p">Once the network manager is
+				running, the <span class="keyword cmdname">ifconfig horatio0 192.0.2.2/24</span> command then
+				specifies the IP address of the interface. </p>
+<p class="p">The NFS filesystem module,
+					<span class="keyword cmdname">fs-nfs3</span>, is started with options telling it that it should
+				mount the filesystem present on <tt class="ph tt">192.0.2.1</tt>. </p>
+<p class="p">Because it may take some time to go over the
+				network and establish the mounting, another <span class="keyword cmdname">waitfor</span> instance
+				ensures that the filesystem on the remote system has been correctly mounted.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

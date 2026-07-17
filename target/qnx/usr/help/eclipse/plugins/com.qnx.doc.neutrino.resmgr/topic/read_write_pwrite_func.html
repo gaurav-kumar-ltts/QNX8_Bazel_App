@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Sample code for handling _IO_WRITE messages in pwrite*()" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/read_write_Handlingpread.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pwrite_func" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Sample code for handling _IO_WRITE messages in pwrite*()</title>
+</head>
+<body id="pwrite_func">
+
+<h1 class="title topictitle1" id="ariaid-title1">Sample code for handling <span class="keyword const">_IO_WRITE</span> messages in <span class="keyword apiname">pwrite*()</span></h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+             The following sample code
+            demonstrates how to handle <span class="keyword const">_IO_WRITE</span> for the case where the client calls
+            one of the <span class="keyword apiname">pwrite*()</span> functions. Keep in mind that the <span class="keyword dtype">struct
+                _xtype_offset</span> information follows the <span class="keyword dtype">struct _io_write</span> in the
+            sender's message buffer. This means that the data to be written follows the
+                <span class="keyword dtype">struct _xtype_offset</span> information (instead of the normal case where it
+            follows the <span class="keyword dtype">struct _io_write</span>). So, you must take this into account when
+            doing the <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_msgget.html"><span class="keyword apiname">resmgr_msgget()</span></a> call in order to get the data from
+            the sender's message. </p>
+
+<pre class="pre codeblock">/* we are defining io_pwrite_t here to make the code below simple */
+typedef struct {
+    struct _io_write        write;
+    struct _xtype_offset    offset;
+} io_pwrite_t;
+
+int io_write (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb)
+{
+    off64_t offset; /* where to write */
+    int     status;
+    size_t  skip;   /* offset into msg to where the data resides */
+
+    if ((status = iofunc_write_verify(ctp, msg, ocb, NULL)) != EOK) {
+        return(status);
+    }
+    
+    switch(msg-&gt;i.xtype &amp; _IO_XTYPE_MASK) {
+    case _IO_XTYPE_NONE:
+        offset = ocb-&gt;offset;
+        skip = sizeof(io_write_t);
+        break;
+    case _IO_XTYPE_OFFSET:
+        /* 
+         *  io_pwrite_t is defined above
+         *  client is doing a one-shot write to this offset by
+         *  calling one of the pwrite*() functions
+         */
+        offset = ((io_pwrite_t *) msg)-&gt;offset.offset;
+        skip = sizeof(io_pwrite_t);
+        break;
+    default:
+        return(ENOSYS);
+    }
+    ...
+    
+    /* 
+     *  get the data from the sender's message, 
+     *  skipping all possible header information
+     */
+    resmgr_msggetv(ctp, iovs, niovs, skip);
+    ...
+}
+</pre>
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/read_write_Handlingpread.html">Handling pread*() and pwrite*()</a></div>
+</div>
+</div></body>
+</html>

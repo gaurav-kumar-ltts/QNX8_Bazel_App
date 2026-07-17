@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Kernel Callouts" />
+<meta name="abstract" content="Kernel callouts are standalone pieces of code (or code fragments) that the kernel uses to perform hardware-specific functions. These callouts don't need to be statically linked to the kernel." />
+<meta name="description" content="Kernel callouts are standalone pieces of code (or code fragments) that the kernel uses to perform hardware-specific functions. These callouts don't need to be statically linked to the kernel." />
+<meta name="DC.subject" content="callouts, kernel callouts, kernel callouts, functions, interrupt, assembly, position independent code, PIC, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="callouts, kernel callouts, kernel callouts, functions, interrupt, assembly, position independent code, PIC, QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="callout_about" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Kernel Callouts</title>
+</head>
+<body id="callout_about">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Kernel Callouts</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">Kernel callouts are standalone pieces of code (or code fragments) that the kernel
+		uses to perform hardware-specific functions. These callouts don't need to be
+		statically linked to the kernel.</p>
+
+		<div class="section">
+			
+			
+			
+			
+			
+			
+			
+			<p class="p">The <span class="keyword">QNX OS</span> kernel and process manager
+				(<span class="keyword cmdname">procnto*</span>) is designed to be as platform-independent as
+				possible. Each release provides a kernel version for each
+				supported hardware architecture (see <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/p/procnto.html"><span class="keyword cmdname">procnto*</span></a> in the <cite class="cite">Utilities
+					Reference</cite>). This kernel version contains callouts specific to that hardware.</p>
+
+			
+			<p class="p">The startup code can include multiple versions of the same kernel callout.
+				For example, it can include a generic kernel callout as well as kernel callouts that are
+				specific to an architecture and board. During hardware discovery, the startup code can
+				determine which kernel callout is most appropriate for the current hardware and make
+				that version of the callout available to the kernel. However, it is simpler and more
+				efficient to avoid the discovery process and include only one version of each callout
+				in the startup code and have this code tell the kernel which callouts to use.</p>
+
+			
+			<div class="note"><span class="notetitle">Note:</span> 
+				<ul class="ul">
+					<li class="li">The startup program copies the kernel callout code from its own memory
+						into the <a class="xref" href="../syspage/syspage_about.html" title="The system page contains essential information about the system, including the system page's size, information about the hardware platform (including IRQs and the CPU), the cache size, and the location of kernel callouts in memory.">system
+							page</a>. When this is complete, the memory used for the startup
+						program is freed.</li>
+
+					<li class="li">For all but two routines, the kernel uses normal function-calling
+						conventions to invoke the callouts. For information about these two
+						exceptions, see <q class="q"><a class="xref" href="callout_exception.html" title="To improve performance, the interrupt_id_*() and interrupt_eoi_*() kernel callouts are intergrated directly into the kernel code.">interrupt_id_*() and interrupt_eoi_*()</a></q>.</li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section" id="callout_about__char"><h2 class="title sectiontitle">Common characteristics</h2>
+			
+			
+			
+			
+			<p class="p">For information about what different kernel callouts are used for, 
+				see <q class="q"><a class="xref" href="callout_cats.html" title="The startup library provides kernel callouts that look after different categories of tasks. You can use these callouts as models when you write your own.">Kernel callout categories</a></q> in this chapter.</p>
+
+			<p class="p">All kernel callouts share some common characteristics, including:</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm">Assembly code</dt>
+
+					<dd class="dd">
+						<p class="p">Kernel callouts are written in assembly because:</p>
+
+						<ul class="ul">
+							<li class="li">They must be position-independent (see <q class="q"><a class="xref" href="callout_irq.html" title="The interrupt controller interface includes kernel callouts and stubs.">Interrupt controller</a></q> below).</li>
+
+							<li class="li">There is no portable way of controlling pre- and post-amble
+								creation, or code generation; a change to an Application Binary
+								Interface (ABI) or a build configuration problem might create a latent
+								bug in code that isn't fully self-contained and position-independent.</li>
+
+						</ul>
+
+					</dd>
+
+				
+				
+					<dt class="dt dlterm" id="callout_about__pic">Position independent code (PIC)</dt>
+
+					<dd class="dd">
+						
+						Position independence is required because kernel callouts are provided in
+						the startup code, which is overwritten when the kernel starts up.</dd>
+
+					<dd class="dd ddexpand">To keep the kernel callouts after the kernel has started, the startup
+						library copies them to a location where they won't be overwritten. 
+						After this copying, the callouts are in a location
+						other than where they were loaded, so they must be written to be
+						position-independent. This position independence requires that they be
+						written in assembly.</dd>
+
+				
+				
+					<dt class="dt dlterm">Inline in kernel source</dt>
+
+					<dd class="dd">Kernel callouts are copied inline to the kernel code and don't use the C
+						language <tt class="ph tt">return</tt> keyword. However, they can provide the kernel with
+						information in CPU registers.</dd>
+
+				
+				
+					<dt class="dt dlterm">Interrupt ID and EOI</dt>
+
+					<dd class="dd">The interrupt ID and EOI used for kernel callouts are specific to kernel
+						callouts.</dd>
+
+				
+				
+					<dt class="dt dlterm">No static read/write storage</dt>
+
+					<dd class="dd">Kernel callouts can't specify any static read/write storage space for
+						themselves. However, in the system page, you can allocate a small amount of
+						storage space for a specific kernel callout.</dd>
+
+				
+			</dl>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Passing data to and from kernel callouts</h2>
+			
+			
+			
+			
+			
+			<p class="p">The kernel uses the SoC's Application Binary Interface (ABI) to pass data to and get
+				data from kernel callouts. You should become familiar with the ABI documentation for
+				your board before you attempt to write kernel callouts for it.</p>
+
+			<p class="p">In many cases, the kernel puts inputs to kernel callouts in general-purpose registers.
+				You can also use <span class="keyword const">INTR_GENFLAG_*</span> flags to have the kernel pass in additional
+				input values. These and other flags are in the <span class="keyword dtype">intrinfo</span> structure that is
+				set up by the <a class="xref" href="../startup_lib/init_intrinfo.html" title="Initialize the intrinfo data structure in the system page."><span class="keyword apiname">init_intrinfo()</span></a> function.</p>
+
+			<p class="p">Similarly, you may need to have kernel callouts put their output in registers.</p>
+
+			<div class="note"><span class="notetitle">Note:</span> QNX kernel callout code usually has comments right in the source files,
+				and they provide details about which registers to use for callout input and output.
+				If these comments are absent or unclear, refer to your board's ABI documentation.</div>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

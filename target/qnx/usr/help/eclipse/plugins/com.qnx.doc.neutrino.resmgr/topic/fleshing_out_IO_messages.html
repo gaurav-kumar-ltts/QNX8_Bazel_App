@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="I/O messages" />
+<meta name="DC.subject" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Writing a Resource Manager, Developer" />
+<meta name="DC.relation" scheme="URI" content="../topic/fleshing_out_Message_types.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="IO_messages" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>I/O messages</title>
+</head>
+<body id="IO_messages">
+
+<h1 class="title topictitle1" id="ariaid-title1">I/O messages</h1>
+
+
+<div class="body conbody">
+
+<p class="p">
+An I/O message is one that relies on an existing binding
+(e.g., OCB) between the client and the resource manager.
+
+
+</p>
+
+
+<p class="p">
+As an example, an <span class="keyword const">_IO_READ</span> (from the client's
+<span class="keyword apiname">read()</span> function) message depends on the client's
+having previously established an association (or
+<em class="ph i">context</em>) with the resource manager by issuing an
+<span class="keyword apiname">open()</span> and getting back a file descriptor. This
+context, created by the <span class="keyword apiname">open()</span> call, is then used
+to process the subsequent I/O messages, like the
+<span class="keyword const">_IO_READ</span>.
+
+
+
+</p>
+
+
+<p class="p">
+There are good reasons for this design. It would be
+inefficient to pass the full pathname for each and every
+<span class="keyword apiname">read()</span> request, for example. The
+<span class="keyword apiname">open()</span> handler can also perform tasks that we
+want done only once (e.g., permission checks), rather than
+with each I/O message. Also, when the <span class="keyword apiname">read()</span> has
+read 4096 bytes from a disk file, there may be another 20
+megabytes still waiting to be read. Therefore, the
+<span class="keyword apiname">read()</span> function would need to have some context
+information telling it the position within the file it's
+reading from, how much has been read, and so on.
+
+
+</p>
+
+
+<p class="p">
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_io_funcs_t.html"><span class="keyword dtype">resmgr_io_funcs_t</span></a>
+structure (which you pass to
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+along with the connect functions) defines the functions to call for the I/O messages.
+The <span class="keyword dtype">resmgr_io_funcs_t</span> structure is defined in
+<span class="ph filepath">&lt;sys/resmgr.h&gt;</span> as shown below.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+
+
+
+In order to correctly define <span class="keyword dtype">RESMGR_OCB_T</span>, <span class="keyword cmdname">#include</span>
+<span class="ph filepath">&lt;sys/iofunc.h&gt;</span> before <span class="ph filepath">&lt;sys/resmgr.h&gt;</span>.
+</div>
+
+
+<pre class="pre codeblock">typedef struct _resmgr_io_funcs {
+   unsigned   nfuncs;
+   int (*read)       (resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb);
+   int (*write)      (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb);
+   int (*close_ocb)  (resmgr_context_t *ctp, void *reserved, RESMGR_OCB_T *ocb);
+   int (*stat)       (resmgr_context_t *ctp, io_stat_t *msg, RESMGR_OCB_T *ocb);
+   int (*notify)     (resmgr_context_t *ctp, io_notify_t *msg, RESMGR_OCB_T *ocb);
+   int (*devctl)     (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb);
+   int (*unblock)    (resmgr_context_t *ctp, io_pulse_t *msg, RESMGR_OCB_T *ocb);
+   int (*pathconf)   (resmgr_context_t *ctp, io_pathconf_t *msg, RESMGR_OCB_T *ocb);
+   int (*lseek)      (resmgr_context_t *ctp, io_lseek_t *msg, RESMGR_OCB_T *ocb);
+   int (*chmod)      (resmgr_context_t *ctp, io_chmod_t *msg, RESMGR_OCB_T *ocb);
+   int (*chown)      (resmgr_context_t *ctp, io_chown_t *msg, RESMGR_OCB_T *ocb);
+   int (*utime)      (resmgr_context_t *ctp, io_utime_t *msg, RESMGR_OCB_T *ocb);
+   int (*openfd)     (resmgr_context_t *ctp, io_openfd_t *msg, RESMGR_OCB_T *ocb);
+   int (*fdinfo)     (resmgr_context_t *ctp, io_fdinfo_t *msg, RESMGR_OCB_T *ocb);
+   int (*lock)       (resmgr_context_t *ctp, io_lock_t *msg, RESMGR_OCB_T *ocb);
+   int (*space)      (resmgr_context_t *ctp, io_space_t *msg, RESMGR_OCB_T *ocb);
+   int (*shutdown)   (resmgr_context_t *ctp, io_shutdown_t *msg, RESMGR_OCB_T *ocb);
+   int (*mmap)       (resmgr_context_t *ctp, io_mmap_t *msg, RESMGR_OCB_T *ocb);
+   int (*msg)        (resmgr_context_t *ctp, io_msg_t *msg, RESMGR_OCB_T *ocb);
+   int (*reserved)   (resmgr_context_t *ctp, void *msg, RESMGR_OCB_T *ocb);
+   int (*dup)        (resmgr_context_t *ctp, io_dup_t *msg, RESMGR_OCB_T *ocb);
+   int (*close_dup)  (resmgr_context_t *ctp, io_close_t *msg, RESMGR_OCB_T *ocb);
+   int (*lock_ocb)   (resmgr_context_t *ctp, void *reserved, RESMGR_OCB_T *ocb);
+   int (*unlock_ocb) (resmgr_context_t *ctp, void *reserved, RESMGR_OCB_T *ocb);
+   int (*sync)       (resmgr_context_t *ctp, io_sync_t *msg, RESMGR_OCB_T *ocb);
+   int (*power)      (resmgr_context_t *ctp, io_power_t *msg, RESMGR_OCB_T *ocb);
+   int (*acl)        (resmgr_context_t *ctp, io_acl_t *msg, RESMGR_OCB_T *ocb);
+   int (*pause)      (resmgr_context_t *ctp, void *reserved, RESMGR_OCB_T *ocb);
+   int (*unpause)    (resmgr_context_t *ctp, io_pulse_t *msg, RESMGR_OCB_T *ocb);
+   int (*read64)     (resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb);
+   int (*write64)    (resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb);
+   int (*notify64)   (resmgr_context_t *ctp, io_notify_t *msg, RESMGR_OCB_T *ocb);
+   int (*utime64)    (resmgr_context_t *ctp, io_utime_t *msg, RESMGR_OCB_T *ocb);
+} resmgr_io_funcs_t;
+</pre>
+
+<p class="p">
+
+You initialize this structure in the same way as the
+<span class="keyword dtype">resmgr_connect_funcs_t</span> structure: call
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofunc_func_init.html"><span class="keyword apiname">iofunc_func_init()</span></a>
+to fill it with pointers to the default handlers, and then override any
+that your resource manager needs to handle specifically.
+This structure also begins with an <var class="keyword varname">nfuncs</var> member that indicates
+how many functions are in the structure, to allow for future expansion.
+</p>
+
+
+<div class="note"><span class="notetitle">Note:</span> 
+
+The <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/resmgr_attach.html"><span class="keyword apiname">resmgr_attach()</span></a>
+function copies the <em class="ph i">pointers</em> to the
+<span class="keyword dtype">resmgr_connect_funcs_t</span> and <span class="keyword dtype">resmgr_io_funcs_t</span>
+structures, not the structures themselves.
+You should allocate the structures, declare them to be static, or make them
+global variables.
+If your resource manager is for more than one device with different
+handlers, create separate structures that define the handlers.
+</div>
+
+
+<p class="p">
+Notice that the I/O functions all have a common
+parameter list. The first entry is a resource manager
+context structure, the second is a message (the type of
+which matches the message being handled and contains
+parameters sent from the client), and the last is an OCB
+(containing what we bound when we handled the client's <span class="keyword apiname">open()</span> function).
+
+</p>
+
+
+<p class="p">
+You usually have to provide a handler for the following entries:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">read</var>, <var class="keyword varname">read64</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/read.html"><span class="keyword apiname">read()</span></a> and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/readdir.html"><span class="keyword apiname">readdir()</span></a>.
+  The message type is <span class="keyword const">_IO_READ</span>.
+  For more information about the <var class="keyword varname">io_read</var> handler, see
+  <q class="q"><a class="xref" href="read_write_HANDLING_READ_MSG.html">Handling the <span class="keyword const">_IO_READ</span> message</a></q>
+  in the Handling Read and Write Messages chapter.
+  
+  
+  
+
+  <p class="p">
+  
+  The <var class="keyword varname">read64</var> handler is for large reads.
+  The message type is <span class="keyword const">_IO_READ64</span>, and the message uses a previously unused member to specify
+  the high 32 bits of length.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">write</var>, <var class="keyword varname">write64</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/w/write.html"><span class="keyword apiname">write()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fwrite.html"><span class="keyword apiname">fwrite()</span></a>,
+  and so on.
+  The message type is <span class="keyword const">_IO_WRITE</span>.
+  For more information about the <var class="keyword varname">io_write</var> handler, see
+  <q class="q"><a class="xref" href="read_write_HANDLING_WRITE_MSG.html">Handling the <span class="keyword const">_IO_WRITE</span> message</a></q>
+  in the Handling Read and Write Messages chapter.
+  
+  
+  
+
+  <p class="p">
+  
+  The <var class="keyword varname">write64</var> handler is for large writes.
+  The message type is <span class="keyword const">_IO_WRITE64</span>, and the message uses a previously unused member to specify
+  the high 32 bits of length.
+  </p>
+
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">devctl</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/devctl.html"><span class="keyword apiname">devctl()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ioctl.html"><span class="keyword apiname">ioctl()</span></a>.
+  The message type is <span class="keyword const">_IO_DEVCTL</span>.
+  For more information about the <var class="keyword varname">io_devctl</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_devctl.html">Handling <span class="keyword apiname">devctl()</span> messages</a></q>
+  in the Handling Other Messages chapter.
+  
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+You typically use the default entry for the following:
+</p>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">close_ocb</var></dt>
+
+<dd class="dd">Called by the library when the last
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>
+  has been received by a particular OCB.
+  You can use this handler to clean up anything associated with the OCB.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">stat</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/stat.html"><span class="keyword apiname">stat()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lstat.html"><span class="keyword apiname">lstat()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fstat.html"><span class="keyword apiname">fstat()</span></a>.
+  The message type is <span class="keyword const">_IO_STAT</span>.
+  For more information about the <var class="keyword varname">io_stat</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_stat.html">Handling <span class="keyword apiname">stat()</span></a></q>
+  in the Handling Other Messages chapter.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">notify</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/poll.html"><span class="keyword apiname">poll()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/select.html"><span class="keyword apiname">select()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html"><span class="keyword apiname">ionotify()</span></a>.
+  The message type is <span class="keyword const">_IO_NOTIFY</span>.
+  For more information about the <var class="keyword varname">io_notify</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_ionotify.html">Handling <span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll()</span>, and 
+    <span class="keyword apiname">select()</span></a></q> in the Handling Other Messages chapter.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">unblock</var></dt>
+
+<dd class="dd">Handles requests from the kernel to unblock the client during the I/O message phase.
+  There's no message associated with this.
+  For more information about the <var class="keyword varname">io_unblock</var> handler, see
+  <q class="q"><a class="xref" href="signals_HANDLING_UNBLOCKING.html">Handling client unblocking due to signals or timeouts</a></q>
+  in the Unblocking Clients and Handling Interrupts chapter.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">pathconf</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fpathconf.html"><span class="keyword apiname">fpathconf()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/p/pathconf.html"><span class="keyword apiname">pathconf()</span></a>.
+  The message type is <span class="keyword const">_IO_PATHCONF</span>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lseek</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lseek.html"><span class="keyword apiname">lseek()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fseek.html"><span class="keyword apiname">fseek()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/r/rewinddir.html"><span class="keyword apiname">rewinddir()</span></a>.
+  The message type is <span class="keyword const">_IO_LSEEK</span>.
+  For more information about the <var class="keyword varname">io_lseek</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_lseek.html">Handling <span class="keyword apiname">lseek()</span></a></q>
+  in the Handling Other Messages chapter.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">chmod</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chmod.html"><span class="keyword apiname">chmod()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fchmod.html"><span class="keyword apiname">fchmod()</span></a>.
+  The message type is <span class="keyword const">_IO_CHMOD</span>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">chown</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/chown.html"><span class="keyword apiname">chown()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fchown.html"><span class="keyword apiname">fchown()</span></a>.
+  The message type is <span class="keyword const">_IO_CHOWN</span>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">utime</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/u/utime.html"><span class="keyword apiname">utime()</span></a>.
+  The message type is <span class="keyword const">_IO_UTIME</span>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">openfd</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/o/openfd.html"><span class="keyword apiname">openfd()</span></a>.
+  The message type is <span class="keyword const">_IO_OPENFD</span>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">fdinfo</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/iofdinfo.html"><span class="keyword apiname">iofdinfo()</span></a>.
+  The message type is <span class="keyword const">_IO_FDINFO</span>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lock</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/lockf.html"><span class="keyword apiname">lockf()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/flock.html"><span class="keyword apiname">flock()</span></a>.
+  The message type is <span class="keyword const">_IO_LOCK</span>.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">space</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/ftruncate.html"><span class="keyword apiname">ftruncate()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/l/ltrunc.html"><span class="keyword apiname">ltrunc()</span></a>.
+  The message type is <span class="keyword const">_IO_SPACE</span>.
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">shutdown</var></dt>
+
+<dd class="dd">Reserved for future use.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">mmap</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap.html"><span class="keyword apiname">mmap()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/munmap.html"><span class="keyword apiname">munmap()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap_device_io.html"><span class="keyword apiname">mmap_device_io()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/mmap_device_memory.html"><span class="keyword apiname">mmap_device_memory()</span></a>.
+  The message type is <span class="keyword const">_IO_MMAP</span>.
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">msg</var></dt>
+
+<dd class="dd">Handles messages that are manually assembled and sent via
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html"><span class="keyword apiname">MsgSend()</span></a>.
+  The message type is <span class="keyword const">_IO_MSG</span>.
+  For more information about the <var class="keyword varname">io_msg</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_io_msg.html">Handling out-of-band (<span class="keyword const">_IO_MSG</span>) messages</a></q>
+  in the Handling Other Messages chapter.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">reserved</var></dt>
+
+<dd class="dd">Reserved for future use.</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">dup</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup.html"><span class="keyword apiname">dup()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/d/dup2.html"><span class="keyword apiname">dup2()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fcntl.html"><span class="keyword apiname">fcntl()</span></a>,
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fork.html"><span class="keyword apiname">fork()</span></a>,
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/spawn.html"><span class="keyword apiname">spawn*()</span></a>.
+  The message type is <span class="keyword const">_IO_DUP</span>.
+  For more information about the <var class="keyword varname">io_dup</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_open.html">Handling <span class="keyword apiname">open()</span>, <span class="keyword apiname">dup()</span>, and 
+    <span class="keyword apiname">close()</span> messages</a></q> in the Handling Other Messages chapter.
+  
+  
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">close_dup</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/c/close.html"><span class="keyword apiname">close()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fclose.html"><span class="keyword apiname">fclose()</span></a>.
+  The message type is <span class="keyword const">_IO_CLOSE</span>.
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">lock_ocb</var></dt>
+
+<dd class="dd">Locks the attributes structure pointed to by the OCB.
+  This is done to ensure that only one thread at a time is operating on both
+  the OCB and the corresponding attributes structure.
+  The lock (and corresponding unlock) functions are synthesized by the resource
+  manager library before and after completion of message handling.
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">unlock_ocb</var></dt>
+
+<dd class="dd">Unlocks the attributes structure pointed to by the OCB.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">sync</var></dt>
+
+<dd class="dd">Handles client calls to
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fsync.html"><span class="keyword apiname">fsync()</span></a>
+  and
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/f/fdatasync.html"><span class="keyword apiname">fdatasync()</span></a>.
+  The message type is <span class="keyword const">_IO_SYNC</span>.
+  
+  
+  
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">power</var></dt>
+
+<dd class="dd">Reserved for future use.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">acl</var></dt>
+
+<dd class="dd">Handles messages about access control lists.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">pause</var></dt>
+
+  <dd class="dd">Used for <span class="keyword const">EDEADLK</span> and message pause handling.
+          
+        </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">unpause</var></dt>
+
+  <dd class="dd">Used for <span class="keyword const">EDEADLK</span> and message pause handling.
+          
+        </dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">notify64</var></dt>
+
+<dd class="dd">Similar to <var class="keyword varname">notify</var>, but used if the client passes in a 64-bit event.
+  The message type is <span class="keyword const">_IO_NOTIFY64</span>, and the message extends the structure to handle
+  64-bit <span class="keyword dtype">sigevent</span>s.
+  For more information about the <var class="keyword varname">io_notify64</var> handler, see
+  <q class="q"><a class="xref" href="messages_HANDLING_ionotify.html">Handling <span class="keyword apiname">ionotify()</span>, <span class="keyword apiname">poll()</span>, and 
+    <span class="keyword apiname">select()</span></a></q> in the Handling Other Messages chapter.
+  
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">utime64</var></dt>
+
+<dd class="dd">Similar to <var class="keyword varname">utime</var>, but used if the client issues a time operation that specifies nanoseconds,
+  or in which the seconds value can't be represented in 32 bits. 
+  The message type is <span class="keyword const">_IO_UTIME64</span>, and the message uses a different structure to
+  support 64-bit <span class="keyword dtype">time_t</span>s.
+  
+  
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/fleshing_out_Message_types.html">Message types</a></div>
+</div>
+</div></body>
+</html>

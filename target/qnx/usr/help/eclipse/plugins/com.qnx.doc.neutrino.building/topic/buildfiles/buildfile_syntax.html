@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Buildfile syntax" />
+<meta name="abstract" content="The buildfile text may include blank lines and comments. All sections are optional, but not all combinations are permitted." />
+<meta name="description" content="The buildfile text may include blank lines and comments. All sections are optional, but not all combinations are permitted." />
+<meta name="DC.subject" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="keywords" content="QNX SDP, 8.0, Building Embedded Systems, Configuration, Developer" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="buildfile_syntax" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../../style.css" />
+<title>Buildfile syntax</title>
+</head>
+<body id="buildfile_syntax">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Buildfile syntax</h1>
+
+	
+	
+	<div class="body conbody"><p class="shortdesc">The buildfile text may include blank lines and comments. All sections are optional,
+		but not all combinations are permitted.</p>
+
+		<div class="p">
+			
+			
+			
+			
+			The general format for a buildfile is:
+<pre class="pre codeblock"><var class="keyword varname">attribute</var> <var class="keyword varname">filename</var> <var class="keyword varname">contents</var>
+<var class="keyword varname">attribute</var> <var class="keyword varname">filename</var> <var class="keyword varname">contents</var>
+…
+</pre>
+		</div>
+
+		<div class="p">For example, consider the line:
+<pre class="pre codeblock">[virtual=aarch64le,elf +compress] .boot = {</pre>
+			This has an attribute of <span class="ph codeph">[virtual=aarch64le,elf +compress]</span> and a filename of
+			<span class="ph filepath">.boot</span>.
+			The <var class="keyword varname">contents</var> part of the line is what we call an <em class="ph i">inline file</em>.</div>
+
+		<div class="note"><span class="notetitle">Note:</span> 
+			<ul class="ul">
+				<li class="li">
+					In a buildfile, a number sign (<span class="ph codeph">#</span>) indicates a comment; anything
+					between it and the end of the line is ignored. Make sure there's a space between
+					a buildfile command and the number sign.</li>
+
+				<li class="li">For full information about attributes and modifiers used in buildfiles, see the
+					<a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkifs.html"><span class="keyword cmdname">mkifs</span></a> documentation in the
+					<cite class="cite">Utilities Reference</cite>.</li>
+
+				<li class="li">For information about buildfiles used to generate flash filesystem images
+					(instead of OS images), see <q class="q"><a class="xref" href="../os_images/nto_using_mkefs.html" title="The mkefs utility uses instructions in its buildfile to build a flash filesystem image file.">mkefs and its buildfile</a></q> and the
+					entry for <a class="xref" href="../../../com.qnx.doc.neutrino.utilities/topic/m/mkefs.html"><span class="keyword cmdname">mkefs</span></a> in the
+					<cite class="cite">Utilities Reference</cite>.</li>
+
+			</ul>
+
+		</div>
+
+		<div class="section" id="buildfile_syntax__attributes"><h2 class="title sectiontitle">Attributes</h2>
+			
+			
+			
+			
+			
+			<p class="p">Two types of attributes can be present in a buildfile:</p>
+
+			<dl class="dl">
+				
+					<dt class="dt dlterm">Boolean (<span class="ph codeph">[+attribute]</span> | <span class="ph codeph">[-attribute]</span>)</dt>
+
+					<dd class="dd">Turn on or off a specific attribute. For example,
+							<span class="ph codeph">[+script]</span> turns on the <span class="keyword option">script</span> attribute,
+						and <span class="ph codeph"></span><span class="ph codeph">[-optional]</span> turns off 
+						the <span class="keyword option">optional</span> attribute.</dd>
+
+				
+				
+					<dt class="dt dlterm">Value (<span class="ph codeph">[attribute=value]</span>)</dt>
+
+					<dd class="dd">Assign a value to an attribute (e.g., <span class="ph codeph">[uid=0]</span>).
+						Note that there are no spaces around the equals sign.</dd>
+
+				
+			</dl>
+
+			<div class="p">When combining attributes, put all attributes together inside the square brackets.
+				For example:
+				<ul class="ul">
+					<li class="li">Correct: <span class="ph codeph">[attr1 attr2]</span></li>
+
+					<li class="li">Wrong: <span class="ph codeph">[attr1] [attr2]</span></li>
+
+				</ul>
+
+			</div>
+
+			<div class="p">In other words, use this syntax: <span class="ph codeph">[uid=0 gid=0] file_owned_by_root</span>.
+				The following is incorrect:
+<pre class="pre codeblock"># Wrong!
+[uid=0] [gid=0] [perms=0666] file1
+</pre></div>
+
+			<div class="p">The above attributes should be combined as follows:
+<pre class="pre codeblock"># Correct!
+[uid=0 gid=0 perms=0666] file1
+</pre></div>
+
+			<div class="p">Attributes can apply to a single file or to all files listed after the attribute.
+				For example:
+				<ul class="ul">
+					<li class="li">Attributes apply to a single file:
+<pre class="pre codeblock">[uid=7] file1_owned_by_user7
+[uid=6] file2_owned_by_user6</pre></li>
+
+					<li class="li">Attributes apply to all subsequent files:
+<pre class="pre codeblock">[uid=7]
+file1_owned_by_user7
+file2_owned_by_user7</pre></li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Modifiers</h2>
+			
+			
+			
+			<p class="p">Buildfile modifiers use the same syntax as buildfile attributes (e.g.,
+					<span class="ph codeph">[some_modifier]</span>), but apply to commands in script files.</p>
+
+		</div>
+
+		<div class="section" id="buildfile_syntax__inline"><h2 class="title sectiontitle">Inline files</h2>
+			
+			
+			
+			
+			<p class="p">Inline files are a convenient way to place a file in the image without actually
+				having a separate file.
+				
+				Instead of getting the file contents from the filesystem on the host machine,
+				<span class="keyword cmdname">mkifs</span> gets them from the text enclosed in braces in the
+				buildfile itself.</p>
+
+			<div class="p">The following rules apply to inline files:
+				<ul class="ul">
+					<li class="li">You can pick any filename you like, but it's good practice (and kind to those
+						who may come after you) to give the files meaningful names such as
+						<span class="ph codeph">.boot</span> or <span class="ph codeph">boot</span>, or
+						<span class="ph codeph">.script</span>.</li>
+
+					<li class="li">The contents of the inline file can't be on the same line as an opening or
+						closing brace.</li>
+
+					<li class="li">Leading spaces count.</li>
+
+					<li class="li">To put <span class="ph codeph">{</span>, <span class="ph codeph">}</span>, or <span class="ph codeph">\</span> characters
+						in the file, preceed each one by a backslash (e.g.,
+						<span class="ph codeph">\{</span>, <span class="ph codeph">\}</span>, <span class="ph codeph">\\</span>). </li>
+
+					<li class="li">Filenames that use special (i.e., non-alphanumeric) characters must be enclosed in
+						double quotation marks. For example, a file called <span class="ph filepath">I "think"
+						so</span>, must be specified:
+<pre class="pre codeblock">"I \"think\" so" = ...
+</pre></li>
+
+				</ul>
+
+			</div>
+
+		</div>
+
+
+	</div>
+
+</body>
+</html>

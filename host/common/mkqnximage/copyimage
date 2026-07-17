@@ -1,0 +1,166 @@
+#!/bin/bash
+
+. ${TOOL_DIR}/functions
+. local/options
+
+OPT_PART_SIZES=${OPT_PART_SIZES:=full}
+OPT_COPY_DEST=${OPT_COPY_DEST:=none}
+
+partitions=$1
+if [ "$partitions" = all ]; then
+	partitions=bsd
+fi
+if [ "$partitions" != bsd -a "${OPT_PART_SIZES}" == full ]; then
+	echo "To copy individual partitions, --part-sizes must set the partition sizes"
+	exit 1
+fi
+
+if [ -z "$partitions" ]; then
+	echo Nothing to copy
+	exit 1
+fi
+
+# If we're writing to an image file with expanable partions, do all the work
+# elsewhere.
+if [ "$OPT_COPY_DEST" = none -a "${OPT_PART_SIZES}" != full ]; then
+	buildinstaller
+	exit
+fi
+
+if [ "${OPT_PART_SIZES}" == full ]; then
+	BOOT_SECTORS=`file_size output/boot.part 512`
+	SYS_SECTORS=`file_size output/system.part 512`
+	DATA_SECTORS=`file_size output/data.part 512`
+else
+	IFS=':' read -r -a PART_SIZES <<< "$OPT_PART_SIZES"
+	BOOT_SECTORS=$((${PART_SIZES[0]} * 2048))
+	SYS_SECTORS=$((${PART_SIZES[1]} * 2048))
+	# If the data partition is to fill the remaining space, we don't know how big
+	# to make it. The size of an SD card can be different depending on where you look
+	# at it due to variable reported geometries. So instead make it just big enough
+	# and expand on the target on first boot. We do however have to tack on some
+	# extra sectors since if the size is not an even multiple of heads * sectors/track
+	# (which we don't know) we'll lose the last bit of the partition and chkqnx6fs might
+	# fail to expand the file system.
+	DATA_SECTORS=`file_size output/data.part 512`
+	DATA_SECTORS=$(($DATA_SECTORS+1000))
+fi
+
+boot_part=
+sytem_part=
+data_part=
+
+# Work out which partitions we have to copy.
+if [[ $partitions = *b* ]]; then
+	boot_part='"output/boot.part"'
+fi
+if [[ $partitions = *s* ]]; then
+	system_part='"output/system.part"'
+fi
+if [[ $partitions = *d* ]]; then
+	data_part='"output/data.part"'
+fi
+
+# If we're not updating the system partition, the info needs to match what is currently
+# in use.
+if [ -z "${system_part}" ]; then
+	if [ -e local/misc_files/part.info ]; then
+		. local/misc_files/part.info
+	else
+		echo "The file local/misc_files/part.info seems to have gone missing. You'll have to"
+		echo "include the system partition in the set if partitions you copy to correct this."
+		exit 1
+	fi
+else
+	if [ "$OPT_QTD" = yes ]; then
+		SYS_TYPE=185
+		SYS_GUID=qtd
+	elif [ "$OPT_QCFS" != no ]; then
+		SYS_TYPE=181
+		SYS_GUID=qcfs
+	elif [ "$OPT_QTSAFEFS" != no ]; then
+		SYS_TYPE=186
+		SYS_GUID=qtsafe
+	else
+		SYS_TYPE=178
+		SYS_GUID=qnx6
+	fi
+fi
+
+# If no copy destination is indicated, make one based on the vm type
+if [ "$OPT_COPY_DEST" = none ]; then
+	DEST_FILE=output/disk-${OPT_TYPE}
+	if [ -n "$boot_part" -a -n  "$system_part" -a -n  "$data_part" ]; then
+		# We're doing a full update so get rid of any existing file.
+		rm -f $DEST_FILE
+	fi
+else
+	DEST_FILE=$OPT_COPY_DEST
+
+	# If the path exists but can't be written to, it is most likely a SD card.
+	# Output a helpful message on how to fix it (on Linux). On Windows, who knows?
+	if [ -b ${DEST_FILE} -a ! -w ${DEST_FILE} ]; then
+		if [ "${HOST_UNAME}" = Linux ]; then
+			cat <<EOF
+The path ${DEST_FILE} is not writable. If this is the path to an SD card, you
+should set up udev rules to give yourself write access when you insert the card.
+EOF
+			exit 1
+		fi
+	fi
+fi
+
+# If the system is using qtd, then work out the offset near the end of the system partition
+# to write the qtd metadata.
+if [ -n "${system_part}" -a ${SYS_GUID} = qtd -a "${OPT_PART_SIZES}" != full ]; then
+	QTD_SECTORS=`file_size output/system-qtd.part 512`
+	QTD_OFFSET=$((${BOOT_SECTORS} + ${SYS_SECTORS} + 1 - ${QTD_SECTORS}))
+	if ! dd bs=512 if=output/system-qtd.part of=$DEST_FILE seek=$QTD_OFFSET conv=notrunc; then
+		echo "Failed to copy qtd metadata"
+		exit 1
+	fi
+else
+	unset QTD_OFFSET
+fi
+
+echo LAYOUT_FILE=output/build/disk.layout >output/di.params
+echo DEST_FILE=${DEST_FILE} >>output/di.params
+echo BOOT_SECTORS=${BOOT_SECTORS} >>output/di.params
+echo SYS_SECTORS=${SYS_SECTORS} >>output/di.params
+echo DATA_SECTORS=${DATA_SECTORS} >>output/di.params
+echo SYS_TYPE=${SYS_TYPE} >>output/di.params
+echo SYS_GUID=${SYS_GUID} >>output/di.params
+echo BOOT_PART=${boot_part} >>output/di.params
+echo SYS_PART=${system_part} >>output/di.params
+echo DATA_PART=${data_part} >>output/di.params
+if [ "$OPT_COPY_DEST" = none ]; then
+	echo VMDK_FILE=output/disk-${OPT_TYPE}.vmdk >>output/di.params
+fi
+
+if ! ${TOOL_DIR}/rundiskimage; then
+	echo "Failed to build disk image"
+	exit 1
+fi
+
+if [ -n "${system_part}" -o ! -e  local/misc_files/part.info ]; then
+	rm -f local/misc_files/part.info
+	echo SYS_TYPE=$SYS_TYPE >>local/misc_files/part.info
+	echo SYS_GUID=$SYS_GUID >>local/misc_files/part.info
+fi
+
+# If we're always doing full builds of the disk, no point in keeping around individual
+# partitions.
+if [ "${OPT_PART_SIZES}" == full ]; then
+	rm output/*.part
+fi
+
+if [ "$OPT_COPY_DEST" != none ]; then
+	# If we're (maybe) outputting to an SD card, ensure everything's written so
+	# the card can be yanked out.
+	if which sync >/dev/null; then
+		sync
+	fi
+	echo Written to "$OPT_COPY_DEST"
+fi
+
+exit 0

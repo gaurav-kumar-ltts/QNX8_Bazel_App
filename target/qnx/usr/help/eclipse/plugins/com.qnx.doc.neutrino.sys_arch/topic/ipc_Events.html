@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Events" />
+<meta name="abstract" content="A significant feature in the kernel design for QNX OS is its subsystem for handling events. POSIX and its realtime extensions define a number of asynchronous notification methods (e.g., UNIX signals that don't queue or pass data, POSIX realtime signals that may queue and pass data, etc.)." />
+<meta name="description" content="A significant feature in the kernel design for QNX OS is its subsystem for handling events. POSIX and its realtime extensions define a number of asynchronous notification methods (e.g., UNIX signals that don't queue or pass data, POSIX realtime signals that may queue and pass data, etc.)." />
+<meta name="DC.subject" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="keywords" content="QNX SDP, 8.0, System Architecture, Developer, User" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc.html" />
+<meta name="DC.relation" scheme="URI" content="../topic/ipc_IO_notification.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html" />
+<meta name="DC.relation" scheme="URI" content="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="Events" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>Events</title>
+</head>
+<body id="Events">
+
+
+<h1 class="title topictitle1 boost" id="ariaid-title1">Events</h1>
+
+
+
+
+<div class="body conbody"><p class="shortdesc">
+A significant feature in the kernel design for <span class="keyword">QNX OS</span> is
+its subsystem for handling events. POSIX and its realtime
+extensions define a number of asynchronous notification
+methods (e.g., UNIX signals that don't queue or pass data,
+POSIX realtime signals that may queue and pass data, etc.). 
+</p>
+
+
+<p class="p">
+
+The kernel also defines additional, <span class="keyword">QNX OS</span>-specific notification
+techniques such as pulses. Implementing all of these event
+mechanisms could have consumed significant code space, so
+our implementation strategy was to build all of these
+notification methods over a single, rich, event subsystem.
+
+</p>
+
+
+<p class="p">
+A benefit of this approach is that capabilities exclusive to
+one notification technique can become available to others.
+For example, an application can apply the same
+queueing services of POSIX realtime signals to UNIX signals.
+This can simplify the robust implementation of signal
+handlers within applications.
+
+</p>
+
+
+<div class="p">
+The events encountered by an executing thread can come from any of these sources:
+
+<ul class="ul">
+<li class="li"> a <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html"><span class="keyword apiname">MsgDeliverEvent()</span></a> kernel call invoked by a thread
+</li>
+
+
+<li class="li"> the expiry of a timer</li>
+
+
+<li class="li">A POSIX message queue transitioning from empty to non-empty.</li>
+
+
+</ul>
+
+</div>
+
+
+<p class="p">
+The event itself can be any of a number of different types:
+<span class="keyword">QNX OS</span> pulses, interrupts, various forms of signals, and forced
+<q class="q">unblock</q> events. <q class="q">Unblock</q> is a
+means by which a thread can be released from a deliberately
+blocked state without any explicit event actually being delivered.
+
+</p>
+
+
+<p class="p">
+Given this multiplicity of event types, and applications
+needing the ability to request whichever asynchronous
+notification technique best suits their needs, it would be
+awkward to require that server processes (the higher-level
+threads from the previous section) carry code to support all
+these options.
+</p>
+
+
+<p class="p">
+
+Instead, the client thread can give a data structure, or 
+<q class="q">cookie,</q> called a
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html"><span class="keyword dtype">sigevent</span></a>
+to the server to hang on to until later.
+When the server needs to notify the client thread, it
+invokes <span class="keyword apiname">MsgDeliverEvent()</span>, and the microkernel
+sets the event type encoded within the cookie upon the client thread.
+
+</p>
+
+
+<div class="fig fignone"><span class="figcap"><span class="fig--title-label">Figure 1. </span>The client sends a <span class="keyword dtype">sigevent</span> to the server.</span>
+  
+  <br /><img class="image" src="../images/sigevent.svg" width="576" alt="QNX OS event delivery" /><br />
+</div>
+
+
+<p class="p">
+For details about the <span class="keyword dtype">sigevent</span> structure, see its
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html">entry
+in the <em class="ph i">C Library Reference</em></a>.
+</p>
+
+
+<p class="p">
+
+In a deeply embedded system that consists entirely of trusted programs, no safeguards are needed on events,
+but this isn't true in systems that are more open.
+A problem with <span class="keyword dtype">sigevent</span>s is that a server can deliver any event to a client,
+even if the client has never expressed an interest in receiving events.
+</p>
+
+
+<div class="p">
+The client can register events to make them more secure, as follows:
+
+<ol class="ol">
+<li class="li">The client sets up the <span class="keyword dtype">sigevent</span> to indicate how it wants to be notified.</li>
+
+
+<li class="li">If the client wants to allow the server to update the value associated with the event,
+  it sets the <span class="keyword const">SIGEV_FLAG_UPDATEABLE</span> flag in the event.
+  
+</li>
+
+
+<li class="li">The client registers an event by calling
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgregisterevent.html"><span class="keyword apiname">MsgRegisterEvent()</span></a>.
+  This function registers the given <span class="keyword dtype">sigevent</span> with the kernel, which stores the event internally
+  and provides a handle for the event.
+  
+  
+</li>
+
+
+<li class="li">The client gives the handle instead of the actual event to the server.</li>
+
+
+<li class="li">If the client set the <span class="keyword const">SIGEV_FLAG_UPDATEABLE</span> flag on the event,
+  then the server is allowed to update the value included in the registered event.
+  
+</li>
+
+
+<li class="li">When the server calls
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html"><span class="keyword apiname">MsgDeliverEvent()</span></a>
+  with a handle, the kernel looks up the handle.
+  If the handle exists and the client has allowed the server to deliver it,
+  the kernel delivers the corresponding registered event to the client.
+  
+</li>
+
+
+<li class="li">When the client no longer needs the secure event, it can call
+  <a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgunregisterevent.html"><span class="keyword apiname">MsgUnregisterEvent()</span></a>
+  to remove it and unregister the handle.
+  
+</li>
+
+
+</ol>
+
+</div>
+
+
+<p class="p">
+The client can thus be sure that it gets only the events that it wants, and that no one has tampered with them.
+For a sample program, see the entry for
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgregisterevent.html"><span class="keyword apiname">MsgRegisterEvent()</span></a>
+in the <cite class="cite">C Library Reference</cite>.
+</p>
+
+
+<p class="p">
+You can detect when processes use unregistered events using <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/secpolgenerate.html"><span class="keyword cmdname">secpolgenerate</span></a> (via the file
+<span class="ph filepath">/dev/secpolgenerate/errors</span>) or <a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/s/secpolmonitor.html"><span class="keyword cmdname">secpolmonitor</span></a> (when <span class="keyword option">-u</span> is specified).
+</p>
+
+
+</div>
+
+<div class="related-links">
+<ul class="ullinks">
+<li class="link ulchildlink"><strong><a href="../topic/ipc_IO_notification.html">I/O notification</a></strong><br />
+ The <span class="keyword apiname">ionotify()</span> function is a means by which a client thread can request asynchronous event delivery. </li>
+</ul>
+
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/ipc.html" title="Interprocess Communication (IPC) plays a fundamental role in the transformation of the microkernel from an embedded realtime kernel into a full-scale POSIX operating system. As various service-providing processes are added to the microkernel, IPC is the “glue” that connects those components into a cohesive whole.">Interprocess Communication (IPC)</a></div>
+</div>
+
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/i/ionotify.html">ionotify()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgdeliverevent.html">MsgDeliverEvent(), MsgDeliverEvent_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html">MsgReply(), MsgReply_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html">MsgSend(), MsgSend_r()</a></li>
+<li class="linklist"><a class="link" href="../../com.qnx.doc.neutrino.lib_ref/topic/s/sigevent.html">struct sigevent</a></li></ul></div>
+</div></body>
+</html>

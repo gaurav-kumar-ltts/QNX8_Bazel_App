@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="copyright" content="(C) Copyright 2024" />
+<meta name="DC.rights.owner" content="(C) Copyright 2024" />
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="pci_device_read_ba()" />
+<meta name="abstract" content="Get the base addresses of a device" />
+<meta name="description" content="Get the base addresses of a device" />
+<meta name="DC.subject" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="keywords" content="QNX SDP, 8.0, PCI Server User's Guide, API, Configuration" />
+<meta name="DC.relation" scheme="URI" content="../topic/library.html" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="pci_device_read_ba" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../commonltr.css" />
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<title>pci_device_read_ba()</title>
+</head>
+<body id="pci_device_read_ba">
+
+
+<h1 class="title topictitle1" id="ariaid-title1"><span class="keyword apiname">pci_device_read_ba()</span></h1>
+
+
+
+
+<div class="body refbody"><p class="shortdesc"><em class="ph i">Get the base addresses of a device</em></p>
+
+
+<div class="section">
+<p class="p">
+
+
+
+</p>
+
+</div>
+
+
+<div class="section refsyn"><h2 class="title sectiontitle">Synopsis:</h2>
+
+
+<pre class="pre codeblock">#include &lt;pci/pci.h&gt;
+
+pci_err_t pci_device_read_ba( pci_devhdl_t <var class="keyword varname">hdl</var>,
+                              int_t *<var class="keyword varname">nba</var>,
+                              pci_ba_t *<var class="keyword varname">ba</var>,
+                              pci_reqType_t <var class="keyword varname">reqType</var> );
+</pre>
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Arguments:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><var class="keyword varname">hdl</var></dt>
+
+<dd class="dd">The handle of the device, obtained by calling
+  <a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">nba</var></dt>
+
+<dd class="dd">A pointer to a location that can hold the number of entries in the <var class="keyword varname">ba</var> array (see below).</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">ba</var></dt>
+
+<dd class="dd"><span class="keyword const">NULL</span>, or an array of <span class="keyword dtype">pci_ba_t</span> structures where the function can store
+  information about the device's supported address spaces (see below).
+  For more information about this structure, see
+  <a class="xref" href="pci_device_map_as.html" title="Get the translation between CPU memory addresses and PCI addresses"><span class="keyword apiname">pci_device_map_as()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><var class="keyword varname">reqType</var></dt>
+
+<dd class="dd">The desired level of compliance to the request; one of:
+
+  <ul class="ul">
+  <li class="li"><span class="keyword const">pci_reqType_e_MANDATORY</span> — the request must be satisfied with the requested
+    constraints, or the request fails.
+    
+  </li>
+
+
+  <li class="li"><span class="keyword const">pci_reqType_e_UNSPECIFIED</span> — the request constraints aren't specified.
+    The PCI server is free to choose any request constraints.
+  </li>
+
+
+  </ul>
+
+</dd>
+
+
+
+</dl>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Library:</h2>
+
+
+<p class="p"><span class="ph filepath">libpci</span></p>
+
+
+<p class="p">
+Use the <span class="keyword option">-l pci</span> option to
+<a class="xref" href="../../com.qnx.doc.neutrino.utilities/topic/q/qcc.html"><span class="keyword cmdname">qcc</span></a>
+to link against this library.
+</p>
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Description:</h2>
+
+
+<p class="p">
+The <span class="keyword apiname">pci_device_read_ba()</span> function gets the base addresses for a device.
+You must have already attached to the device by successfully calling
+<a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</p>
+
+
+<p class="p">
+
+PCI devices contain multiple BARs (Base Address Registers) that may be applicable to different address space types.
+To simplify the retrieval of the base address information, the <span class="keyword apiname">pci_device_read_ba()</span>
+function is provided.
+This function gets an array of <span class="keyword dtype">pci_ba_t</span> types that
+uniquely identify all of the supported address spaces of the device identified by <var class="keyword varname">hdl</var>.
+</p>
+
+
+<p class="p">
+In general, the <var class="keyword varname">ba</var> parameter should point to an array of <span class="keyword dtype">pci_ba_t</span> types,
+in which case you specify the number of entries in the array in the value pointed to by <var class="keyword varname">nba</var>.
+</p>
+
+
+<p class="p">
+By modifying the parameters, you can control the returned values as follows:
+</p>
+
+
+<ul class="ul">
+<li class="li">To determine how many valid base addresses the device uses, set <var class="keyword varname">ba</var> to <span class="keyword const">NULL</span>
+  and set the variable pointed to by <var class="keyword varname">nba</var> to the maximum number of BARs.
+  The number of implemented base addresses is returned in *<var class="keyword varname">nba</var>.
+
+  <div class="note"><span class="notetitle">Note:</span> 
+  If you set the variable pointed to by <var class="keyword varname">nba</var> to zero, <span class="keyword apiname">pci_device_read_ba()</span>
+  returns <span class="keyword const">PCI_ERR_OK</span> but doesn't set *<var class="keyword varname">nba</var> to the number of valid base addresses.
+  </div>
+  
+</li>
+
+
+<li class="li">If you're interested in only one base address, <var class="keyword varname">ba</var> can be a pointer to a single
+  <span class="keyword dtype">pci_ba_t</span> variable.
+  In this case, <var class="keyword varname">nba</var> can point to the value of 1, or <var class="keyword varname">nba</var> can be
+  <span class="keyword const">NULL</span>.
+  Note that in this case only the first implemented base address will be returned.
+</li>
+
+
+</ul>
+
+
+<p class="p">
+Otherwise you should allocate space for an array of <span class="keyword dtype">pci_ba_t</span> items and set <var class="keyword varname">nba</var>
+to point to the number of items allocated.
+On successful return, <var class="keyword varname">nba</var> contains a value as follows:
+</p>
+
+
+<ul class="ul">
+<li class="li">If the size of array specified by the value pointed to by <var class="keyword varname">nba</var> was large enough to hold
+  all implemented base addresses for the device, <var class="keyword varname">nba</var> contains a value less than or equal to
+  the originally assigned value of <var class="keyword varname">nba</var> indicating the actual number of implemented base addresses.
+  Note that this value can be zero.
+</li>
+
+
+<li class="li">If the size of the array specified by the value pointed to by <var class="keyword varname">nba</var> wasn't large enough to
+  hold all implemented base addresses for the device, <var class="keyword varname">nba</var> contains a value that's the
+  2's complement of the number of base addresses that wouldn't fit into the allocated array.
+
+  <p class="p">
+  For example, if <var class="keyword varname">nba</var> contains the value of -2 upon successful return, all but two of the
+  requested number of base addresses were successfully returned.
+  </p>
+
+</li>
+
+
+</ul>
+
+
+<p class="p">
+In all of the above cases, you should set the <var class="keyword varname">reqType</var> argument to
+<span class="keyword const">pci_reqType_e_UNSPECIFIED</span>.
+Optionally, you can retrieve the address space information for a specific BAR or set of BARs.
+If you set <var class="keyword varname">reqType</var> to <span class="keyword const">pci_reqType_e_MANDATORY</span> and initialize the
+<var class="keyword varname">ba.bar_num</var> field for each of the *<var class="keyword varname">nba</var> entries, the function returns only
+the address space information for the specified BAR or BARs.
+If you specify the same BAR number more than once, multiple identical entries are returned.
+If you specify an invalid BAR number, the entry is of type <span class="keyword const">pci_asType_e_NONE</span>.
+</p>
+
+
+<p class="p">
+Valid BAR numbers are from 0 through 5, inclusive.
+Use a BAR number of -1 to retrieve address space information for expansion ROMs.
+Note also, that if you specify <span class="keyword const">pci_reqType_e_MANDATORY</span>, *<var class="keyword varname">nba</var> isn't updated to
+reflect the actual number of valid address spaces; it remains as you set it.
+</p>
+
+
+<p class="p">
+Because the base addresses for a device provide the location of memory mapped device registers, it's desirable
+to control access to this information.
+This function succeeds only if <var class="keyword varname">hdl</var> identifies an attacher that owns the device.
+When you call
+<a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>,
+you can specify whether you want to be the owner of the device.
+Only the owner can successfully call <span class="keyword apiname">pci_device_read_ba()</span> and hence be able to
+map and control the device.
+</p>
+
+
+</div>
+
+
+
+<div class="section"><h2 class="title sectiontitle">Returns:</h2>
+
+
+<dl class="dl">
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_OK</span></dt>
+
+<dd class="dd">Success.</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENODEV</span></dt>
+
+<dd class="dd">The device identified by <var class="keyword varname">hdl</var> doesn't exist.
+  Note that this error can also be returned if a device that supports live removal is removed after a successful
+  call to
+  <a class="xref" href="pci_device_find.html" title="Locate a device that matches the specified criteria"><span class="keyword apiname">pci_device_find()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ENOTSUP</span></dt>
+
+<dd class="dd">The device identified by <var class="keyword varname">hdl</var> isn't supported.
+  Note that this is different from a return of <span class="keyword const">PCI_ERR_OK</span> with <var class="keyword varname">nba</var> pointing
+  to the value 0.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EINVAL</span></dt>
+
+<dd class="dd">The <var class="keyword varname">hdl</var> doesn't refer to a valid device that you attached to, or other parameters
+  are otherwise invalid.
+  This error can also be returned from the hardware-dependent module.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_NOT_OWNER</span></dt>
+
+<dd class="dd">You aren't the owner of the device; see
+  <a class="xref" href="pci_device_attach.html" title="Attach a device"><span class="keyword apiname">pci_device_attach()</span></a>.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_ASPACE_INVALID</span></dt>
+
+<dd class="dd">The base addresses assigned to the device couldn't be translated into usable values for you.
+  This is generally a hardware-dependent module error.
+</dd>
+
+
+
+
+<dt class="dt dlterm"><span class="keyword const">PCI_ERR_EIO</span></dt>
+
+<dd class="dd">A device-specific error occurred.</dd>
+
+
+
+</dl>
+
+
+<p class="p">
+If any error occurs, you should assume that the storage that you provided contains invalid data.
+</p>
+
+
+</div>
+
+
+<div class="section"><h2 class="title sectiontitle">Classification:</h2>
+
+
+<p class="p">
+<a class="xref" href="../../com.qnx.doc.neutrino.lib_ref/topic/summary.html#summary__CLASSIFICATION"><span class="keyword">QNX OS</span></a>
+</p>
+
+
+
+<div class="tablenoborder"><table cellpadding="4" cellspacing="0" summary="" class="table" frame="border" border="1" rules="all"><colgroup><col /><col /></colgroup><thead class="thead" style="text-align:left;">
+<tr class="row"><th class="entry cellrowborder" style="vertical-align:top;" id="d5937e532">Safety:</th>
+<th class="entry cellrowborder" style="vertical-align:top;" id="d5937e534"> </th>
+</tr>
+
+</thead>
+<tbody class="tbody">
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e532 ">Cancellation point</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e534 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e532 ">Signal handler</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e534 ">No</td>
+</tr>
+
+<tr class="row"><td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e532 ">Thread</td>
+<td class="entry cellrowborder" style="vertical-align:top;" headers="d5937e534 ">Yes</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+</div>
+
+
+
+
+
+</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../topic/library.html">API Reference</a></div>
+</div>
+</div></body>
+</html>
