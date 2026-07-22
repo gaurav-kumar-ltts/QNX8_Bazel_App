@@ -10,6 +10,12 @@
 #include <sys/stat.h>
 #include <dlt/dlt.h>
 
+// Add these missing networking headers:
+#include <sys/socket.h>   // For socket(), bind(), listen(), accept(), recv(), send(), shutdown()
+#include <netinet/in.h>   // For sockaddr_in, AF_INET, SOCK_STREAM
+
+
+
 DLT_DECLARE_CONTEXT(diag_daemon_ctx);
 
 void log_hex(const std::string& prefix, const uint8_t* data, size_t len) {

@@ -868,4 +868,7 @@ CMakeFiles/diagd.dir/daigd_main.cpp.o: \
  /home/prathik/qnx800/QNX8_App/dlt-daemon/include/dlt/dlt_types.h \
  /home/prathik/qnx800/QNX8_App/dlt-daemon/include/dlt/dlt_shm.h \
  /home/prathik/qnx800/QNX8_App/dlt-daemon/include/dlt/dlt_user_macros.h \
- /home/prathik/qnx800/QNX8_App/dlt-daemon/build/include/dlt/dlt_version.h
+ /home/prathik/qnx800/QNX8_App/dlt-daemon/build/include/dlt/dlt_version.h \
+ /home/prathik/qnx800/target/qnx/usr/include/sys/socket.h \
+ /home/prathik/qnx800/target/qnx/usr/include/sys/time.h \
+ /home/prathik/qnx800/target/qnx/usr/include/sys/select.h
