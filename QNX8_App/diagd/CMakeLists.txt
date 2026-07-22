@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. Define the executable (Change diag_main.cpp to main.cpp if you renamed it)
 add_executable(diagd 
-    diagd_main.cpp
+    daigd_main.cpp
 )
 
 # 2. Configure Include Directories
