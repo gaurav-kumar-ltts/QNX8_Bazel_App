@@ -73,15 +73,15 @@ CMakeFiles/diagd.dir/daigd_main.cpp.o: CMakeFiles/diagd.dir/flags.make
 CMakeFiles/diagd.dir/daigd_main.cpp.o: /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp
 CMakeFiles/diagd.dir/daigd_main.cpp.o: CMakeFiles/diagd.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/prathik/qnx800/QNX8_App/diagd/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/diagd.dir/daigd_main.cpp.o"
-	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ -lang-c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Wp,-MD,CMakeFiles/diagd.dir/daigd_main.cpp.o.d -Wp,-MT,CMakeFiles/diagd.dir/daigd_main.cpp.o -Wp,-MF,CMakeFiles/diagd.dir/daigd_main.cpp.o.d -o CMakeFiles/diagd.dir/daigd_main.cpp.o -c /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp
+	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ -Wc,-isysroot,/home/prathik/qnx800/target/qnx -lang-c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Wp,-MD,CMakeFiles/diagd.dir/daigd_main.cpp.o.d -Wp,-MT,CMakeFiles/diagd.dir/daigd_main.cpp.o -Wp,-MF,CMakeFiles/diagd.dir/daigd_main.cpp.o.d -o CMakeFiles/diagd.dir/daigd_main.cpp.o -c /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp
 
 CMakeFiles/diagd.dir/daigd_main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/diagd.dir/daigd_main.cpp.i"
-	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp > CMakeFiles/diagd.dir/daigd_main.cpp.i
+	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ -Wc,-isysroot,/home/prathik/qnx800/target/qnx $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp > CMakeFiles/diagd.dir/daigd_main.cpp.i
 
 CMakeFiles/diagd.dir/daigd_main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/diagd.dir/daigd_main.cpp.s"
-	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp -o CMakeFiles/diagd.dir/daigd_main.cpp.s
+	/home/prathik/qnx800/host/linux/x86_64/usr/bin/q++ -Wc,-isysroot,/home/prathik/qnx800/target/qnx $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/prathik/qnx800/QNX8_App/diagd/daigd_main.cpp -o CMakeFiles/diagd.dir/daigd_main.cpp.s
 
 # Object files for target diagd
 diagd_OBJECTS = \

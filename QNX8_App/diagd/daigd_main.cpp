@@ -13,6 +13,8 @@
 // Add these missing networking headers:
 #include <sys/socket.h>   // For socket(), bind(), listen(), accept(), recv(), send(), shutdown()
 #include <netinet/in.h>   // For sockaddr_in, AF_INET, SOCK_STREAM
+#include <unistd.h>  // Declares close()
+
 
 
 
