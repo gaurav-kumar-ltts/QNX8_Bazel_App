@@ -5,7 +5,7 @@ cc_binary(
     srcs = ["daigd_main.cpp"],
     copts = [
         "-std=c++17",
-        "-lang-c++",  # Tells qcc to handle this file as a C++ source compilation
+        "-lang-c++",
         "-Idlt_include",
         "-Idlt_include/dlt",
         "-Idlt_build_include",
@@ -17,3 +17,4 @@ cc_binary(
         "-Ldlt_libs",
     ],
 )
+
