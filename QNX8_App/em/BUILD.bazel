@@ -1,6 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
-# Local header-only library for nlohmann json
+# 1. Local header-only library for nlohmann json
 cc_library(
     name = "nlohmann_json",
     hdrs = ["include/nlohmann/json.hpp"],
@@ -8,6 +8,23 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
+# 2. Local library exposing DLT headers into the Bazel Sandbox
+cc_library(
+    name = "dlt_lib",
+    hdrs = glob([
+        "dlt-daemon/include/**/*.h",
+        "dlt-daemon/build/include/**/*.h",
+    ]),
+    includes = [
+        "dlt-daemon/include",
+        "dlt-daemon/include/dlt",
+        "dlt-daemon/build/include",
+        "dlt-daemon/build/include/dlt",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# 3. Target Binary
 cc_binary(
     name = "execution_manager",
     srcs = [
@@ -15,7 +32,6 @@ cc_binary(
     ],
     copts = [
         "-std=c++17",
-        "-lang-c++",
     ],
     linkopts = [
         "-lsocket",
@@ -26,5 +42,6 @@ cc_binary(
     ],
     deps = [
         ":nlohmann_json",
+        ":dlt_lib",
     ],
 )
