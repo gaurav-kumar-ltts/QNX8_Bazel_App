@@ -1,0 +1,41 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# 1. Local library exposing DLT headers into the Bazel Sandbox
+cc_library(
+    name = "dlt_lib",
+    hdrs = glob([
+        "dlt-daemon/include/**/*.h",
+        "dlt-daemon/build/include/**/*.h",
+    ]),
+    includes = [
+        "dlt-daemon/include",
+        "dlt-daemon/include/dlt",
+        "dlt-daemon/build/include",
+        "dlt-daemon/build/include/dlt",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# 2. State Manager Target Binary
+cc_binary(
+    name = "state_manager",
+    srcs = [
+        "sm_main.cc",
+    ],
+    copts = [
+        "-std=c++17",
+    ],
+    linkopts = [
+        "-lsocket",
+        "-ldlt",
+        "-L/home/prathik/qnx800/QNX8_App/dlt-daemon/build/src/lib",
+        "-lc++",
+        "-lm",
+        "-lrt",  # Required for POSIX shared memory (shm_open/mmap)
+    ],
+    deps = [
+        ":dlt_lib",
+    ],
+)
+
+
