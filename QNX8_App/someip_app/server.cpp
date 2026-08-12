@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "someip_config.hpp"
-#include "../common/uss_sensor.hpp"
+#include "uss_sensor.hpp"
 
 DLT_DECLARE_CONTEXT(hello_srv_ctx);
 

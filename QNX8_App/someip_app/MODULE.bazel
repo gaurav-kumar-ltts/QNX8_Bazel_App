@@ -4,4 +4,77 @@ module(
 )
 
 bazel_dep(name = "rules_cc", version = "0.2.17")
-bazel_dep(name = "rules_foreign_cc", version = "0.15.0")
+
+# DLT Daemon Repository
+dlt_repo = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+
+dlt_repo(
+    name = "dlt_external",
+    path = "/home/prathik/qnx800/QNX8_App/dlt-daemon",
+    build_file_content = """
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "dlt_headers",
+    hdrs = glob(
+        [
+            "include/**/*.h",
+            "build/include/**/*.h",
+        ],
+        allow_empty = True,
+    ),
+    includes = [
+        "include",
+        "include/dlt",
+        "build/include",
+        "build/include/dlt",
+    ],
+)
+""",
+)
+
+# EM / nlohmann JSON Repository
+em_repo = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+
+em_repo(
+    name = "em_external",
+    path = "/home/prathik/qnx800/QNX8_App/em",
+    build_file_content = """
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "json_headers",
+    hdrs = glob(
+        [
+            "include/**/*.hpp",
+            "include/**/*.h",
+        ],
+        allow_empty = True,
+    ),
+    includes = ["include"],
+)
+""",
+)
+
+# Common Headers Repository (Path set directly to common directory)
+common_repo = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+
+common_repo(
+    name = "common_external",
+    path = "/home/prathik/qnx800/QNX8_App/common",
+    build_file_content = """
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "common_headers",
+    hdrs = glob(["**/*.hpp", "**/*.h"], allow_empty = True),
+    includes = ["."],
+)
+""",
+)
