@@ -23,9 +23,14 @@ cc_binary(
         "client.cpp",
         "someip_config.hpp",
     ],
+    includes = ["lib/vsomeip/interface"],
+    features = ["-no_rpath"],
     linkopts = [
         "-ldlt",
         "-lvsomeip3",
+        "-lboost_thread",
+        "-lboost_system",
+        "-lboost_filesystem",
     ],
     deps = [
         "@dlt_external//:dlt_headers",
@@ -40,9 +45,14 @@ cc_binary(
         "server.cpp",
         "someip_config.hpp",
     ],
+    includes = ["lib/vsomeip/interface"],
+    features = ["-no_rpath"],
     linkopts = [
         "-ldlt",
         "-lvsomeip3",
+        "-lboost_thread",
+        "-lboost_system",
+        "-lboost_filesystem",
     ],
     deps = [
         "@dlt_external//:dlt_headers",
