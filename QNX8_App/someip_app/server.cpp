@@ -95,71 +95,71 @@ public:
             return false;
         }
 
-        app_->register_state_handler([this](vsomeip::state_type_e state) {
-            DLT_LOG(hello_srv_ctx, DLT_LOG_INFO, DLT_STRING("State changed"), DLT_UINT8(static_cast<std::uint8_t>(state)));
-            if (state == vsomeip::state_type_e::ST_REGISTERED) {
-                std::set<vsomeip::eventgroup_t> groups({config_.eventgroup_id});
-                DLT_LOG(hello_srv_ctx, DLT_LOG_INFO, DLT_STRING("Offering event"), DLT_UINT16(config_.event_id));
-                app_->offer_event(config_.local_service_id,
-                                  config_.instance_id,
-                                  config_.event_id,
-                                  groups,
-                                  vsomeip::event_type_e::ET_EVENT,
-                                  std::chrono::milliseconds::zero(),
-                                  false,
-                                  true,
-                                  nullptr,
-                                  vsomeip::reliability_type_e::RT_UNRELIABLE);
+        // app_->register_state_handler([this](vsomeip::state_type_e state) {
+        //     DLT_LOG(hello_srv_ctx, DLT_LOG_INFO, DLT_STRING("State changed"), DLT_UINT8(static_cast<std::uint8_t>(state)));
+        //     if (state == vsomeip::state_type_e::ST_REGISTERED) {
+        //         std::set<vsomeip::eventgroup_t> groups({config_.eventgroup_id});
+        //         DLT_LOG(hello_srv_ctx, DLT_LOG_INFO, DLT_STRING("Offering event"), DLT_UINT16(config_.event_id));
+        //         app_->offer_event(config_.local_service_id,
+        //                           config_.instance_id,
+        //                           config_.event_id,
+        //                           groups,
+        //                           vsomeip::event_type_e::ET_EVENT,
+        //                           std::chrono::milliseconds::zero(),
+        //                           false,
+        //                           true,
+        //                           nullptr,
+        //                           vsomeip::reliability_type_e::RT_UNRELIABLE);
 
-                app_->register_subscription_handler(
-                    config_.local_service_id,
-                    config_.instance_id,
-                    config_.eventgroup_id,
-                    [this](vsomeip::client_t client, const vsomeip_sec_client_t *, const std::string &, bool subscribed) {
-                        DLT_LOG(hello_srv_ctx, DLT_LOG_INFO,
-                                DLT_STRING(subscribed ? "Subscription accepted" : "Subscription removed"),
-                                DLT_UINT16(client));
-                        if (subscribed) {
-                            {
-                                std::lock_guard<std::mutex> lock(subscribers_mutex_);
-                                subscribed_clients_.insert(client);
-                            }
-                            update_handshake_file();
-                            std::uint32_t echo_mm = 0;
-                            if (try_read_echo_mm(echo_mm)) {
-                                notify_echo_mm(echo_mm);
-                            } else {
-                                DLT_LOG(hello_srv_ctx, DLT_LOG_WARN,
-                                        DLT_STRING("Subscription ACK sent but no valid USS echo yet"));
-                            }
-                        } else {
-                            {
-                                std::lock_guard<std::mutex> lock(subscribers_mutex_);
-                                subscribed_clients_.erase(client);
-                            }
-                            update_handshake_file();
-                        }
-                        return true;
-                    });
+        //         // app_->register_subscription_handler(
+        //         //     config_.local_service_id,
+        //         //     config_.instance_id,
+        //         //     config_.eventgroup_id,
+        //         //     [this](vsomeip::client_t client, const vsomeip_sec_client_t *, const std::string &, bool subscribed) {
+        //         //         DLT_LOG(hello_srv_ctx, DLT_LOG_INFO,
+        //         //                 DLT_STRING(subscribed ? "Subscription accepted" : "Subscription removed"),
+        //         //                 DLT_UINT16(client));
+        //         //         if (subscribed) {
+        //         //             {
+        //         //                 std::lock_guard<std::mutex> lock(subscribers_mutex_);
+        //         //                 subscribed_clients_.insert(client);
+        //         //             }
+        //         //             update_handshake_file();
+        //         //             std::uint32_t echo_mm = 0;
+        //         //             if (try_read_echo_mm(echo_mm)) {
+        //         //                 notify_echo_mm(echo_mm);
+        //         //             } else {
+        //         //                 DLT_LOG(hello_srv_ctx, DLT_LOG_WARN,
+        //         //                         DLT_STRING("Subscription ACK sent but no valid USS echo yet"));
+        //         //             }
+        //         //         } else {
+        //         //             {
+        //         //                 std::lock_guard<std::mutex> lock(subscribers_mutex_);
+        //         //                 subscribed_clients_.erase(client);
+        //         //             }
+        //         //             update_handshake_file();
+        //         //         }
+        //         //         return true;
+        //         //     });
 
-                DLT_LOG(hello_srv_ctx, DLT_LOG_INFO,
-                    DLT_STRING("Offering service"),
-                    DLT_UINT16(config_.local_service_id),
-                    DLT_STRING("instance"),
-                    DLT_UINT16(config_.instance_id),
-                    DLT_STRING("major"),
-                        DLT_UINT8(config_.service_major_version),
-                    DLT_STRING("minor"),
-                        DLT_UINT32(config_.service_minor_version));
-                app_->offer_service(config_.local_service_id,
-                            config_.instance_id,
-                            config_.service_major_version,
-                            config_.service_minor_version);
-                registered_.store(true);
-            } else {
-                registered_.store(false);
-            }
-        });
+        //         DLT_LOG(hello_srv_ctx, DLT_LOG_INFO,
+        //             DLT_STRING("Offering service"),
+        //             DLT_UINT16(config_.local_service_id),
+        //             DLT_STRING("instance"),
+        //             DLT_UINT16(config_.instance_id),
+        //             DLT_STRING("major"),
+        //                 DLT_UINT8(config_.service_major_version),
+        //             DLT_STRING("minor"),
+        //                 DLT_UINT32(config_.service_minor_version));
+        //         app_->offer_service(config_.local_service_id,
+        //                     config_.instance_id,
+        //                     config_.service_major_version,
+        //                     config_.service_minor_version);
+        //         registered_.store(true);
+        //     } else {
+        //         registered_.store(false);
+        //     }
+        // });
 
         DLT_LOG(hello_srv_ctx, DLT_LOG_INFO, DLT_STRING("Service initialized successfully"));
         if (!sensor_.init()) {
