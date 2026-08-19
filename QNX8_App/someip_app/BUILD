@@ -38,6 +38,27 @@ cc_binary(
     ],
 )
 
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "routing",
+    srcs = [
+        "routingmanagerd.cpp",
+    ],
+    includes = ["lib/vsomeip/interface"],
+    features = ["-no_rpath"],
+    linkopts = [
+        "-lvsomeip3",
+        "-lboost_thread",
+        "-lboost_system",
+        "-lboost_filesystem",
+    ],
+    deps = [
+        "@dlt_external//:dlt_headers",
+        "@common_external//:common_headers",
+    ],
+)
+
 # Server Binary
 cc_binary(
     name = "server",

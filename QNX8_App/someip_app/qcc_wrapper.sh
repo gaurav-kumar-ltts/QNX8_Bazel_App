@@ -20,10 +20,8 @@ for arg in "$@"; do
     fi
 done
 
-# 2. Inject QNX system defaults and local library paths
-# Driver flag
-# Driver flag
-CLEANED_ARGS+=("-Y_gpp")
+
+CLEANED_ARGS+=("-lang-c++") # chnaged from CLEANED_ARGS+=("-Y_gpp")
 
 # Include paths
 CLEANED_ARGS+=("-I/home/prathik/qnx800/target/qnx/usr/include")
@@ -75,6 +73,10 @@ while [[ $i -lt ${#RAW_ARGS[@]} ]]; do
             continue
             ;;
         -Wthread-safety|-Wself-assign|-fcolor-diagnostics|-Wno-free-nonheap-object)
+            ((i++))
+            continue
+            ;;
+        -lstdc++)
             ((i++))
             continue
             ;;
