@@ -11,8 +11,6 @@
 #include <hw/io-spi.h>
 
 #define SPI_DEVICE      "/dev/io-spi/spi0/dev0"
-#define CAN_DEV_NODE0   "/dev/can0"
-#define CAN_DEV_NODE1   "/dev/can1"
 #define SPI_SPEED       1000000
 
 /* MCP2515 SPI Commands */
@@ -30,6 +28,10 @@
 #define MCP_TXB0DATA    0x36
 
 static int spi_fd = -1;
+
+/* Mailbox definitions per channel */
+static const char *channels[] = { "/dev/can0", "/dev/can1" };
+static const char *mailboxes[] = { "rx0", "rx1", "tx2", "tx3", "tx4" };
 
 /* ===== SPI Lower-Level Drivers ===== */
 
@@ -107,7 +109,7 @@ int mcp2515_hw_init(int fd) {
 
 int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb) {
     int status;
-    char rx_buffer[] = "CAN_FRAME_RX_DATA\n";
+    char rx_buffer[] = "CAN_MAILBOX_RX_DATA\n";
     size_t nbytes = sizeof(rx_buffer) - 1;
 
     if ((status = iofunc_read_verify(ctp, msg, ocb, NULL)) != EOK)
@@ -121,7 +123,6 @@ int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb) {
         return _RESMGR_NPARTS(0);
     }
 
-    /* Fixed: Pass 0 as offset for direct reply buffer transmission */
     resmgr_msgwrite(ctp, rx_buffer, nbytes, 0);
     ocb->offset = nbytes;
 
@@ -166,7 +167,6 @@ int io_write(resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb) {
 /* ===== Main Entry Point ===== */
 
 int main(int argc, char **argv) {
-    /* Suppress unused parameter warnings */
     (void)argc;
     (void)argv;
 
@@ -175,11 +175,6 @@ int main(int argc, char **argv) {
     resmgr_connect_funcs_t connect_funcs;
     dispatch_context_t *ctp;
     resmgr_attr_t rattr;
-    
-    iofunc_attr_t ioattr0;
-    iofunc_attr_t ioattr1;
-    
-    int resmgr_id0, resmgr_id1;
 
     spi_fd = open(SPI_DEVICE, O_RDWR);
     if (spi_fd < 0) {
@@ -206,35 +201,31 @@ int main(int argc, char **argv) {
     io_funcs.read = io_read;
     io_funcs.write = io_write;
 
-    iofunc_attr_init(&ioattr0, S_IFCHR | 0666, NULL, NULL);
-    iofunc_attr_init(&ioattr1, S_IFCHR | 0666, NULL, NULL);
-
     memset(&rattr, 0, sizeof(rattr));
     rattr.flags = 0;
 
-    resmgr_id0 = resmgr_attach(dpp, &rattr, CAN_DEV_NODE0, _FTYPE_ANY, 0,
-                               &connect_funcs, &io_funcs, &ioattr0);
-    if (resmgr_id0 == -1) {
-        fprintf(stderr, "[MCP2515 Driver] Failed to attach %s: errno %d (%s)\n", 
-                CAN_DEV_NODE0, errno, strerror(errno));
-        fflush(stderr);
-        close(spi_fd);
-        return EXIT_FAILURE;
-    }
-    printf("[MCP2515 Driver] Registered %s successfully.\n", CAN_DEV_NODE0);
-    fflush(stdout);
+    /* Dynamically register can0/can1 along with rx0, rx1, tx2, tx3, tx4 mailboxes */
+    for (int c = 0; c < 2; c++) {
+        for (int m = 0; m < 5; m++) {
+            char path[64];
+            snprintf(path, sizeof(path), "%s/%s", channels[c], mailboxes[m]);
 
-    resmgr_id1 = resmgr_attach(dpp, &rattr, CAN_DEV_NODE1, _FTYPE_ANY, 0,
-                               &connect_funcs, &io_funcs, &ioattr1);
-    if (resmgr_id1 == -1) {
-        fprintf(stderr, "[MCP2515 Driver] Failed to attach %s: errno %d (%s)\n", 
-                CAN_DEV_NODE1, errno, strerror(errno));
-        fflush(stderr);
-        close(spi_fd);
-        return EXIT_FAILURE;
+            iofunc_attr_t *ioattr = malloc(sizeof(iofunc_attr_t));
+            if (!ioattr) continue;
+
+            iofunc_attr_init(ioattr, S_IFCHR | 0666, NULL, NULL);
+
+            int id = resmgr_attach(dpp, &rattr, path, _FTYPE_ANY, 0,
+                                   &connect_funcs, &io_funcs, ioattr);
+            if (id == -1) {
+                fprintf(stderr, "[MCP2515 Driver] Failed to attach %s: %s\n", path, strerror(errno));
+                fflush(stderr);
+            } else {
+                printf("[MCP2515 Driver] Registered node: %s\n", path);
+                fflush(stdout);
+            }
+        }
     }
-    printf("[MCP2515 Driver] Registered %s successfully.\n", CAN_DEV_NODE1);
-    fflush(stdout);
 
     ctp = dispatch_context_alloc(dpp);
 
