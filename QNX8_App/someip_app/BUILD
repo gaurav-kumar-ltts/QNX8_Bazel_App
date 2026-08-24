@@ -61,7 +61,7 @@ cc_binary(
 
 # Server Binary
 cc_binary(
-    name = "server",
+    name = "someip_server",
     srcs = [
         "server.cpp",
         "someip_config.hpp",
