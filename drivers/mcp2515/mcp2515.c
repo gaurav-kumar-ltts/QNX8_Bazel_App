@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <devctl.h>
 #include <sys/iofunc.h>
 #include <sys/dispatch.h>
@@ -40,8 +42,9 @@ static int unit_number = 0;
 static int verbosity = 0;
 static char mid_type[16] = "eid";
 
-/* Mailbox names per spec */
-static const char *mailboxes[] = { "rx0", "rx1", "tx2", "tx3", "tx4" };
+/* Complete Mailbox names including rx0, rx1, and all transmit nodes */
+static const char *mailboxes[] = { "rx0", "rx1", "tx1", "tx2", "tx3", "tx4" };
+#define TOTAL_MAILBOXES (sizeof(mailboxes) / sizeof(mailboxes[0]))
 
 typedef struct {
     const char *name;
@@ -57,11 +60,12 @@ typedef struct {
 } mcp2515_attr_t;
 
 static mailbox_config_t mb_configs[] = {
-    { "rx0", 0, 0x0,     0, 0 },
-    { "rx1", 1, 0x40000, 1, 0 },
-    { "tx2", 2, 0x80000, 2, 0 },
-    { "tx3", 3, 0xC0000, 3, 0 },
-    { "tx4", 4, 0x100000, 4, 0 }
+    { "rx0", 0, 0x0,      0, 0 },
+    { "rx1", 1, 0x40000,  1, 0 },
+    { "tx1", 2, 0x60000,  2, 0 },
+    { "tx2", 3, 0x80000,  3, 0 },
+    { "tx3", 4, 0xC0000,  4, 0 },
+    { "tx4", 5, 0x100000, 5, 0 }
 };
 
 /* ===== SPI Lower-Level Drivers ===== */
@@ -253,12 +257,10 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
 
             // Read Data Payload from RXB0 if DLC > 0
             if (dlc > 0) {
-                size_t transfer_size = 3 + dlc;
-                uint8_t *tx_buf = malloc(transfer_size);
-                uint8_t *rx_buf = malloc(transfer_size);
+                size_t transfer_size = 2 + dlc;
+                uint8_t *tx_buf = calloc(1, transfer_size);
+                uint8_t *rx_buf = calloc(1, transfer_size);
                 if (tx_buf && rx_buf) {
-                    memset(tx_buf, 0, transfer_size);
-                    memset(rx_buf, 0, transfer_size);
                     tx_buf[0] = MCP_READ;
                     tx_buf[1] = MCP_RXB0DATA;
 
@@ -284,10 +286,33 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
             break;
         }
 
-        case CAN_DEVCTL_WRITE_CANMSG_EXT:
-            nbytes = 0;
-            status = EOK;
+        case CAN_DEVCTL_WRITE_CANMSG_EXT: {
+            if (msg->i.nbytes >= sizeof(struct can_msg)) {
+                struct can_msg *can_in = _DEVCTL_DATA(msg->i);
+                uint8_t dlc = can_in->len > 8 ? 8 : can_in->len;
+
+                // Configure standard/extended ID mapping for TXB0
+                mcp2515_write_register(spi_fd, MCP_TXB0SIDH, (can_in->mid >> 3) & 0xFF);
+                mcp2515_write_register(spi_fd, MCP_TXB0SIDL, (can_in->mid & 0x07) << 5);
+                mcp2515_write_register(spi_fd, MCP_TXB0DLC, dlc);
+
+                // Write payload data bytes
+                for (int i = 0; i < dlc; i++) {
+                    mcp2515_write_register(spi_fd, MCP_TXB0DATA + i, can_in->dat[i]);
+                }
+
+                // Request-to-Send (RTS) for TXB0
+                uint8_t rts_tx[1] = { MCP_RTS_TX0 };
+                uint8_t rts_rx[1] = { 0 };
+                spi_transfer(spi_fd, rts_tx, rts_rx, 1);
+
+                nbytes = 0;
+                status = EOK;
+            } else {
+                status = EINVAL;
+            }
             break;
+        }
 
         default:
             return ENOTSUP;
@@ -332,7 +357,7 @@ void parse_arguments(int argc, char **argv) {
         }
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (size_t i = 0; i < TOTAL_MAILBOXES; i++) {
         if (strcmp(mid_type, "sid") == 0) {
             mb_configs[i].current_mid = mb_configs[i].sid_mid;
         } else {
@@ -381,7 +406,10 @@ int main(int argc, char **argv) {
     char channel_path[64];
     snprintf(channel_path, sizeof(channel_path), "/dev/can%d", unit_number);
 
-    for (int m = 0; m < 5; m++) {
+    // Create the base directory namespace path if it doesn't already exist
+    mkdir(channel_path, 0777);
+
+    for (size_t m = 0; m < TOTAL_MAILBOXES; m++) {
         char path[128];
         snprintf(path, sizeof(path), "%s/%s", channel_path, mailboxes[m]);
 
@@ -395,8 +423,11 @@ int main(int argc, char **argv) {
                                &connect_funcs, &io_funcs, &mcp_attr->attr);
         if (id == -1) {
             fprintf(stderr, "[MCP2515 Driver] Failed to attach %s: %s\n", path, strerror(errno));
+            slogf(_SLOG_SETCODE(_SLOGC_NETWORK, 0), _SLOG_ERROR,
+                  "[MCP2515 Driver] Failed to attach %s: %s", path, strerror(errno));
             free(mcp_attr);
         } else {
+            fprintf(stderr, "[MCP2515 Driver] Successfully attached node: %s\n", path);
             if (verbosity > 0) {
                 slogf(_SLOG_SETCODE(_SLOGC_NETWORK, 0), _SLOG_INFO,
                       "[MCP2515 Driver] Registered node: %s (MID: 0x%X)", path, mb_configs[m].current_mid);
