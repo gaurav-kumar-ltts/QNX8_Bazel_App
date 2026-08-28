@@ -169,7 +169,7 @@ int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb) {
 
 int io_write(resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb) {
     int status;
-    char *buf;
+    struct can_msg canmsg;
 
     if ((status = iofunc_write_verify(ctp, msg, ocb, NULL)) != EOK)
         return status;
@@ -177,25 +177,30 @@ int io_write(resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb) {
     if (msg->i.xtype & _IO_XTYPE_MASK)
         return EINVAL;
 
-    buf = malloc(msg->i.nbytes);
-    if (!buf) return ENOMEM;
-
-    resmgr_msgread(ctp, buf, msg->i.nbytes, sizeof(msg->i));
-
-    size_t payload_len = (msg->i.nbytes > 8) ? 8 : msg->i.nbytes;
-    mcp2515_write_register(spi_fd, MCP_TXB0SIDH, 0x24); 
-    mcp2515_write_register(spi_fd, MCP_TXB0SIDL, 0x60);
-    mcp2515_write_register(spi_fd, MCP_TXB0DLC, payload_len);
-
-    for (size_t i = 0; i < payload_len; i++) {
-        mcp2515_write_register(spi_fd, MCP_TXB0DATA + i, (uint8_t)buf[i]);
+    // Ensure incoming write matches our CAN message structure size
+    if (msg->i.nbytes < sizeof(struct can_msg)) {
+        return EINVAL;
     }
 
+    // Read the structured CAN message sent by the application
+    resmgr_msgread(ctp, &canmsg, sizeof(struct can_msg), sizeof(msg->i));
+
+    uint8_t dlc = canmsg.len > 8 ? 8 : canmsg.len;
+
+    // Dynamically write SIDH and SIDL registers based on application-provided canmsg.mid
+    mcp2515_write_register(spi_fd, MCP_TXB0SIDH, (canmsg.mid >> 3) & 0xFF);
+    mcp2515_write_register(spi_fd, MCP_TXB0SIDL, (canmsg.mid & 0x07) << 5);
+    mcp2515_write_register(spi_fd, MCP_TXB0DLC, dlc);
+
+    // Write payload data bytes dynamically
+    for (size_t i = 0; i < dlc; i++) {
+        mcp2515_write_register(spi_fd, MCP_TXB0DATA + i, canmsg.dat[i]);
+    }
+
+    // Trigger RTS for Transmit Buffer 0
     uint8_t rts_tx[1] = { MCP_RTS_TX0 };
     uint8_t rts_rx[1] = { 0 };
     spi_transfer(spi_fd, rts_tx, rts_rx, 1);
-
-    free(buf);
 
     _IO_SET_WRITE_NBYTES(ctp, msg->i.nbytes);
     return _RESMGR_NPARTS(0);
@@ -206,7 +211,6 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
     size_t nbytes = 0;
     uint32_t *data;
 
-    // Safely retrieve the attribute structure via container_of
     mcp2515_attr_t *mcp_attr = container_of(ocb->attr, mcp2515_attr_t, attr);
     mailbox_config_t *mb = mcp_attr ? mcp_attr->mb_config : NULL;
 
@@ -321,7 +325,6 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
         }
 
         default:
-            /* Fall back to default system devctl handler only for non-custom commands */
             return iofunc_devctl_default(ctp, msg, ocb);
     }
 
