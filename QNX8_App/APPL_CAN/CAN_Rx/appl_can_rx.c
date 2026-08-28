@@ -5,91 +5,46 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
-#include <sys/neutrino.h>
-#include <sys/siginfo.h>
 #include <devctl.h>
 #include <sys/can_dcmd.h>
 
 #define RX_MAILBOX_PATH "/dev/can0/rx0"
-#define TIMER_PULSE_CODE _PULSE_CODE_MINAVAIL
 
-typedef union {
-    struct _pulse pulse;
-} app_msg_t;
-
-int setup_periodic_timer(timer_t *timer_id, int chid) {
-    struct sigevent event;
-    struct itimerspec timer_spec;
-
-    SIGEV_PULSE_INIT(&event, chid, SIGEV_PULSE_PRIO_INHERIT, TIMER_PULSE_CODE, 0);
-
-    if (timer_create(CLOCK_REALTIME, &event, timer_id) == -1) {
-        return -1;
-    }
-
-    timer_spec.it_value.tv_sec = 0;
-    timer_spec.it_value.tv_nsec = 10000000; // 10ms initial expiration
-    timer_spec.it_interval.tv_sec = 0;
-    timer_spec.it_interval.tv_nsec = 10000000; // 10ms periodic interval
-
-    if (timer_settime(*timer_id, 0, &timer_spec, NULL) == -1) {
-        return -1;
-    }
-
-    return 0;
-}
-
-int main(int argc, char **argv) {
+int main(void) {
     int fd;
-    int chid;
-    int rcvid;
-    timer_t timer_id;
-    app_msg_t msg;
-    struct can_msg canmsg;
+    struct can_msg rx_msg;
 
     fd = open(RX_MAILBOX_PATH, O_RDWR);
     if (fd == -1) {
+        fprintf(stderr, "Failed to open %s\n", RX_MAILBOX_PATH);
         return EXIT_FAILURE;
     }
 
-    chid = ChannelCreate(0);
-    if (chid == -1) {
-        close(fd);
-        return EXIT_FAILURE;
-    }
-
-    if (setup_periodic_timer(&timer_id, chid) == -1) {
-        ChannelDestroy(chid);
-        close(fd);
-        return EXIT_FAILURE;
-    }
+    unsigned long rx_packet_count = 0;
+    printf("[DEBUG] Listening for Arduino frames (IDs 0x200 - 0x205)...\n");
 
     while (1) {
-        rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);
+        memset(&rx_msg, 0, sizeof(rx_msg));
 
-        if (rcvid == 0) {
-            if (msg.pulse.code == TIMER_PULSE_CODE) {
-                memset(&canmsg, 0, sizeof(canmsg));
-                int ret = devctl(fd, CAN_DEVCTL_READ_CANMSG_EXT, &canmsg, sizeof(canmsg), NULL);
-                
-                if (ret == EOK) {
-                    printf("[App] Received Frame -> MID: 0x%X | Length: %d | Data: ", 
-                           canmsg.mid, canmsg.len);
-                    for (int i = 0; i < canmsg.len; i++) {
-                        printf("0x%02X ", canmsg.dat[i]);
-                    }
-                    printf("\n");
-                }
+        int result = devctl(fd, CAN_DEVCTL_READ_CANMSG_EXT, &rx_msg, sizeof(rx_msg), NULL);
+
+        if (result == EOK) {
+            // Optional filter to exclusively print Arduino's range if desired
+            if (rx_msg.mid >= 0x200 && rx_msg.mid <= 0x205) {
+                rx_packet_count++;
+                printf("[DEBUG] [RX PKT #%lu] ID: 0x%X | DLC: %d | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                       rx_packet_count, 
+                       rx_msg.mid, 
+                       rx_msg.len, 
+                       rx_msg.dat[0], rx_msg.dat[1], rx_msg.dat[2], rx_msg.dat[3],
+                       rx_msg.dat[4], rx_msg.dat[5], rx_msg.dat[6], rx_msg.dat[7]);
+                fflush(stdout);
             }
-        } else if (rcvid < 0) {
-            if (errno == EINTR) continue;
-            break;
+        } else {
+            usleep(1000); 
         }
     }
 
-    timer_delete(timer_id);
-    ChannelDestroy(chid);
     close(fd);
     return EXIT_SUCCESS;
 }
