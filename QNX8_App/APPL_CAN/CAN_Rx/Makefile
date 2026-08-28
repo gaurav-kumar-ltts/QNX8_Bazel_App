@@ -1,28 +1,23 @@
-# QNX SDP 8.0 Makefile for the 10 ms MCP2515 CAN receiver
+# QNX 8.0 Makefile for CAN Application (Raspberry Pi 5 / aarch64le)
 
-NAME = appl_can_rx
 CC = qcc
-TARGET_ARCH = -Vgcc_ntoaarch64le
-CFLAGS = -Wall -Wextra -O2
+TARGET = gcc_ntoaarch64le
+CFLAGS = -V$(TARGET) -O2 -Wall -Wextra
+LDFLAGS = 
 
-BUILD_DIR = build/aarch64le
-SRC = appl_can_rx.c
-OBJ = $(BUILD_DIR)/appl_can_rx.o
-TARGET = $(BUILD_DIR)/$(NAME)
+SRCS = appl_can_rx.c
+OBJS = $(SRCS:.c=.o)
+EXEC = can_app
 
-.PHONY: all clean
+all: $(EXEC)
 
-all: $(TARGET)
+$(EXEC): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC) $(LDFLAGS)
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
-$(OBJ): $(SRC) | $(BUILD_DIR)
-	$(CC) $(TARGET_ARCH) $(CFLAGS) -c $< -o $@
-
-$(TARGET): $(OBJ)
-	$(CC) $(TARGET_ARCH) $< -o $@
-	@echo "Build complete: $(TARGET)"
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf build
+	rm -f $(OBJS) $(EXEC)
+
+.PHONY: all clean

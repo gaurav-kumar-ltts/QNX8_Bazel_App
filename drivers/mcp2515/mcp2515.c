@@ -51,6 +51,7 @@ typedef struct {
     uint32_t sid_mid;
     uint32_t current_mid;
     uint32_t filter;
+    int is_rx; // 1 for RX mailbox, 0 for TX mailbox
 } mailbox_config_t;
 
 typedef struct {
@@ -59,12 +60,12 @@ typedef struct {
 } mcp2515_attr_t;
 
 static mailbox_config_t mb_configs[] = {
-    { "rx0", 0, 0x0,      0, 0 },
-    { "rx1", 1, 0x40000,  1, 0 },
-    { "tx1", 2, 0x60000,  2, 0 },
-    { "tx2", 3, 0x80000,  3, 0 },
-    { "tx3", 4, 0xC0000,  4, 0 },
-    { "tx4", 5, 0x100000, 5, 0 }
+    { "rx0", 0, 0x0,      0, 0, 1 },
+    { "rx1", 1, 0x40000,  1, 0, 1 },
+    { "tx1", 2, 0x60000,  2, 0, 0 },
+    { "tx2", 3, 0x80000,  3, 0, 0 },
+    { "tx3", 4, 0xC0000,  4, 0, 0 },
+    { "tx4", 5, 0x100000, 5, 0, 0 }
 };
 
 /* ===== SPI Lower-Level Drivers ===== */
@@ -195,17 +196,14 @@ int io_write(resmgr_context_t *ctp, io_write_t *msg, RESMGR_OCB_T *ocb) {
 }
 
 int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
-    int status;
+    int status = EOK;
     size_t nbytes = 0;
     uint32_t *data;
 
-    if ((status = iofunc_devctl_default(ctp, msg, ocb)) != _RESMGR_DEFAULT) {
-        return status;
-    }
-
-    data = _DEVCTL_DATA(msg->i);
     mcp2515_attr_t *mcp_attr = (mcp2515_attr_t *)ocb->attr;
     mailbox_config_t *mb = mcp_attr ? mcp_attr->mb_config : NULL;
+
+    data = _DEVCTL_DATA(msg->i);
 
     switch (msg->i.dcmd) {
         case CAN_DEVCTL_SET_MID:
@@ -243,12 +241,14 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
             break;
 
         case CAN_DEVCTL_READ_CANMSG_EXT: {
+            if (!mb || !mb->is_rx) {
+                status = EINVAL;
+                break;
+            }
+
             uint8_t tx_buf[13] = {0};
             uint8_t rx_buf[13] = {0};
 
-            // Use MCP2515 built-in instruction to Read RX Buffer 0 directly
-            // Byte 0: Instruction (0x90)
-            // Bytes 1-12: Clock out status, IDs, DLC, and up to 8 data bytes atomically
             tx_buf[0] = MCP_READ_RXB0;
 
             if (spi_transfer(spi_fd, tx_buf, rx_buf, 13) == 0) {
@@ -257,7 +257,6 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
                 uint8_t dlc  = rx_buf[5] & 0x0F;
                 if (dlc > 8) dlc = 8;
 
-                // Reconstruct standard 11-bit CAN ID from hardware registers
                 uint32_t extracted_id = (sidh << 3) | (sidl >> 5);
 
                 uint8_t rx_data[8] = {0};
@@ -281,21 +280,23 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
         }
 
         case CAN_DEVCTL_WRITE_CANMSG_EXT: {
+            if (!mb || mb->is_rx) {
+                status = EINVAL;
+                break;
+            }
+
             if (msg->i.nbytes >= sizeof(struct can_msg)) {
                 struct can_msg *can_in = _DEVCTL_DATA(msg->i);
                 uint8_t dlc = can_in->len > 8 ? 8 : can_in->len;
 
-                // Configure standard ID mapping for TXB0
                 mcp2515_write_register(spi_fd, MCP_TXB0SIDH, (can_in->mid >> 3) & 0xFF);
                 mcp2515_write_register(spi_fd, MCP_TXB0SIDL, (can_in->mid & 0x07) << 5);
                 mcp2515_write_register(spi_fd, MCP_TXB0DLC, dlc);
 
-                // Write payload data bytes
                 for (int i = 0; i < dlc; i++) {
                     mcp2515_write_register(spi_fd, MCP_TXB0DATA + i, can_in->dat[i]);
                 }
 
-                // Request-to-Send (RTS) for TXB0
                 uint8_t rts_tx[1] = { MCP_RTS_TX0 };
                 uint8_t rts_rx[1] = { 0 };
                 spi_transfer(spi_fd, rts_tx, rts_rx, 1);
@@ -309,7 +310,8 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
         }
 
         default:
-            return ENOTSUP;
+            /* Fall back to default system devctl handler only for non-custom commands */
+            return iofunc_devctl_default(ctp, msg, ocb);
     }
 
     memset(&msg->o, 0, sizeof(msg->o));
