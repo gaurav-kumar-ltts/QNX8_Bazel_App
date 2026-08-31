@@ -26,6 +26,7 @@ int main(void) {
     }
 
     unsigned long packet_count = 0;
+    uint32_t candata = 0x00;
 
     while (1) {
         packet_count++;
@@ -33,16 +34,19 @@ int main(void) {
         
         canmsg.mid = can_ids[id_index];
         canmsg.len = 8; // Set length to 8 bytes
+        
 
         // Match your specified data fields pattern with 4 padding bytes
-        canmsg.dat[0] = rand();
-        canmsg.dat[1] = rand();
-        canmsg.dat[2] = rand();
-        canmsg.dat[3] = rand();
-        canmsg.dat[4] = rand();
-        canmsg.dat[5] = rand();
-        canmsg.dat[6] = rand();
-        canmsg.dat[7] = rand();
+        canmsg.dat[0] = candata;
+        canmsg.dat[1] = ++candata;
+        canmsg.dat[2] = ++candata;
+        canmsg.dat[3] = ++candata;
+        canmsg.dat[4] = ++candata;
+        canmsg.dat[5] = ++candata;
+        canmsg.dat[6] = ++candata;
+        canmsg.dat[7] = ++candata;
+        
+        ++candata;
 
         int bytes_written = write(fd, &canmsg, sizeof(canmsg));
         
