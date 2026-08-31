@@ -59,7 +59,7 @@ int main(void) {
         }
 
         id_index = (id_index + 1) % num_ids;
-        usleep(10000);
+        usleep(100);
     }
 
     close(fd);

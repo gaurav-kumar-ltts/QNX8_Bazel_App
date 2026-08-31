@@ -261,12 +261,12 @@ int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb) {
                 break;
             }
 
-            uint8_t tx_buf[13] = {0};
-            uint8_t rx_buf[13] = {0};
+            uint8_t tx_buf[14] = {0};
+            uint8_t rx_buf[14] = {0};
 
             tx_buf[0] = MCP_READ_RXB0;
 
-            if (spi_transfer(spi_fd, tx_buf, rx_buf, 13) == 0) {
+            if (spi_transfer(spi_fd, tx_buf, rx_buf, 14) == 0) {
                 uint8_t sidh = rx_buf[1];
                 uint8_t sidl = rx_buf[2];
                 uint8_t dlc  = rx_buf[5] & 0x0F;
