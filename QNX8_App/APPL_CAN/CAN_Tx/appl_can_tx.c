@@ -47,7 +47,7 @@ int main(void) {
         int bytes_written = write(fd, &canmsg, sizeof(canmsg));
         
         if (bytes_written > 0) {
-            printf("[DEBUG] [Packet #%lu] WRITE SUCCESS -> ID: 0x%X | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n", 
+            printf("[DEBUG] [Packet #%lu] QNX WRITE SUCCESS -> ID: 0x%X | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n", 
                    packet_count, canmsg.mid, 
                    canmsg.dat[0], canmsg.dat[1], canmsg.dat[2], canmsg.dat[3],
                    canmsg.dat[4], canmsg.dat[5], canmsg.dat[6], canmsg.dat[7]);

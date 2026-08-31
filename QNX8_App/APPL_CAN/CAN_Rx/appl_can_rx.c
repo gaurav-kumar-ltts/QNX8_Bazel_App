@@ -32,7 +32,7 @@ int main(void) {
             // Optional filter to exclusively print Arduino's range if desired
             if (rx_msg.mid >= 0x200 && rx_msg.mid <= 0x205) {
                 rx_packet_count++;
-                printf("[DEBUG] [RX PKT #%lu] ID: 0x%X | DLC: %d | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                printf("[DEBUG] [QNX RX PKT #%lu] ID: 0x%X | DLC: %d | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                        rx_packet_count, 
                        rx_msg.mid, 
                        rx_msg.len, 
