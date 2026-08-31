@@ -35,14 +35,14 @@ int main(void) {
         canmsg.len = 8; // Set length to 8 bytes
 
         // Match your specified data fields pattern with 4 padding bytes
-        canmsg.dat[0] = 0x3C;
-        canmsg.dat[1] = 0x79;
-        canmsg.dat[2] = 0x82;
-        canmsg.dat[3] = 0xE3;
-        canmsg.dat[4] = 0x00;
-        canmsg.dat[5] = 0x00;
-        canmsg.dat[6] = 0x00;
-        canmsg.dat[7] = 0x00;
+        canmsg.dat[0] = rand();
+        canmsg.dat[1] = rand();
+        canmsg.dat[2] = rand();
+        canmsg.dat[3] = rand();
+        canmsg.dat[4] = rand();
+        canmsg.dat[5] = rand();
+        canmsg.dat[6] = rand();
+        canmsg.dat[7] = rand();
 
         int bytes_written = write(fd, &canmsg, sizeof(canmsg));
         
