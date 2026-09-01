@@ -10,6 +10,7 @@
 #include <sys/can_dcmd.h>
 
 #define TX_MAILBOX_PATH "/dev/can0/tx1"
+#define INTERVAL_MS 10  // 10 ms schedule interval
 
 int main(void) {
     int fd;
@@ -28,15 +29,17 @@ int main(void) {
     unsigned long packet_count = 0;
     uint32_t candata = 0x00;
 
+    struct timespec next_time;
+    // Initialize next_time using CLOCK_MONOTONIC
+    clock_gettime(CLOCK_MONOTONIC, &next_time);
+
     while (1) {
         packet_count++;
         memset(&canmsg, 0, sizeof(canmsg));
         
         canmsg.mid = can_ids[id_index];
-        canmsg.len = 8; // Set length to 8 bytes
+        canmsg.len = 8; 
         
-
-        // Match your specified data fields pattern with 4 padding bytes
         canmsg.dat[0] = candata;
         canmsg.dat[1] = ++candata;
         canmsg.dat[2] = ++candata;
@@ -59,7 +62,16 @@ int main(void) {
         }
 
         id_index = (id_index + 1) % num_ids;
-        usleep(100);
+
+        // Calculate the next absolute wakeup time (add 10ms)
+        next_time.tv_nsec += INTERVAL_MS * 1000000;
+        while (next_time.tv_nsec >= 1000000000) {
+            next_time.tv_nsec -= 1000000000;
+            next_time.tv_sec += 1;
+        }
+
+        // Sleep natively until the exact absolute timestamp is reached
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
     }
 
     close(fd);

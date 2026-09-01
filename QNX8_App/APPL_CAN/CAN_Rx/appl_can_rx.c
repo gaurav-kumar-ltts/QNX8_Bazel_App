@@ -5,10 +5,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 #include <devctl.h>
 #include <sys/can_dcmd.h>
 
 #define RX_MAILBOX_PATH "/dev/can0/rx0"
+#define INTERVAL_MS 10  // 10 ms absolute schedule interval
 
 int main(void) {
     int fd;
@@ -22,10 +24,14 @@ int main(void) {
         return EXIT_FAILURE;
     }
     printf("[DEBUG] Successfully opened %s with file descriptor: %d\n", RX_MAILBOX_PATH, fd);
-    printf("[DEBUG] Listening for Arduino frames (IDs 0x200 - 0x205)...\n");
+    printf("[DEBUG] Listening for Arduino frames (IDs 0x200 - 0x205) on a strict 10ms schedule...\n");
     fflush(stdout);
 
     unsigned long rx_packet_count = 0;
+
+    struct timespec next_time;
+    // Initialize absolute monotonic clock baseline
+    clock_gettime(CLOCK_MONOTONIC, &next_time);
 
     while (1) {
         memset(&rx_msg, 0, sizeof(rx_msg));
@@ -42,15 +48,22 @@ int main(void) {
                 printf("[DEBUG] [QNX RX PKT #%lu] ID: 0x%X | DLC Reported: %d | Data: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                        rx_packet_count, 
                        rx_msg.mid, 
-                       rx_msg.len, // Check if this reports 8
+                       rx_msg.len, // Check if this reports 8[cite: 4]
                        rx_msg.dat[0], rx_msg.dat[1], rx_msg.dat[2], rx_msg.dat[3],
                        rx_msg.dat[4], rx_msg.dat[5], rx_msg.dat[6], rx_msg.dat[7]); //[cite: 4]
                 fflush(stdout);
             }
-        } else {
-            // Sleep briefly if no message is ready to prevent CPU spiking[cite: 4]
-            usleep(1000); 
         }
+
+        // Calculate the next absolute wakeup timestamp (adding exactly 10ms)
+        next_time.tv_nsec += INTERVAL_MS * 1000000;
+        while (next_time.tv_nsec >= 1000000000) {
+            next_time.tv_nsec -= 1000000000;
+            next_time.tv_sec += 1;
+        }
+
+        // Sleep natively until the exact absolute time is reached (drift-free schedule)
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
     }
 
     close(fd);
