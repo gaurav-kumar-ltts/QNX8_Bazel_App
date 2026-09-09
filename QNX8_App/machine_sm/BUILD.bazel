@@ -1,38 +1,21 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-# 1. Local library exposing DLT headers into the Bazel Sandbox
-cc_library(
-    name = "dlt_lib",
-    hdrs = glob([
-        "dlt-daemon/include/**/*.h",
-        "dlt-daemon/build/include/**/*.h",
-    ]),
-    includes = [
-        "dlt-daemon/include",
-        "dlt-daemon/include/dlt",
-        "dlt-daemon/build/include",
-        "dlt-daemon/build/include/dlt",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-# 2. State Manager Target Binary
 cc_binary(
     name = "state_manager",
     srcs = [
+        "sm_config.hpp",
         "sm_main.cc",
+        "sm_process.hpp",
     ],
     copts = [
         "-std=c++17",
     ],
+    features = ["-no_rpath"],
     linkopts = [
-        "-lsocket",
         "-ldlt",
-        "-L/home/prathik/qnx800/QNX8_App/dlt-daemon/build/src/lib",
-        "-lc++",
-        "-lm",
     ],
     deps = [
-        ":dlt_lib",
+        "@dlt_external//:dlt_headers",
+        "@em_external//:json_headers",
     ],
 )

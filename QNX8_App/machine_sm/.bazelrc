@@ -1,24 +1,27 @@
-# 1. Compiler Toolchain Selection Override
-build:qnx_aarch64 --repo_env=CC=/home/prathik/qnx800/QNX8_App/diagd/qcc_wrapper.sh
-build:qnx_aarch64 --action_env=CC=/home/prathik/qnx800/QNX8_App/diagd/qcc_wrapper.sh
-build:qnx_aarch64 --action_env=CXX=/home/prathik/qnx800/QNX8_App/diagd/qcc_wrapper.sh
+# QNX Environment Setup
+build:qnx_aarch64 --repo_env=PATH=/home/khalil/prathik/QNX8_Bazel_App/QNX8_App/machine_sm:/home/khalil/qnx800/host/linux/x86_64/usr/bin:/usr/bin:/bin
+build:qnx_aarch64 --action_env=PATH=/home/khalil/prathik/QNX8_Bazel_App/QNX8_App/machine_sm:/home/khalil/qnx800/host/linux/x86_64/usr/bin:/usr/bin:/bin
+build:qnx_aarch64 --repo_env=CC=qcc_wrapper.sh
+build:qnx_aarch64 --action_env=CC=qcc_wrapper.sh
+build:qnx_aarch64 --action_env=CXX=qcc_wrapper.sh
 build:qnx_aarch64 --action_env=BAZEL_COMPILER=qcc
+build:qnx_aarch64 --action_env=QNX_HOST=/home/khalil/qnx800/host/linux/x86_64
+build:qnx_aarch64 --action_env=QNX_TARGET=/home/khalil/qnx800/target/qnx
+build:qnx_aarch64 --action_env=HOME=/home/khalil
+build:qnx_aarch64 --action_env=USER=khalil
 
-# 2. Target Compilation & Architecture Flags
-build:qnx_aarch64 --copt=-Vgcc_ntoaarch64le
-build:qnx_aarch64 --linkopt=-Vgcc_ntoaarch64le
+# Architecture Flags
+build:qnx_aarch64 --copt=-Vgcc_ntoaarch64le_cxx
+build:qnx_aarch64 --linkopt=-Vgcc_ntoaarch64le_cxx
 build:qnx_aarch64 --copt=-D_XOPEN_SOURCE=600
 
-# 3. Core QNX SDK Paths & Environment Preservation
-build:qnx_aarch64 --incompatible_strict_action_env
-build:qnx_aarch64 --action_env=QNX_HOST=/home/prathik/qnx800/host/linux/x86_64
-build:qnx_aarch64 --action_env=QNX_TARGET=/home/prathik/qnx800/target/qnx
+# Allow sandbox access to QNX directories
+build:qnx_aarch64 --sandbox_add_mount_pair=/home/khalil/qnx800
 
-# 4. QNX Licensing & Sandbox Bypass Flags
-build:qnx_aarch64 --action_env=HOME=/home/prathik
-build:qnx_aarch64 --action_env=USER=prathik
-build:qnx_aarch64 --sandbox_add_mount_pair=/home/prathik/.qnx
-build:qnx_aarch64 --sandbox_writable_path=/home/prathik/.qnx
+# Allow sandbox access to project directories outside this workspace root
+# (dlt-daemon build output lives under the parent QNX8_Bazel_App tree)
+build:qnx_aarch64 --sandbox_add_mount_pair=/home/khalil/prathik/QNX8_Bazel_App
 
-# 5. Serialization
-build:qnx_aarch64 --jobs=1
+# Grant writable access and mount the QNX license directory into the sandbox
+build:qnx_aarch64 --sandbox_writable_path=/home/khalil/.qnx
+build:qnx_aarch64 --sandbox_add_mount_pair=/home/khalil/.qnx

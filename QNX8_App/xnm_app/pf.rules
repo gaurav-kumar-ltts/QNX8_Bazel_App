@@ -1,0 +1,80 @@
+####################
+# PFCTL
+####################
+
+# Interfaces
+if_vlan10 = "vlan10"
+if_vlan20 = "vlan20"
+if_vlan30 = "vlan30"
+
+# IPv4 addresses
+net_vlan10 = "10.20.30.0/24"
+net_vlan20 = "10.20.40.0/24"
+net_vlan30 = "169.254.0.0/16"
+
+ip_vlan10 = "10.20.30.42"
+ip_vlan20 = "10.20.40.42"
+ip_vehicle_broadcast = "255.255.255.255"
+
+####################
+# Traffic shaping
+####################
+
+altq on $if_vlan10 bandwidth 300Mb cbq queue { q_vlan10 }
+queue q_vlan10 bandwidth 300Mb cbq(default)
+
+altq on $if_vlan20 bandwidth 300Mb cbq queue { q_vlan20 }
+queue q_vlan20 bandwidth 300Mb cbq(default)
+
+altq on $if_vlan30 bandwidth 300Mb cbq queue { q_vlan30 }
+queue q_vlan30 bandwidth 300Mb cbq(default)
+
+####################
+# Vlan tag Blocking
+####################
+
+#Block vlan10 block !10/30/20
+##Block 30 on 10
+
+block in log quick on $if_vlan10 proto tcp from ($if_vlan30) to any
+block in log quick on $if_vlan10 proto udp from ($if_vlan30) to any
+block in log quick on $if_vlan10 proto tcp from any to ($if_vlan30)
+block in log quick on $if_vlan10 proto udp from any to ($if_vlan30)
+
+##Block 20 on 10
+
+block in log quick on $if_vlan10 proto tcp from $net_vlan20 to any
+block in log quick on $if_vlan10 proto udp from $net_vlan20 to any
+block in log quick on $if_vlan10 proto tcp from any to $net_vlan20
+block in log quick on $if_vlan10 proto udp from any to $net_vlan20
+
+
+#Block vlan20 block 10/30/!20
+##Block 10 on 20
+
+block in log quick on $if_vlan20 proto tcp from $net_vlan10 to any
+block in log quick on $if_vlan20 proto udp from $net_vlan10 to any
+block in log quick on $if_vlan20 proto tcp from any to $net_vlan10
+block in log quick on $if_vlan20 proto udp from any to $net_vlan10
+
+##Block 30 on 20
+
+block in log quick on $if_vlan20 proto tcp from ($if_vlan30) to any
+block in log quick on $if_vlan20 proto udp from ($if_vlan30) to any
+block in log quick on $if_vlan20 proto tcp from any to ($if_vlan30)
+block in log quick on $if_vlan20 proto udp from any to ($if_vlan30)
+
+
+# Isolating VLANS
+block in log quick on ! $if_vlan10 from $net_vlan10 to any
+block in log quick on ! $if_vlan20 from $net_vlan20 to any
+block in log quick on ! $if_vlan30 from {($if_vlan30), $net_vlan30} to any
+
+# Blocking incoming packets with a source IP address identical to the interface's IP
+block in log quick on $if_vlan10 from $ip_vlan10 to any
+block in log quick on $if_vlan20 from $ip_vlan20 to any
+
+# Assign remaining (non-blocked) traffic to its VLAN's shaping queue
+pass on $if_vlan10 queue q_vlan10
+pass on $if_vlan20 queue q_vlan20
+pass on $if_vlan30 queue q_vlan30

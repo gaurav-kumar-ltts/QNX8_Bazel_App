@@ -9,7 +9,7 @@
 [image=0x80000]
 [virtual=aarch64le,raw -compress] boot = {
     startup-bcm2712-rpi5 -v -u reg -a -W 5000 
-    PATH=/proc/boot:/sbin:/bin:/usr/bin:/usr/sbin:/usr/libexec LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/lib/dll/pci procnto-smp-instr -v
+    PATH=/proc/boot:/sbin:/bin:/usr/bin:/usr/sbin:/usr/libexec LD_LIBRARY_PATH=/usr/local/bin:/proc/boot:/lib:/usr/lib:/lib/dll:/lib/dll/pci procnto-smp-instr -v
 }
 
 [+script] startup-script = {
@@ -278,33 +278,6 @@ fi
 
 [type=link] /etc/ssh = /dev/shmem
 /dev/shmem/sshd_config=${QNX_TARGET}/etc/ssh/sshd_config
-
-/etc/esh = {
-}
-
-[perms=0744] .ssh-server.sh={
-#!/bin/ksh
-
-## Create the ssh keys if they do not exist
-if [ ! -f /etc/ssh/ssh_host_rsa_key ]
-then
-    ssh-keygen -q -t rsa -N "" -f /etc/ssh/ssh_host_rsa_key
-fi
-
-if [ ! -f /etc/ssh/ssh_host_ecdsa_key ]
-then
-    ssh-keygen -q -t ecdsa -N "" -f /etc/ssh/ssh_host_ecdsa_key
-fi
-
-if [ ! -f /etc/ssh/ssh_host_ed25519_key ]
-then
-    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-fi
-
-## Start SSH daemon
-    echo "Starting SSH daemon ..."
-    /usr/sbin/sshd
-}
 
 
 
@@ -712,7 +685,7 @@ export HOME=/
 export SYSNAME=nto
 export TERM=qansi
 export PATH=/proc/boot:/sbin:/bin:/usr/bin:/usr/sbin:/usr/libexec
-export LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/lib/dll/pci
+export LD_LIBRARY_PATH=/usr/local/bin:/proc/boot:/lib:/usr/lib:/lib/dll:/lib/dll/pci
 
 export PCI_HW_MODULE=/lib/dll/pci/pci_hw-bcm2712-rpi5.so
 export PCI_DEBUG_MODULE=/lib/dll/pci/pci_debug2.so
@@ -815,11 +788,6 @@ dhcpcd -bqq
 # wpa_supplicant -Dqwdi -i bcm0 -c /etc/system/config/wpa_supplicant.conf &
 
 ############################################################################################
-## SSH Server
-############################################################################################
-/proc/boot/.ssh-server.sh
-
-############################################################################################
 ## REMOTE_DEBUG: gdb or Momentics
 ##  - refer to the help documentation for the gdb, qconn and the IDE
 ##    for more information on remote debugging
@@ -871,6 +839,19 @@ gpio-rp1 set 45 a0 pd
 fan-rpi5
 waitfor /dev/fan
 echo 200 > /dev/fan
+}
+
+################################################################################################
+## Script for xnm_app (delayed launch)
+################################################################################################
+xnm_app_start.sh = {
+#!/bin/sh
+
+# Extra safety margin on top of xnm_app's own internal interface-up retry:
+# give the physical NIC's driver more time to settle before touching it.
+sleep 1
+
+/usr/local/bin/xnm_app --config /proc/boot/xnm_config.json
 }
 
 ################################################################################################
@@ -928,6 +909,24 @@ dhd_verbose=0
 [search=../install/etc${PFS}${QNX_TARGET}/etc] /etc/firmware/firmware.bin=firmware/bcm43455_firmware_pkg/brcmfmac43455-sdio.bin
 [search=../install/etc${PFS}${QNX_TARGET}/etc] /etc/firmware/nvram.txt=firmware/bcm43455_firmware_pkg/brcmfmac43455-sdio.txt
 [search=../install/etc${PFS}${QNX_TARGET}/etc] /etc/firmware/firmware.clm_blob=firmware/bcm43455_firmware_pkg/brcmfmac43455-sdio.clm_blob
+
+
+
+################################################################################################
+## xnm_app: VLAN sub-interfaces + pf firewall rules
+## (see QNX8_App/xnm_app; build with: bazel build --config=qnx_aarch64 //:xnm_app)
+################################################################################################
+xnm_config.json=/home/khalil/prathik/QNX8_Bazel_App/QNX8_App/xnm_app/xnm_config.json
+
+[uid=0 gid=0 type=dir dperms=0755] /etc/xnm
+[uid=0 gid=0 perms=0644] /etc/xnm/pf.rules=/home/khalil/prathik/QNX8_Bazel_App/QNX8_App/xnm_app/pf.rules
+
+## Binary and its runtime library dependency both live under /usr/local/bin
+## (libdlt.so is not otherwise present in this image; xnm_app links -ldlt)
+[type=dir dperms=0755] /usr/local/bin
+[perms=0755] /usr/local/bin/xnm_app = /home/khalil/prathik/QNX8_Bazel_App/QNX8_App/xnm_app/bazel-bin/xnm_app
+[perms=0755] /usr/local/bin/libdlt.so = /home/khalil/prathik/QNX8_Bazel_App/QNX8_App/dlt-daemon/build/src/lib/libdlt.so.3.0.1
+
 
 ################################################################################################
 ## none official or private utils for debugging purpose, should be removed from official build

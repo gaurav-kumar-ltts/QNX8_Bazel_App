@@ -31,6 +31,7 @@ cc_binary(
         "-lboost_thread",
         "-lboost_system",
         "-lboost_filesystem",
+        "-L/usr/local/lib",
     ],
     deps = [
         "@dlt_external//:dlt_headers",
@@ -52,6 +53,7 @@ cc_binary(
         "-lboost_thread",
         "-lboost_system",
         "-lboost_filesystem",
+
     ],
     deps = [
         "@dlt_external//:dlt_headers",
@@ -74,6 +76,7 @@ cc_binary(
         "-lboost_thread",
         "-lboost_system",
         "-lboost_filesystem",
+        "-L/usr/local/lib"
     ],
     deps = [
         "@dlt_external//:dlt_headers",

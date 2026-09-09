@@ -32,6 +32,13 @@ DLT_DECLARE_CONTEXT(diag_ctx);
 const uint16_t logical_address = 0x1000; // ECU address
 const char* SHM_NAME = "/msm_shared_state";
 
+// Field(0x00)/engineering(0x01) access mode, exposed over UDS DID 0x1705.
+// Kept in its own shared-memory segment, separate from /msm_shared_state
+// (which is machine_sm's STARTUP/RUNNING/SHUTDOWN EcuState) so writes here
+// can't corrupt that state machine. diag_app is the only writer, so it owns
+// creating the segment (unlike /msm_shared_state, which machine_sm creates).
+const char* MODE_SHM_NAME = "/xnm_mode_state";
+
 void log_hex(const std::string& prefix, const std::vector<uint8_t>& data) {
     std::ostringstream oss;
     for (size_t i = 0; i < data.size(); ++i) {
@@ -74,6 +81,54 @@ bool write_shared_state(uint8_t value) {
         munmap(ptr, sizeof(uint8_t));
     } else {
         DLT_LOG(diag_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to map shared memory for writing"), DLT_STRING(strerror(errno)));
+    }
+    close(fd);
+    return true;
+}
+
+uint8_t read_mode_state() {
+    DLT_LOG(diag_ctx, DLT_LOG_DEBUG, DLT_STRING("Reading access mode from shared memory"));
+    int fd = shm_open(MODE_SHM_NAME, O_RDONLY, 0666);
+    if (fd < 0) {
+        // Not created yet (no tester has ever set the mode) - default to
+        // field, the restrictive state.
+        return 0x00;
+    }
+    void* ptr = mmap(0, sizeof(uint8_t), PROT_READ, MAP_SHARED, fd, 0);
+    uint8_t value = (ptr != MAP_FAILED) ? *static_cast<uint8_t*>(ptr) : 0x00;
+    if (ptr != MAP_FAILED) {
+        DLT_LOG(diag_ctx, DLT_LOG_INFO, DLT_STRING("Read access mode"), DLT_UINT8(value));
+        munmap(ptr, sizeof(uint8_t));
+    } else {
+        DLT_LOG(diag_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to map mode shared memory"), DLT_STRING(strerror(errno)));
+    }
+    close(fd);
+    return value;
+}
+
+bool write_mode_state(uint8_t value) {
+    DLT_LOG(diag_ctx, DLT_LOG_DEBUG, DLT_STRING("Writing access mode to shared memory"), DLT_UINT8(value));
+    // diag_app owns this segment (unlike /msm_shared_state, which
+    // machine_sm creates), so create it on first use.
+    int fd = shm_open(MODE_SHM_NAME, O_CREAT | O_RDWR, 0666);
+    if (fd < 0) {
+        DLT_LOG(diag_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to open mode shared memory for writing"), DLT_STRING(strerror(errno)));
+        return false;
+    }
+    if (ftruncate(fd, sizeof(uint8_t)) != 0) {
+        DLT_LOG(diag_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to size mode shared memory"), DLT_STRING(strerror(errno)));
+        close(fd);
+        return false;
+    }
+    void* ptr = mmap(0, sizeof(uint8_t), PROT_WRITE, MAP_SHARED, fd, 0);
+    if (ptr != MAP_FAILED) {
+        *static_cast<uint8_t*>(ptr) = value;
+        DLT_LOG(diag_ctx, DLT_LOG_INFO, DLT_STRING("Wrote access mode"), DLT_UINT8(value));
+        munmap(ptr, sizeof(uint8_t));
+    } else {
+        DLT_LOG(diag_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to map mode shared memory for writing"), DLT_STRING(strerror(errno)));
+        close(fd);
+        return false;
     }
     close(fd);
     return true;
@@ -129,6 +184,12 @@ std::string handle_request(const std::vector<uint8_t>& request) {
             std::vector<uint8_t> response = { 0x62, 0x17, 0x02, 0x66 };
             log_hex("UDS response: ", response);
             return std::string(response.begin(), response.end());
+        } else if (did == 0x1705) {
+            DLT_LOG(diag_ctx, DLT_LOG_INFO, DLT_STRING("Handling RDBI DID 0x1705 (access mode)"));
+            uint8_t value = read_mode_state();
+            std::vector<uint8_t> response = { 0x62, 0x17, 0x05, value };
+            log_hex("UDS response: ", response);
+            return std::string(response.begin(), response.end());
         }
     }
 
@@ -149,6 +210,25 @@ std::string handle_request(const std::vector<uint8_t>& request) {
         } else if (did == 0x1704 && value == 0x22) {
             DLT_LOG(diag_ctx, DLT_LOG_INFO, DLT_STRING("Handling WDBI DID 0x1704 with value 0x22, returning positive response"));
             std::vector<uint8_t> response = { 0x6E, 0x17, 0x04 };
+            log_hex("UDS response: ", response);
+            return std::string(response.begin(), response.end());
+        } else if (did == 0x1705) {
+            // Access mode: 0x00 = field, 0x01 = engineering. machine_sm's
+            // OperationMode Function Group polls this and starts/stops
+            // sshd accordingly.
+            if (value != 0x00 && value != 0x01) {
+                DLT_LOG(diag_ctx, DLT_LOG_WARN, DLT_STRING("Rejecting WDBI DID 0x1705, invalid mode value"), DLT_UINT8(value));
+                std::vector<uint8_t> response = { 0x7F, 0x2E, 0x31 };  // NRC: requestOutOfRange
+                log_hex("UDS response: ", response);
+                return std::string(response.begin(), response.end());
+            }
+            DLT_LOG(diag_ctx, DLT_LOG_INFO, DLT_STRING("Handling WDBI DID 0x1705 (access mode)"), DLT_UINT8(value));
+            if (!write_mode_state(value)) {
+                std::vector<uint8_t> response = { 0x7F, 0x2E, 0x72 };  // NRC: generalProgrammingFailure
+                log_hex("UDS response: ", response);
+                return std::string(response.begin(), response.end());
+            }
+            std::vector<uint8_t> response = { 0x6E, 0x17, 0x05 };
             log_hex("UDS response: ", response);
             return std::string(response.begin(), response.end());
         }

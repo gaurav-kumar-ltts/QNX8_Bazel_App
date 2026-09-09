@@ -4,9 +4,16 @@
 #include <chrono>
 #include <atomic>
 #include <csignal>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+#include "sm_config.hpp"
+#include "sm_process.hpp"
 
 DLT_DECLARE_CONTEXT(msm_ctx);
 
@@ -118,14 +125,109 @@ void monitor_state_requests() {
         DLT_LOG(msm_ctx, DLT_LOG_DEBUG, DLT_STRING("Checking for state change in shared memory"));
         EcuState shm_state = read_state_from_shm();
         if (shm_state != current_state.load()) {
-            DLT_LOG(msm_ctx, DLT_LOG_INFO, DLT_STRING("Detected state change in shared memory"), 
+            DLT_LOG(msm_ctx, DLT_LOG_INFO, DLT_STRING("Detected state change in shared memory"),
                     DLT_STRING("new state"), DLT_UINT8(static_cast<uint8_t>(shm_state)));
             enforce_transition(shm_state);
         }
     }
 }
 
-int main() {
+// ---------------------------------------------------------------------------
+// OperationMode Function Group (Field/Engineering) - independent of the
+// MachineState Function Group above. diag_app writes the mode byte it
+// receives over UDS DID 0x1705 into its own shared-memory segment (separate
+// from SHM_NAME/EcuState, so a diagnostic mode write can never be
+// misinterpreted as a STARTUP/RUNNING/SHUTDOWN transition or bypass
+// transition_allowed); this reconciles the manifest-listed Processes for
+// whichever state is currently active, the same way EM starts/stops a
+// Function Group's Process list on a state transition.
+// ---------------------------------------------------------------------------
+
+enum class OperationMode : uint8_t {
+    FIELD = 0x00,
+    ENGINEERING = 0x01
+};
+
+OperationMode read_operation_mode_from_shm(const std::string& shm_name) {
+    int fd = shm_open(shm_name.c_str(), O_RDONLY, 0666);
+    if (fd < 0) {
+        // Not created yet (no tester has ever set the mode) - default to
+        // field, the restrictive state.
+        return OperationMode::FIELD;
+    }
+    void* ptr = mmap(0, sizeof(uint8_t), PROT_READ, MAP_SHARED, fd, 0);
+    uint8_t val = 0;
+    if (ptr != MAP_FAILED) {
+        val = *static_cast<uint8_t*>(ptr);
+        munmap(ptr, sizeof(uint8_t));
+    }
+    close(fd);
+    return val == static_cast<uint8_t>(OperationMode::ENGINEERING) ? OperationMode::ENGINEERING : OperationMode::FIELD;
+}
+
+// Tracks the Processes currently running for the OperationMode FG, keyed by
+// name, and reconciles them against a state's manifest each tick. Called
+// every poll regardless of whether the mode changed, so it also self-heals
+// a process that crashed while its state was still active.
+class OperationModeSupervisor {
+public:
+    void reconcile(const std::vector<sm_config::ManagedProcess>& desired) {
+        reap_exited();
+
+        std::set<std::string> desired_names;
+        for (const auto& proc : desired) {
+            desired_names.insert(proc.name);
+        }
+
+        for (auto it = running_.begin(); it != running_.end();) {
+            if (desired_names.count(it->first) == 0) {
+                sm_process::terminate(msm_ctx, it->first, it->second);
+                it = running_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (const auto& proc : desired) {
+            if (running_.count(proc.name) != 0) {
+                continue;
+            }
+            const pid_t pid = sm_process::spawn_detached(msm_ctx, proc.path, proc.args);
+            if (pid > 0) {
+                running_[proc.name] = pid;
+            } else {
+                DLT_LOG(msm_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to start managed process:"), DLT_STRING(proc.name.c_str()));
+            }
+        }
+    }
+
+private:
+    void reap_exited() {
+        for (auto it = running_.begin(); it != running_.end();) {
+            if (sm_process::has_exited(it->second)) {
+                DLT_LOG(msm_ctx, DLT_LOG_WARN, DLT_STRING("Managed process exited unexpectedly:"), DLT_STRING(it->first.c_str()));
+                it = running_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    std::map<std::string, pid_t> running_;
+};
+
+void monitor_operation_mode(const sm_config::OperationModeConfig& cfg) {
+    DLT_LOG(msm_ctx, DLT_LOG_INFO, DLT_STRING("Starting OperationMode FG monitoring thread"), DLT_STRING(cfg.state_shm.c_str()));
+    OperationModeSupervisor supervisor;
+    while (true) {
+        const OperationMode mode = read_operation_mode_from_shm(cfg.state_shm);
+        const auto& desired = mode == OperationMode::ENGINEERING ? cfg.engineering_processes : cfg.field_processes;
+        supervisor.reconcile(desired);
+        std::this_thread::sleep_for(std::chrono::milliseconds(cfg.poll_interval_ms));
+    }
+}
+
+int main(int argc, char** argv) {
     DLT_REGISTER_APP("MSM", "Machine State Manager");
     DLT_REGISTER_CONTEXT(msm_ctx, "MSMC", "State Mgmt w/ Table");
 
@@ -136,6 +238,23 @@ int main() {
     enforce_transition(EcuState::STARTUP);
     DLT_LOG(msm_ctx, DLT_LOG_INFO, DLT_STRING("Starting state monitoring thread"));
     std::thread monitor(monitor_state_requests);
+
+    // OperationMode FG is optional: a missing/invalid manifest shouldn't
+    // take down MachineState monitoring, which is the more fundamental duty
+    // of this process.
+    const std::string config_path = sm_config::resolve_config_path(argc, argv);
+    if (config_path.empty()) {
+        DLT_LOG(msm_ctx, DLT_LOG_WARN, DLT_STRING("No sm_config.json found; OperationMode FG (sshd gating) disabled"));
+    } else {
+        try {
+            const sm_config::SmConfig config = sm_config::load_config(config_path);
+            std::thread op_mode_monitor(monitor_operation_mode, config.operation_mode);
+            op_mode_monitor.detach();
+        } catch (const std::exception& ex) {
+            DLT_LOG(msm_ctx, DLT_LOG_ERROR, DLT_STRING("Failed to load sm_config.json, OperationMode FG disabled:"), DLT_STRING(ex.what()));
+        }
+    }
+
     monitor.join();
 
     DLT_LOG(msm_ctx, DLT_LOG_INFO, DLT_STRING("Shutting down Machine State Manager"));
